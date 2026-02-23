@@ -14,10 +14,13 @@
   },
   "dependencies": {
     "@contenthead/sdk": "workspace:*",
+    "@graphiql/toolkit": "^0.11.3",
+    "graphiql": "^5.2.2",
     "primeicons": "^7.0.0",
     "primereact": "^10.9.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "6",
     "reactflow": "^11.11.4"
   },
   "devDependencies": {

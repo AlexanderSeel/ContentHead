@@ -5,6 +5,6 @@ import { PrimeReactProvider } from 'primereact/api';
 import 'primereact/resources/themes/lara-light-blue/theme.css';
 import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
-import { App } from './App';
+import { AdminApp } from './app/AdminApp';
 import './styles.css';
-ReactDOM.createRoot(document.getElementById('root')).render(_jsx(React.StrictMode, { children: _jsx(PrimeReactProvider, { children: _jsx(App, {}) }) }));
+ReactDOM.createRoot(document.getElementById('root')).render(_jsx(React.StrictMode, { children: _jsx(PrimeReactProvider, { children: _jsx(AdminApp, {}) }) }));

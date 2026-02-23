@@ -38,6 +38,29 @@ pnpm --filter @contenthead/api seed
 - `pnpm typecheck`
 - `pnpm test`
 
+## Admin Navigation
+Admin now uses routed backend UI with shell layout:
+- Topbar + Breadcrumbs + Site/Market/Locale switchers + user menu
+- Sidebar sections:
+  - Dashboard
+  - Site Settings (`/site/overview`, `/site/markets-locales`)
+  - Content (`/content/pages`, `/content/templates`, `/content/routes`)
+  - Schema (`/schema/content-types`)
+  - Personalization (`/personalization/variants`)
+  - Forms (`/forms/builder`)
+  - Workflows (`/workflows/designer`, `/workflows/runs`)
+  - Security (`/security/users`, `/security/roles`)
+
+Content Pages route (`/content/pages`) uses split-pane UX:
+- Left: TreeTable + Search tabs
+- Right: Edit / Routes / Versions / Variants / Preview / Raw JSON tabs
+
+## Dev Tools GraphiQL
+- Route: `/dev/graphiql` (development mode only)
+- Embedded GraphiQL executes against `http://localhost:4000/graphql` (or `VITE_API_URL`)
+- Supports current session bearer token and optional `x-preview-token`
+- Includes clickable sample queries/mutations (`me`, `listSites`, matrix, route resolution, versions, workflow operations)
+
 ## Implemented Feature Set
 
 ### Market/Locale Matrix
