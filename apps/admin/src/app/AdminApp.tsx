@@ -18,6 +18,7 @@ import { ContentTypesPage } from '../features/schema/ContentTypesPage';
 import { AssetLibraryPage } from '../features/assets/AssetLibraryPage';
 import { VariantsPage } from '../features/personalization/VariantsPage';
 import { FormBuilderPage } from '../features/forms/FormBuilderPage';
+import { FormSubmissionsPage } from '../features/forms/FormSubmissionsPage';
 import { WorkflowDesignerPage } from '../features/workflows/WorkflowDesignerPage';
 import { WorkflowRunsPage } from '../features/workflows/WorkflowRunsPage';
 import { UsersPage } from '../features/security/UsersPage';
@@ -78,6 +79,7 @@ export function AdminApp() {
 
               <Route path="/forms/builder/:formId" element={<FormBuilderPage />} />
               <Route path="/forms/builder" element={<FormBuilderPage />} />
+              <Route path="/forms/submissions" element={<FormSubmissionsPage />} />
               <Route path="/forms" element={<Navigate to="/forms/builder" replace />} />
 
               <Route path="/workflows/designer" element={<WorkflowDesignerPage />} />

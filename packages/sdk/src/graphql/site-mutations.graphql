@@ -78,6 +78,15 @@ mutation SetSiteUrlPattern($siteId: Int!, $urlPattern: String!) {
   }
 }
 
+mutation SetSiteName($siteId: Int!, $name: String!) {
+  setSiteName(siteId: $siteId, name: $name) {
+    id
+    name
+    active
+    urlPattern
+  }
+}
+
 mutation SetSiteMarkets($siteId: Int!, $markets: [SiteMarketInput!]!, $defaultMarketCode: String!) {
   setSiteMarkets(siteId: $siteId, markets: $markets, defaultMarketCode: $defaultMarketCode) {
     code

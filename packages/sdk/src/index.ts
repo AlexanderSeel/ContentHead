@@ -186,6 +186,14 @@ export function createSdk(options: CreateSdkOptions) {
       execute<G.DeleteFormFieldMutation>(G.DeleteFormFieldDocument, variables, requestOptions),
     evaluateForm: (variables: G.EvaluateFormQueryVariables, requestOptions?: RequestOptions) =>
       execute<G.EvaluateFormQuery>(G.EvaluateFormDocument, variables, requestOptions),
+    submitForm: (variables: G.SubmitFormMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.SubmitFormMutation>(G.SubmitFormDocument, variables, requestOptions),
+    listFormSubmissions: (variables: G.ListFormSubmissionsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListFormSubmissionsQuery>(G.ListFormSubmissionsDocument, variables, requestOptions),
+    exportFormSubmissions: (variables: G.ExportFormSubmissionsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ExportFormSubmissionsQuery>(G.ExportFormSubmissionsDocument, variables, requestOptions),
+    updateSubmissionStatus: (variables: G.UpdateSubmissionStatusMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpdateSubmissionStatusMutation>(G.UpdateSubmissionStatusDocument, variables, requestOptions),
     listWorkflowDefinitions: (requestOptions?: RequestOptions) =>
       execute<G.ListWorkflowDefinitionsQuery>(G.ListWorkflowDefinitionsDocument, {}, requestOptions),
     upsertWorkflowDefinition: (
@@ -229,6 +237,8 @@ export function createSdk(options: CreateSdkOptions) {
       execute<G.UpsertSiteLocaleOverrideMutation>(G.UpsertSiteLocaleOverrideDocument, variables, requestOptions),
     setSiteUrlPattern: (variables: G.SetSiteUrlPatternMutationVariables, requestOptions?: RequestOptions) =>
       execute<G.SetSiteUrlPatternMutation>(G.SetSiteUrlPatternDocument, variables, requestOptions),
+    setSiteName: (variables: G.SetSiteNameMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.SetSiteNameMutation>(G.SetSiteNameDocument, variables, requestOptions),
     setSiteMarkets: (variables: G.SetSiteMarketsMutationVariables, requestOptions?: RequestOptions) =>
       execute<G.SetSiteMarketsMutation>(G.SetSiteMarketsDocument, variables, requestOptions),
     setSiteLocales: (variables: G.SetSiteLocalesMutationVariables, requestOptions?: RequestOptions) =>

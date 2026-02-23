@@ -9,6 +9,7 @@ export const routeLabels: Record<string, string> = {
   '/content/assets': 'Assets',
   '/personalization/variants': 'Variants',
   '/forms/builder': 'Form Builder',
+  '/forms/submissions': 'Form Submissions',
   '/workflows/designer': 'Workflow Designer',
   '/workflows/runs': 'Workflow Runs',
   '/security/users': 'Users',

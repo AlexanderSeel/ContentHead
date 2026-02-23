@@ -181,6 +181,28 @@ export type FormStep = {
   position?: Maybe<Scalars['Int']['output']>;
 };
 
+export type FormSubmission = {
+  __typename?: 'FormSubmission';
+  createdAt?: Maybe<Scalars['String']['output']>;
+  dataJson?: Maybe<Scalars['String']['output']>;
+  formId?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  localeCode?: Maybe<Scalars['String']['output']>;
+  marketCode?: Maybe<Scalars['String']['output']>;
+  metaJson?: Maybe<Scalars['String']['output']>;
+  pageContentItemId?: Maybe<Scalars['Int']['output']>;
+  pageRouteSlug?: Maybe<Scalars['String']['output']>;
+  siteId?: Maybe<Scalars['Int']['output']>;
+  status?: Maybe<Scalars['String']['output']>;
+  submittedByUserId?: Maybe<Scalars['String']['output']>;
+};
+
+export type FormSubmissionList = {
+  __typename?: 'FormSubmissionList';
+  rows?: Maybe<Array<FormSubmission>>;
+  total?: Maybe<Scalars['Int']['output']>;
+};
+
 export type InternalRole = {
   __typename?: 'InternalRole';
   createdAt?: Maybe<Scalars['String']['output']>;
@@ -280,14 +302,17 @@ export type Mutation = {
   setSiteLocales?: Maybe<Array<Locale>>;
   setSiteMarketLocaleMatrix?: Maybe<SiteMarketLocaleMatrix>;
   setSiteMarkets?: Maybe<Array<Market>>;
+  setSiteName?: Maybe<Site>;
   setSiteUrlPattern?: Maybe<Site>;
   setUserRoles?: Maybe<Scalars['Boolean']['output']>;
   startWorkflowRun?: Maybe<WorkflowRun>;
+  submitForm?: Maybe<FormSubmission>;
   testConnector?: Maybe<Scalars['String']['output']>;
   updateAssetMetadata?: Maybe<Asset>;
   updateContentType?: Maybe<ContentType>;
   updateDraftVersion?: Maybe<ContentVersion>;
   updateInternalUser?: Maybe<InternalUser>;
+  updateSubmissionStatus?: Maybe<FormSubmission>;
   updateTemplate?: Maybe<Template>;
   upsertConnector?: Maybe<Connector>;
   upsertForm?: Maybe<Form>;
@@ -536,6 +561,12 @@ export type MutationSetSiteMarketsArgs = {
 };
 
 
+export type MutationSetSiteNameArgs = {
+  name: Scalars['String']['input'];
+  siteId: Scalars['Int']['input'];
+};
+
+
 export type MutationSetSiteUrlPatternArgs = {
   siteId: Scalars['Int']['input'];
   urlPattern: Scalars['String']['input'];
@@ -552,6 +583,20 @@ export type MutationStartWorkflowRunArgs = {
   contextJson: Scalars['String']['input'];
   definitionId: Scalars['Int']['input'];
   startedBy?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationSubmitFormArgs = {
+  answersJson: Scalars['String']['input'];
+  contextJson?: InputMaybe<Scalars['String']['input']>;
+  formId: Scalars['Int']['input'];
+  localeCode: Scalars['String']['input'];
+  marketCode: Scalars['String']['input'];
+  metaJson?: InputMaybe<Scalars['String']['input']>;
+  pageContentItemId?: InputMaybe<Scalars['Int']['input']>;
+  pageRouteSlug?: InputMaybe<Scalars['String']['input']>;
+  siteId: Scalars['Int']['input'];
+  submittedByUserId?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -591,6 +636,12 @@ export type MutationUpdateInternalUserArgs = {
   active: Scalars['Boolean']['input'];
   displayName: Scalars['String']['input'];
   id: Scalars['Int']['input'];
+};
+
+
+export type MutationUpdateSubmissionStatusArgs = {
+  id: Scalars['Int']['input'];
+  status: Scalars['String']['input'];
 };
 
 
@@ -745,6 +796,7 @@ export type Query = {
   __typename?: 'Query';
   diffVersions?: Maybe<VersionDiff>;
   evaluateForm?: Maybe<FormEvaluation>;
+  exportFormSubmissions?: Maybe<Scalars['String']['output']>;
   getAsset?: Maybe<Asset>;
   getContentItemDetail?: Maybe<ContentItemDetail>;
   getPageByRoute?: Maybe<PageByRoute>;
@@ -760,6 +812,7 @@ export type Query = {
   listContentTypes?: Maybe<Array<ContentType>>;
   listFormFields?: Maybe<Array<FormField>>;
   listFormSteps?: Maybe<Array<FormStep>>;
+  listFormSubmissions?: Maybe<FormSubmissionList>;
   listForms?: Maybe<Array<Form>>;
   listInternalRoles?: Maybe<Array<InternalRole>>;
   listInternalUsers?: Maybe<Array<InternalUser>>;
@@ -792,6 +845,19 @@ export type QueryEvaluateFormArgs = {
   answersJson: Scalars['String']['input'];
   contextJson?: InputMaybe<Scalars['String']['input']>;
   formId: Scalars['Int']['input'];
+};
+
+
+export type QueryExportFormSubmissionsArgs = {
+  formId?: InputMaybe<Scalars['Int']['input']>;
+  format: Scalars['String']['input'];
+  fromDate?: InputMaybe<Scalars['String']['input']>;
+  localeCode?: InputMaybe<Scalars['String']['input']>;
+  marketCode?: InputMaybe<Scalars['String']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  siteId: Scalars['Int']['input'];
+  status?: InputMaybe<Scalars['String']['input']>;
+  toDate?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -875,6 +941,22 @@ export type QueryListFormFieldsArgs = {
 
 export type QueryListFormStepsArgs = {
   formId: Scalars['Int']['input'];
+};
+
+
+export type QueryListFormSubmissionsArgs = {
+  formId?: InputMaybe<Scalars['Int']['input']>;
+  fromDate?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  localeCode?: InputMaybe<Scalars['String']['input']>;
+  marketCode?: InputMaybe<Scalars['String']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  siteId: Scalars['Int']['input'];
+  sortField?: InputMaybe<Scalars['String']['input']>;
+  sortOrder?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<Scalars['String']['input']>;
+  toDate?: InputMaybe<Scalars['String']['input']>;
 };
 
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { evaluateFieldConditions, type FormConditionSet, type FormEvaluationContext } from '@contenthead/shared';
 
 type ContentLink = {
   kind?: 'internal' | 'external';
@@ -23,10 +24,20 @@ type AreaPayload = {
 
 type FormFieldPayload = {
   id: number;
+  stepId?: number | null;
   key: string;
   label: string;
   fieldType: string;
+  conditionsJson?: string | null;
+  validationsJson?: string | null;
+  uiConfigJson?: string | null;
   active: boolean;
+};
+
+type FormStepPayload = {
+  id: number;
+  name: string;
+  position?: number | null;
 };
 
 type AssetPayload = {
@@ -39,11 +50,15 @@ type AssetPayload = {
 type CmsRendererClientProps = {
   contentItemId: number;
   versionId: number;
+  siteId?: number;
+  marketCode?: string;
+  localeCode?: string;
+  routeSlug?: string;
   fields: Record<string, unknown>;
   composition: { areas?: AreaPayload[] };
   components: Record<string, ComponentPayload>;
   cmsBridge: boolean;
-  forms?: Record<string, { fields: FormFieldPayload[] }>;
+  forms?: Record<string, { fields: FormFieldPayload[]; steps?: FormStepPayload[] }>;
   assets?: Record<string, AssetPayload>;
   apiBaseUrl?: string;
 };
@@ -164,22 +179,223 @@ function CmsImage({
 }
 
 function NewsletterForm({
+  siteId,
+  marketCode,
+  localeCode,
+  routeSlug,
+  contentItemId,
   formId,
   title,
   description,
   submitLabel,
+  steps,
   fields,
   apiBaseUrl
 }: {
+  siteId: number;
+  marketCode: string;
+  localeCode: string;
+  routeSlug: string;
+  contentItemId: number;
   formId?: number | null;
   title?: string;
   description?: string;
   submitLabel?: string;
+  steps: FormStepPayload[];
   fields: FormFieldPayload[];
   apiBaseUrl: string;
 }) {
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [status, setStatus] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [activeStepIndex, setActiveStepIndex] = useState(0);
+
+  const parsedSteps = useMemo(() => {
+    const normalized = (steps ?? [])
+      .filter((entry) => typeof entry.id === 'number')
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    if (normalized.length > 0) {
+      return normalized;
+    }
+    return [{ id: 0, name: 'Step 1', position: 1 }];
+  }, [steps]);
+
+  const parsedFields = useMemo(
+    () => fields.filter((field) => field.active !== false),
+    [fields]
+  );
+
+  const evalContext = useMemo<FormEvaluationContext>(
+    () => ({
+      country: marketCode,
+      referrer: typeof document !== 'undefined' ? document.referrer || null : null,
+      answers
+    }),
+    [answers, marketCode]
+  );
+
+  const evaluatedFields = useMemo(() => {
+    return parsedFields.map((field) => {
+      let conditions: FormConditionSet = {};
+      try {
+        if (field.conditionsJson?.trim()) {
+          conditions = JSON.parse(field.conditionsJson) as FormConditionSet;
+        }
+      } catch {
+        conditions = {};
+      }
+      const behavior = evaluateFieldConditions(conditions, evalContext);
+      return { ...field, behavior };
+    });
+  }, [parsedFields, evalContext]);
+
+  const visibleStepIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const field of evaluatedFields) {
+      const stepId = typeof field.stepId === 'number' ? field.stepId : parsedSteps[0]?.id ?? 0;
+      if (field.behavior.visible) {
+        ids.add(stepId);
+      }
+    }
+    return parsedSteps.filter((step) => ids.has(step.id)).map((step) => step.id);
+  }, [evaluatedFields, parsedSteps]);
+
+  useEffect(() => {
+    if (activeStepIndex >= visibleStepIds.length) {
+      setActiveStepIndex(Math.max(visibleStepIds.length - 1, 0));
+    }
+  }, [activeStepIndex, visibleStepIds.length]);
+
+  const currentStepId = visibleStepIds[activeStepIndex] ?? visibleStepIds[0] ?? parsedSteps[0]?.id ?? 0;
+  const currentFields = evaluatedFields.filter((field) => {
+    const stepId = typeof field.stepId === 'number' ? field.stepId : parsedSteps[0]?.id ?? 0;
+    return stepId === currentStepId && field.behavior.visible;
+  });
+
+  const parseUiConfig = (field: FormFieldPayload): Record<string, unknown> => {
+    try {
+      if (field.uiConfigJson?.trim()) {
+        const parsed = JSON.parse(field.uiConfigJson);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          return parsed as Record<string, unknown>;
+        }
+      }
+    } catch {
+      // ignore invalid config
+    }
+    return {};
+  };
+
+  const renderFieldInput = (field: FormFieldPayload & { behavior: { enabled: boolean; required: boolean } }) => {
+    const uiConfig = parseUiConfig(field);
+    const disabled = !field.behavior.enabled;
+    const required = field.behavior.required;
+    const placeholder = typeof uiConfig.placeholder === 'string' ? uiConfig.placeholder : undefined;
+    const value = answers[field.key];
+
+    if (field.fieldType === 'checkbox' || field.fieldType === 'boolean') {
+      return (
+        <input
+          type="checkbox"
+          checked={Boolean(value)}
+          disabled={disabled}
+          onChange={(event) => setAnswers((prev) => ({ ...prev, [field.key]: event.target.checked }))}
+        />
+      );
+    }
+
+    if (field.fieldType === 'multiselect') {
+      const options = Array.isArray(uiConfig.options)
+        ? uiConfig.options
+            .filter((entry) => entry && typeof entry === 'object')
+            .map((entry) => {
+              const typed = entry as Record<string, unknown>;
+              return {
+                label: String(typed.label ?? typed.value ?? ''),
+                value: String(typed.value ?? '')
+              };
+            })
+            .filter((entry) => entry.value)
+        : [];
+      const selected = Array.isArray(value) ? value.map((entry) => String(entry)) : [];
+      return (
+        <select
+          multiple
+          value={selected}
+          disabled={disabled}
+          required={required}
+          onChange={(event) => {
+            const selectedValues = Array.from(event.target.selectedOptions).map((option) => option.value);
+            setAnswers((prev) => ({ ...prev, [field.key]: selectedValues }));
+          }}
+        >
+          {options.map((option) => (
+            <option key={`${field.key}-${option.value}`} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      );
+    }
+
+    if (field.fieldType === 'select') {
+      const options = Array.isArray(uiConfig.options)
+        ? uiConfig.options
+            .filter((entry) => entry && typeof entry === 'object')
+            .map((entry) => {
+              const typed = entry as Record<string, unknown>;
+              return {
+                label: String(typed.label ?? typed.value ?? ''),
+                value: String(typed.value ?? '')
+              };
+            })
+            .filter((entry) => entry.value)
+        : [];
+      return (
+        <select
+          value={typeof value === 'string' ? value : ''}
+          disabled={disabled}
+          required={required}
+          onChange={(event) => setAnswers((prev) => ({ ...prev, [field.key]: event.target.value }))}
+        >
+          <option value="">Select</option>
+          {options.map((option) => (
+            <option key={`${field.key}-${option.value}`} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      );
+    }
+
+    if (field.fieldType === 'textarea' || field.fieldType === 'multiline') {
+      return (
+        <textarea
+          value={typeof value === 'string' ? value : ''}
+          disabled={disabled}
+          required={required}
+          placeholder={placeholder}
+          onChange={(event) => setAnswers((prev) => ({ ...prev, [field.key]: event.target.value }))}
+        />
+      );
+    }
+
+    const typeMap: Record<string, string> = {
+      email: 'email',
+      number: 'number',
+      date: 'date',
+      datetime: 'datetime-local',
+      time: 'time'
+    };
+    const inputType = typeMap[field.fieldType] ?? 'text';
+
+    return (
+      <input
+        type={inputType}
+        value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
+        disabled={disabled}
+        required={required}
+        placeholder={placeholder}
+        onChange={(event) => setAnswers((prev) => ({ ...prev, [field.key]: event.target.value }))}
+      />
+    );
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -187,14 +403,48 @@ function NewsletterForm({
       setStatus('No form connected.');
       return;
     }
+    setStatus('');
+    setFieldErrors({});
+
+    const requiredMissing = currentFields
+      .filter((field) => field.behavior.required)
+      .filter((field) => {
+        const value = answers[field.key];
+        if (Array.isArray(value)) {
+          return value.length === 0;
+        }
+        return value == null || value === '';
+      });
+    if (requiredMissing.length > 0) {
+      const mapped = Object.fromEntries(requiredMissing.map((field) => [field.key, 'Required field is missing']));
+      setFieldErrors(mapped);
+      setStatus('Please complete required fields.');
+      return;
+    }
+
+    if (activeStepIndex < visibleStepIds.length - 1) {
+      setActiveStepIndex((prev) => prev + 1);
+      return;
+    }
 
     const body = {
       query:
-        'query EvaluateForm($formId:Int!,$answersJson:String!,$contextJson:String){ evaluateForm(formId:$formId,answersJson:$answersJson,contextJson:$contextJson){ valid errorsJson } }',
+        'mutation SubmitForm($siteId:Int!,$formId:Int!,$marketCode:String!,$localeCode:String!,$pageContentItemId:Int,$pageRouteSlug:String,$submittedByUserId:String,$answersJson:String!,$contextJson:String,$metaJson:String){ submitForm(siteId:$siteId,formId:$formId,marketCode:$marketCode,localeCode:$localeCode,pageContentItemId:$pageContentItemId,pageRouteSlug:$pageRouteSlug,submittedByUserId:$submittedByUserId,answersJson:$answersJson,contextJson:$contextJson,metaJson:$metaJson){ id status } }',
       variables: {
+        siteId,
         formId,
+        marketCode,
+        localeCode,
+        pageContentItemId: contentItemId || null,
+        pageRouteSlug: routeSlug || null,
+        submittedByUserId: null,
         answersJson: JSON.stringify(answers),
-        contextJson: JSON.stringify({ source: 'web-demo' })
+        contextJson: JSON.stringify({ source: 'web-demo', country: marketCode }),
+        metaJson: JSON.stringify({
+          source: 'web',
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+          referrer: typeof document !== 'undefined' ? document.referrer || null : null
+        })
       }
     };
 
@@ -205,32 +455,35 @@ function NewsletterForm({
     });
 
     const json = (await response.json()) as {
-      data?: { evaluateForm?: { valid: boolean; errorsJson: string } };
-      errors?: Array<{ message?: string }>;
+      data?: { submitForm?: { id: number; status: string } };
+      errors?: Array<{ message?: string; extensions?: { errorsJson?: string } }>;
     };
 
     if (json.errors?.length) {
-      setStatus(json.errors[0]?.message ?? 'Evaluation failed');
+      const firstError = json.errors[0];
+      if (firstError?.extensions?.errorsJson) {
+        try {
+          const parsed = JSON.parse(firstError.extensions.errorsJson) as Array<{ key: string; message: string }>;
+          setFieldErrors(Object.fromEntries(parsed.map((entry) => [entry.key, entry.message])));
+          setStatus('Please fix highlighted fields.');
+          return;
+        } catch {
+          // ignore parsing failures
+        }
+      }
+      setStatus(firstError?.message ?? 'Submission failed');
       return;
     }
 
-    const result = json.data?.evaluateForm;
+    const result = json.data?.submitForm;
     if (!result) {
-      setStatus('No evaluation result');
+      setStatus('No submission result');
       return;
     }
 
-    if (result.valid) {
-      setStatus('Thanks! Form validation passed.');
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(result.errorsJson) as Array<{ key: string; message: string }>;
-      setStatus(parsed.map((entry) => `${entry.key}: ${entry.message}`).join('; '));
-    } catch {
-      setStatus('Validation failed.');
-    }
+    setStatus(`Thanks! Submission #${result.id} saved.`);
+    setAnswers({});
+    setActiveStepIndex(0);
   };
 
   return (
@@ -238,19 +491,26 @@ function NewsletterForm({
       <h2>{title ?? 'Newsletter'}</h2>
       <p className="cms-muted">{description ?? 'Stay updated with product releases.'}</p>
       <form onSubmit={submit}>
-        {(fields.length > 0 ? fields : [{ id: 0, key: 'email', label: 'Email', fieldType: 'email', active: true }]).map((field) => (
+        {visibleStepIds.length > 1 ? (
+          <small className="cms-muted">Step {activeStepIndex + 1} of {visibleStepIds.length}</small>
+        ) : null}
+        {(currentFields.length > 0 ? currentFields : [{
+          id: 0, key: 'email', label: 'Email', fieldType: 'email', active: true, behavior: { visible: true, enabled: true, required: true }
+        }]).map((field) => (
           <label key={field.id || field.key}>
-            <div>{field.label}</div>
-            <input
-              type={field.fieldType === 'email' ? 'email' : 'text'}
-              value={answers[field.key] ?? ''}
-              onChange={(event) => setAnswers((prev) => ({ ...prev, [field.key]: event.target.value }))}
-            />
+            <div>{field.label}{field.behavior.required ? ' *' : ''}</div>
+            {renderFieldInput(field)}
+            {fieldErrors[field.key] ? <small style={{ color: '#dc2626' }}>{fieldErrors[field.key]}</small> : null}
           </label>
         ))}
         <button className="cms-btn primary" type="submit">
-          {submitLabel ?? 'Submit'}
+          {activeStepIndex < visibleStepIds.length - 1 ? 'Continue' : submitLabel ?? 'Submit'}
         </button>
+        {activeStepIndex > 0 ? (
+          <button className="cms-btn secondary" type="button" onClick={() => setActiveStepIndex((prev) => Math.max(prev - 1, 0))}>
+            Back
+          </button>
+        ) : null}
       </form>
       {status ? <small className="cms-muted">{status}</small> : null}
     </section>
@@ -270,11 +530,15 @@ function componentProps(component: ComponentPayload | undefined): Record<string,
 }
 
 function renderComponent(
+  siteId: number,
+  marketCode: string,
+  localeCode: string,
+  routeSlug: string,
   contentItemId: number,
   versionId: number,
   id: string,
   component: ComponentPayload | undefined,
-  forms: Record<string, { fields: FormFieldPayload[] }>,
+  forms: Record<string, { fields: FormFieldPayload[]; steps?: FormStepPayload[] }>,
   assets: Record<string, AssetPayload>,
   apiBaseUrl: string
 ) {
@@ -401,10 +665,16 @@ function renderComponent(
     return (
       <div key={id} {...wrapperProps}>
         <NewsletterForm
+          siteId={siteId}
+          marketCode={marketCode}
+          localeCode={localeCode}
+          routeSlug={routeSlug}
+          contentItemId={contentItemId}
           formId={formId}
           {...(title ? { title } : {})}
           {...(description ? { description } : {})}
           {...(submitLabel ? { submitLabel } : {})}
+          steps={formId ? forms[String(formId)]?.steps ?? [] : []}
           fields={formId ? forms[String(formId)]?.fields ?? [] : []}
           apiBaseUrl={apiBaseUrl}
         />
@@ -468,6 +738,10 @@ function renderComponent(
 export function CmsRendererClient({
   contentItemId,
   versionId,
+  siteId = 1,
+  marketCode = 'US',
+  localeCode = 'en-US',
+  routeSlug = '',
   fields,
   composition,
   components,
@@ -576,7 +850,7 @@ export function CmsRendererClient({
       {areas.map((area) => (
         <section key={area.name} style={{ display: 'grid', gap: '0.9rem' }}>
           {area.components.map((componentId) =>
-            renderComponent(contentItemId, versionId, componentId, components[componentId], forms, assets, apiBaseUrl)
+            renderComponent(siteId, marketCode, localeCode, routeSlug, contentItemId, versionId, componentId, components[componentId], forms, assets, apiBaseUrl)
           )}
         </section>
       ))}

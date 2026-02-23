@@ -66,6 +66,14 @@ import {
   upsertFormStep
 } from '../forms/service.js';
 import {
+  type FormSubmissionListResult,
+  type FormSubmissionRecord,
+  exportFormSubmissions,
+  listFormSubmissions,
+  submitForm,
+  updateFormSubmissionStatus
+} from '../forms/submissionService.js';
+import {
   type LocaleCatalogItem,
   type Locale,
   type Market,
@@ -87,6 +95,7 @@ import {
   setSiteLocales,
   setSiteMarketLocaleMatrix,
   setSiteMarkets,
+  setSiteName,
   upsertSiteLocaleOverride,
   upsertLocale,
   upsertMarket,
@@ -556,6 +565,32 @@ FormEvaluationRef.implement({
   })
 });
 
+const FormSubmissionRef = builder.objectRef<FormSubmissionRecord>('FormSubmission');
+FormSubmissionRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    siteId: t.exposeInt('siteId'),
+    formId: t.exposeInt('formId'),
+    createdAt: t.exposeString('createdAt'),
+    submittedByUserId: t.exposeString('submittedByUserId', { nullable: true }),
+    marketCode: t.exposeString('marketCode'),
+    localeCode: t.exposeString('localeCode'),
+    pageContentItemId: t.exposeInt('pageContentItemId', { nullable: true }),
+    pageRouteSlug: t.exposeString('pageRouteSlug', { nullable: true }),
+    status: t.exposeString('status'),
+    dataJson: t.exposeString('dataJson'),
+    metaJson: t.exposeString('metaJson')
+  })
+});
+
+const FormSubmissionListRef = builder.objectRef<FormSubmissionListResult>('FormSubmissionList');
+FormSubmissionListRef.implement({
+  fields: (t) => ({
+    rows: t.field({ type: [FormSubmissionRef], resolve: (parent) => parent.rows }),
+    total: t.exposeInt('total')
+  })
+});
+
 const AssetRef = builder.objectRef<AssetRecord>('Asset');
 AssetRef.implement({
   fields: (t) => ({
@@ -1013,6 +1048,69 @@ builder.queryType({
         ctx
       ) => evaluateForm(ctx.db, args)
     }),
+    listFormSubmissions: t.field({
+      type: FormSubmissionListRef,
+      args: {
+        siteId: t.arg.int({ required: true }),
+        formId: t.arg.int({ required: false }),
+        search: t.arg.string({ required: false }),
+        status: t.arg.string({ required: false }),
+        marketCode: t.arg.string({ required: false }),
+        localeCode: t.arg.string({ required: false }),
+        fromDate: t.arg.string({ required: false }),
+        toDate: t.arg.string({ required: false }),
+        limit: t.arg.int({ required: false }),
+        offset: t.arg.int({ required: false }),
+        sortField: t.arg.string({ required: false }),
+        sortOrder: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          siteId: number;
+          formId?: number | null | undefined;
+          search?: string | null | undefined;
+          status?: string | null | undefined;
+          marketCode?: string | null | undefined;
+          localeCode?: string | null | undefined;
+          fromDate?: string | null | undefined;
+          toDate?: string | null | undefined;
+          limit?: number | null | undefined;
+          offset?: number | null | undefined;
+          sortField?: string | null | undefined;
+          sortOrder?: string | null | undefined;
+        },
+        ctx
+      ) => listFormSubmissions(ctx.db, args)
+    }),
+    exportFormSubmissions: t.string({
+      args: {
+        siteId: t.arg.int({ required: true }),
+        formId: t.arg.int({ required: false }),
+        search: t.arg.string({ required: false }),
+        status: t.arg.string({ required: false }),
+        marketCode: t.arg.string({ required: false }),
+        localeCode: t.arg.string({ required: false }),
+        fromDate: t.arg.string({ required: false }),
+        toDate: t.arg.string({ required: false }),
+        format: t.arg.string({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: {
+          siteId: number;
+          formId?: number | null | undefined;
+          search?: string | null | undefined;
+          status?: string | null | undefined;
+          marketCode?: string | null | undefined;
+          localeCode?: string | null | undefined;
+          fromDate?: string | null | undefined;
+          toDate?: string | null | undefined;
+          format: string;
+        },
+        ctx
+      ) => exportFormSubmissions(ctx.db, args)
+    }),
     listAssets: t.field({
       type: [AssetRef],
       args: {
@@ -1148,6 +1246,15 @@ builder.mutationType({
       },
       resolve: async (_root, args: { siteId: number; urlPattern: string }, ctx) =>
         setSiteUrlPattern(ctx.db, args.siteId, args.urlPattern)
+    }),
+    setSiteName: t.field({
+      type: SiteRef,
+      args: {
+        siteId: t.arg.int({ required: true }),
+        name: t.arg.string({ required: true })
+      },
+      resolve: async (_root, args: { siteId: number; name: string }, ctx) =>
+        setSiteName(ctx.db, args.siteId, args.name)
     }),
     setSiteMarkets: t.field({
       type: [MarketRef],
@@ -1609,6 +1716,46 @@ builder.mutationType({
     deleteFormField: t.boolean({
       args: { id: t.arg.int({ required: true }) },
       resolve: async (_root, args: { id: number }, ctx) => deleteFormField(ctx.db, args.id)
+    }),
+    submitForm: t.field({
+      type: FormSubmissionRef,
+      args: {
+        siteId: t.arg.int({ required: true }),
+        formId: t.arg.int({ required: true }),
+        marketCode: t.arg.string({ required: true }),
+        localeCode: t.arg.string({ required: true }),
+        pageContentItemId: t.arg.int({ required: false }),
+        pageRouteSlug: t.arg.string({ required: false }),
+        submittedByUserId: t.arg.string({ required: false }),
+        answersJson: t.arg.string({ required: true }),
+        contextJson: t.arg.string({ required: false }),
+        metaJson: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          siteId: number;
+          formId: number;
+          marketCode: string;
+          localeCode: string;
+          pageContentItemId?: number | null | undefined;
+          pageRouteSlug?: string | null | undefined;
+          submittedByUserId?: string | null | undefined;
+          answersJson: string;
+          contextJson?: string | null | undefined;
+          metaJson?: string | null | undefined;
+        },
+        ctx
+      ) => submitForm(ctx.db, args)
+    }),
+    updateSubmissionStatus: t.field({
+      type: FormSubmissionRef,
+      args: {
+        id: t.arg.int({ required: true }),
+        status: t.arg.string({ required: true })
+      },
+      resolve: async (_root, args: { id: number; status: string }, ctx) =>
+        updateFormSubmissionStatus(ctx.db, args)
     }),
     upsertWorkflowDefinition: t.field({
       type: WorkflowDefinitionRef,

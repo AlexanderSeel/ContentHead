@@ -611,6 +611,76 @@ query EvaluateForm($formId: Int!, $answersJson: String!, $contextJson: String) {
   }
 }
 
+query ListFormSubmissions(
+  $siteId: Int!
+  $formId: Int
+  $search: String
+  $status: String
+  $marketCode: String
+  $localeCode: String
+  $fromDate: String
+  $toDate: String
+  $limit: Int
+  $offset: Int
+  $sortField: String
+  $sortOrder: String
+) {
+  listFormSubmissions(
+    siteId: $siteId
+    formId: $formId
+    search: $search
+    status: $status
+    marketCode: $marketCode
+    localeCode: $localeCode
+    fromDate: $fromDate
+    toDate: $toDate
+    limit: $limit
+    offset: $offset
+    sortField: $sortField
+    sortOrder: $sortOrder
+  ) {
+    total
+    rows {
+      id
+      siteId
+      formId
+      createdAt
+      submittedByUserId
+      marketCode
+      localeCode
+      pageContentItemId
+      pageRouteSlug
+      status
+      dataJson
+      metaJson
+    }
+  }
+}
+
+query ExportFormSubmissions(
+  $siteId: Int!
+  $formId: Int
+  $search: String
+  $status: String
+  $marketCode: String
+  $localeCode: String
+  $fromDate: String
+  $toDate: String
+  $format: String!
+) {
+  exportFormSubmissions(
+    siteId: $siteId
+    formId: $formId
+    search: $search
+    status: $status
+    marketCode: $marketCode
+    localeCode: $localeCode
+    fromDate: $fromDate
+    toDate: $toDate
+    format: $format
+  )
+}
+
 mutation UpsertForm($id: Int, $siteId: Int!, $name: String!, $description: String, $active: Boolean!) {
   upsertForm(id: $id, siteId: $siteId, name: $name, description: $description, active: $active) {
     id
@@ -682,6 +752,45 @@ mutation UpsertFormField(
 
 mutation DeleteFormField($id: Int!) {
   deleteFormField(id: $id)
+}
+
+mutation SubmitForm(
+  $siteId: Int!
+  $formId: Int!
+  $marketCode: String!
+  $localeCode: String!
+  $pageContentItemId: Int
+  $pageRouteSlug: String
+  $submittedByUserId: String
+  $answersJson: String!
+  $contextJson: String
+  $metaJson: String
+) {
+  submitForm(
+    siteId: $siteId
+    formId: $formId
+    marketCode: $marketCode
+    localeCode: $localeCode
+    pageContentItemId: $pageContentItemId
+    pageRouteSlug: $pageRouteSlug
+    submittedByUserId: $submittedByUserId
+    answersJson: $answersJson
+    contextJson: $contextJson
+    metaJson: $metaJson
+  ) {
+    id
+    siteId
+    formId
+    createdAt
+    status
+  }
+}
+
+mutation UpdateSubmissionStatus($id: Int!, $status: String!) {
+  updateSubmissionStatus(id: $id, status: $status) {
+    id
+    status
+  }
 }
 
 query ListWorkflowDefinitions {

@@ -1,0 +1,525 @@
+{
+  "schemaVersion": 1,
+  "siteId": 1,
+  "exportedAt": "2026-02-23T17:40:03.430Z",
+  "siteConfig": {
+    "siteName": "Demo Site",
+    "urlPattern": "/{market}/{locale}",
+    "markets": [
+      {
+        "code": "US",
+        "name": "United States",
+        "currency": "USD",
+        "timezone": "America/New_York",
+        "active": true,
+        "isDefault": true
+      },
+      {
+        "code": "DE",
+        "name": "Germany",
+        "currency": "EUR",
+        "timezone": "Europe/Berlin",
+        "active": true,
+        "isDefault": false
+      }
+    ],
+    "locales": [
+      {
+        "code": "en-US",
+        "name": "English (US)",
+        "active": true,
+        "isDefault": true,
+        "fallbackLocaleCode": null
+      },
+      {
+        "code": "de-DE",
+        "name": "Deutsch (DE)",
+        "active": true,
+        "isDefault": false,
+        "fallbackLocaleCode": "en-US"
+      },
+      {
+        "code": "es-US",
+        "name": "Spanish (US)",
+        "active": true,
+        "isDefault": false,
+        "fallbackLocaleCode": "en-US"
+      }
+    ],
+    "matrix": {
+      "combinations": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "active": true,
+          "isDefaultForMarket": true
+        },
+        {
+          "marketCode": "US",
+          "localeCode": "es-US",
+          "active": true,
+          "isDefaultForMarket": false
+        },
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "active": true,
+          "isDefaultForMarket": true
+        }
+      ],
+      "defaults": {
+        "marketDefaultLocales": [
+          {
+            "marketCode": "US",
+            "localeCode": "en-US"
+          },
+          {
+            "marketCode": "DE",
+            "localeCode": "de-DE"
+          }
+        ]
+      }
+    }
+  },
+  "contentTypes": [
+    {
+      "name": "StartPage",
+      "description": "Root/start page model with broad field coverage.",
+      "fieldsJson": "[{\"key\":\"title\",\"label\":\"Title\",\"type\":\"text\",\"required\":true},{\"key\":\"summary\",\"label\":\"Summary\",\"type\":\"text\",\"uiConfig\":{\"multiline\":true,\"rows\":3}},{\"key\":\"body\",\"label\":\"Body\",\"type\":\"richtext\"},{\"key\":\"priority\",\"label\":\"Priority\",\"type\":\"number\",\"validations\":{\"min\":0,\"max\":100}},{\"key\":\"score\",\"label\":\"Score\",\"type\":\"number\"},{\"key\":\"isFeatured\",\"label\":\"Featured\",\"type\":\"boolean\"},{\"key\":\"publishDate\",\"label\":\"Publish Date\",\"type\":\"date\"},{\"key\":\"publishDateTime\",\"label\":\"Publish DateTime\",\"type\":\"datetime\"},{\"key\":\"theme\",\"label\":\"Theme\",\"type\":\"select\",\"validations\":{\"allowedValues\":[\"light\",\"dark\",\"brand\"]}},{\"key\":\"segments\",\"label\":\"Segments\",\"type\":\"multiselect\",\"validations\":{\"allowedValues\":[\"beta\",\"enterprise\",\"self-serve\"]}},{\"key\":\"featuredProduct\",\"label\":\"Featured Product\",\"type\":\"reference\"},{\"key\":\"advancedConfig\",\"label\":\"Advanced Config\",\"type\":\"json\"},{\"key\":\"heroLink\",\"label\":\"Hero Link\",\"type\":\"contentLink\"},{\"key\":\"resourceLinks\",\"label\":\"Resource Links\",\"type\":\"contentLinkList\"},{\"key\":\"heroAsset\",\"label\":\"Hero Asset\",\"type\":\"assetRef\"},{\"key\":\"galleryAssets\",\"label\":\"Gallery Assets\",\"type\":\"assetList\"}]"
+    },
+    {
+      "name": "LandingPage",
+      "description": "Marketing landing page schema.",
+      "fieldsJson": "[{\"key\":\"title\",\"label\":\"Title\",\"type\":\"text\",\"required\":true},{\"key\":\"intro\",\"label\":\"Intro\",\"type\":\"text\",\"uiConfig\":{\"multiline\":true}},{\"key\":\"body\",\"label\":\"Body\",\"type\":\"richtext\"},{\"key\":\"rank\",\"label\":\"Rank\",\"type\":\"number\"},{\"key\":\"isCampaign\",\"label\":\"Is Campaign\",\"type\":\"boolean\"},{\"key\":\"goLiveDate\",\"label\":\"Go Live Date\",\"type\":\"date\"},{\"key\":\"goLiveAt\",\"label\":\"Go Live DateTime\",\"type\":\"datetime\"},{\"key\":\"audience\",\"label\":\"Audience\",\"type\":\"select\",\"validations\":{\"allowedValues\":[\"all\",\"b2b\",\"b2c\"]}},{\"key\":\"tags\",\"label\":\"Tags\",\"type\":\"multiselect\",\"validations\":{\"allowedValues\":[\"cms\",\"forms\",\"personalization\",\"dam\"]}},{\"key\":\"relatedArticle\",\"label\":\"Related Article\",\"type\":\"reference\"},{\"key\":\"settingsJson\",\"label\":\"Settings JSON\",\"type\":\"json\"},{\"key\":\"primaryLink\",\"label\":\"Primary Link\",\"type\":\"contentLink\"},{\"key\":\"secondaryLinks\",\"label\":\"Secondary Links\",\"type\":\"contentLinkList\"},{\"key\":\"bannerAsset\",\"label\":\"Banner Asset\",\"type\":\"assetRef\"},{\"key\":\"promoAssets\",\"label\":\"Promo Assets\",\"type\":\"assetList\"}]"
+    },
+    {
+      "name": "ArticlePage",
+      "description": "Long-form article content type.",
+      "fieldsJson": "[{\"key\":\"title\",\"label\":\"Title\",\"type\":\"text\",\"required\":true},{\"key\":\"excerpt\",\"label\":\"Excerpt\",\"type\":\"text\",\"uiConfig\":{\"multiline\":true}},{\"key\":\"authorBio\",\"label\":\"Author Bio\",\"type\":\"richtext\"},{\"key\":\"readMinutes\",\"label\":\"Read Minutes\",\"type\":\"number\"},{\"key\":\"qualityScore\",\"label\":\"Quality Score\",\"type\":\"number\"},{\"key\":\"featured\",\"label\":\"Featured\",\"type\":\"boolean\"},{\"key\":\"publishDate\",\"label\":\"Publish Date\",\"type\":\"date\"},{\"key\":\"publishDateTime\",\"label\":\"Publish DateTime\",\"type\":\"datetime\"},{\"key\":\"category\",\"label\":\"Category\",\"type\":\"select\",\"validations\":{\"allowedValues\":[\"news\",\"guides\",\"engineering\"]}},{\"key\":\"topics\",\"label\":\"Topics\",\"type\":\"multiselect\",\"validations\":{\"allowedValues\":[\"forms\",\"variants\",\"routing\",\"templates\"]}},{\"key\":\"relatedArticle\",\"label\":\"Related Article\",\"type\":\"reference\"},{\"key\":\"metadataJson\",\"label\":\"Metadata JSON\",\"type\":\"json\"},{\"key\":\"ctaLink\",\"label\":\"CTA Link\",\"type\":\"contentLink\"},{\"key\":\"links\",\"label\":\"Links\",\"type\":\"contentLinkList\"},{\"key\":\"coverAsset\",\"label\":\"Cover Asset\",\"type\":\"assetRef\"},{\"key\":\"inlineAssets\",\"label\":\"Inline Assets\",\"type\":\"assetList\"}]"
+    },
+    {
+      "name": "ProductPage",
+      "description": "Product detail page schema.",
+      "fieldsJson": "[{\"key\":\"title\",\"label\":\"Title\",\"type\":\"text\",\"required\":true},{\"key\":\"description\",\"label\":\"Description\",\"type\":\"text\",\"uiConfig\":{\"multiline\":true}},{\"key\":\"details\",\"label\":\"Details\",\"type\":\"richtext\"},{\"key\":\"stock\",\"label\":\"Stock\",\"type\":\"number\"},{\"key\":\"price\",\"label\":\"Price\",\"type\":\"number\"},{\"key\":\"inStock\",\"label\":\"In Stock\",\"type\":\"boolean\"},{\"key\":\"releaseDate\",\"label\":\"Release Date\",\"type\":\"date\"},{\"key\":\"releaseAt\",\"label\":\"Release DateTime\",\"type\":\"datetime\"},{\"key\":\"tier\",\"label\":\"Tier\",\"type\":\"select\",\"validations\":{\"allowedValues\":[\"starter\",\"growth\",\"enterprise\"]}},{\"key\":\"capabilities\",\"label\":\"Capabilities\",\"type\":\"multiselect\",\"validations\":{\"allowedValues\":[\"api\",\"dam\",\"forms\",\"ab-test\"]}},{\"key\":\"relatedProduct\",\"label\":\"Related Product\",\"type\":\"reference\"},{\"key\":\"configJson\",\"label\":\"Config JSON\",\"type\":\"json\"},{\"key\":\"buyLink\",\"label\":\"Buy Link\",\"type\":\"contentLink\"},{\"key\":\"resourceLinks\",\"label\":\"Resources\",\"type\":\"contentLinkList\"},{\"key\":\"productImage\",\"label\":\"Product Image\",\"type\":\"assetRef\"},{\"key\":\"gallery\",\"label\":\"Gallery\",\"type\":\"assetList\"}]"
+    },
+    {
+      "name": "Globals",
+      "description": "Global site settings/demo singleton.",
+      "fieldsJson": "[{\"key\":\"siteTitle\",\"label\":\"Site Title\",\"type\":\"text\"},{\"key\":\"globalNotice\",\"label\":\"Global Notice\",\"type\":\"richtext\"},{\"key\":\"featureFlag\",\"label\":\"Feature Flag\",\"type\":\"boolean\"},{\"key\":\"config\",\"label\":\"Config\",\"type\":\"json\"}]"
+    }
+  ],
+  "templates": [
+    {
+      "name": "Marketing Template",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"hero_tpl\",\"features_tpl\",\"footer_tpl\"]}]}",
+      "componentsJson": "{\"hero_tpl\":{\"type\":\"hero\",\"props\":{\"title\":\"Marketing Template Hero\",\"subtitle\":\"Shared hero for marketing pages.\"}},\"features_tpl\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"Template Features\",\"items\":[{\"title\":\"Composable\",\"description\":\"Reusable blocks.\"}]}},\"footer_tpl\":{\"type\":\"footer\",\"props\":{\"copyright\":\"ContentHead Demo Template\",\"linkGroups\":[]}}}",
+      "constraintsJson": "{\"allowedAreas\":[\"main\"]}"
+    },
+    {
+      "name": "Article Template",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"hero_article_tpl\",\"body_article_tpl\",\"footer_article_tpl\"]}]}",
+      "componentsJson": "{\"hero_article_tpl\":{\"type\":\"hero\",\"props\":{\"title\":\"Article Template\",\"subtitle\":\"Title + author + body.\"}},\"body_article_tpl\":{\"type\":\"text_block\",\"props\":{\"body\":\"<p>Article body from template.</p>\",\"columns\":1}},\"footer_article_tpl\":{\"type\":\"footer\",\"props\":{\"copyright\":\"Article Template Footer\",\"linkGroups\":[]}}}",
+      "constraintsJson": "{\"allowedAreas\":[\"main\"]}"
+    }
+  ],
+  "forms": [
+    {
+      "id": 9001,
+      "externalId": "newsletter-signup",
+      "name": "Newsletter Signup",
+      "description": "Two-step newsletter signup with conditional second step.",
+      "active": true,
+      "steps": [
+        {
+          "id": 9101,
+          "externalId": "newsletter-step-1",
+          "name": "Consent",
+          "position": 1
+        },
+        {
+          "id": 9102,
+          "externalId": "newsletter-step-2",
+          "name": "Interests",
+          "position": 2
+        }
+      ],
+      "fields": [
+        {
+          "id": 9201,
+          "stepRef": "newsletter-step-1",
+          "key": "email",
+          "label": "Email",
+          "fieldType": "email",
+          "position": 1,
+          "conditionsJson": "{}",
+          "validationsJson": "{\"regex\":\"^[^\\\\s@]+@[^\\\\s@]+\\\\.[^\\\\s@]+$\"}",
+          "uiConfigJson": "{\"placeholder\":\"you@company.com\"}",
+          "active": true
+        },
+        {
+          "id": 9202,
+          "stepRef": "newsletter-step-1",
+          "key": "consent",
+          "label": "I agree to receive updates",
+          "fieldType": "checkbox",
+          "position": 2,
+          "conditionsJson": "{}",
+          "validationsJson": "{}",
+          "uiConfigJson": "{}",
+          "active": true
+        },
+        {
+          "id": 9203,
+          "stepRef": "newsletter-step-2",
+          "key": "interests",
+          "label": "Interests",
+          "fieldType": "multiselect",
+          "position": 1,
+          "conditionsJson": "{\"showIf\":{\"op\":\"eq\",\"field\":\"query.answer.consent\",\"value\":true},\"requiredIf\":{\"op\":\"eq\",\"field\":\"query.answer.consent\",\"value\":true}}",
+          "validationsJson": "{}",
+          "uiConfigJson": "{\"options\":[{\"label\":\"CMS\",\"value\":\"cms\"},{\"label\":\"Forms\",\"value\":\"forms\"},{\"label\":\"Personalization\",\"value\":\"personalization\"}]}",
+          "active": true
+        },
+        {
+          "id": 9204,
+          "stepRef": "newsletter-step-2",
+          "key": "name",
+          "label": "Name (optional)",
+          "fieldType": "text",
+          "position": 2,
+          "conditionsJson": "{\"showIf\":{\"op\":\"eq\",\"field\":\"query.answer.consent\",\"value\":true}}",
+          "validationsJson": "{}",
+          "uiConfigJson": "{\"placeholder\":\"Alex\"}",
+          "active": true
+        }
+      ]
+    },
+    {
+      "id": 9002,
+      "externalId": "contact-quote-request",
+      "name": "Contact / Quote Request",
+      "description": "Conditional quote/support form.",
+      "active": true,
+      "steps": [
+        {
+          "id": 9301,
+          "externalId": "contact-step-1",
+          "name": "Request",
+          "position": 1
+        },
+        {
+          "id": 9302,
+          "externalId": "contact-step-2",
+          "name": "Details",
+          "position": 2
+        }
+      ],
+      "fields": [
+        {
+          "id": 9401,
+          "stepRef": "contact-step-1",
+          "key": "requestType",
+          "label": "Request Type",
+          "fieldType": "select",
+          "position": 1,
+          "conditionsJson": "{}",
+          "validationsJson": "{}",
+          "uiConfigJson": "{\"options\":[{\"label\":\"Quote\",\"value\":\"Quote\"},{\"label\":\"Support\",\"value\":\"Support\"},{\"label\":\"General\",\"value\":\"General\"}]}",
+          "active": true
+        },
+        {
+          "id": 9402,
+          "stepRef": "contact-step-1",
+          "key": "email",
+          "label": "Email",
+          "fieldType": "email",
+          "position": 2,
+          "conditionsJson": "{}",
+          "validationsJson": "{\"regex\":\"^[^\\\\s@]+@[^\\\\s@]+\\\\.[^\\\\s@]+$\"}",
+          "uiConfigJson": "{\"placeholder\":\"you@company.com\"}",
+          "active": true
+        },
+        {
+          "id": 9403,
+          "stepRef": "contact-step-2",
+          "key": "productSelector",
+          "label": "Product",
+          "fieldType": "select",
+          "position": 1,
+          "conditionsJson": "{\"showIf\":{\"op\":\"eq\",\"field\":\"query.answer.requestType\",\"value\":\"Quote\"},\"requiredIf\":{\"op\":\"eq\",\"field\":\"query.answer.requestType\",\"value\":\"Quote\"}}",
+          "validationsJson": "{}",
+          "uiConfigJson": "{\"options\":[{\"label\":\"Product A\",\"value\":\"product-a\"},{\"label\":\"Product B\",\"value\":\"product-b\"}]}",
+          "active": true
+        },
+        {
+          "id": 9404,
+          "stepRef": "contact-step-2",
+          "key": "budget",
+          "label": "Budget",
+          "fieldType": "number",
+          "position": 2,
+          "conditionsJson": "{\"showIf\":{\"op\":\"eq\",\"field\":\"query.answer.requestType\",\"value\":\"Quote\"},\"requiredIf\":{\"op\":\"eq\",\"field\":\"query.answer.requestType\",\"value\":\"Quote\"},\"enabledIf\":{\"op\":\"eq\",\"field\":\"query.answer.requestType\",\"value\":\"Quote\"}}",
+          "validationsJson": "{}",
+          "uiConfigJson": "{\"placeholder\":\"5000\"}",
+          "active": true
+        },
+        {
+          "id": 9405,
+          "stepRef": "contact-step-2",
+          "key": "issueCategory",
+          "label": "Issue Category",
+          "fieldType": "select",
+          "position": 3,
+          "conditionsJson": "{\"showIf\":{\"op\":\"eq\",\"field\":\"query.answer.requestType\",\"value\":\"Support\"},\"requiredIf\":{\"op\":\"eq\",\"field\":\"query.answer.requestType\",\"value\":\"Support\"}}",
+          "validationsJson": "{}",
+          "uiConfigJson": "{\"options\":[{\"label\":\"Billing\",\"value\":\"billing\"},{\"label\":\"Bug\",\"value\":\"bug\"},{\"label\":\"How-to\",\"value\":\"how-to\"}]}",
+          "active": true
+        },
+        {
+          "id": 9406,
+          "stepRef": "contact-step-2",
+          "key": "uploadUrl",
+          "label": "Attachment URL",
+          "fieldType": "text",
+          "position": 4,
+          "conditionsJson": "{\"showIf\":{\"op\":\"eq\",\"field\":\"query.answer.requestType\",\"value\":\"Support\"},\"enabledIf\":{\"op\":\"eq\",\"field\":\"query.answer.requestType\",\"value\":\"Support\"}}",
+          "validationsJson": "{}",
+          "uiConfigJson": "{\"placeholder\":\"https://...\"}",
+          "active": true
+        },
+        {
+          "id": 9407,
+          "stepRef": "contact-step-2",
+          "key": "message",
+          "label": "Message",
+          "fieldType": "textarea",
+          "position": 5,
+          "conditionsJson": "{}",
+          "validationsJson": "{\"minLength\":10}",
+          "uiConfigJson": "{\"placeholder\":\"Tell us what you need\"}",
+          "active": true
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "itemIndex": 1,
+      "marketCode": "US",
+      "localeCode": "en-US",
+      "key": "variant_a",
+      "priority": 100,
+      "state": "ACTIVE",
+      "ruleJson": "{\"any\":[{\"op\":\"contains\",\"field\":\"segments\",\"value\":\"beta\"},{\"op\":\"eq\",\"field\":\"country\",\"value\":\"US\"}]}",
+      "trafficAllocation": 50,
+      "patch": {
+        "componentsJson": "{\"hero_demo\":{\"type\":\"hero\",\"props\":{\"title\":\"Welcome to ContentHead\",\"subtitle\":\"Build and personalize multi-market experiences.\",\"primaryCta\":{\"kind\":\"internal\",\"url\":\"/US/en-US/products\",\"text\":\"View Products\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"external\",\"url\":\"https://example.com/docs\",\"text\":\"Documentation\",\"target\":\"_blank\"},\"backgroundAssetRef\":1}}}",
+        "comment": "Variant A headline"
+      }
+    },
+    {
+      "itemIndex": 1,
+      "marketCode": "US",
+      "localeCode": "en-US",
+      "key": "variant_b",
+      "priority": 90,
+      "state": "ACTIVE",
+      "ruleJson": "{\"any\":[{\"op\":\"contains\",\"field\":\"segments\",\"value\":\"beta\"},{\"op\":\"eq\",\"field\":\"country\",\"value\":\"US\"}]}",
+      "trafficAllocation": 50,
+      "patch": {
+        "componentsJson": "{\"hero_demo\":{\"type\":\"hero\",\"props\":{\"title\":\"ContentHead — Personalised Experience\",\"subtitle\":\"Variant B for US/beta audiences.\",\"primaryCta\":{\"kind\":\"internal\",\"url\":\"/US/en-US/products\",\"text\":\"View Products\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"external\",\"url\":\"https://example.com/docs\",\"text\":\"Documentation\",\"target\":\"_blank\"},\"backgroundAssetRef\":1}}}",
+        "comment": "Variant B headline"
+      }
+    }
+  ],
+  "items": [
+    {
+      "externalId": "home",
+      "contentTypeName": "StartPage",
+      "fieldsJson": "{\"title\":\"ContentHead Demo Home\",\"summary\":\"A complete multi-market demo imported from JSON.\",\"body\":\"<p>Welcome to the demo site. Explore products, articles, forms, and personalization.</p>\",\"priority\":10,\"score\":4.7,\"isFeatured\":true,\"publishDate\":\"2026-02-23\",\"publishDateTime\":\"2026-02-23T08:00:00Z\",\"theme\":\"brand\",\"segments\":[\"beta\",\"enterprise\"],\"featuredProduct\":\"product-a\",\"advancedConfig\":{\"stickyHero\":true,\"showPromo\":true},\"heroLink\":{\"kind\":\"internal\",\"url\":\"/US/en-US/demo\",\"text\":\"Open Demo\",\"target\":\"_self\"},\"resourceLinks\":[{\"kind\":\"internal\",\"url\":\"/US/en-US/articles\",\"text\":\"Article Hub\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://example.com/docs\",\"text\":\"External Docs\",\"target\":\"_blank\"}],\"heroAsset\":1,\"galleryAssets\":[1,2]}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"hero_home\",\"features_home\",\"footer_home\"]}]}",
+      "componentsJson": "{\"hero_home\":{\"type\":\"hero\",\"props\":{\"title\":\"Home\",\"subtitle\":\"Imported demo home page\",\"primaryCta\":{\"kind\":\"internal\",\"url\":\"/US/en-US/demo\",\"text\":\"Demo Landing\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"external\",\"url\":\"https://example.com\",\"text\":\"External\",\"target\":\"_blank\"},\"backgroundAssetRef\":1}},\"features_home\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"What is covered\",\"items\":[{\"icon\":\"pi pi-check\",\"title\":\"Content Types\",\"description\":\"All major field types included.\"},{\"icon\":\"pi pi-check\",\"title\":\"Forms\",\"description\":\"Conditional multi-step forms with submissions.\"},{\"icon\":\"pi pi-check\",\"title\":\"Variants\",\"description\":\"Rule-based personalization with traffic split.\"}]}},\"footer_home\":{\"type\":\"footer\",\"props\":{\"copyright\":\"© ContentHead Demo 2026\",\"linkGroups\":[{\"title\":\"Product\",\"links\":[{\"kind\":\"internal\",\"url\":\"/US/en-US/demo\",\"text\":\"Demo\",\"target\":\"_self\"},{\"kind\":\"internal\",\"url\":\"/US/en-US/products\",\"text\":\"Products\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"external\",\"url\":\"https://example.com/about\",\"text\":\"About\",\"target\":\"_blank\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://www.linkedin.com\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"externalId\":\"home\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "home",
+          "isCanonical": true
+        },
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "slug": "home",
+          "isCanonical": true
+        },
+        {
+          "marketCode": "US",
+          "localeCode": "es-US",
+          "slug": "home",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "demo",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Demo Landing\",\"intro\":\"This page demonstrates composition, forms, DAM refs, links and variants.\",\"body\":\"<p>Switch market and locale via route segments to validate localization and fallback behaviors.</p>\",\"rank\":1,\"isCampaign\":true,\"goLiveDate\":\"2026-02-23\",\"goLiveAt\":\"2026-02-23T10:00:00Z\",\"audience\":\"all\",\"tags\":[\"cms\",\"forms\",\"personalization\",\"dam\"],\"relatedArticle\":\"article-first\",\"settingsJson\":{\"theme\":\"ocean\",\"stickyCta\":true},\"primaryLink\":{\"kind\":\"internal\",\"url\":\"/US/en-US/contact\",\"text\":\"Contact us\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"url\":\"/US/en-US/products\",\"text\":\"Products\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://example.com/pricing\",\"text\":\"External pricing\",\"target\":\"_blank\"}],\"bannerAsset\":1,\"promoAssets\":[1,2]}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"hero_demo\",\"features_demo\",\"pricing_demo\",\"faq_demo\",\"newsletter_demo\",\"footer_demo\"]}]}",
+      "componentsJson": "{\"hero_demo\":{\"type\":\"hero\",\"props\":{\"title\":\"Welcome to ContentHead\",\"subtitle\":\"Build and personalize multi-market experiences.\",\"primaryCta\":{\"kind\":\"internal\",\"url\":\"/US/en-US/products\",\"text\":\"View Products\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"external\",\"url\":\"https://example.com/docs\",\"text\":\"Documentation\",\"target\":\"_blank\"},\"backgroundAssetRef\":1}},\"features_demo\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"Platform capabilities\",\"items\":[{\"title\":\"Visual Modeling\",\"description\":\"PrimeReact editors for schema and content.\"},{\"title\":\"Localized Routing\",\"description\":\"Market/locale matrix with URL pattern.\"},{\"title\":\"Form Engine\",\"description\":\"Conditional fields and submission pipeline.\"}]}},\"pricing_demo\":{\"type\":\"pricing\",\"props\":{\"title\":\"Pricing\",\"tiers\":[{\"name\":\"Starter\",\"price\":\"$0\",\"description\":\"Core CMS\",\"features\":[\"Pages\",\"Routes\"],\"cta\":{\"kind\":\"internal\",\"url\":\"/US/en-US/contact\",\"text\":\"Get Started\",\"target\":\"_self\"}},{\"name\":\"Growth\",\"price\":\"$149\",\"description\":\"Teams\",\"features\":[\"Forms\",\"Variants\"],\"cta\":{\"kind\":\"external\",\"url\":\"https://example.com/sales\",\"text\":\"Talk to Sales\",\"target\":\"_blank\"}}]}},\"faq_demo\":{\"type\":\"faq\",\"props\":{\"title\":\"FAQ\",\"items\":[{\"question\":\"Can I test variants?\",\"answer\":\"Yes. This page has a variant set with A/B traffic.\"},{\"question\":\"Are forms stored?\",\"answer\":\"Yes. Submissions appear in Admin > Forms > Submissions.\"}]}},\"newsletter_demo\":{\"type\":\"newsletter_form\",\"props\":{\"title\":\"Newsletter Signup\",\"description\":\"Two-step form with conditional second step.\",\"formId\":9001,\"submitLabel\":\"Subscribe\"}},\"footer_demo\":{\"type\":\"footer\",\"props\":{\"copyright\":\"© ContentHead Demo 2026\",\"linkGroups\":[{\"title\":\"Product\",\"links\":[{\"kind\":\"internal\",\"url\":\"/US/en-US/demo\",\"text\":\"Demo\",\"target\":\"_self\"},{\"kind\":\"internal\",\"url\":\"/US/en-US/products\",\"text\":\"Products\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"external\",\"url\":\"https://example.com/about\",\"text\":\"About\",\"target\":\"_blank\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://www.linkedin.com\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"externalId\":\"demo\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "demo",
+          "isCanonical": true
+        },
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "slug": "demo",
+          "isCanonical": true
+        },
+        {
+          "marketCode": "US",
+          "localeCode": "es-US",
+          "slug": "demo",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "products",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Products\",\"intro\":\"Product catalogue landing.\",\"body\":\"<p>Browse products and compare capabilities.</p>\",\"audience\":\"b2b\",\"tags\":[\"cms\"],\"primaryLink\":{\"kind\":\"internal\",\"url\":\"/US/en-US/products/product-a\",\"text\":\"Product A\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"external\",\"url\":\"https://example.com/catalog\",\"text\":\"External Catalog\",\"target\":\"_blank\"}]}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"hero_products\",\"feature_products\",\"footer_products\"]}]}",
+      "componentsJson": "{\"hero_products\":{\"type\":\"hero\",\"props\":{\"title\":\"Products\",\"subtitle\":\"Composable catalog experience.\",\"primaryCta\":{\"kind\":\"internal\",\"url\":\"/US/en-US/products/product-a\",\"text\":\"Open Product A\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"url\":\"/US/en-US/contact\",\"text\":\"Request quote\",\"target\":\"_self\"}}},\"feature_products\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"Highlighted\",\"items\":[{\"title\":\"Product A\",\"description\":\"Primary demo product page.\"},{\"title\":\"Related Articles\",\"description\":\"See implementation guides.\"}]}},\"footer_products\":{\"type\":\"footer\",\"props\":{\"copyright\":\"© ContentHead Demo 2026\",\"linkGroups\":[{\"title\":\"Product\",\"links\":[{\"kind\":\"internal\",\"url\":\"/US/en-US/demo\",\"text\":\"Demo\",\"target\":\"_self\"},{\"kind\":\"internal\",\"url\":\"/US/en-US/products\",\"text\":\"Products\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"external\",\"url\":\"https://example.com/about\",\"text\":\"About\",\"target\":\"_blank\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://www.linkedin.com\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"externalId\":\"products\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "products",
+          "isCanonical": true
+        },
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "slug": "products",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "product-a",
+      "contentTypeName": "ProductPage",
+      "fieldsJson": "{\"title\":\"Product A\",\"description\":\"Core product package.\",\"details\":\"<p>Product A includes CMS, forms, and routing controls.</p>\",\"stock\":250,\"price\":199.99,\"inStock\":true,\"releaseDate\":\"2026-01-15\",\"releaseAt\":\"2026-01-15T09:00:00Z\",\"tier\":\"growth\",\"capabilities\":[\"api\",\"forms\",\"dam\"],\"relatedProduct\":\"products\",\"configJson\":{\"sku\":\"PROD-A\",\"warrantyMonths\":12},\"buyLink\":{\"kind\":\"external\",\"url\":\"https://example.com/buy/product-a\",\"text\":\"Buy Product A\",\"target\":\"_blank\"},\"resourceLinks\":[{\"kind\":\"internal\",\"url\":\"/US/en-US/articles/first\",\"text\":\"Read implementation article\",\"target\":\"_self\"}],\"productImage\":2,\"gallery\":[1,2]}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"hero_prod_a\",\"text_prod_a\",\"footer_prod_a\"]}]}",
+      "componentsJson": "{\"hero_prod_a\":{\"type\":\"hero\",\"props\":{\"title\":\"Product A\",\"subtitle\":\"Growth plan for teams.\",\"primaryCta\":{\"kind\":\"external\",\"url\":\"https://example.com/buy/product-a\",\"text\":\"Buy now\",\"target\":\"_blank\"},\"secondaryCta\":{\"kind\":\"internal\",\"url\":\"/US/en-US/contact\",\"text\":\"Ask sales\",\"target\":\"_self\"},\"backgroundAssetRef\":2}},\"text_prod_a\":{\"type\":\"text_block\",\"props\":{\"body\":\"<p>Product A supports market routing, DAM references, and personalization hooks.</p>\",\"columns\":1}},\"footer_prod_a\":{\"type\":\"footer\",\"props\":{\"copyright\":\"© ContentHead Demo 2026\",\"linkGroups\":[{\"title\":\"Product\",\"links\":[{\"kind\":\"internal\",\"url\":\"/US/en-US/demo\",\"text\":\"Demo\",\"target\":\"_self\"},{\"kind\":\"internal\",\"url\":\"/US/en-US/products\",\"text\":\"Products\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"external\",\"url\":\"https://example.com/about\",\"text\":\"About\",\"target\":\"_blank\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://www.linkedin.com\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"externalId\":\"product-a\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "products/product-a",
+          "isCanonical": true
+        },
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "slug": "products/product-a",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "articles",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Article Hub\",\"intro\":\"All articles and guides.\",\"body\":\"<p>Browse implementation guides and release notes.</p>\",\"audience\":\"all\",\"tags\":[\"cms\",\"forms\"],\"primaryLink\":{\"kind\":\"internal\",\"url\":\"/US/en-US/articles/first\",\"text\":\"First article\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"url\":\"/US/en-US/articles/second\",\"text\":\"Second article\",\"target\":\"_self\"}]}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"hero_articles\",\"feature_articles\",\"footer_articles\"]}]}",
+      "componentsJson": "{\"hero_articles\":{\"type\":\"hero\",\"props\":{\"title\":\"Article Hub\",\"subtitle\":\"Technical content powered by CMS routes.\",\"primaryCta\":{\"kind\":\"internal\",\"url\":\"/US/en-US/articles/first\",\"text\":\"Read First\",\"target\":\"_self\"}}},\"feature_articles\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"Latest\",\"items\":[{\"title\":\"First Article\",\"description\":\"Intro to demo stack.\"},{\"title\":\"Second Article\",\"description\":\"Advanced personalization.\"}]}},\"footer_articles\":{\"type\":\"footer\",\"props\":{\"copyright\":\"© ContentHead Demo 2026\",\"linkGroups\":[{\"title\":\"Product\",\"links\":[{\"kind\":\"internal\",\"url\":\"/US/en-US/demo\",\"text\":\"Demo\",\"target\":\"_self\"},{\"kind\":\"internal\",\"url\":\"/US/en-US/products\",\"text\":\"Products\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"external\",\"url\":\"https://example.com/about\",\"text\":\"About\",\"target\":\"_blank\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://www.linkedin.com\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"externalId\":\"articles\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "articles",
+          "isCanonical": true
+        },
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "slug": "articles",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "article-first",
+      "contentTypeName": "ArticlePage",
+      "fieldsJson": "{\"title\":\"First Article\",\"excerpt\":\"Foundations of the imported demo package.\",\"authorBio\":\"<p>By Demo Team.</p>\",\"readMinutes\":6,\"qualityScore\":4.6,\"featured\":true,\"publishDate\":\"2026-02-10\",\"publishDateTime\":\"2026-02-10T08:30:00Z\",\"category\":\"guides\",\"topics\":[\"routing\",\"templates\"],\"relatedArticle\":\"article-second\",\"metadataJson\":{\"canonical\":\"first-article\"},\"ctaLink\":{\"kind\":\"internal\",\"url\":\"/US/en-US/contact\",\"text\":\"Talk to us\",\"target\":\"_self\"},\"links\":[{\"kind\":\"external\",\"url\":\"https://example.com/blog\",\"text\":\"External Blog\",\"target\":\"_blank\"}],\"coverAsset\":1,\"inlineAssets\":[1]}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"hero_article_1\",\"text_article_1\",\"footer_article_1\"]}]}",
+      "componentsJson": "{\"hero_article_1\":{\"type\":\"hero\",\"props\":{\"title\":\"First Article\",\"subtitle\":\"Foundations and setup.\"}},\"text_article_1\":{\"type\":\"text_block\",\"props\":{\"body\":\"<p>This article explains import format, routes, and composition.</p>\",\"columns\":1}},\"footer_article_1\":{\"type\":\"footer\",\"props\":{\"copyright\":\"© ContentHead Demo 2026\",\"linkGroups\":[{\"title\":\"Product\",\"links\":[{\"kind\":\"internal\",\"url\":\"/US/en-US/demo\",\"text\":\"Demo\",\"target\":\"_self\"},{\"kind\":\"internal\",\"url\":\"/US/en-US/products\",\"text\":\"Products\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"external\",\"url\":\"https://example.com/about\",\"text\":\"About\",\"target\":\"_blank\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://www.linkedin.com\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"externalId\":\"article-first\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "articles/first",
+          "isCanonical": true
+        },
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "slug": "articles/first",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "article-second",
+      "contentTypeName": "ArticlePage",
+      "fieldsJson": "{\"title\":\"Second Article\",\"excerpt\":\"Personalization and forms deep dive.\",\"authorBio\":\"<p>By Product Engineering.</p>\",\"readMinutes\":8,\"qualityScore\":4.8,\"featured\":false,\"publishDate\":\"2026-02-14\",\"publishDateTime\":\"2026-02-14T09:00:00Z\",\"category\":\"engineering\",\"topics\":[\"forms\",\"variants\"],\"relatedArticle\":\"article-first\",\"metadataJson\":{\"canonical\":\"second-article\"},\"ctaLink\":{\"kind\":\"internal\",\"url\":\"/US/en-US/demo\",\"text\":\"Back to demo\",\"target\":\"_self\"},\"links\":[{\"kind\":\"external\",\"url\":\"https://example.com/changelog\",\"text\":\"Changelog\",\"target\":\"_blank\"}],\"coverAsset\":2,\"inlineAssets\":[2]}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"hero_article_2\",\"text_article_2\",\"footer_article_2\"]}]}",
+      "componentsJson": "{\"hero_article_2\":{\"type\":\"hero\",\"props\":{\"title\":\"Second Article\",\"subtitle\":\"Personalization and forms.\"}},\"text_article_2\":{\"type\":\"text_block\",\"props\":{\"body\":\"<p>This article covers conditional forms and variant targeting rules.</p>\",\"columns\":1}},\"footer_article_2\":{\"type\":\"footer\",\"props\":{\"copyright\":\"© ContentHead Demo 2026\",\"linkGroups\":[{\"title\":\"Product\",\"links\":[{\"kind\":\"internal\",\"url\":\"/US/en-US/demo\",\"text\":\"Demo\",\"target\":\"_self\"},{\"kind\":\"internal\",\"url\":\"/US/en-US/products\",\"text\":\"Products\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"external\",\"url\":\"https://example.com/about\",\"text\":\"About\",\"target\":\"_blank\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://www.linkedin.com\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"externalId\":\"article-second\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "articles/second",
+          "isCanonical": true
+        },
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "slug": "articles/second",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "contact",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Contact / Quote Request\",\"intro\":\"Reach sales or support with contextual fields.\",\"body\":\"<p>Request quotes, ask for support, or send a general inquiry.</p>\",\"audience\":\"all\",\"tags\":[\"forms\"],\"primaryLink\":{\"kind\":\"external\",\"url\":\"https://example.com/contact\",\"text\":\"Corporate contact\",\"target\":\"_blank\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"url\":\"/US/en-US/demo\",\"text\":\"Back to demo\",\"target\":\"_self\"}]}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"hero_contact\",\"form_contact\",\"faq_contact\",\"footer_contact\"]}]}",
+      "componentsJson": "{\"hero_contact\":{\"type\":\"hero\",\"props\":{\"title\":\"Contact / Quote Request\",\"subtitle\":\"Conditional multi-step form demo.\",\"primaryCta\":{\"kind\":\"internal\",\"url\":\"/US/en-US/demo\",\"text\":\"Back to Demo\",\"target\":\"_self\"}}},\"form_contact\":{\"type\":\"newsletter_form\",\"props\":{\"title\":\"Request Form\",\"description\":\"Quote/support form with conditional fields.\",\"formId\":9002,\"submitLabel\":\"Send Request\"}},\"faq_contact\":{\"type\":\"faq\",\"props\":{\"title\":\"Before you submit\",\"items\":[{\"question\":\"Need quote?\",\"answer\":\"Choose Request Type = Quote to reveal pricing inputs.\"},{\"question\":\"Need support?\",\"answer\":\"Choose Request Type = Support to reveal issue fields.\"}]}},\"footer_contact\":{\"type\":\"footer\",\"props\":{\"copyright\":\"© ContentHead Demo 2026\",\"linkGroups\":[{\"title\":\"Product\",\"links\":[{\"kind\":\"internal\",\"url\":\"/US/en-US/demo\",\"text\":\"Demo\",\"target\":\"_self\"},{\"kind\":\"internal\",\"url\":\"/US/en-US/products\",\"text\":\"Products\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"external\",\"url\":\"https://example.com/about\",\"text\":\"About\",\"target\":\"_blank\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://www.linkedin.com\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"externalId\":\"contact\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "contact",
+          "isCanonical": true
+        },
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "slug": "contact",
+          "isCanonical": true
+        }
+      ]
+    }
+  ]
+}

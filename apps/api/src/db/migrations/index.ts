@@ -5,6 +5,7 @@ import { migration004 } from './004_variants.js';
 import { migration005 } from './005_forms_workflows.js';
 import { migration006 } from './006_site_url_pattern_and_locale_overrides.js';
 import { migration007 } from './007_connectors_assets_security.js';
+import { migration008 } from './008_form_submissions.js';
 
 export type Migration = {
   id: string;
@@ -18,5 +19,6 @@ export const migrations: Migration[] = [
   migration004,
   migration005,
   migration006,
-  migration007
+  migration007,
+  migration008
 ];

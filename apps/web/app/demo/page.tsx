@@ -104,17 +104,29 @@ export default async function DemoPage({
   const forms = Object.fromEntries(
     await Promise.all(
       Array.from(formIds).map(async (formId) => {
+        const formSteps = await sdk.listFormSteps({ formId });
         const formFields = await sdk.listFormFields({ formId });
         return [
           formId,
           {
+            steps: (formSteps.listFormSteps ?? [])
+              .filter((entry) => typeof entry.id === 'number')
+              .map((entry) => ({
+                id: entry.id as number,
+                name: (entry.name as string | null | undefined) ?? `Step ${(entry.position as number | null | undefined) ?? 1}`,
+                position: (entry.position as number | null | undefined) ?? 0
+              })),
             fields: (formFields.listFormFields ?? [])
               .filter((entry) => typeof entry.id === 'number' && typeof entry.key === 'string')
               .map((entry) => ({
                 id: entry.id as number,
+                stepId: (entry.stepId as number | null | undefined) ?? null,
                 key: entry.key as string,
                 label: (entry.label as string | null | undefined) ?? (entry.key as string),
                 fieldType: (entry.fieldType as string | null | undefined) ?? 'text',
+                conditionsJson: (entry.conditionsJson as string | null | undefined) ?? '{}',
+                validationsJson: (entry.validationsJson as string | null | undefined) ?? '{}',
+                uiConfigJson: (entry.uiConfigJson as string | null | undefined) ?? '{}',
                 active: Boolean(entry.active ?? true)
               }))
           }
@@ -130,6 +142,10 @@ export default async function DemoPage({
         {payload.selectedVariant?.key ?? 'none'} | Reason: {payload.selectionReason}
       </p>
       <CmsRendererClient
+        siteId={siteId}
+        marketCode={marketCode}
+        localeCode={localeCode}
+        routeSlug="demo"
         contentItemId={base.contentItem?.id ?? 0}
         versionId={version.id ?? 0}
         fields={fields}

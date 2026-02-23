@@ -31,6 +31,39 @@ pnpm --filter @contenthead/api seed
 - Web Demo Landing: `http://localhost:3000/demo?siteId=1&market=US&locale=en-US`
 - Web Preview (Visivic): `http://localhost:3000/preview?contentItemId=<id>&token=<previewToken>&siteId=1&market=US&locale=en-US`
 
+## Demo Import
+- Demo payload: `apps/admin/public/demo/contenthead-demo-import.json`
+- Import screen: `/settings/global/duckdb`
+- Click `Load Demo Import`, then `Import JSON`.
+- Backward-compatible format: `schemaVersion: 1` with optional sections:
+  - `siteConfig` (`urlPattern`, `markets`, `locales`, `matrix`)
+  - `forms` (forms + steps + fields)
+  - `variants` (item-indexed variant definitions + optional version patch payload)
+- Import now auto-publishes imported items so routes work in `apps/web` immediately.
+
+### Demo Routes
+- `/{market}/{locale}/home`
+- `/{market}/{locale}/demo`
+- `/{market}/{locale}/products`
+- `/{market}/{locale}/products/product-a`
+- `/{market}/{locale}/articles`
+- `/{market}/{locale}/articles/first`
+- `/{market}/{locale}/articles/second`
+- `/{market}/{locale}/contact`
+
+### Variant Testing
+- Demo page (`demo`) has A/B variants for `US/en-US`.
+- Target rule: `segments` contains `beta` OR `country == US`.
+- Weighted split: `variant_a` 50 / `variant_b` 50.
+- Test:
+  - `/demo?siteId=1&market=US&locale=en-US&segments=beta`
+  - Force: add `&variantKey=variant_b`
+
+### Form Submissions
+- Web forms now persist through `submitForm`.
+- Admin submissions grid: `/forms/submissions`.
+- Features: filters, search, grouping, paging, bulk status updates, row expand JSON, CSV/JSON export.
+
 ## Theme Switcher
 - Admin topbar now includes:
   - PrimeReact theme switcher (10 presets, including dark themes)
@@ -65,7 +98,7 @@ Admin now uses routed backend UI with shell layout:
   - Content (`/content/pages`, `/content/templates`, `/content/routes`, `/content/assets`)
   - Connector Settings (`/settings/global/connectors/auth|db|dam|ai`)
   - Personalization (`/personalization/variants`)
-  - Forms (`/forms/builder`)
+  - Forms (`/forms/builder`, `/forms/submissions`)
   - Workflows (`/workflows/designer`, `/workflows/runs`)
   - Security (`/security/users`, `/security/roles`)
 
@@ -207,10 +240,18 @@ Content Pages route (`/content/pages`) now uses a full-width CMS workspace:
 - GraphQL:
   - Form CRUD (`upsert/delete/list` for forms, steps, fields)
   - `evaluateForm(formId, answersJson, contextJson)`
+  - `submitForm(...)`
+  - `listFormSubmissions(...)`
+  - `updateSubmissionStatus(...)`
+  - `exportFormSubmissions(..., format: CSV|JSON)`
 - Admin Form Builder:
   - designer + preview + structure modes
   - visual inspector for properties, validation and conditions
   - advanced JSON only for power-user fallback
+- Admin Submissions page:
+  - DataGrid filters/search/grouping/paging
+  - expandable JSON answer/meta inspection
+  - CSV and JSON export
 
 ### Workflow Engine
 - DB tables:
@@ -288,8 +329,9 @@ pnpm dev
 - use `assetRef`/`assetList` in fields or component props
 
 7. Forms:
-- seeded `Newsletter Signup` form is wired to newsletter component
-- submit on `/demo` executes `evaluateForm` validation
+- demo import includes `Newsletter Signup` and `Contact / Quote Request`
+- submit from `/demo` and `/contact`
+- inspect/export in admin at `/forms/submissions`
 
 8. Workflows:
 - open Workflow Designer

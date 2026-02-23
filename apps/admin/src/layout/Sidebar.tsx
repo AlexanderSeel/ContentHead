@@ -47,7 +47,10 @@ export function Sidebar({ showDevTools }: { showDevTools: boolean }) {
       {
         key: 'forms',
         label: 'Forms',
-        items: [{ label: 'Form Builder', to: '/forms/builder' }]
+        items: [
+          { label: 'Form Builder', to: '/forms/builder' },
+          { label: 'Submissions', to: '/forms/submissions' }
+        ]
       },
       {
         key: 'workflows',

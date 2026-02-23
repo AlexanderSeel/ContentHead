@@ -206,6 +206,18 @@ export async function setSiteUrlPattern(db: DbClient, siteId: number, urlPattern
   return getSite(db, siteId);
 }
 
+export async function setSiteName(db: DbClient, siteId: number, name: string): Promise<Site> {
+  await ensureSiteExists(db, siteId);
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new GraphQLError('Site name is required', {
+      extensions: { code: 'INVALID_SITE_NAME' }
+    });
+  }
+  await db.run('UPDATE sites SET name = ? WHERE id = ?', [trimmed, siteId]);
+  return getSite(db, siteId);
+}
+
 export async function listMarkets(db: DbClient, siteId: number): Promise<Market[]> {
   await ensureSiteExists(db, siteId);
   return db.all<Market>(

@@ -16,7 +16,13 @@ dist-ssr
 .env.*
 !.env.example
 data/
-
+# Ignore generated JS files under apps (Next build output etc.)
+/apps/**/*.js
+/apps/**/*.js.map
+/apps/**/.next/
+/apps/**/out/
+/apps/**/dist/
+/apps/**/build/
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
