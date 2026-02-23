@@ -1,4 +1,5 @@
-import { mkdir } from 'node:fs/promises';
+import { access, mkdir, rename } from 'node:fs/promises';
+import { constants } from 'node:fs';
 import { dirname } from 'node:path';
 import { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api';
 
@@ -12,9 +13,35 @@ export class DuckDbClient implements DbClient {
 
   static async create(filePath: string): Promise<DuckDbClient> {
     await mkdir(dirname(filePath), { recursive: true });
-    const instance = await DuckDBInstance.create(filePath);
-    const connection = await instance.connect();
-    return new DuckDbClient(instance, connection);
+    try {
+      const instance = await DuckDBInstance.create(filePath);
+      const connection = await instance.connect();
+      return new DuckDbClient(instance, connection);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const walPath = `${filePath}.wal`;
+      const looksLikeWalReplayFailure =
+        message.includes('Failure while replaying WAL') ||
+        message.includes('GetDefaultDatabase with no default database set');
+
+      if (!looksLikeWalReplayFailure) {
+        throw error;
+      }
+
+      try {
+        await access(walPath, constants.F_OK);
+      } catch {
+        throw error;
+      }
+
+      const quarantinePath = `${walPath}.corrupt.${Date.now()}`;
+      await rename(walPath, quarantinePath);
+      console.warn(`DuckDB WAL replay failed. Quarantined WAL file: ${quarantinePath}. Retrying database open.`);
+
+      const instance = await DuckDBInstance.create(filePath);
+      const connection = await instance.connect();
+      return new DuckDbClient(instance, connection);
+    }
   }
 
   run(sql: string, params: unknown[] = []): Promise<void> {

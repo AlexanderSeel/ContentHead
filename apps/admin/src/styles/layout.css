@@ -41,7 +41,7 @@ body {
   overflow: hidden;
 }
 
-.admin-content > div {
+.admin-content > div:not(.pageRoot) {
   display: grid;
   gap: var(--ch-card-gap);
   min-height: 0;
