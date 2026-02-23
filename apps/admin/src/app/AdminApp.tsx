@@ -58,6 +58,7 @@ export function AdminApp() {
               <Route path="/personalization/variants" element={<VariantsPage />} />
               <Route path="/personalization" element={<Navigate to="/personalization/variants" replace />} />
 
+              <Route path="/forms/builder/:formId" element={<FormBuilderPage />} />
               <Route path="/forms/builder" element={<FormBuilderPage />} />
               <Route path="/forms" element={<Navigate to="/forms/builder" replace />} />
 
