@@ -1,0 +1,10 @@
+query WebValidateMarketLocale($siteId: Int!, $marketCode: String!, $localeCode: String!) {
+  validateMarketLocale(siteId: $siteId, marketCode: $marketCode, localeCode: $localeCode)
+}
+
+query WebSiteDefaults($siteId: Int!) {
+  getSiteDefaults(siteId: $siteId) {
+    defaultMarketCode
+    defaultLocaleCode
+  }
+}

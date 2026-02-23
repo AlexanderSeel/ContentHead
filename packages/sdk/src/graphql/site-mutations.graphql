@@ -1,0 +1,95 @@
+mutation UpsertMarket(
+  $siteId: Int!
+  $code: String!
+  $name: String!
+  $currency: String
+  $timezone: String
+  $active: Boolean!
+  $isDefault: Boolean!
+) {
+  upsertMarket(
+    siteId: $siteId
+    code: $code
+    name: $name
+    currency: $currency
+    timezone: $timezone
+    active: $active
+    isDefault: $isDefault
+  ) {
+    code
+    name
+    currency
+    timezone
+    active
+    isDefault
+  }
+}
+
+mutation UpsertLocale(
+  $siteId: Int!
+  $code: String!
+  $name: String!
+  $active: Boolean!
+  $fallbackLocaleCode: String
+  $isDefault: Boolean!
+) {
+  upsertLocale(
+    siteId: $siteId
+    code: $code
+    name: $name
+    active: $active
+    fallbackLocaleCode: $fallbackLocaleCode
+    isDefault: $isDefault
+  ) {
+    code
+    name
+    active
+    fallbackLocaleCode
+    isDefault
+  }
+}
+
+mutation SetSiteMarkets($siteId: Int!, $markets: [SiteMarketInput!]!, $defaultMarketCode: String!) {
+  setSiteMarkets(siteId: $siteId, markets: $markets, defaultMarketCode: $defaultMarketCode) {
+    code
+    name
+    currency
+    timezone
+    active
+    isDefault
+  }
+}
+
+mutation SetSiteLocales($siteId: Int!, $locales: [SiteLocaleInput!]!, $defaultLocaleCode: String!) {
+  setSiteLocales(siteId: $siteId, locales: $locales, defaultLocaleCode: $defaultLocaleCode) {
+    code
+    name
+    active
+    fallbackLocaleCode
+    isDefault
+  }
+}
+
+mutation SetSiteMarketLocaleMatrix(
+  $siteId: Int!
+  $combinations: [SiteMarketLocaleInput!]!
+  $defaults: MatrixDefaultsInput
+) {
+  setSiteMarketLocaleMatrix(siteId: $siteId, combinations: $combinations, defaults: $defaults) {
+    siteId
+    combinations {
+      marketCode
+      localeCode
+      active
+      isDefaultForMarket
+    }
+    defaults {
+      defaultMarketCode
+      defaultLocaleCode
+      marketDefaultLocales {
+        marketCode
+        localeCode
+      }
+    }
+  }
+}

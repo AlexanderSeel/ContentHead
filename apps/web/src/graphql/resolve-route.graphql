@@ -1,0 +1,36 @@
+query WebResolveRoute(
+  $siteId: Int!
+  $marketCode: String!
+  $localeCode: String!
+  $slug: String!
+  $previewToken: String
+  $preview: Boolean
+) {
+  resolveRoute(
+    siteId: $siteId
+    marketCode: $marketCode
+    localeCode: $localeCode
+    slug: $slug
+    previewToken: $previewToken
+    preview: $preview
+  ) {
+    mode
+    route {
+      id
+      slug
+    }
+    contentType {
+      id
+      name
+      fieldsJson
+    }
+    version {
+      id
+      state
+      fieldsJson
+      compositionJson
+      componentsJson
+      metadataJson
+    }
+  }
+}

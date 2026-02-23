@@ -1,0 +1,406 @@
+query ListContentTypes($siteId: Int!) {
+  listContentTypes(siteId: $siteId) {
+    id
+    siteId
+    name
+    description
+    fieldsJson
+    createdAt
+    createdBy
+    updatedAt
+    updatedBy
+  }
+}
+
+query ListContentItems($siteId: Int!) {
+  listContentItems(siteId: $siteId) {
+    id
+    siteId
+    contentTypeId
+    archived
+    createdAt
+    createdBy
+    currentDraftVersionId
+    currentPublishedVersionId
+  }
+}
+
+query GetContentItemDetail($contentItemId: Int!) {
+  getContentItemDetail(contentItemId: $contentItemId) {
+    item {
+      id
+      siteId
+      contentTypeId
+      archived
+      currentDraftVersionId
+      currentPublishedVersionId
+      createdAt
+      createdBy
+    }
+    contentType {
+      id
+      name
+      fieldsJson
+    }
+    currentDraftVersion {
+      id
+      versionNumber
+      state
+      fieldsJson
+      compositionJson
+      componentsJson
+      metadataJson
+      comment
+    }
+    currentPublishedVersion {
+      id
+      versionNumber
+      state
+      fieldsJson
+      compositionJson
+      componentsJson
+      metadataJson
+      comment
+    }
+  }
+}
+
+query ListVersions($contentItemId: Int!) {
+  listVersions(contentItemId: $contentItemId) {
+    id
+    contentItemId
+    versionNumber
+    state
+    sourceVersionId
+    fieldsJson
+    compositionJson
+    componentsJson
+    metadataJson
+    comment
+    createdAt
+    createdBy
+  }
+}
+
+query DiffVersions($leftVersionId: Int!, $rightVersionId: Int!) {
+  diffVersions(leftVersionId: $leftVersionId, rightVersionId: $rightVersionId) {
+    summary
+    changedPaths
+    leftVersionId
+    rightVersionId
+  }
+}
+
+query ListTemplates($siteId: Int!) {
+  listTemplates(siteId: $siteId) {
+    id
+    siteId
+    name
+    compositionJson
+    componentsJson
+    constraintsJson
+    updatedAt
+  }
+}
+
+query ListRoutes($siteId: Int!, $marketCode: String, $localeCode: String) {
+  listRoutes(siteId: $siteId, marketCode: $marketCode, localeCode: $localeCode) {
+    id
+    siteId
+    contentItemId
+    marketCode
+    localeCode
+    slug
+    isCanonical
+    createdAt
+  }
+}
+
+query ResolveRoute(
+  $siteId: Int!
+  $marketCode: String!
+  $localeCode: String!
+  $slug: String!
+  $previewToken: String
+  $preview: Boolean
+) {
+  resolveRoute(
+    siteId: $siteId
+    marketCode: $marketCode
+    localeCode: $localeCode
+    slug: $slug
+    previewToken: $previewToken
+    preview: $preview
+  ) {
+    mode
+    route {
+      id
+      slug
+      marketCode
+      localeCode
+      contentItemId
+      isCanonical
+    }
+    contentItem {
+      id
+      contentTypeId
+      currentDraftVersionId
+      currentPublishedVersionId
+    }
+    contentType {
+      id
+      name
+      fieldsJson
+    }
+    version {
+      id
+      versionNumber
+      state
+      fieldsJson
+      compositionJson
+      componentsJson
+      metadataJson
+      comment
+    }
+  }
+}
+
+mutation CreateContentType(
+  $siteId: Int!
+  $name: String!
+  $description: String
+  $fieldsJson: String!
+  $by: String
+) {
+  createContentType(
+    siteId: $siteId
+    name: $name
+    description: $description
+    fieldsJson: $fieldsJson
+    by: $by
+  ) {
+    id
+    siteId
+    name
+    description
+    fieldsJson
+  }
+}
+
+mutation UpdateContentType(
+  $id: Int!
+  $name: String!
+  $description: String
+  $fieldsJson: String!
+  $by: String
+) {
+  updateContentType(id: $id, name: $name, description: $description, fieldsJson: $fieldsJson, by: $by) {
+    id
+    siteId
+    name
+    description
+    fieldsJson
+  }
+}
+
+mutation DeleteContentType($id: Int!) {
+  deleteContentType(id: $id)
+}
+
+mutation CreateContentItem(
+  $siteId: Int!
+  $contentTypeId: Int!
+  $initialFieldsJson: String
+  $initialCompositionJson: String
+  $initialComponentsJson: String
+  $metadataJson: String
+  $comment: String
+  $by: String
+) {
+  createContentItem(
+    siteId: $siteId
+    contentTypeId: $contentTypeId
+    initialFieldsJson: $initialFieldsJson
+    initialCompositionJson: $initialCompositionJson
+    initialComponentsJson: $initialComponentsJson
+    metadataJson: $metadataJson
+    comment: $comment
+    by: $by
+  ) {
+    id
+    siteId
+    contentTypeId
+    archived
+    currentDraftVersionId
+    currentPublishedVersionId
+  }
+}
+
+mutation ArchiveContentItem($id: Int!, $archived: Boolean!) {
+  archiveContentItem(id: $id, archived: $archived) {
+    id
+    archived
+  }
+}
+
+mutation CreateDraftVersion($contentItemId: Int!, $fromVersionId: Int, $comment: String, $by: String) {
+  createDraftVersion(contentItemId: $contentItemId, fromVersionId: $fromVersionId, comment: $comment, by: $by) {
+    id
+    contentItemId
+    versionNumber
+    state
+    fieldsJson
+    compositionJson
+    componentsJson
+    metadataJson
+    comment
+  }
+}
+
+mutation UpdateDraftVersion($versionId: Int!, $patch: UpdateDraftPatchInput!, $expectedVersionNumber: Int!) {
+  updateDraftVersion(versionId: $versionId, patch: $patch, expectedVersionNumber: $expectedVersionNumber) {
+    id
+    contentItemId
+    versionNumber
+    state
+    fieldsJson
+    compositionJson
+    componentsJson
+    metadataJson
+    comment
+  }
+}
+
+mutation PublishVersion($versionId: Int!, $expectedVersionNumber: Int!, $comment: String, $by: String) {
+  publishVersion(
+    versionId: $versionId
+    expectedVersionNumber: $expectedVersionNumber
+    comment: $comment
+    by: $by
+  ) {
+    id
+    contentItemId
+    versionNumber
+    state
+    fieldsJson
+    compositionJson
+    componentsJson
+    metadataJson
+    comment
+  }
+}
+
+mutation RollbackToVersion($contentItemId: Int!, $versionId: Int!, $by: String) {
+  rollbackToVersion(contentItemId: $contentItemId, versionId: $versionId, by: $by) {
+    id
+    contentItemId
+    versionNumber
+    state
+    fieldsJson
+    compositionJson
+    componentsJson
+    metadataJson
+    comment
+  }
+}
+
+mutation CreateTemplate(
+  $siteId: Int!
+  $name: String!
+  $compositionJson: String!
+  $componentsJson: String!
+  $constraintsJson: String!
+) {
+  createTemplate(
+    siteId: $siteId
+    name: $name
+    compositionJson: $compositionJson
+    componentsJson: $componentsJson
+    constraintsJson: $constraintsJson
+  ) {
+    id
+    siteId
+    name
+    compositionJson
+    componentsJson
+    constraintsJson
+    updatedAt
+  }
+}
+
+mutation UpdateTemplate(
+  $id: Int!
+  $name: String!
+  $compositionJson: String!
+  $componentsJson: String!
+  $constraintsJson: String!
+) {
+  updateTemplate(
+    id: $id
+    name: $name
+    compositionJson: $compositionJson
+    componentsJson: $componentsJson
+    constraintsJson: $constraintsJson
+  ) {
+    id
+    siteId
+    name
+    compositionJson
+    componentsJson
+    constraintsJson
+    updatedAt
+  }
+}
+
+mutation DeleteTemplate($id: Int!) {
+  deleteTemplate(id: $id)
+}
+
+mutation ReconcileTemplate($templateId: Int!) {
+  reconcileTemplate(templateId: $templateId) {
+    summary
+    changedPaths
+    leftVersionId
+    rightVersionId
+  }
+}
+
+mutation UpsertRoute(
+  $id: Int
+  $siteId: Int!
+  $contentItemId: Int!
+  $marketCode: String!
+  $localeCode: String!
+  $slug: String!
+  $isCanonical: Boolean!
+) {
+  upsertRoute(
+    id: $id
+    siteId: $siteId
+    contentItemId: $contentItemId
+    marketCode: $marketCode
+    localeCode: $localeCode
+    slug: $slug
+    isCanonical: $isCanonical
+  ) {
+    id
+    siteId
+    contentItemId
+    marketCode
+    localeCode
+    slug
+    isCanonical
+    createdAt
+  }
+}
+
+mutation DeleteRoute($id: Int!) {
+  deleteRoute(id: $id)
+}
+
+mutation IssuePreviewToken($contentItemId: Int!) {
+  issuePreviewToken(contentItemId: $contentItemId) {
+    token
+    contentItemId
+  }
+}

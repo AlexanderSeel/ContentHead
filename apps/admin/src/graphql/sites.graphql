@@ -1,0 +1,34 @@
+query AdminSiteMatrix($siteId: Int!) {
+  getSiteMarketLocaleMatrix(siteId: $siteId) {
+    siteId
+    markets {
+      code
+      name
+      currency
+      timezone
+      active
+      isDefault
+    }
+    locales {
+      code
+      name
+      active
+      fallbackLocaleCode
+      isDefault
+    }
+    combinations {
+      marketCode
+      localeCode
+      active
+      isDefaultForMarket
+    }
+    defaults {
+      defaultMarketCode
+      defaultLocaleCode
+      marketDefaultLocales {
+        marketCode
+        localeCode
+      }
+    }
+  }
+}

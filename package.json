@@ -1,0 +1,30 @@
+{
+  "name": "contenthead",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.6.0",
+  "scripts": {
+    "dev": "concurrently -n api,admin,web -c blue,green,yellow \"pnpm --filter @contenthead/api dev\" \"pnpm --filter @contenthead/admin dev\" \"pnpm --filter @contenthead/web dev\"",
+    "schema": "pnpm --filter @contenthead/api schema:export",
+    "codegen": "pnpm --filter @contenthead/admin codegen && pnpm --filter @contenthead/web codegen && pnpm --filter @contenthead/sdk codegen",
+    "build": "pnpm schema && pnpm codegen && pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.2",
+    "@graphql-codegen/typed-document-node": "^5.0.11",
+    "@graphql-codegen/typescript": "^4.1.6",
+    "@graphql-codegen/typescript-operations": "^4.6.1",
+    "@graphql-typed-document-node/core": "3.2.0",
+    "@types/node": "^22.13.10",
+    "@typescript-eslint/eslint-plugin": "^8.26.0",
+    "@typescript-eslint/parser": "^8.26.0",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.22.0",
+    "eslint-config-prettier": "^10.1.1",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2"
+  }
+}

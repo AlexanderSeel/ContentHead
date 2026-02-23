@@ -1,0 +1,90 @@
+query ListSites {
+  listSites {
+    id
+    name
+    active
+  }
+}
+
+query GetSiteDefaults($siteId: Int!) {
+  getSiteDefaults(siteId: $siteId) {
+    siteId
+    defaultMarketCode
+    defaultLocaleCode
+    marketDefaultLocales {
+      marketCode
+      localeCode
+    }
+  }
+}
+
+query GetSiteMarketLocaleMatrix($siteId: Int!) {
+  getSiteMarketLocaleMatrix(siteId: $siteId) {
+    siteId
+    markets {
+      code
+      name
+      currency
+      timezone
+      active
+      isDefault
+    }
+    locales {
+      code
+      name
+      active
+      fallbackLocaleCode
+      isDefault
+    }
+    combinations {
+      siteId
+      marketCode
+      localeCode
+      active
+      isDefaultForMarket
+    }
+    defaults {
+      siteId
+      defaultMarketCode
+      defaultLocaleCode
+      marketDefaultLocales {
+        marketCode
+        localeCode
+      }
+    }
+  }
+}
+
+query ListMarkets($siteId: Int!) {
+  listMarkets(siteId: $siteId) {
+    code
+    name
+    currency
+    timezone
+    active
+    isDefault
+  }
+}
+
+query ListLocales($siteId: Int!) {
+  listLocales(siteId: $siteId) {
+    code
+    name
+    active
+    fallbackLocaleCode
+    isDefault
+  }
+}
+
+query ValidateMarketLocale($siteId: Int!, $marketCode: String!, $localeCode: String!) {
+  validateMarketLocale(siteId: $siteId, marketCode: $marketCode, localeCode: $localeCode)
+}
+
+query ResolveMarketLocale($siteId: Int!, $marketCode: String!, $localeCode: String!) {
+  resolveMarketLocale(siteId: $siteId, marketCode: $marketCode, localeCode: $localeCode) {
+    siteId
+    marketCode
+    localeCode
+    resolution
+  }
+}
