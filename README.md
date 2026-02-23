@@ -68,12 +68,13 @@ Admin now uses routed backend UI with shell layout:
   - Workflows (`/workflows/designer`, `/workflows/runs`)
   - Security (`/security/users`, `/security/roles`)
 
-Content Pages route (`/content/pages`) uses split-pane UX:
-- Left: TreeTable + Search tabs
-- Right: Edit / Routes / Versions / Variants / Preview tabs
-  - Edit uses visual PrimeReact property editors for content fields and component props
-  - Raw JSON is available in Advanced sections with explicit enable toggle
-  - `contentLink` and `contentLinkList` field types use a Link Selector dialog with internal/external tabs.
+Content Pages route (`/content/pages`) now uses a full-width CMS workspace:
+- Left pane: `Tree` + `Search` tabs with slug/title/status, URL-synced selection
+- Center pane tabs: `Fields`, `Components`, `Routes`, `Versions`, `Variants`, `Advanced`
+- Right pane: live on-page preview iframe (Visivic bridge)
+- Sticky action bar: create/save/publish, issue preview token, open `Preview website`, Ask AI
+- Raw JSON editing is `Advanced`-only (explicit enable toggle)
+- `contentLink` and `contentLinkList` field types keep the Link Selector dialog with internal/external tabs.
 
 ## Rule Editor
 - Variants and Form Builder conditions now provide a visual Rule Editor dialog.
@@ -125,15 +126,22 @@ Content Pages route (`/content/pages`) uses split-pane UX:
 - `getPageByRoute(...)` selects variant + version by context
 
 ### Visivic (Visual Editing)
-- New web route: `/preview?contentItemId=&token=&variantKey?=&versionId?`
-- Preview DOM annotations:
+- `Preview website` opens the real Next.js renderer:
+  - Draft: `/preview?contentItemId=&siteId=&market=&locale=&token=&versionId=`
+  - Published: localized public route using site `urlPattern`
+- Preview/public pages now annotate editable DOM:
   - `data-cms-content-item-id`
   - `data-cms-version-id`
   - `data-cms-component-id`
+  - `data-cms-component-type`
   - `data-cms-field-path`
-- PostMessage bridge from web iframe to admin on hover/click:
-  - payload includes `fieldPath`, `componentId`, `contentItemId`, `versionId`
-- Admin preview iframe listens and focuses/highlights matching field editor
+- PostMessage bridge (admin <-> iframe):
+  - iframe -> admin: `CMS_SELECT`
+  - admin -> iframe: `CMS_HIGHLIGHT`, `CMS_SCROLL_TO`, `CMS_REFRESH`
+- Editing flow:
+  - click element in preview to select matching field/component in admin
+  - selecting in admin highlights/scrolls corresponding preview element
+  - save draft refreshes preview render
 
 ### Form Engine
 - DB tables:

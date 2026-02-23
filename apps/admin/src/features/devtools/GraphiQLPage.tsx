@@ -115,6 +115,7 @@ export function GraphiQLPage() {
   const [headersError, setHeadersError] = useState('');
   const [headersDialogOpen, setHeadersDialogOpen] = useState(false);
   const [editorSeed, setEditorSeed] = useState(0);
+  const [selectedSampleLabel, setSelectedSampleLabel] = useState(samples[0]!.label);
   const [activeQuery, setActiveQuery] = useState(samples[0]!.query);
   const [lastResponse, setLastResponse] = useState('');
   const [schemaNodes, setSchemaNodes] = useState<TreeNode[]>([]);
@@ -177,17 +178,21 @@ export function GraphiQLPage() {
     [endpoint, parsedHeaders]
   );
 
+  const applySample = (sample: { label: string; query: string; variables?: string }) => {
+    setSelectedSampleLabel(sample.label);
+    setQuery(sample.query);
+    setActiveQuery(sample.query);
+    setVariables(sample.variables ?? '{}');
+    setEditorSeed((prev) => prev + 1);
+  };
+
   const sampleMenuItems = useMemo<MenuItem[]>(
     () =>
       samples.map((sample) => ({
         label: sample.label,
-        command: () => {
-          setQuery(sample.query);
-          setActiveQuery(sample.query);
-          setVariables(sample.variables ?? '{}');
-          setEditorSeed((prev) => prev + 1);
-        }
+        command: () => applySample(sample)
       })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
@@ -309,7 +314,17 @@ export function GraphiQLPage() {
         }}
         actions={(
           <div className="graphiql-header-actions">
-            <SplitButton model={sampleMenuItems} label="Samples" icon="pi pi-list" text size="small" />
+            <SplitButton
+              model={sampleMenuItems}
+              label={`Samples: ${selectedSampleLabel}`}
+              icon="pi pi-list"
+              text
+              size="small"
+              onClick={() => {
+                const sample = samples.find((entry) => entry.label === selectedSampleLabel) ?? samples[0]!;
+                applySample(sample);
+              }}
+            />
             <Button text size="small" icon="pi pi-sliders-h" label="Headers & Variables" onClick={() => setHeadersDialogOpen(true)} />
           </div>
         )}

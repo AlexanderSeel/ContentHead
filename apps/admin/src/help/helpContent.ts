@@ -7,8 +7,8 @@ export type HelpTopic = {
 export const helpContent: Record<string, HelpTopic> = {
   content_pages: {
     title: 'Content Pages',
-    tooltip: 'Edit page fields, composition components, routes and preview.',
-    markdown: 'Use **Edit** for visual field and component editing.\n\nUse **Advanced JSON** only for power-user fixes.\n\nRoutes bind content to market/locale URLs.'
+    tooltip: 'Click elements in preview to edit fields/components in place.',
+    markdown: 'Use the 3-pane workspace: **Tree**, **Editor**, and **On-page Preview**.\n\nClick any annotated element in Preview to select and edit the mapped field/component.\n\nUse **Advanced** for raw JSON only when needed.\n\nRoutes bind content to market/locale URLs.'
   },
   content_types: {
     title: 'Content Types',

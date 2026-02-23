@@ -1,0 +1,12 @@
+import { jsx as _jsx } from "react/jsx-runtime";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { PrimeReactProvider } from 'primereact/api';
+import 'primereact/resources/primereact.min.css';
+import 'primeicons/primeicons.css';
+import 'primeflex/primeflex.css';
+import { AdminApp } from './app/AdminApp';
+import { UiProvider } from './app/UiContext';
+import './styles/layout.css';
+import './styles.css';
+ReactDOM.createRoot(document.getElementById('root')).render(_jsx(React.StrictMode, { children: _jsx(PrimeReactProvider, { children: _jsx(UiProvider, { children: _jsx(AdminApp, {}) }) }) }));

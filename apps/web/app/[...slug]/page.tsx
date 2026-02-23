@@ -4,63 +4,23 @@ import { cookies } from 'next/headers';
 import { createSdk } from '@contenthead/sdk';
 import { parseLocalizedPath } from '@contenthead/shared';
 
-type ComponentPayload = {
-  type: string;
-  title?: string;
-  subtitle?: string;
-  html?: string;
-  items?: Array<{ title: string; href: string }>;
-};
+import { CmsRendererClient } from '../components/CmsRendererClient';
 
 type AreaPayload = {
   name: string;
   components: string[];
 };
 
-function renderComponent(id: string, component: ComponentPayload | undefined) {
-  if (!component) {
-    return <div key={id}>Missing component: {id}</div>;
-  }
-
-  if (component.type === 'Hero') {
-    return (
-      <section key={id} style={{ padding: '2rem', border: '1px solid #cbd5e1', borderRadius: 8 }}>
-        <h1>{component.title ?? 'Hero Title'}</h1>
-        <p>{component.subtitle ?? ''}</p>
-      </section>
-    );
-  }
-
-  if (component.type === 'RichText') {
-    return (
-      <section
-        key={id}
-        style={{ padding: '1rem 0' }}
-        dangerouslySetInnerHTML={{ __html: component.html ?? '<p></p>' }}
-      />
-    );
-  }
-
-  if (component.type === 'TeaserGrid') {
-    return (
-      <section key={id}>
-        <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))' }}>
-          {(component.items ?? []).map((item, index) => (
-            <a
-              key={`${id}-${index}`}
-              href={item.href}
-              style={{ border: '1px solid #cbd5e1', borderRadius: 8, padding: '1rem', textDecoration: 'none', color: '#0f172a' }}
-            >
-              {item.title}
-            </a>
-          ))}
-        </div>
-      </section>
-    );
-  }
-
-  return <div key={id}>Unsupported component type: {component.type}</div>;
-}
+type ComponentPayload = {
+  type: string;
+  title?: string;
+  subtitle?: string;
+  body?: string;
+  text?: string;
+  html?: string;
+  href?: string;
+  items?: Array<{ title: string; href: string }>;
+};
 
 export default async function CatchAllPage({
   params,
@@ -76,6 +36,7 @@ export default async function CatchAllPage({
   const siteId = Number((resolvedSearch.siteId as string | undefined) ?? '1');
   const previewToken = (resolvedSearch.previewToken as string | undefined) ?? null;
   const preview = ((resolvedSearch.preview as string | undefined) ?? 'false') === 'true';
+  const cmsBridge = (resolvedSearch.cmsBridge as string | undefined) === '1';
   const segments = ((resolvedSearch.segments as string | undefined) ?? '')
     .split(',')
     .map((entry) => entry.trim())
@@ -118,19 +79,22 @@ export default async function CatchAllPage({
 
   const composition = JSON.parse(version.compositionJson ?? '{}') as { areas?: AreaPayload[] };
   const components = JSON.parse(version.componentsJson ?? '{}') as Record<string, ComponentPayload>;
-  const areas = composition.areas ?? [{ name: 'main', components: Object.keys(components) }];
+  const fields = JSON.parse(version.fieldsJson ?? '{}') as Record<string, unknown>;
 
   return (
-    <main style={{ maxWidth: 960, margin: '0 auto', padding: '2rem' }}>
-      <p style={{ color: '#64748b' }}>
+    <>
+      <p style={{ color: '#64748b', margin: '1rem auto', maxWidth: 960, padding: '0 2rem' }}>
         Mode: {base.mode} | Site: {siteId} | Market/Locale: {marketCode}/{localeCode} | Variant:{' '}
         {payload.selectedVariant?.key ?? 'none'} | Reason: {payload.selectionReason}
       </p>
-      {areas.map((area) => (
-        <section key={area.name} style={{ marginBottom: '1.5rem', display: 'grid', gap: '1rem' }}>
-          {area.components.map((componentId) => renderComponent(componentId, components[componentId]))}
-        </section>
-      ))}
-    </main>
+      <CmsRendererClient
+        contentItemId={base.contentItem?.id ?? 0}
+        versionId={version.id ?? 0}
+        fields={fields}
+        composition={composition}
+        components={components}
+        cmsBridge={cmsBridge}
+      />
+    </>
   );
 }

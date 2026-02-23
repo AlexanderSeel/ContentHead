@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 
 import { createSdk } from '@contenthead/sdk';
 
-import { PreviewClient } from './PreviewClient';
+import { CmsRendererClient } from '../components/CmsRendererClient';
 
 export default async function PreviewPage({
   searchParams
@@ -17,6 +17,7 @@ export default async function PreviewPage({
   const variantKey = (query.variantKey as string | undefined) ?? null;
   const versionIdOverride = query.versionId ? Number(query.versionId as string) : null;
   const token = (query.token as string | undefined) ?? null;
+  const cmsBridge = (query.cmsBridge as string | undefined) === '1';
 
   if (!Number.isFinite(contentItemId) || contentItemId <= 0) {
     notFound();
@@ -75,12 +76,13 @@ export default async function PreviewPage({
       <div style={{ padding: '0.5rem 1rem', fontSize: 12, background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
         Preview token: {token ? 'provided' : 'none'} | item: {contentItemId} | version: {version.id}
       </div>
-      <PreviewClient
+      <CmsRendererClient
         contentItemId={contentItemId}
         versionId={version.id ?? 0}
         fields={fields}
         composition={composition}
         components={components}
+        cmsBridge={cmsBridge}
       />
     </>
   );

@@ -1,4 +1,3 @@
-import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Checkbox } from 'primereact/checkbox';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
@@ -15,9 +14,13 @@ type ComponentRecord = {
 
 export function ComponentInspector({
   component,
+  selectedFieldPath,
+  onSelectFieldPath,
   onChange
 }: {
   component: ComponentRecord | null;
+  selectedFieldPath?: string | null;
+  onSelectFieldPath?: (value: string) => void;
   onChange: (next: ComponentRecord) => void;
 }) {
   if (!component) {
@@ -36,8 +39,16 @@ export function ComponentInspector({
       <div className="status-panel"><strong>{entry.label}</strong><div>{component.id}</div></div>
       {entry.fields.map((field) => {
         const value = component.props[field.key];
+        const fieldPath = `components.${component.id}.props.${field.key}`;
+        const isSelected = selectedFieldPath === fieldPath;
+
         return (
-          <div className="form-row" key={field.key}>
+          <div
+            className={`form-row ${isSelected ? 'cms-selected-editor-row' : ''}`}
+            key={field.key}
+            data-editor-path={fieldPath}
+            onClick={() => onSelectFieldPath?.(fieldPath)}
+          >
             <label>{field.label}</label>
             {field.type === 'number' ? (
               <InputNumber value={typeof value === 'number' ? value : null} onValueChange={(event) => onChange({ ...component, props: { ...component.props, [field.key]: event.value ?? 0 } })} />
@@ -59,23 +70,6 @@ export function ComponentInspector({
           {errors.map((entryError) => <div key={entryError} className="error-text">{entryError}</div>)}
         </div>
       ) : null}
-
-      <Accordion>
-        <AccordionTab header="Advanced JSON">
-          <InputTextarea
-            rows={10}
-            value={JSON.stringify(component.props, null, 2)}
-            onChange={(event) => {
-              try {
-                const parsed = JSON.parse(event.target.value) as Record<string, unknown>;
-                onChange({ ...component, props: parsed });
-              } catch {
-                // keep invalid json local
-              }
-            }}
-          />
-        </AccordionTab>
-      </Accordion>
     </div>
   );
 }
