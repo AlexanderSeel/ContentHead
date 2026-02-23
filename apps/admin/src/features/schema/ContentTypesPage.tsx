@@ -1,100 +1,223 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from 'primereact/button';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
+import { Checkbox } from 'primereact/checkbox';
+import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
 
-import { createAdminSdk } from '../../lib/sdk';
-import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
+import { useAuth } from '../../app/AuthContext';
 import { PageHeader } from '../../components/common/PageHeader';
-import { SplitView } from '../../components/common/SplitView';
-
-type CType = { id: number; name: string; description?: string | null; fieldsJson: string };
-type FieldDef = { key: string; label: string; type: 'text' | 'richtext' | 'number' | 'boolean'; required?: boolean };
-
-const parse = <T,>(value: string, fallback: T): T => {
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-};
+import { createAdminSdk } from '../../lib/sdk';
+import { ContentTypeList, type CTypeListItem } from './ContentTypeList';
+import { FieldInspector } from './FieldInspector';
+import { FieldList } from './FieldList';
+import { FieldPreview } from './FieldPreview';
+import {
+  CONTENT_FIELD_TYPES,
+  ensureUniqueFieldKey,
+  parseFieldsJson,
+  stringifyFieldsJson,
+  suggestFieldKey,
+  type ContentFieldDef,
+  type ContentFieldType
+} from './fieldValidationUi';
 
 export function ContentTypesPage() {
   const { token } = useAuth();
   const sdk = useMemo(() => createAdminSdk(token), [token]);
   const { siteId } = useAdminContext();
-  const [types, setTypes] = useState<CType[]>([]);
-  const [selected, setSelected] = useState<CType | null>(null);
-  const [fields, setFields] = useState<FieldDef[]>([{ key: 'title', label: 'Title', type: 'text', required: true }]);
+
+  const [types, setTypes] = useState<CTypeListItem[]>([]);
+  const [selected, setSelected] = useState<CTypeListItem | null>(null);
+  const [fields, setFields] = useState<ContentFieldDef[]>([]);
+  const [selectedFieldKey, setSelectedFieldKey] = useState<string | null>(null);
+  const [showAddField, setShowAddField] = useState(false);
+  const [newFieldLabel, setNewFieldLabel] = useState('');
+  const [newFieldKey, setNewFieldKey] = useState('');
+  const [newFieldType, setNewFieldType] = useState<ContentFieldType>('text');
+  const [newFieldRequired, setNewFieldRequired] = useState(false);
 
   const refresh = async () => {
     const result = await sdk.listContentTypes({ siteId });
-    setTypes((result.listContentTypes ?? []) as CType[]);
+    const all = (result.listContentTypes ?? []) as CTypeListItem[];
+    setTypes(all);
+    if (selected) {
+      const nextSelected = all.find((entry) => entry.id === selected.id) ?? null;
+      setSelected(nextSelected);
+      setFields(parseFieldsJson(nextSelected?.fieldsJson ?? '[]'));
+    }
   };
 
   useEffect(() => {
     refresh().catch(() => undefined);
   }, [siteId]);
 
+  const selectedField = fields.find((entry) => entry.key === selectedFieldKey) ?? null;
+
+  const createType = () => {
+    const draft: CTypeListItem = { id: 0, name: '', description: '', fieldsJson: '[]' };
+    setSelected(draft);
+    setFields([]);
+    setSelectedFieldKey(null);
+  };
+
+  const duplicateField = (key: string) => {
+    const source = fields.find((entry) => entry.key === key);
+    if (!source) {
+      return;
+    }
+    const nextKey = ensureUniqueFieldKey(`${source.key}_copy`, fields);
+    const next: ContentFieldDef = { ...source, key: nextKey, label: `${source.label} Copy` };
+    setFields((prev) => [...prev, next]);
+    setSelectedFieldKey(nextKey);
+  };
+
+  const removeField = (key: string) => {
+    setFields((prev) => prev.filter((entry) => entry.key !== key));
+    if (selectedFieldKey === key) {
+      setSelectedFieldKey(null);
+    }
+  };
+
+  const saveType = async () => {
+    if (!selected) {
+      return;
+    }
+
+    const payload = {
+      name: selected.name,
+      description: selected.description || null,
+      fieldsJson: stringifyFieldsJson(fields),
+      by: 'admin'
+    };
+
+    if (selected.id) {
+      await sdk.updateContentType({ id: selected.id, ...payload });
+    } else {
+      await sdk.createContentType({ siteId, ...payload });
+    }
+
+    await refresh();
+  };
+
+  const addField = () => {
+    const key = ensureUniqueFieldKey(newFieldKey || newFieldLabel, fields);
+    const next: ContentFieldDef = {
+      key,
+      label: newFieldLabel || key,
+      type: newFieldType,
+      required: newFieldRequired,
+      validations: {},
+      uiConfig: {}
+    };
+    setFields((prev) => [...prev, next]);
+    setSelectedFieldKey(key);
+    setShowAddField(false);
+    setNewFieldLabel('');
+    setNewFieldKey('');
+    setNewFieldType('text');
+    setNewFieldRequired(false);
+  };
+
   return (
     <div>
-      <PageHeader title="Content Types" subtitle="Type builder and field model" actions={<Button label="Add Type" onClick={() => { setSelected({ id: 0, name: '', description: '', fieldsJson: '[]' }); setFields([{ key: 'title', label: 'Title', type: 'text', required: true }]); }} />} />
-      <SplitView
-        left={
-          <DataTable value={types} size="small" selectionMode="single" onSelectionChange={(event) => {
-            const next = event.value as CType;
-            setSelected(next);
-            setFields(parse<FieldDef[]>(next.fieldsJson, []));
-          }}>
-            <Column field="id" header="ID" />
-            <Column field="name" header="Name" />
-          </DataTable>
-        }
-        right={
-          selected ? (
-            <>
-              <div className="form-grid">
-                <InputText value={selected.name} onChange={(e) => setSelected((prev) => (prev ? { ...prev, name: e.target.value } : prev))} placeholder="Name" />
-                <InputText value={selected.description ?? ''} onChange={(e) => setSelected((prev) => (prev ? { ...prev, description: e.target.value } : prev))} placeholder="Description" />
-                <Button label="Add Field" onClick={() => setFields((prev) => [...prev, { key: 'field', label: 'Field', type: 'text', required: false }])} />
-              </div>
-              <DataTable value={fields} size="small" reorderableRows onRowReorder={(e) => setFields(e.value as FieldDef[])}>
-                <Column rowReorder style={{ width: '3rem' }} />
-                <Column header="Key" body={(row: FieldDef, options) => <InputText value={row.key} onChange={(e) => setFields((prev) => prev.map((item, index) => (index === options.rowIndex ? { ...item, key: e.target.value } : item)))} />} />
-                <Column header="Label" body={(row: FieldDef, options) => <InputText value={row.label} onChange={(e) => setFields((prev) => prev.map((item, index) => (index === options.rowIndex ? { ...item, label: e.target.value } : item)))} />} />
-                <Column header="Type" body={(row: FieldDef, options) => <Dropdown value={row.type} options={[{ label: 'text', value: 'text' }, { label: 'richtext', value: 'richtext' }, { label: 'number', value: 'number' }, { label: 'boolean', value: 'boolean' }]} onChange={(e) => setFields((prev) => prev.map((item, index) => (index === options.rowIndex ? { ...item, type: e.value } : item)))} />} />
-              </DataTable>
-              <div className="inline-actions">
-                <Button
-                  label="Save Type"
-                  onClick={() => {
-                    const input = {
-                      name: selected.name,
-                      description: selected.description || null,
-                      fieldsJson: JSON.stringify(fields),
-                      by: 'admin'
-                    };
-                    (selected.id
-                      ? sdk.updateContentType({ id: selected.id, ...input })
-                      : sdk.createContentType({ siteId, ...input }))
-                      .then(() => refresh());
-                  }}
-                />
-              </div>
-              <div className="form-row">
-                <label>Editor Preview</label>
-                <InputTextarea rows={6} value={JSON.stringify(fields, null, 2)} readOnly />
-              </div>
-            </>
-          ) : (
-            <p>Select a content type.</p>
-          )
+      <PageHeader
+        title="Content Types"
+        subtitle="Visual schema builder with field inspector and preview"
+        actions={
+          <div className="inline-actions">
+            <Button label="New Type" onClick={createType} />
+            <Button label="Save Type" severity="success" onClick={() => saveType().catch(() => undefined)} disabled={!selected} />
+          </div>
         }
       />
+
+      <div className="form-builder-layout">
+        <section className="content-card">
+          <ContentTypeList
+            items={types}
+            selectedId={selected?.id ?? null}
+            onCreate={createType}
+            onSelect={(item) => {
+              setSelected(item);
+              const parsed = parseFieldsJson(item.fieldsJson);
+              setFields(parsed);
+              setSelectedFieldKey(parsed[0]?.key ?? null);
+            }}
+          />
+        </section>
+
+        <section className="content-card">
+          {!selected ? <p>Select a content type.</p> : (
+            <>
+              <div className="form-grid">
+                <div className="form-row">
+                  <label>Name</label>
+                  <InputText value={selected.name} onChange={(event) => setSelected((prev) => (prev ? { ...prev, name: event.target.value } : prev))} />
+                </div>
+                <div className="form-row">
+                  <label>Description</label>
+                  <InputText value={selected.description ?? ''} onChange={(event) => setSelected((prev) => (prev ? { ...prev, description: event.target.value } : prev))} />
+                </div>
+                <div className="inline-actions" style={{ alignSelf: 'end' }}>
+                  <Button label="Add Field" onClick={() => setShowAddField(true)} />
+                </div>
+              </div>
+
+              <FieldList
+                fields={fields}
+                selectedKey={selectedFieldKey}
+                onSelect={setSelectedFieldKey}
+                onReorder={setFields}
+                onDuplicate={duplicateField}
+                onDelete={removeField}
+                onRequired={(key, required) => setFields((prev) => prev.map((entry) => (entry.key === key ? { ...entry, required } : entry)))}
+              />
+            </>
+          )}
+        </section>
+
+        <section className="content-card">
+          <FieldInspector selected={selectedField} fields={fields} onChange={setFields} />
+          <div className="form-row" style={{ marginTop: '0.75rem' }}>
+            <label>Preview</label>
+            <FieldPreview field={selectedField} />
+          </div>
+        </section>
+      </div>
+
+      <Dialog header="Add Field" visible={showAddField} onHide={() => setShowAddField(false)} style={{ width: '32rem' }}>
+        <div className="form-row">
+          <label>Label</label>
+          <InputText
+            value={newFieldLabel}
+            onChange={(event) => {
+              const value = event.target.value;
+              setNewFieldLabel(value);
+              if (!newFieldKey) {
+                setNewFieldKey(suggestFieldKey(value));
+              }
+            }}
+          />
+        </div>
+        <div className="form-row">
+          <label>Key</label>
+          <InputText value={newFieldKey} onChange={(event) => setNewFieldKey(suggestFieldKey(event.target.value))} />
+          {fields.some((entry) => entry.key === newFieldKey) ? <small className="error-text">Key already exists</small> : null}
+        </div>
+        <div className="form-row">
+          <label>Type</label>
+          <Dropdown value={newFieldType} options={CONTENT_FIELD_TYPES} onChange={(event) => setNewFieldType(event.value as ContentFieldType)} />
+        </div>
+        <label>
+          <Checkbox checked={newFieldRequired} onChange={(event) => setNewFieldRequired(Boolean(event.checked))} /> Required
+        </label>
+        <div className="inline-actions" style={{ marginTop: '0.75rem' }}>
+          <Button label="Cancel" text onClick={() => setShowAddField(false)} />
+          <Button label="Add" onClick={addField} disabled={!newFieldLabel.trim() || fields.some((entry) => entry.key === newFieldKey)} />
+        </div>
+      </Dialog>
     </div>
   );
 }

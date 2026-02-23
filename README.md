@@ -35,6 +35,7 @@ pnpm --filter @contenthead/api seed
   - PrimeReact theme switcher (10 presets, including dark themes)
   - UI scale slider (12px-16px base font size)
 - Selection is persisted in localStorage and restored on reload.
+- Dev diagnostics includes a theme token panel at `/dev/diagnostics` to inspect active CSS variables (`--surface-*`, `--text-color`, `--primary-color`).
 
 ## Root Commands
 - `pnpm dev`: run API + Admin + Web
@@ -59,7 +60,9 @@ Admin now uses routed backend UI with shell layout:
 
 Content Pages route (`/content/pages`) uses split-pane UX:
 - Left: TreeTable + Search tabs
-- Right: Edit / Routes / Versions / Variants / Preview / Raw JSON tabs
+- Right: Edit / Routes / Versions / Variants / Preview tabs
+  - Edit uses visual PrimeReact property editors for content fields and component props
+  - Raw JSON is available in Advanced sections with explicit enable toggle
 
 ## Dev Tools GraphiQL
 - Route: `/dev/graphiql` (development mode only)
@@ -119,9 +122,9 @@ Content Pages route (`/content/pages`) uses split-pane UX:
   - Form CRUD (`upsert/delete/list` for forms, steps, fields)
   - `evaluateForm(formId, answersJson, contextJson)`
 - Admin Form Builder:
-  - step/field editor
-  - JSON conditions/validations/ui config
-  - evaluate panel output
+  - designer + preview + structure modes
+  - visual inspector for properties, validation and conditions
+  - advanced JSON only for power-user fallback
 
 ### Workflow Engine
 - DB tables:
@@ -150,7 +153,8 @@ Content Pages route (`/content/pages`) uses split-pane UX:
 - Admin React Flow UI:
   - node palette
   - graph view
-  - node config panel
+  - visual node config inspector
+  - advanced JSON fallback for node config
   - run viewer with approve/retry
 
 ### AI Connector

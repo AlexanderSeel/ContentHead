@@ -12,6 +12,7 @@ import 'reactflow/dist/style.css';
 
 import { createSdk } from '@contenthead/sdk';
 import { getNodeRegistryEntry, nodeRegistry, validateNodeConfig } from './workflows/nodeRegistry';
+import { NodeInspector } from './workflows/NodeInspector';
 
 const sdk = createSdk({ endpoint: 'http://localhost:4000/graphql' });
 
@@ -82,7 +83,6 @@ export function WorkflowDesignerSection({
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([]);
   const [graphEdges, setGraphEdges] = useState<GraphEdge[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [nodeErrors, setNodeErrors] = useState<string[]>([]);
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
   const [runContextJson, setRunContextJson] = useState(
@@ -182,16 +182,6 @@ export function WorkflowDesignerSection({
     setGraphEdges((prev) => [...prev, { from: connection.source!, to: connection.target! }]);
   };
 
-  const updateNodeConfig = (key: string, value: unknown) => {
-    if (!selectedNode) {
-      return;
-    }
-    const nextConfig = { ...(selectedNode.config ?? {}), [key]: value };
-    const errors = validateNodeConfig(selectedNode.type, nextConfig);
-    setNodeErrors(errors);
-    setGraphNodes((prev) => prev.map((node) => (node.id === selectedNode.id ? { ...node, config: nextConfig } : node)));
-  };
-
   const startRun = async () => {
     if (!definitionId) {
       return;
@@ -280,42 +270,14 @@ export function WorkflowDesignerSection({
           <h3>Inspector</h3>
           {!selectedNode ? <div className="status-panel">Select a node on the canvas.</div> : null}
           {selectedNode && selectedNodeRegistry ? (
-            <>
-              <div className="status-panel"><strong>{selectedNodeRegistry.label}</strong><div>{selectedNode.id}</div></div>
-              {selectedNodeRegistry.fields.map((field) => (
-                <div className="form-row" key={field.key}>
-                  <label>{field.label}</label>
-                  {field.type === 'number' ? (
-                    <InputNumber value={Number(selectedNode.config?.[field.key] ?? 0)} onValueChange={(event) => updateNodeConfig(field.key, event.value ?? 0)} />
-                  ) : (
-                    <InputText value={String(selectedNode.config?.[field.key] ?? '')} onChange={(event) => updateNodeConfig(field.key, event.target.value)} />
-                  )}
-                </div>
-              ))}
-              {nodeErrors.length > 0 ? (
-                <div className="status-panel">
-                  {nodeErrors.map((entry) => <div key={entry} className="editor-error">{entry}</div>)}
-                </div>
-              ) : null}
-              <Accordion>
-                <AccordionTab header="Advanced JSON">
-                  <InputTextarea
-                    rows={10}
-                    value={JSON.stringify(selectedNode.config ?? {}, null, 2)}
-                    onChange={(event) => {
-                      try {
-                        const parsed = JSON.parse(event.target.value) as Record<string, unknown>;
-                        const errors = validateNodeConfig(selectedNode.type, parsed);
-                        setNodeErrors(errors);
-                        setGraphNodes((prev) => prev.map((node) => (node.id === selectedNode.id ? { ...node, config: parsed } : node)));
-                      } catch (error) {
-                        setNodeErrors([error instanceof Error ? error.message : 'Invalid JSON']);
-                      }
-                    }}
-                  />
-                </AccordionTab>
-              </Accordion>
-            </>
+            <NodeInspector
+              node={selectedNode}
+              onChange={(nextConfig) => {
+                const errors = validateNodeConfig(selectedNode.type, nextConfig);
+                onStatus(errors[0] ?? '');
+                setGraphNodes((prev) => prev.map((node) => (node.id === selectedNode.id ? { ...node, config: nextConfig } : node)));
+              }}
+            />
           ) : null}
         </div>
       </div>

@@ -11,6 +11,8 @@ import { Dropdown } from 'primereact/dropdown';
 import { Checkbox } from 'primereact/checkbox';
 import { Button } from 'primereact/button';
 import { AutoComplete } from 'primereact/autocomplete';
+import { Dialog } from 'primereact/dialog';
+import { Accordion, AccordionTab } from 'primereact/accordion';
 import { buildLocalizedPath } from '@contenthead/shared';
 
 import { createAdminSdk } from '../../lib/sdk';
@@ -22,6 +24,13 @@ import { SplitView } from '../../components/common/SplitView';
 import { MarketLocalePicker } from '../../components/inputs/MarketLocalePicker';
 import { SlugEditor } from '../../components/inputs/SlugEditor';
 import { useUi } from '../../app/UiContext';
+import type { ContentFieldDef } from '../schema/fieldValidationUi';
+import { parseFieldsJson } from '../schema/fieldValidationUi';
+import { FieldRenderer } from './fieldRenderers/FieldRenderer';
+import { validationMessage } from './fieldRenderers/rendererRegistry';
+import { ComponentList } from './components/ComponentList';
+import { ComponentInspector } from './components/ComponentInspector';
+import { componentRegistry, getComponentRegistryEntry } from './components/componentRegistry';
 
 type CType = { id: number; name: string; fieldsJson: string };
 type Template = { id: number; name: string; compositionJson: string; componentsJson: string };
@@ -30,7 +39,8 @@ type CVersion = { id: number; versionNumber: number; fieldsJson: string; composi
 type CRoute = { id: number; contentItemId: number; marketCode: string; localeCode: string; slug: string; isCanonical: boolean };
 type VariantSet = { id: number; contentItemId: number; marketCode: string; localeCode: string; fallbackVariantSetId?: number | null; active: boolean };
 type Variant = { id: number; variantSetId: number; key: string; priority: number; ruleJson: string; state: string; trafficAllocation?: number | null; contentVersionId: number };
-type FieldDef = { key: string; label: string; type: 'text' | 'richtext' | 'number' | 'boolean' };
+type CompositionArea = { name: string; components: string[] };
+type ComponentRecord = { id: string; type: string; props: Record<string, unknown> };
 
 const parseJson = <T,>(value: string, fallback: T): T => {
   try {
@@ -88,13 +98,18 @@ export function ContentPagesPage() {
     trafficAllocation: 100,
     contentVersionId: 0
   });
+  const [rawEditable, setRawEditable] = useState(false);
+  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
+  const [showAddComponent, setShowAddComponent] = useState(false);
+  const [newComponentType, setNewComponentType] = useState(componentRegistry[0]?.id ?? 'hero');
+  const [newComponentArea, setNewComponentArea] = useState('main');
 
   const selectedType = useMemo(() => {
     const item = items.find((entry) => entry.id === selectedItemId);
     return types.find((entry) => entry.id === item?.contentTypeId) ?? null;
   }, [items, types, selectedItemId]);
 
-  const fieldDefs = useMemo(() => parseJson<FieldDef[]>(selectedType?.fieldsJson ?? '[]', []), [selectedType]);
+  const fieldDefs = useMemo(() => parseFieldsJson(selectedType?.fieldsJson ?? '[]') as ContentFieldDef[], [selectedType]);
 
   const filteredItems = useMemo(() => {
     const text = searchText.trim().toLowerCase();
@@ -271,27 +286,160 @@ export function ContentPagesPage() {
     }
   };
 
+  const composition = useMemo<{ areas: CompositionArea[] }>(() => {
+    const parsed = parseJson<{ areas?: CompositionArea[] }>(compositionJson, { areas: [] });
+    const areas = Array.isArray(parsed.areas) ? parsed.areas : [];
+    return { areas };
+  }, [compositionJson]);
+
+  const componentMap = useMemo<Record<string, ComponentRecord>>(() => {
+    const parsed = parseJson<Record<string, { type?: string; props?: Record<string, unknown> }>>(componentsJson, {});
+    const mapped: Record<string, ComponentRecord> = {};
+    for (const [id, value] of Object.entries(parsed)) {
+      mapped[id] = {
+        id,
+        type: typeof value?.type === 'string' ? value.type : 'text_block',
+        props: value?.props && typeof value.props === 'object' ? value.props : {}
+      };
+    }
+    return mapped;
+  }, [componentsJson]);
+
+  const selectedComponent = selectedComponentId ? componentMap[selectedComponentId] ?? null : null;
+
+  const updateComponentMap = (next: Record<string, ComponentRecord>) => {
+    const normalized = Object.fromEntries(
+      Object.entries(next).map(([id, value]) => [id, { type: value.type, props: value.props }])
+    );
+    setComponentsJson(JSON.stringify(normalized));
+  };
+
+  const updateComposition = (next: { areas: CompositionArea[] }) => {
+    setCompositionJson(JSON.stringify(next));
+  };
+
+  const moveComponent = (id: string, direction: -1 | 1) => {
+    const nextAreas = composition.areas.map((area) => {
+      const index = area.components.findIndex((entry) => entry === id);
+      if (index < 0) {
+        return area;
+      }
+      const target = index + direction;
+      if (target < 0 || target >= area.components.length) {
+        return area;
+      }
+      const nextComponents = [...area.components];
+      const [current] = nextComponents.splice(index, 1);
+      if (!current) {
+        return area;
+      }
+      nextComponents.splice(target, 0, current);
+      return { ...area, components: nextComponents };
+    });
+    updateComposition({ areas: nextAreas });
+  };
+
+  const removeComponent = (id: string) => {
+    const nextAreas = composition.areas.map((area) => ({ ...area, components: area.components.filter((entry) => entry !== id) }));
+    const nextMap = { ...componentMap };
+    delete nextMap[id];
+    updateComposition({ areas: nextAreas });
+    updateComponentMap(nextMap);
+    if (selectedComponentId === id) {
+      setSelectedComponentId(null);
+    }
+  };
+
+  const addComponent = () => {
+    const entry = getComponentRegistryEntry(newComponentType);
+    if (!entry) {
+      return;
+    }
+    const id = `${entry.id}_${Date.now()}`;
+    const nextMap = { ...componentMap, [id]: { id, type: entry.id, props: { ...entry.defaultProps } } };
+    const areas = composition.areas.length > 0 ? composition.areas : [{ name: 'main', components: [] }];
+    const hasArea = areas.some((area) => area.name === newComponentArea);
+    const nextAreas = (hasArea ? areas : [...areas, { name: newComponentArea, components: [] }]).map((area) =>
+      area.name === newComponentArea ? { ...area, components: [...area.components, id] } : area
+    );
+    updateComponentMap(nextMap);
+    updateComposition({ areas: nextAreas });
+    setSelectedComponentId(id);
+    setShowAddComponent(false);
+  };
+
   const rightPanel = !selectedItemId ? (
     <EmptyState title="No page selected" description="Pick a page from the tree or search results." actionLabel="Create Page" onAction={() => createPage().catch((e: unknown) => setStatus(String(e)))} />
   ) : (
     <TabView>
       <TabPanel header="Edit">
         {loadingItem ? <div className="status-panel">Loading content item #{selectedItemId}...</div> : null}
-        {fieldDefs.map((def) => (
-          <div className="form-row" key={def.key}>
-            <label>{def.label}</label>
-            {def.type === 'boolean' ? (
-              <Checkbox checked={Boolean(fields[def.key])} onChange={(event) => setFields((prev) => ({ ...prev, [def.key]: Boolean(event.checked) }))} />
-            ) : def.type === 'richtext' ? (
-              <InputTextarea rows={4} value={String(fields[def.key] ?? '')} onChange={(event) => setFields((prev) => ({ ...prev, [def.key]: event.target.value }))} />
-            ) : (
-              <InputText value={String(fields[def.key] ?? '')} onChange={(event) => setFields((prev) => ({ ...prev, [def.key]: def.type === 'number' ? Number(event.target.value) : event.target.value }))} />
-            )}
+        <div className="form-grid" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
+          <div className="content-card">
+            <h4>Content Fields</h4>
+            {fieldDefs.map((def) => {
+              const message = validationMessage(def, fields[def.key]);
+              return (
+                <div className="form-row" key={def.key}>
+                  <label>{def.label}{def.required ? ' *' : ''}</label>
+                  <FieldRenderer
+                    field={def}
+                    value={fields[def.key]}
+                    onChange={(value) => setFields((prev) => ({ ...prev, [def.key]: value }))}
+                    siteId={siteId}
+                    token={token}
+                  />
+                  {message ? <small className="error-text">{message}</small> : null}
+                  {def.description ? <small className="muted">{def.description}</small> : null}
+                </div>
+              );
+            })}
           </div>
-        ))}
-        <div className="form-row"><label>Composition JSON</label><InputTextarea rows={3} value={compositionJson} onChange={(e) => setCompositionJson(e.target.value)} /></div>
-        <div className="form-row"><label>Components JSON</label><InputTextarea rows={3} value={componentsJson} onChange={(e) => setComponentsJson(e.target.value)} /></div>
-        <div className="form-row"><label>Metadata JSON</label><InputTextarea rows={2} value={metadataJson} onChange={(e) => setMetadataJson(e.target.value)} /></div>
+          <div className="content-card">
+            <div className="inline-actions">
+              <h4 style={{ margin: 0 }}>Composition</h4>
+              <Button label="Add Component" onClick={() => setShowAddComponent(true)} />
+            </div>
+            <ComponentList
+              areas={composition.areas}
+              selected={selectedComponentId}
+              onSelect={setSelectedComponentId}
+              onMove={moveComponent}
+              onDelete={removeComponent}
+            />
+            <ComponentInspector
+              component={selectedComponent}
+              onChange={(next) => {
+                const nextMap = { ...componentMap, [next.id]: next };
+                updateComponentMap(nextMap);
+              }}
+            />
+          </div>
+        </div>
+
+        <Accordion>
+          <AccordionTab header="Advanced JSON">
+            <div className="inline-actions">
+              <Button
+                label={rawEditable ? 'Lock JSON Editing' : 'Enable JSON Editing'}
+                severity={rawEditable ? 'danger' : 'secondary'}
+                onClick={() => {
+                  if (!rawEditable) {
+                    const confirmEdit = window.confirm('Enable raw JSON editing? This bypasses visual editors.');
+                    if (!confirmEdit) {
+                      return;
+                    }
+                  }
+                  setRawEditable((prev) => !prev);
+                }}
+              />
+            </div>
+            <div className="form-row"><label>Fields JSON</label><InputTextarea rows={4} value={JSON.stringify(fields, null, 2)} readOnly /></div>
+            <div className="form-row"><label>Composition JSON</label><InputTextarea rows={4} value={compositionJson} onChange={(e) => setCompositionJson(e.target.value)} readOnly={!rawEditable} /></div>
+            <div className="form-row"><label>Components JSON</label><InputTextarea rows={4} value={componentsJson} onChange={(e) => setComponentsJson(e.target.value)} readOnly={!rawEditable} /></div>
+            <div className="form-row"><label>Metadata JSON</label><InputTextarea rows={3} value={metadataJson} onChange={(e) => setMetadataJson(e.target.value)} readOnly={!rawEditable} /></div>
+          </AccordionTab>
+        </Accordion>
       </TabPanel>
       <TabPanel header="Routes">
         <DataTable value={routes.filter((route) => route.contentItemId === selectedItemId)} size="small">
@@ -376,7 +524,7 @@ export function ContentPagesPage() {
           const activeRoute = routes.find((entry) => entry.contentItemId === selectedItemId && entry.marketCode === marketCode && entry.localeCode === localeCode);
           const path = buildLocalizedPath(site?.urlPattern, marketCode, localeCode, activeRoute?.slug ?? '');
           const url = `http://localhost:3000${path}?siteId=${siteId}&preview=true&previewToken=${encodeURIComponent(previewToken)}`;
-          return <iframe title="Content Preview" src={url} style={{ width: '100%', height: 500, border: '1px solid #cbd5e1', borderRadius: 8 }} />;
+          return <iframe title="Content Preview" src={url} style={{ width: '100%', height: 500, border: '1px solid var(--surface-border)', borderRadius: 8 }} />;
         })()}
       </TabPanel>
     </TabView>
@@ -441,6 +589,30 @@ export function ContentPagesPage() {
         }
         right={rightPanel}
       />
+      <Dialog header="Add Component" visible={showAddComponent} onHide={() => setShowAddComponent(false)} style={{ width: '30rem' }}>
+        <div className="form-row">
+          <label>Component Type</label>
+          <Dropdown
+            value={newComponentType}
+            options={componentRegistry.map((entry) => ({ label: entry.label, value: entry.id }))}
+            onChange={(event) => setNewComponentType(String(event.value))}
+            filter
+          />
+        </div>
+        <div className="form-row">
+          <label>Area</label>
+          <Dropdown
+            value={newComponentArea}
+            options={(composition.areas.length > 0 ? composition.areas : [{ name: 'main', components: [] }]).map((area) => ({ label: area.name, value: area.name }))}
+            onChange={(event) => setNewComponentArea(String(event.value))}
+            editable
+          />
+        </div>
+        <div className="inline-actions" style={{ marginTop: '0.75rem' }}>
+          <Button label="Cancel" text onClick={() => setShowAddComponent(false)} />
+          <Button label="Add" onClick={addComponent} />
+        </div>
+      </Dialog>
       {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
     </div>
   );

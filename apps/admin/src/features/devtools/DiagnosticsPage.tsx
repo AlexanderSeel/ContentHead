@@ -3,10 +3,20 @@ import { Card } from 'primereact/card';
 import { PageHeader } from '../../components/common/PageHeader';
 import { useAdminContext } from '../../app/AdminContext';
 import { useUi } from '../../app/UiContext';
+import { readCssVar } from '../../theme/themeManager';
 
 export function DiagnosticsPage() {
   const { siteId, marketCode, localeCode } = useAdminContext();
   const { theme, scale } = useUi();
+  const tokens = [
+    '--surface-ground',
+    '--surface-card',
+    '--surface-overlay',
+    '--surface-border',
+    '--text-color',
+    '--text-color-secondary',
+    '--primary-color'
+  ];
 
   return (
     <div>
@@ -21,6 +31,16 @@ export function DiagnosticsPage() {
           <div className="status-panel"><strong>API</strong><div>{import.meta.env.VITE_API_URL ?? 'http://localhost:4000/graphql'}</div></div>
           <div className="status-panel"><strong>Mode</strong><div>{import.meta.env.MODE}</div></div>
           <div className="status-panel"><strong>Build</strong><div>{import.meta.env.VITE_BUILD_SHA ?? 'local-dev'}</div></div>
+        </div>
+      </Card>
+      <Card title="Theme Diagnostics">
+        <div className="diagnostics-grid">
+          {tokens.map((tokenName) => (
+            <div key={tokenName} className="status-panel">
+              <strong>{tokenName}</strong>
+              <div>{readCssVar(tokenName) || '(not set)'}</div>
+            </div>
+          ))}
         </div>
       </Card>
     </div>

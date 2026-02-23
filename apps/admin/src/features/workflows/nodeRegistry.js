@@ -55,7 +55,7 @@ export const nodeRegistry = [
         icon: 'pi pi-sparkles',
         defaultConfig: { prompt: 'Generate publishable content' },
         schema: z.object({ prompt: baseString.min(3) }),
-        fields: [{ key: 'prompt', label: 'Prompt', type: 'text' }]
+        fields: [{ key: 'prompt', label: 'Prompt', type: 'textarea' }]
     },
     {
         type: 'AI.Translate',
