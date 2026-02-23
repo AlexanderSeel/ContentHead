@@ -1,4 +1,3 @@
-import { Toolbar } from 'primereact/toolbar';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button } from 'primereact/button';
@@ -34,22 +33,17 @@ export function PageHeader({
 
   return (
     <>
-      <Toolbar
-        className="page-header"
-        start={
-          <div>
-            <h2>{title}</h2>
-            {subtitle ? <p>{subtitle}</p> : null}
-          </div>
-        }
-        end={(
-          <div className="page-header-actions">
-            {hasHelp ? <HelpIcon tooltip={topic?.tooltip ?? ''} onClick={() => setHelpOpen(true)} /> : null}
-            {askAiContext ? <Button text icon="pi pi-sparkles" label="Ask AI" onClick={() => setAskAiOpen(true)} /> : null}
-            {actions}
-          </div>
-        )}
-      />
+      <section className="page-header">
+        <div className="page-header-copy">
+          <h2>{title}</h2>
+          {subtitle ? <p>{subtitle}</p> : null}
+        </div>
+        <div className="page-header-actions">
+          {hasHelp ? <HelpIcon tooltip={topic?.tooltip ?? ''} onClick={() => setHelpOpen(true)} /> : null}
+          {askAiContext ? <Button text icon="pi pi-sparkles" label="Ask AI" onClick={() => setAskAiOpen(true)} /> : null}
+          {actions}
+        </div>
+      </section>
       {hasHelp ? <HelpDialog topicKey={helpTopicKey ?? null} visible={helpOpen} onHide={() => setHelpOpen(false)} /> : null}
       {askAiContext ? (
         <AskAiDialog

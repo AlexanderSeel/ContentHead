@@ -1,14 +1,31 @@
-import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { PanelMenu } from 'primereact/panelmenu';
 
 export function Sidebar({ showDevTools }: { showDevTools: boolean }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const next: Record<string, boolean> = {};
+    const path = location.pathname;
+    if (path.startsWith('/site')) next.site = true;
+    if (path.startsWith('/content')) next.content = true;
+    if (path.startsWith('/settings')) next.settings = true;
+    if (path.startsWith('/personalization')) next.personalization = true;
+    if (path.startsWith('/forms')) next.forms = true;
+    if (path.startsWith('/workflows')) next.workflows = true;
+    if (path.startsWith('/security')) next.security = true;
+    if (showDevTools && path.startsWith('/dev')) next.devtools = true;
+    setExpandedKeys((prev) => ({ ...prev, ...next }));
+  }, [location.pathname, showDevTools]);
 
   const model = useMemo(
     () => [
       { label: 'Dashboard', icon: 'pi pi-home', command: () => navigate('/') },
       {
+        key: 'site',
         label: 'Site Settings',
         icon: 'pi pi-cog',
         items: [
@@ -18,6 +35,7 @@ export function Sidebar({ showDevTools }: { showDevTools: boolean }) {
         ]
       },
       {
+        key: 'content',
         label: 'Content',
         icon: 'pi pi-file',
         items: [
@@ -28,9 +46,12 @@ export function Sidebar({ showDevTools }: { showDevTools: boolean }) {
         ]
       },
       {
-        label: 'Connector Settings',
-        icon: 'pi pi-plug',
+        key: 'settings',
+        label: 'Settings',
+        icon: 'pi pi-sliders-h',
         items: [
+          { label: 'Preferences', command: () => navigate('/settings/preferences') },
+          { label: 'DuckDB Admin', command: () => navigate('/settings/global/duckdb') },
           { label: 'Auth', command: () => navigate('/settings/global/connectors/auth') },
           { label: 'DB', command: () => navigate('/settings/global/connectors/db') },
           { label: 'DAM', command: () => navigate('/settings/global/connectors/dam') },
@@ -38,16 +59,19 @@ export function Sidebar({ showDevTools }: { showDevTools: boolean }) {
         ]
       },
       {
+        key: 'personalization',
         label: 'Personalization',
-        icon: 'pi pi-sliders-h',
+        icon: 'pi pi-chart-line',
         items: [{ label: 'Variants', command: () => navigate('/personalization/variants') }]
       },
       {
+        key: 'forms',
         label: 'Forms',
         icon: 'pi pi-list-check',
         items: [{ label: 'Form Builder', command: () => navigate('/forms/builder') }]
       },
       {
+        key: 'workflows',
         label: 'Workflows',
         icon: 'pi pi-share-alt',
         items: [
@@ -56,6 +80,7 @@ export function Sidebar({ showDevTools }: { showDevTools: boolean }) {
         ]
       },
       {
+        key: 'security',
         label: 'Security',
         icon: 'pi pi-shield',
         items: [
@@ -66,6 +91,7 @@ export function Sidebar({ showDevTools }: { showDevTools: boolean }) {
       ...(showDevTools
         ? [
             {
+              key: 'devtools',
               label: 'Dev Tools',
               icon: 'pi pi-wrench',
               items: [
@@ -81,7 +107,12 @@ export function Sidebar({ showDevTools }: { showDevTools: boolean }) {
 
   return (
     <aside className="admin-sidebar">
-      <PanelMenu model={model} />
+      <PanelMenu
+        model={model}
+        multiple
+        expandedKeys={expandedKeys}
+        onExpandedKeysChange={(event) => setExpandedKeys((event.value as Record<string, boolean>) ?? {})}
+      />
     </aside>
   );
 }

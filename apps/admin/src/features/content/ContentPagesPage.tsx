@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { TabPanel, TabView } from 'primereact/tabview';
-import { TreeTable } from 'primereact/treetable';
 import { Column } from 'primereact/column';
+import { Tree } from 'primereact/tree';
 import type { TreeNode } from 'primereact/treenode';
 import { DataTable } from 'primereact/datatable';
 import { InputText } from 'primereact/inputtext';
@@ -10,7 +10,6 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { Dropdown } from 'primereact/dropdown';
 import { Checkbox } from 'primereact/checkbox';
 import { Button } from 'primereact/button';
-import { AutoComplete } from 'primereact/autocomplete';
 import { Dialog } from 'primereact/dialog';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { Tag } from 'primereact/tag';
@@ -116,7 +115,6 @@ export function ContentPagesPage() {
   const selectedItemId = Number(contentItemId ?? 0) || null;
   const [types, setTypes] = useState<CType[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [templateSearch, setTemplateSearch] = useState('');
   const [items, setItems] = useState<CItem[]>([]);
   const [routes, setRoutes] = useState<CRoute[]>([]);
   const [versions, setVersions] = useState<CVersion[]>([]);
@@ -158,6 +156,7 @@ export function ContentPagesPage() {
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('split');
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>('web');
   const [treeFilter, setTreeFilter] = useState('');
+  const [treeExpandedKeys, setTreeExpandedKeys] = useState<Record<string, boolean>>({});
   const [itemTitles, setItemTitles] = useState<Record<number, string>>({});
   const [previewReloadKey, setPreviewReloadKey] = useState(0);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
@@ -175,14 +174,6 @@ export function ContentPagesPage() {
   }, [items, types, selectedItemId]);
 
   const fieldDefs = useMemo(() => parseFieldsJson(selectedType?.fieldsJson ?? '[]') as ContentFieldDef[], [selectedType]);
-
-  const templateSuggestions = useMemo(() => {
-    const query = templateSearch.trim().toLowerCase();
-    if (!query) {
-      return templates;
-    }
-    return templates.filter((entry) => entry.name.toLowerCase().includes(query));
-  }, [templates, templateSearch]);
 
   const site = sites.find((entry) => entry.id === siteId);
   const webBaseUrl = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
@@ -224,10 +215,62 @@ export function ContentPagesPage() {
   }, [treeRows, treeFilter]);
 
   const treeNodes = useMemo<TreeNode[]>(() => {
-    return filteredTreeRows.map((entry) => ({
-      key: entry.routeId,
-      data: entry
-    }));
+    const roots: TreeNode[] = [];
+    const folderMap = new Map<string, TreeNode>();
+
+    const ensureFolder = (parentKey: string, segment: string, pathLabel: string): TreeNode => {
+      const key = `${parentKey}/${segment}`;
+      const existing = folderMap.get(key);
+      if (existing) {
+        return existing;
+      }
+      const folderNode: TreeNode = {
+        key,
+        label: segment,
+        data: { folder: true, pathLabel },
+        selectable: false,
+        children: []
+      };
+      folderMap.set(key, folderNode);
+      if (parentKey === 'root') {
+        roots.push(folderNode);
+      } else {
+        const parent = folderMap.get(parentKey);
+        if (parent) {
+          parent.children = [...(parent.children ?? []), folderNode];
+        }
+      }
+      return folderNode;
+    };
+
+    for (const entry of filteredTreeRows) {
+      const normalized = entry.slug.replace(/^\/+|\/+$/g, '');
+      const segments = normalized ? normalized.split('/') : ['(root)'];
+      const leafLabel = segments[segments.length - 1] ?? entry.slug;
+      let parentKey = 'root';
+      let pathLabel = '';
+      for (let i = 0; i < segments.length - 1; i += 1) {
+        const segment = segments[i] ?? '';
+        pathLabel = pathLabel ? `${pathLabel}/${segment}` : segment;
+        const parentNode = ensureFolder(parentKey, segment, pathLabel);
+        parentKey = String(parentNode.key);
+      }
+      const leafNode: TreeNode = {
+        key: entry.routeId,
+        label: leafLabel,
+        data: entry
+      };
+      if (parentKey === 'root') {
+        roots.push(leafNode);
+      } else {
+        const parent = folderMap.get(parentKey);
+        if (parent) {
+          parent.children = [...(parent.children ?? []), leafNode];
+        }
+      }
+    }
+
+    return roots;
   }, [filteredTreeRows]);
 
   const selectedRouteKey = useMemo(() => {
@@ -238,6 +281,34 @@ export function ContentPagesPage() {
       routes.find((entry) => entry.contentItemId === selectedItemId && entry.marketCode === marketCode && entry.localeCode === localeCode)?.id ?? ''
     );
   }, [routes, selectedItemId, marketCode, localeCode]);
+
+  useEffect(() => {
+    if (!selectedRouteKey) {
+      return;
+    }
+    const nextExpanded: Record<string, boolean> = {};
+    const walk = (nodes: TreeNode[], parents: string[]): boolean => {
+      for (const node of nodes) {
+        const key = String(node.key ?? '');
+        if (key === selectedRouteKey) {
+          for (const parentKey of parents) {
+            nextExpanded[parentKey] = true;
+          }
+          return true;
+        }
+        if (Array.isArray(node.children) && node.children.length > 0) {
+          const found = walk(node.children, [...parents, key]);
+          if (found) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    if (walk(treeNodes, [])) {
+      setTreeExpandedKeys((prev) => ({ ...prev, ...nextExpanded }));
+    }
+  }, [selectedRouteKey, treeNodes]);
 
   const composition = useMemo<{ areas: CompositionArea[] }>(() => {
     const parsed = parseJson<{ areas?: CompositionArea[] }>(compositionJson, { areas: [] });
@@ -1051,32 +1122,38 @@ export function ContentPagesPage() {
         actions={
           <div className="inline-actions">
             <Dropdown value={selectedContentTypeId} options={types.map((entry) => ({ label: entry.name, value: entry.id }))} onChange={(event) => setSelectedContentTypeId(Number(event.value))} placeholder="Content type" />
-            <AutoComplete
-              value={selectedTemplate}
-              suggestions={templateSuggestions}
-              completeMethod={(event) => setTemplateSearch(event.query)}
-              field="name"
-              dropdown
-              onChange={(event) => setSelectedTemplate((event.value as Template) ?? null)}
+            <Dropdown
+              value={selectedTemplate?.id ?? null}
+              options={templates.map((entry) => ({ label: entry.name, value: entry.id }))}
+              filter
+              showClear
+              onChange={(event) => {
+                const next = templates.find((entry) => entry.id === Number(event.value)) ?? null;
+                setSelectedTemplate(next);
+              }}
               placeholder="Template"
             />
             <Button label="Create Page" onClick={() => createPage().catch((e: unknown) => setStatus(String(e)))} />
             <Button label="Save Draft" severity="secondary" onClick={() => saveDraft().catch((e: unknown) => setStatus(String(e)))} disabled={!draft} />
             <Button label="Publish" severity="success" onClick={() => publish().catch((e: unknown) => setStatus(String(e)))} disabled={!draft} />
-            <div className="inline-actions">
-              <Button label="Split" size="small" text={workspaceMode !== 'split'} onClick={() => setWorkspaceMode('split')} />
-              <Button label="Properties" size="small" text={workspaceMode !== 'properties'} onClick={() => setWorkspaceMode('properties')} />
-              <Button label="On-page" size="small" text={workspaceMode !== 'onpage'} onClick={() => setWorkspaceMode('onpage')} />
-            </div>
-            <Button label="Preview website" icon="pi pi-external-link" severity="info" onClick={openPreviewWebsite} disabled={!selectedItemId} />
-            <InputText value={previewToken} onChange={(event) => setPreviewToken(event.target.value)} placeholder="preview token" style={{ width: 180 }} />
-            <Button label="Issue token" text onClick={() => issuePreviewToken().catch((e: unknown) => setStatus(String(e)))} disabled={!selectedItemId} />
-            <Button label="Ask AI" text icon="pi pi-sparkles" onClick={() => setAiDialogOpen(true)} disabled={!selectedItemId} />
-            {selectedStatus ? <Tag value={selectedStatus} severity={selectedStatus === 'Published' ? 'success' : selectedStatus === 'Draft' ? 'warning' : 'secondary'} /> : null}
-            {draft ? <Tag value={`v${draft.versionNumber}`} /> : null}
           </div>
         }
       />
+      <section className="content-pages-toolbar">
+        <div className="inline-actions">
+          <Button label="Split" size="small" text={workspaceMode !== 'split'} onClick={() => setWorkspaceMode('split')} />
+          <Button label="Properties" size="small" text={workspaceMode !== 'properties'} onClick={() => setWorkspaceMode('properties')} />
+          <Button label="On-page" size="small" text={workspaceMode !== 'onpage'} onClick={() => setWorkspaceMode('onpage')} />
+          <Button label="Preview website" size="small" icon="pi pi-external-link" severity="info" onClick={openPreviewWebsite} disabled={!selectedItemId} />
+          <Button label="Ask AI" size="small" text icon="pi pi-sparkles" onClick={() => setAiDialogOpen(true)} disabled={!selectedItemId} />
+        </div>
+        <div className="inline-actions">
+          <InputText value={previewToken} onChange={(event) => setPreviewToken(event.target.value)} placeholder="preview token" style={{ width: 180 }} />
+          <Button label="Issue token" size="small" text onClick={() => issuePreviewToken().catch((e: unknown) => setStatus(String(e)))} disabled={!selectedItemId} />
+          {selectedStatus ? <Tag value={selectedStatus} severity={selectedStatus === 'Published' ? 'success' : selectedStatus === 'Draft' ? 'warning' : 'secondary'} /> : null}
+          {draft ? <Tag value={`v${draft.versionNumber}`} /> : null}
+        </div>
+      </section>
 
       <div className="pageBodyFlex splitFill">
         <Splitter className="splitFill cms-editor-workspace" style={{ width: '100%' }}>
@@ -1088,30 +1165,33 @@ export function ContentPagesPage() {
                     <label>Filter tree</label>
                     <InputText value={treeFilter} onChange={(event) => setTreeFilter(event.target.value)} placeholder="Slug, title, status" />
                   </div>
-                  <TreeTable
+                  <Tree
+                    className="content-pages-tree"
                     value={treeNodes}
+                    expandedKeys={treeExpandedKeys}
+                    onToggle={(event) => setTreeExpandedKeys((event.value as Record<string, boolean>) ?? {})}
                     selectionMode="single"
-                    selectionKeys={selectedRouteKey ?? undefined}
+                    selectionKeys={selectedRouteKey ?? null}
                     onSelectionChange={(event) => {
-                      const value = event.value as string | Record<string, boolean> | null;
-                      const key = typeof value === 'string' ? value : String(Object.keys(value ?? {})[0] ?? '');
+                      const key = String(event.value ?? '');
                       const route = routes.find((entry) => String(entry.id) === key);
                       if (route) {
                         navigate(buildContentEditorUrl(route.contentItemId, route.marketCode, route.localeCode));
                       }
                     }}
-                  >
-                    <Column field="slug" header="Slug" expander />
-                    <Column field="title" header="Title" />
-                    <Column
-                      field="status"
-                      header="Status"
-                      body={(node: TreeNode) => {
-                        const row = node.data as TreeRow;
-                        return <Tag value={row.status} severity={row.status === 'Published' ? 'success' : row.status === 'Draft' ? 'warning' : 'secondary'} />;
-                      }}
-                    />
-                  </TreeTable>
+                    nodeTemplate={(node) => {
+                      const row = node.data as Partial<TreeRow> | undefined;
+                      if (!row || typeof row.contentItemId !== 'number') {
+                        return <span>{String(node.label ?? '')}</span>;
+                      }
+                      return (
+                        <div className="inline-actions" style={{ justifyContent: 'space-between', width: '100%' }}>
+                          <span>{row.slug}</span>
+                          <Tag value={row.status} severity={row.status === 'Published' ? 'success' : row.status === 'Draft' ? 'warning' : 'secondary'} />
+                        </div>
+                      );
+                    }}
+                  />
                 </TabPanel>
                 <TabPanel header="Search">
                   <div className="form-row">

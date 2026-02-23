@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
+import { Column } from 'primereact/column';
+import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
@@ -37,6 +39,8 @@ export function ContentTypesPage() {
   const [newFieldKey, setNewFieldKey] = useState('');
   const [newFieldType, setNewFieldType] = useState<ContentFieldType>('text');
   const [newFieldRequired, setNewFieldRequired] = useState(false);
+  const [allItems, setAllItems] = useState<Array<{ id?: number | null; contentTypeId?: number | null }>>([]);
+  const [allRoutes, setAllRoutes] = useState<Array<{ contentItemId?: number | null; slug?: string | null; marketCode?: string | null; localeCode?: string | null }>>([]);
 
   const refresh = async () => {
     const result = await sdk.listContentTypes({ siteId });
@@ -53,7 +57,35 @@ export function ContentTypesPage() {
     refresh().catch(() => undefined);
   }, [siteId]);
 
+  useEffect(() => {
+    Promise.all([sdk.listContentItems({ siteId }), sdk.listRoutes({ siteId, marketCode: null, localeCode: null })])
+      .then(([itemsRes, routesRes]) => {
+        setAllItems((itemsRes.listContentItems ?? []) as Array<{ id?: number | null; contentTypeId?: number | null }>);
+        setAllRoutes((routesRes.listRoutes ?? []) as Array<{ contentItemId?: number | null; slug?: string | null; marketCode?: string | null; localeCode?: string | null }>);
+      })
+      .catch(() => undefined);
+  }, [sdk, siteId]);
+
   const selectedField = fields.find((entry) => entry.key === selectedFieldKey) ?? null;
+  const selectedTypeUsage = useMemo(() => {
+    if (!selected?.id) {
+      return [];
+    }
+    const itemIds = new Set(
+      allItems
+        .filter((entry) => entry.contentTypeId === selected.id)
+        .map((entry) => entry.id)
+        .filter((id): id is number => typeof id === 'number')
+    );
+    return allRoutes
+      .filter((route) => typeof route.contentItemId === 'number' && itemIds.has(route.contentItemId))
+      .map((route) => ({
+        contentItemId: route.contentItemId ?? 0,
+        slug: route.slug ?? '',
+        marketCode: route.marketCode ?? '',
+        localeCode: route.localeCode ?? ''
+      }));
+  }, [allItems, allRoutes, selected?.id]);
 
   const createType = () => {
     const draft: CTypeListItem = { id: 0, name: '', description: '', fieldsJson: '[]' };
@@ -189,6 +221,19 @@ export function ContentTypesPage() {
           <div className="form-row" style={{ marginTop: '0.75rem' }}>
             <label>Preview</label>
             <FieldPreview field={selectedField} />
+          </div>
+          <div className="form-row" style={{ marginTop: '0.75rem' }}>
+            <label>Usage</label>
+            {selected?.id ? (
+              <DataTable value={selectedTypeUsage} size="small" emptyMessage="No content items/routes use this type yet.">
+                <Column field="contentItemId" header="Item ID" />
+                <Column field="slug" header="Slug" />
+                <Column field="marketCode" header="Market" />
+                <Column field="localeCode" header="Locale" />
+              </DataTable>
+            ) : (
+              <p className="muted">Select a content type to view usage.</p>
+            )}
           </div>
         </section>
       </div>

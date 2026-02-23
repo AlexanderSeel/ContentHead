@@ -3,13 +3,12 @@ import { GraphiQL } from 'graphiql';
 import type { Fetcher } from '@graphiql/toolkit';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
+import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
-import { SplitButton } from 'primereact/splitbutton';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Tree } from 'primereact/tree';
-import type { MenuItem } from 'primereact/menuitem';
 import type { TreeNode } from 'primereact/treenode';
 
 import { PageHeader } from '../../components/common/PageHeader';
@@ -186,16 +185,6 @@ export function GraphiQLPage() {
     setEditorSeed((prev) => prev + 1);
   };
 
-  const sampleMenuItems = useMemo<MenuItem[]>(
-    () =>
-      samples.map((sample) => ({
-        label: sample.label,
-        command: () => applySample(sample)
-      })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-
   const insertOperationFromExplorer = (nodeData: { fieldName?: string; operation?: 'query' | 'mutation'; args?: Array<{ name: string; type: string }> }) => {
     if (!nodeData.fieldName || !nodeData.operation) {
       return;
@@ -314,16 +303,19 @@ export function GraphiQLPage() {
         }}
         actions={(
           <div className="graphiql-header-actions">
-            <SplitButton
-              model={sampleMenuItems}
-              label={`Samples: ${selectedSampleLabel}`}
-              icon="pi pi-list"
-              text
-              size="small"
-              onClick={() => {
-                const sample = samples.find((entry) => entry.label === selectedSampleLabel) ?? samples[0]!;
-                applySample(sample);
+            <Dropdown
+              value={selectedSampleLabel}
+              options={samples.map((sample) => ({ label: sample.label, value: sample.label }))}
+              onChange={(event) => {
+                const label = String(event.value);
+                setSelectedSampleLabel(label);
+                const sample = samples.find((entry) => entry.label === label);
+                if (sample) {
+                  applySample(sample);
+                }
               }}
+              placeholder="Sample"
+              className="topbar-control"
             />
             <Button text size="small" icon="pi pi-sliders-h" label="Headers & Variables" onClick={() => setHeadersDialogOpen(true)} />
           </div>

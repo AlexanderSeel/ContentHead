@@ -13,6 +13,8 @@ export const routeLabels: Record<string, string> = {
   '/workflows/runs': 'Workflow Runs',
   '/security/users': 'Users',
   '/security/roles': 'Roles',
+  '/settings/preferences': 'Preferences',
+  '/settings/global/duckdb': 'DuckDB Admin',
   '/settings/global/connectors/auth': 'Auth Connectors',
   '/settings/global/connectors/db': 'DB Connectors',
   '/settings/global/connectors/dam': 'DAM Connectors',

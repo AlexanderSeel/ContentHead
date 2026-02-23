@@ -26,6 +26,8 @@ import { AuthConnectorsPage } from '../features/settings/AuthConnectorsPage';
 import { DbConnectorsPage } from '../features/settings/DbConnectorsPage';
 import { DamConnectorsPage } from '../features/settings/DamConnectorsPage';
 import { AiConnectorsPage } from '../features/settings/AiConnectorsPage';
+import { PreferencesPage } from '../features/settings/PreferencesPage';
+import { DuckDbAdminPage } from '../features/settings/DuckDbAdminPage';
 import { GraphiQLPage } from '../features/devtools/GraphiQLPage';
 import { DiagnosticsPage } from '../features/devtools/DiagnosticsPage';
 
@@ -62,10 +64,14 @@ export function AdminApp() {
               <Route path="/schema/content-types" element={<Navigate to="/site/content-types" replace />} />
               <Route path="/schema" element={<Navigate to="/site/content-types" replace />} />
 
+              <Route path="/settings/preferences" element={<PreferencesPage />} />
+              <Route path="/settings/global/duckdb" element={<DuckDbAdminPage />} />
               <Route path="/settings/global/connectors/auth" element={<AuthConnectorsPage />} />
               <Route path="/settings/global/connectors/db" element={<DbConnectorsPage />} />
               <Route path="/settings/global/connectors/dam" element={<DamConnectorsPage />} />
               <Route path="/settings/global/connectors/ai" element={<AiConnectorsPage />} />
+              <Route path="/settings/global/connectors" element={<Navigate to="/settings/global/connectors/db" replace />} />
+              <Route path="/settings" element={<Navigate to="/settings/preferences" replace />} />
 
               <Route path="/personalization/variants" element={<VariantsPage />} />
               <Route path="/personalization" element={<Navigate to="/personalization/variants" replace />} />
