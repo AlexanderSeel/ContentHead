@@ -1,119 +1,6 @@
 import { GraphQLClient } from 'graphql-request';
 
-import {
-  ArchiveContentItemDocument,
-  type ArchiveContentItemMutation,
-  type ArchiveContentItemMutationVariables,
-  CreateContentItemDocument,
-  type CreateContentItemMutation,
-  type CreateContentItemMutationVariables,
-  CreateContentTypeDocument,
-  type CreateContentTypeMutation,
-  type CreateContentTypeMutationVariables,
-  CreateDraftVersionDocument,
-  type CreateDraftVersionMutation,
-  type CreateDraftVersionMutationVariables,
-  CreateTemplateDocument,
-  type CreateTemplateMutation,
-  type CreateTemplateMutationVariables,
-  DeleteContentTypeDocument,
-  type DeleteContentTypeMutation,
-  type DeleteContentTypeMutationVariables,
-  DeleteRouteDocument,
-  type DeleteRouteMutation,
-  type DeleteRouteMutationVariables,
-  DeleteTemplateDocument,
-  type DeleteTemplateMutation,
-  type DeleteTemplateMutationVariables,
-  DiffVersionsDocument,
-  type DiffVersionsQuery,
-  type DiffVersionsQueryVariables,
-  GetContentItemDetailDocument,
-  type GetContentItemDetailQuery,
-  type GetContentItemDetailQueryVariables,
-  GetSiteDefaultsDocument,
-  type GetSiteDefaultsQuery,
-  type GetSiteDefaultsQueryVariables,
-  GetSiteMarketLocaleMatrixDocument,
-  type GetSiteMarketLocaleMatrixQuery,
-  type GetSiteMarketLocaleMatrixQueryVariables,
-  IssuePreviewTokenDocument,
-  type IssuePreviewTokenMutation,
-  type IssuePreviewTokenMutationVariables,
-  ListContentItemsDocument,
-  type ListContentItemsQuery,
-  type ListContentItemsQueryVariables,
-  ListContentTypesDocument,
-  type ListContentTypesQuery,
-  type ListContentTypesQueryVariables,
-  ListLocalesDocument,
-  type ListLocalesQuery,
-  type ListLocalesQueryVariables,
-  ListMarketsDocument,
-  type ListMarketsQuery,
-  type ListMarketsQueryVariables,
-  ListRoutesDocument,
-  type ListRoutesQuery,
-  type ListRoutesQueryVariables,
-  ListSitesDocument,
-  type ListSitesQuery,
-  ListTemplatesDocument,
-  type ListTemplatesQuery,
-  type ListTemplatesQueryVariables,
-  ListVersionsDocument,
-  type ListVersionsQuery,
-  type ListVersionsQueryVariables,
-  LoginDocument,
-  type LoginMutation,
-  type LoginMutationVariables,
-  MeDocument,
-  type MeQuery,
-  PublishVersionDocument,
-  type PublishVersionMutation,
-  type PublishVersionMutationVariables,
-  ReconcileTemplateDocument,
-  type ReconcileTemplateMutation,
-  type ReconcileTemplateMutationVariables,
-  ResolveMarketLocaleDocument,
-  type ResolveMarketLocaleQuery,
-  type ResolveMarketLocaleQueryVariables,
-  ResolveRouteDocument,
-  type ResolveRouteQuery,
-  type ResolveRouteQueryVariables,
-  RollbackToVersionDocument,
-  type RollbackToVersionMutation,
-  type RollbackToVersionMutationVariables,
-  SetSiteLocalesDocument,
-  type SetSiteLocalesMutation,
-  type SetSiteLocalesMutationVariables,
-  SetSiteMarketLocaleMatrixDocument,
-  type SetSiteMarketLocaleMatrixMutation,
-  type SetSiteMarketLocaleMatrixMutationVariables,
-  SetSiteMarketsDocument,
-  type SetSiteMarketsMutation,
-  type SetSiteMarketsMutationVariables,
-  UpdateContentTypeDocument,
-  type UpdateContentTypeMutation,
-  type UpdateContentTypeMutationVariables,
-  UpdateDraftVersionDocument,
-  type UpdateDraftVersionMutation,
-  type UpdateDraftVersionMutationVariables,
-  UpdateTemplateDocument,
-  type UpdateTemplateMutation,
-  type UpdateTemplateMutationVariables,
-  UpsertLocaleDocument,
-  type UpsertLocaleMutation,
-  type UpsertLocaleMutationVariables,
-  UpsertMarketDocument,
-  type UpsertMarketMutation,
-  type UpsertMarketMutationVariables,
-  UpsertRouteDocument,
-  type UpsertRouteMutation,
-  type UpsertRouteMutationVariables,
-  ValidateMarketLocaleDocument,
-  type ValidateMarketLocaleQuery,
-  type ValidateMarketLocaleQueryVariables
-} from './graphql/generated';
+import * as G from './graphql/generated';
 
 export type CreateSdkOptions = {
   endpoint: string;
@@ -135,200 +22,164 @@ export function createSdk(options: CreateSdkOptions) {
     });
   };
 
-  const execute = async <TData, TVariables extends object>(
-    document: unknown,
-    variables: TVariables,
-    requestOptions?: RequestOptions
-  ) => {
+  const execute = async <TData>(document: unknown, variables: object, requestOptions?: RequestOptions) => {
     const client = await getClient(requestOptions);
     return (client as any).request(document, variables) as Promise<TData>;
   };
 
   return {
-    login: (variables: LoginMutationVariables, requestOptions?: RequestOptions) =>
-      execute<LoginMutation, LoginMutationVariables>(LoginDocument, variables, requestOptions),
-    me: (requestOptions?: RequestOptions) => execute<MeQuery, Record<string, never>>(MeDocument, {}, requestOptions),
+    login: (variables: G.LoginMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.LoginMutation>(G.LoginDocument, variables, requestOptions),
+    me: (requestOptions?: RequestOptions) =>
+      execute<G.MeQuery>(G.MeDocument, {}, requestOptions),
 
     listSites: (requestOptions?: RequestOptions) =>
-      execute<ListSitesQuery, Record<string, never>>(ListSitesDocument, {}, requestOptions),
-    listMarkets: (variables: ListMarketsQueryVariables, requestOptions?: RequestOptions) =>
-      execute<ListMarketsQuery, ListMarketsQueryVariables>(ListMarketsDocument, variables, requestOptions),
-    listLocales: (variables: ListLocalesQueryVariables, requestOptions?: RequestOptions) =>
-      execute<ListLocalesQuery, ListLocalesQueryVariables>(ListLocalesDocument, variables, requestOptions),
-    getSiteDefaults: (variables: GetSiteDefaultsQueryVariables, requestOptions?: RequestOptions) =>
-      execute<GetSiteDefaultsQuery, GetSiteDefaultsQueryVariables>(
-        GetSiteDefaultsDocument,
-        variables,
-        requestOptions
-      ),
+      execute<G.ListSitesQuery>(G.ListSitesDocument, {}, requestOptions),
+    listMarkets: (variables: G.ListMarketsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListMarketsQuery>(G.ListMarketsDocument, variables, requestOptions),
+    listLocales: (variables: G.ListLocalesQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListLocalesQuery>(G.ListLocalesDocument, variables, requestOptions),
+    getSiteDefaults: (variables: G.GetSiteDefaultsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.GetSiteDefaultsQuery>(G.GetSiteDefaultsDocument, variables, requestOptions),
     getSiteMarketLocaleMatrix: (
-      variables: GetSiteMarketLocaleMatrixQueryVariables,
+      variables: G.GetSiteMarketLocaleMatrixQueryVariables,
       requestOptions?: RequestOptions
-    ) =>
-      execute<GetSiteMarketLocaleMatrixQuery, GetSiteMarketLocaleMatrixQueryVariables>(
-        GetSiteMarketLocaleMatrixDocument,
-        variables,
-        requestOptions
-      ),
-    validateMarketLocale: (variables: ValidateMarketLocaleQueryVariables, requestOptions?: RequestOptions) =>
-      execute<ValidateMarketLocaleQuery, ValidateMarketLocaleQueryVariables>(
-        ValidateMarketLocaleDocument,
-        variables,
-        requestOptions
-      ),
-    resolveMarketLocale: (variables: ResolveMarketLocaleQueryVariables, requestOptions?: RequestOptions) =>
-      execute<ResolveMarketLocaleQuery, ResolveMarketLocaleQueryVariables>(
-        ResolveMarketLocaleDocument,
-        variables,
-        requestOptions
-      ),
+    ) => execute<G.GetSiteMarketLocaleMatrixQuery>(G.GetSiteMarketLocaleMatrixDocument, variables, requestOptions),
+    validateMarketLocale: (variables: G.ValidateMarketLocaleQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ValidateMarketLocaleQuery>(G.ValidateMarketLocaleDocument, variables, requestOptions),
+    resolveMarketLocale: (variables: G.ResolveMarketLocaleQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ResolveMarketLocaleQuery>(G.ResolveMarketLocaleDocument, variables, requestOptions),
 
-    createContentType: (variables: CreateContentTypeMutationVariables, requestOptions?: RequestOptions) =>
-      execute<CreateContentTypeMutation, CreateContentTypeMutationVariables>(
-        CreateContentTypeDocument,
-        variables,
-        requestOptions
-      ),
-    updateContentType: (variables: UpdateContentTypeMutationVariables, requestOptions?: RequestOptions) =>
-      execute<UpdateContentTypeMutation, UpdateContentTypeMutationVariables>(
-        UpdateContentTypeDocument,
-        variables,
-        requestOptions
-      ),
-    deleteContentType: (variables: DeleteContentTypeMutationVariables, requestOptions?: RequestOptions) =>
-      execute<DeleteContentTypeMutation, DeleteContentTypeMutationVariables>(
-        DeleteContentTypeDocument,
-        variables,
-        requestOptions
-      ),
-    listContentTypes: (variables: ListContentTypesQueryVariables, requestOptions?: RequestOptions) =>
-      execute<ListContentTypesQuery, ListContentTypesQueryVariables>(
-        ListContentTypesDocument,
-        variables,
-        requestOptions
-      ),
+    createContentType: (variables: G.CreateContentTypeMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.CreateContentTypeMutation>(G.CreateContentTypeDocument, variables, requestOptions),
+    updateContentType: (variables: G.UpdateContentTypeMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpdateContentTypeMutation>(G.UpdateContentTypeDocument, variables, requestOptions),
+    deleteContentType: (variables: G.DeleteContentTypeMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DeleteContentTypeMutation>(G.DeleteContentTypeDocument, variables, requestOptions),
+    listContentTypes: (variables: G.ListContentTypesQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListContentTypesQuery>(G.ListContentTypesDocument, variables, requestOptions),
 
-    createContentItem: (variables: CreateContentItemMutationVariables, requestOptions?: RequestOptions) =>
-      execute<CreateContentItemMutation, CreateContentItemMutationVariables>(
-        CreateContentItemDocument,
-        variables,
-        requestOptions
-      ),
-    archiveContentItem: (variables: ArchiveContentItemMutationVariables, requestOptions?: RequestOptions) =>
-      execute<ArchiveContentItemMutation, ArchiveContentItemMutationVariables>(
-        ArchiveContentItemDocument,
-        variables,
-        requestOptions
-      ),
-    listContentItems: (variables: ListContentItemsQueryVariables, requestOptions?: RequestOptions) =>
-      execute<ListContentItemsQuery, ListContentItemsQueryVariables>(
-        ListContentItemsDocument,
-        variables,
-        requestOptions
-      ),
-    getContentItemDetail: (variables: GetContentItemDetailQueryVariables, requestOptions?: RequestOptions) =>
-      execute<GetContentItemDetailQuery, GetContentItemDetailQueryVariables>(
-        GetContentItemDetailDocument,
-        variables,
-        requestOptions
-      ),
+    createContentItem: (variables: G.CreateContentItemMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.CreateContentItemMutation>(G.CreateContentItemDocument, variables, requestOptions),
+    archiveContentItem: (variables: G.ArchiveContentItemMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.ArchiveContentItemMutation>(G.ArchiveContentItemDocument, variables, requestOptions),
+    listContentItems: (variables: G.ListContentItemsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListContentItemsQuery>(G.ListContentItemsDocument, variables, requestOptions),
+    getContentItemDetail: (variables: G.GetContentItemDetailQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.GetContentItemDetailQuery>(G.GetContentItemDetailDocument, variables, requestOptions),
 
-    createDraftVersion: (variables: CreateDraftVersionMutationVariables, requestOptions?: RequestOptions) =>
-      execute<CreateDraftVersionMutation, CreateDraftVersionMutationVariables>(
-        CreateDraftVersionDocument,
-        variables,
-        requestOptions
-      ),
-    updateDraftVersion: (variables: UpdateDraftVersionMutationVariables, requestOptions?: RequestOptions) =>
-      execute<UpdateDraftVersionMutation, UpdateDraftVersionMutationVariables>(
-        UpdateDraftVersionDocument,
-        variables,
-        requestOptions
-      ),
-    publishVersion: (variables: PublishVersionMutationVariables, requestOptions?: RequestOptions) =>
-      execute<PublishVersionMutation, PublishVersionMutationVariables>(
-        PublishVersionDocument,
-        variables,
-        requestOptions
-      ),
-    listVersions: (variables: ListVersionsQueryVariables, requestOptions?: RequestOptions) =>
-      execute<ListVersionsQuery, ListVersionsQueryVariables>(ListVersionsDocument, variables, requestOptions),
-    diffVersions: (variables: DiffVersionsQueryVariables, requestOptions?: RequestOptions) =>
-      execute<DiffVersionsQuery, DiffVersionsQueryVariables>(DiffVersionsDocument, variables, requestOptions),
-    rollbackToVersion: (variables: RollbackToVersionMutationVariables, requestOptions?: RequestOptions) =>
-      execute<RollbackToVersionMutation, RollbackToVersionMutationVariables>(
-        RollbackToVersionDocument,
-        variables,
-        requestOptions
-      ),
+    createDraftVersion: (variables: G.CreateDraftVersionMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.CreateDraftVersionMutation>(G.CreateDraftVersionDocument, variables, requestOptions),
+    updateDraftVersion: (variables: G.UpdateDraftVersionMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpdateDraftVersionMutation>(G.UpdateDraftVersionDocument, variables, requestOptions),
+    publishVersion: (variables: G.PublishVersionMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.PublishVersionMutation>(G.PublishVersionDocument, variables, requestOptions),
+    listVersions: (variables: G.ListVersionsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListVersionsQuery>(G.ListVersionsDocument, variables, requestOptions),
+    diffVersions: (variables: G.DiffVersionsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.DiffVersionsQuery>(G.DiffVersionsDocument, variables, requestOptions),
+    rollbackToVersion: (variables: G.RollbackToVersionMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.RollbackToVersionMutation>(G.RollbackToVersionDocument, variables, requestOptions),
 
-    createTemplate: (variables: CreateTemplateMutationVariables, requestOptions?: RequestOptions) =>
-      execute<CreateTemplateMutation, CreateTemplateMutationVariables>(
-        CreateTemplateDocument,
-        variables,
-        requestOptions
-      ),
-    updateTemplate: (variables: UpdateTemplateMutationVariables, requestOptions?: RequestOptions) =>
-      execute<UpdateTemplateMutation, UpdateTemplateMutationVariables>(
-        UpdateTemplateDocument,
-        variables,
-        requestOptions
-      ),
-    deleteTemplate: (variables: DeleteTemplateMutationVariables, requestOptions?: RequestOptions) =>
-      execute<DeleteTemplateMutation, DeleteTemplateMutationVariables>(
-        DeleteTemplateDocument,
-        variables,
-        requestOptions
-      ),
-    listTemplates: (variables: ListTemplatesQueryVariables, requestOptions?: RequestOptions) =>
-      execute<ListTemplatesQuery, ListTemplatesQueryVariables>(ListTemplatesDocument, variables, requestOptions),
-    reconcileTemplate: (variables: ReconcileTemplateMutationVariables, requestOptions?: RequestOptions) =>
-      execute<ReconcileTemplateMutation, ReconcileTemplateMutationVariables>(
-        ReconcileTemplateDocument,
-        variables,
-        requestOptions
-      ),
+    createTemplate: (variables: G.CreateTemplateMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.CreateTemplateMutation>(G.CreateTemplateDocument, variables, requestOptions),
+    updateTemplate: (variables: G.UpdateTemplateMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpdateTemplateMutation>(G.UpdateTemplateDocument, variables, requestOptions),
+    deleteTemplate: (variables: G.DeleteTemplateMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DeleteTemplateMutation>(G.DeleteTemplateDocument, variables, requestOptions),
+    listTemplates: (variables: G.ListTemplatesQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListTemplatesQuery>(G.ListTemplatesDocument, variables, requestOptions),
+    reconcileTemplate: (variables: G.ReconcileTemplateMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.ReconcileTemplateMutation>(G.ReconcileTemplateDocument, variables, requestOptions),
 
-    upsertRoute: (variables: UpsertRouteMutationVariables, requestOptions?: RequestOptions) =>
-      execute<UpsertRouteMutation, UpsertRouteMutationVariables>(UpsertRouteDocument, variables, requestOptions),
-    deleteRoute: (variables: DeleteRouteMutationVariables, requestOptions?: RequestOptions) =>
-      execute<DeleteRouteMutation, DeleteRouteMutationVariables>(DeleteRouteDocument, variables, requestOptions),
-    listRoutes: (variables: ListRoutesQueryVariables, requestOptions?: RequestOptions) =>
-      execute<ListRoutesQuery, ListRoutesQueryVariables>(ListRoutesDocument, variables, requestOptions),
-    resolveRoute: (variables: ResolveRouteQueryVariables, requestOptions?: RequestOptions) =>
-      execute<ResolveRouteQuery, ResolveRouteQueryVariables>(ResolveRouteDocument, variables, requestOptions),
+    upsertRoute: (variables: G.UpsertRouteMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpsertRouteMutation>(G.UpsertRouteDocument, variables, requestOptions),
+    deleteRoute: (variables: G.DeleteRouteMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DeleteRouteMutation>(G.DeleteRouteDocument, variables, requestOptions),
+    listRoutes: (variables: G.ListRoutesQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListRoutesQuery>(G.ListRoutesDocument, variables, requestOptions),
+    resolveRoute: (variables: G.ResolveRouteQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ResolveRouteQuery>(G.ResolveRouteDocument, variables, requestOptions),
+    getPageByRoute: (variables: G.GetPageByRouteQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.GetPageByRouteQuery>(G.GetPageByRouteDocument, variables, requestOptions),
 
-    issuePreviewToken: (variables: IssuePreviewTokenMutationVariables, requestOptions?: RequestOptions) =>
-      execute<IssuePreviewTokenMutation, IssuePreviewTokenMutationVariables>(
-        IssuePreviewTokenDocument,
-        variables,
-        requestOptions
-      ),
+    listVariantSets: (variables: G.ListVariantSetsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListVariantSetsQuery>(G.ListVariantSetsDocument, variables, requestOptions),
+    upsertVariantSet: (variables: G.UpsertVariantSetMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpsertVariantSetMutation>(G.UpsertVariantSetDocument, variables, requestOptions),
+    deleteVariantSet: (variables: G.DeleteVariantSetMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DeleteVariantSetMutation>(G.DeleteVariantSetDocument, variables, requestOptions),
+    listVariants: (variables: G.ListVariantsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListVariantsQuery>(G.ListVariantsDocument, variables, requestOptions),
+    upsertVariant: (variables: G.UpsertVariantMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpsertVariantMutation>(G.UpsertVariantDocument, variables, requestOptions),
+    deleteVariant: (variables: G.DeleteVariantMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DeleteVariantMutation>(G.DeleteVariantDocument, variables, requestOptions),
+    selectVariant: (variables: G.SelectVariantQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.SelectVariantQuery>(G.SelectVariantDocument, variables, requestOptions),
+    listForms: (variables: G.ListFormsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListFormsQuery>(G.ListFormsDocument, variables, requestOptions),
+    upsertForm: (variables: G.UpsertFormMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpsertFormMutation>(G.UpsertFormDocument, variables, requestOptions),
+    deleteForm: (variables: G.DeleteFormMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DeleteFormMutation>(G.DeleteFormDocument, variables, requestOptions),
+    listFormSteps: (variables: G.ListFormStepsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListFormStepsQuery>(G.ListFormStepsDocument, variables, requestOptions),
+    upsertFormStep: (variables: G.UpsertFormStepMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpsertFormStepMutation>(G.UpsertFormStepDocument, variables, requestOptions),
+    deleteFormStep: (variables: G.DeleteFormStepMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DeleteFormStepMutation>(G.DeleteFormStepDocument, variables, requestOptions),
+    listFormFields: (variables: G.ListFormFieldsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListFormFieldsQuery>(G.ListFormFieldsDocument, variables, requestOptions),
+    upsertFormField: (variables: G.UpsertFormFieldMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpsertFormFieldMutation>(G.UpsertFormFieldDocument, variables, requestOptions),
+    deleteFormField: (variables: G.DeleteFormFieldMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DeleteFormFieldMutation>(G.DeleteFormFieldDocument, variables, requestOptions),
+    evaluateForm: (variables: G.EvaluateFormQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.EvaluateFormQuery>(G.EvaluateFormDocument, variables, requestOptions),
+    listWorkflowDefinitions: (requestOptions?: RequestOptions) =>
+      execute<G.ListWorkflowDefinitionsQuery>(G.ListWorkflowDefinitionsDocument, {}, requestOptions),
+    upsertWorkflowDefinition: (
+      variables: G.UpsertWorkflowDefinitionMutationVariables,
+      requestOptions?: RequestOptions
+    ) => execute<G.UpsertWorkflowDefinitionMutation>(G.UpsertWorkflowDefinitionDocument, variables, requestOptions),
+    deleteWorkflowDefinition: (
+      variables: G.DeleteWorkflowDefinitionMutationVariables,
+      requestOptions?: RequestOptions
+    ) => execute<G.DeleteWorkflowDefinitionMutation>(G.DeleteWorkflowDefinitionDocument, variables, requestOptions),
+    listWorkflowRuns: (variables: G.ListWorkflowRunsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListWorkflowRunsQuery>(G.ListWorkflowRunsDocument, variables, requestOptions),
+    getWorkflowRun: (variables: G.GetWorkflowRunQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.GetWorkflowRunQuery>(G.GetWorkflowRunDocument, variables, requestOptions),
+    startWorkflowRun: (variables: G.StartWorkflowRunMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.StartWorkflowRunMutation>(G.StartWorkflowRunDocument, variables, requestOptions),
+    approveStep: (variables: G.ApproveStepMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.ApproveStepMutation>(G.ApproveStepDocument, variables, requestOptions),
+    retryFailed: (variables: G.RetryFailedMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.RetryFailedMutation>(G.RetryFailedDocument, variables, requestOptions),
+    aiGenerateContentType: (variables: G.AiGenerateContentTypeMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.AiGenerateContentTypeMutation>(G.AiGenerateContentTypeDocument, variables, requestOptions),
+    aiGenerateContent: (variables: G.AiGenerateContentMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.AiGenerateContentMutation>(G.AiGenerateContentDocument, variables, requestOptions),
+    aiGenerateVariants: (variables: G.AiGenerateVariantsMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.AiGenerateVariantsMutation>(G.AiGenerateVariantsDocument, variables, requestOptions),
+    aiTranslateVersion: (variables: G.AiTranslateVersionMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.AiTranslateVersionMutation>(G.AiTranslateVersionDocument, variables, requestOptions),
 
-    upsertMarket: (variables: UpsertMarketMutationVariables, requestOptions?: RequestOptions) =>
-      execute<UpsertMarketMutation, UpsertMarketMutationVariables>(UpsertMarketDocument, variables, requestOptions),
-    upsertLocale: (variables: UpsertLocaleMutationVariables, requestOptions?: RequestOptions) =>
-      execute<UpsertLocaleMutation, UpsertLocaleMutationVariables>(UpsertLocaleDocument, variables, requestOptions),
-    setSiteMarkets: (variables: SetSiteMarketsMutationVariables, requestOptions?: RequestOptions) =>
-      execute<SetSiteMarketsMutation, SetSiteMarketsMutationVariables>(
-        SetSiteMarketsDocument,
-        variables,
-        requestOptions
-      ),
-    setSiteLocales: (variables: SetSiteLocalesMutationVariables, requestOptions?: RequestOptions) =>
-      execute<SetSiteLocalesMutation, SetSiteLocalesMutationVariables>(
-        SetSiteLocalesDocument,
-        variables,
-        requestOptions
-      ),
+    issuePreviewToken: (variables: G.IssuePreviewTokenMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.IssuePreviewTokenMutation>(G.IssuePreviewTokenDocument, variables, requestOptions),
+
+    upsertMarket: (variables: G.UpsertMarketMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpsertMarketMutation>(G.UpsertMarketDocument, variables, requestOptions),
+    upsertLocale: (variables: G.UpsertLocaleMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpsertLocaleMutation>(G.UpsertLocaleDocument, variables, requestOptions),
+    setSiteMarkets: (variables: G.SetSiteMarketsMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.SetSiteMarketsMutation>(G.SetSiteMarketsDocument, variables, requestOptions),
+    setSiteLocales: (variables: G.SetSiteLocalesMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.SetSiteLocalesMutation>(G.SetSiteLocalesDocument, variables, requestOptions),
     setSiteMarketLocaleMatrix: (
-      variables: SetSiteMarketLocaleMatrixMutationVariables,
+      variables: G.SetSiteMarketLocaleMatrixMutationVariables,
       requestOptions?: RequestOptions
-    ) =>
-      execute<SetSiteMarketLocaleMatrixMutation, SetSiteMarketLocaleMatrixMutationVariables>(
-        SetSiteMarketLocaleMatrixDocument,
-        variables,
-        requestOptions
-      )
+    ) => execute<G.SetSiteMarketLocaleMatrixMutation>(G.SetSiteMarketLocaleMatrixDocument, variables, requestOptions)
   };
 }

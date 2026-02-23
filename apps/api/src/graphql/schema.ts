@@ -36,6 +36,36 @@ import {
   upsertRoute
 } from '../content/service.js';
 import {
+  type PageByRouteResult,
+  type VariantRecord,
+  type VariantSelection,
+  type VariantSetRecord,
+  deleteVariant,
+  deleteVariantSet,
+  getPageByRoute,
+  listVariantSets,
+  listVariants,
+  selectVariant,
+  upsertVariant,
+  upsertVariantSet
+} from '../content/variantService.js';
+import {
+  type FormEvaluation,
+  type FormFieldRecord,
+  type FormRecord,
+  type FormStepRecord,
+  deleteForm,
+  deleteFormField,
+  deleteFormStep,
+  evaluateForm,
+  listFormFields,
+  listForms,
+  listFormSteps,
+  upsertForm,
+  upsertFormField,
+  upsertFormStep
+} from '../forms/service.js';
+import {
   type Locale,
   type Market,
   type MarketDefaultLocale,
@@ -57,6 +87,24 @@ import {
   upsertMarket,
   validateMarketLocale
 } from '../marketLocale/service.js';
+import {
+  aiGenerateContent,
+  aiGenerateContentType,
+  aiGenerateVariants,
+  aiTranslateVersion
+} from '../ai/service.js';
+import {
+  type WorkflowDefinitionRecord,
+  type WorkflowRunRecord,
+  approveWorkflowStep,
+  deleteWorkflowDefinition,
+  getWorkflowRun,
+  listWorkflowDefinitions,
+  listWorkflowRuns,
+  retryFailedWorkflowRun,
+  startWorkflowRun,
+  upsertWorkflowDefinition
+} from '../workflow/service.js';
 import type { SafeUser } from '../types/user.js';
 
 export type GraphqlContext = {
@@ -350,6 +398,151 @@ PreviewTokenRef.implement({
   })
 });
 
+const VariantSetRef = builder.objectRef<VariantSetRecord>('VariantSet');
+VariantSetRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    siteId: t.exposeInt('siteId'),
+    contentItemId: t.exposeInt('contentItemId'),
+    marketCode: t.exposeString('marketCode'),
+    localeCode: t.exposeString('localeCode'),
+    fallbackVariantSetId: t.exposeInt('fallbackVariantSetId', { nullable: true }),
+    active: t.exposeBoolean('active')
+  })
+});
+
+const VariantRef = builder.objectRef<VariantRecord>('Variant');
+VariantRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    variantSetId: t.exposeInt('variantSetId'),
+    key: t.exposeString('key'),
+    priority: t.exposeInt('priority'),
+    ruleJson: t.exposeString('ruleJson'),
+    state: t.exposeString('state'),
+    trafficAllocation: t.exposeInt('trafficAllocation', { nullable: true }),
+    contentVersionId: t.exposeInt('contentVersionId')
+  })
+});
+
+const VariantSelectionRef = builder.objectRef<VariantSelection>('VariantSelection');
+VariantSelectionRef.implement({
+  fields: (t) => ({
+    variant: t.field({ type: VariantRef, nullable: true, resolve: (parent) => parent.variant }),
+    reason: t.exposeString('reason'),
+    variantSetId: t.exposeInt('variantSetId', { nullable: true })
+  })
+});
+
+const PageByRouteRef = builder.objectRef<PageByRouteResult>('PageByRoute');
+PageByRouteRef.implement({
+  fields: (t) => ({
+    base: t.field({ type: ResolvedRouteRef, resolve: (parent) => parent.base }),
+    selectedVariant: t.field({ type: VariantRef, nullable: true, resolve: (parent) => parent.selectedVariant }),
+    selectedVersion: t.field({
+      type: ContentVersionRef,
+      nullable: true,
+      resolve: (parent) => parent.selectedVersion
+    }),
+    selectionReason: t.exposeString('selectionReason')
+  })
+});
+
+const FormRef = builder.objectRef<FormRecord>('Form');
+FormRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    siteId: t.exposeInt('siteId'),
+    name: t.exposeString('name'),
+    description: t.exposeString('description', { nullable: true }),
+    active: t.exposeBoolean('active'),
+    createdAt: t.exposeString('createdAt'),
+    updatedAt: t.exposeString('updatedAt')
+  })
+});
+
+const FormStepRef = builder.objectRef<FormStepRecord>('FormStep');
+FormStepRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    formId: t.exposeInt('formId'),
+    name: t.exposeString('name'),
+    position: t.exposeInt('position')
+  })
+});
+
+const FormFieldRef = builder.objectRef<FormFieldRecord>('FormField');
+FormFieldRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    stepId: t.exposeInt('stepId'),
+    formId: t.exposeInt('formId'),
+    key: t.exposeString('key'),
+    label: t.exposeString('label'),
+    fieldType: t.exposeString('fieldType'),
+    position: t.exposeInt('position'),
+    conditionsJson: t.exposeString('conditionsJson'),
+    validationsJson: t.exposeString('validationsJson'),
+    uiConfigJson: t.exposeString('uiConfigJson'),
+    active: t.exposeBoolean('active')
+  })
+});
+
+const FormEvaluationRef = builder.objectRef<FormEvaluation>('FormEvaluation');
+FormEvaluationRef.implement({
+  fields: (t) => ({
+    formId: t.exposeInt('formId'),
+    valid: t.exposeBoolean('valid'),
+    evaluatedFieldsJson: t.exposeString('evaluatedFieldsJson'),
+    errorsJson: t.exposeString('errorsJson')
+  })
+});
+
+const WorkflowDefinitionRef = builder.objectRef<WorkflowDefinitionRecord>('WorkflowDefinition');
+WorkflowDefinitionRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    name: t.exposeString('name'),
+    version: t.exposeInt('version'),
+    graphJson: t.exposeString('graphJson'),
+    inputSchemaJson: t.exposeString('inputSchemaJson'),
+    permissionsJson: t.exposeString('permissionsJson'),
+    createdAt: t.exposeString('createdAt'),
+    createdBy: t.exposeString('createdBy')
+  })
+});
+
+const WorkflowRunRef = builder.objectRef<WorkflowRunRecord>('WorkflowRun');
+WorkflowRunRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    definitionId: t.exposeInt('definitionId'),
+    status: t.exposeString('status'),
+    contextJson: t.exposeString('contextJson'),
+    currentNodeId: t.exposeString('currentNodeId', { nullable: true }),
+    logsJson: t.exposeString('logsJson'),
+    startedAt: t.exposeString('startedAt'),
+    startedBy: t.exposeString('startedBy'),
+    updatedAt: t.exposeString('updatedAt')
+  })
+});
+
+const AiContentResultRef = builder.objectRef<{ contentItemId: number; draftVersionId: number }>('AiContentResult');
+AiContentResultRef.implement({
+  fields: (t) => ({
+    contentItemId: t.exposeInt('contentItemId'),
+    draftVersionId: t.exposeInt('draftVersionId')
+  })
+});
+
+const AiVariantsResultRef = builder.objectRef<{ variantSetId: number; createdKeys: string[] }>('AiVariantsResult');
+AiVariantsResultRef.implement({
+  fields: (t) => ({
+    variantSetId: t.exposeInt('variantSetId'),
+    createdKeys: t.exposeStringList('createdKeys')
+  })
+});
+
 const SiteMarketInputRef = builder.inputRef<{ code: string; active: boolean }>('SiteMarketInput');
 SiteMarketInputRef.implement({
   fields: (t) => ({
@@ -516,6 +709,44 @@ builder.queryType({
         ctx
       ) => listRoutes(ctx.db, args)
     }),
+    listVariantSets: t.field({
+      type: [VariantSetRef],
+      args: {
+        siteId: t.arg.int({ required: true }),
+        contentItemId: t.arg.int({ required: false }),
+        marketCode: t.arg.string({ required: false }),
+        localeCode: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          siteId: number;
+          contentItemId?: number | null | undefined;
+          marketCode?: string | null | undefined;
+          localeCode?: string | null | undefined;
+        },
+        ctx
+      ) => listVariantSets(ctx.db, args)
+    }),
+    listVariants: t.field({
+      type: [VariantRef],
+      args: {
+        variantSetId: t.arg.int({ required: true })
+      },
+      resolve: async (_root, args: { variantSetId: number }, ctx) => listVariants(ctx.db, args.variantSetId)
+    }),
+    selectVariant: t.field({
+      type: VariantSelectionRef,
+      args: {
+        variantSetId: t.arg.int({ required: true }),
+        contextJson: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { variantSetId: number; contextJson?: string | null | undefined },
+        ctx
+      ) => selectVariant(ctx.db, args)
+    }),
     resolveRoute: t.field({
       type: ResolvedRouteRef,
       nullable: true,
@@ -560,6 +791,100 @@ builder.queryType({
           previewAllowed
         });
       }
+    }),
+    getPageByRoute: t.field({
+      type: PageByRouteRef,
+      nullable: true,
+      args: {
+        siteId: t.arg.int({ required: true }),
+        marketCode: t.arg.string({ required: true }),
+        localeCode: t.arg.string({ required: true }),
+        slug: t.arg.string({ required: true }),
+        contextJson: t.arg.string({ required: false }),
+        previewToken: t.arg.string({ required: false }),
+        preview: t.arg.boolean({ required: false }),
+        variantKeyOverride: t.arg.string({ required: false }),
+        versionIdOverride: t.arg.int({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          siteId: number;
+          marketCode: string;
+          localeCode: string;
+          slug: string;
+          contextJson?: string | null | undefined;
+          previewToken?: string | null | undefined;
+          preview?: boolean | null | undefined;
+          variantKeyOverride?: string | null | undefined;
+          versionIdOverride?: number | null | undefined;
+        },
+        ctx
+      ) => {
+        let previewAllowed = false;
+        if (args.previewToken) {
+          previewAllowed = Boolean(ctx.auth.verifyPreviewToken(args.previewToken));
+        }
+        if (args.preview && ctx.currentUser) {
+          previewAllowed = true;
+        }
+
+        return getPageByRoute(ctx.db, {
+          siteId: args.siteId,
+          marketCode: args.marketCode,
+          localeCode: args.localeCode,
+          slug: args.slug,
+          contextJson: args.contextJson,
+          previewAllowed,
+          variantKeyOverride: args.variantKeyOverride,
+          versionIdOverride: args.versionIdOverride
+        });
+      }
+    }),
+    listForms: t.field({
+      type: [FormRef],
+      args: { siteId: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { siteId: number }, ctx) => listForms(ctx.db, args.siteId)
+    }),
+    listFormSteps: t.field({
+      type: [FormStepRef],
+      args: { formId: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { formId: number }, ctx) => listFormSteps(ctx.db, args.formId)
+    }),
+    listFormFields: t.field({
+      type: [FormFieldRef],
+      args: { formId: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { formId: number }, ctx) => listFormFields(ctx.db, args.formId)
+    }),
+    evaluateForm: t.field({
+      type: FormEvaluationRef,
+      args: {
+        formId: t.arg.int({ required: true }),
+        answersJson: t.arg.string({ required: true }),
+        contextJson: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { formId: number; answersJson: string; contextJson?: string | null | undefined },
+        ctx
+      ) => evaluateForm(ctx.db, args)
+    }),
+    listWorkflowDefinitions: t.field({
+      type: [WorkflowDefinitionRef],
+      resolve: async (_root, _args, ctx) => listWorkflowDefinitions(ctx.db)
+    }),
+    listWorkflowRuns: t.field({
+      type: [WorkflowRunRef],
+      args: {
+        definitionId: t.arg.int({ required: false })
+      },
+      resolve: async (_root, args: { definitionId?: number | null | undefined }, ctx) =>
+        listWorkflowRuns(ctx.db, args.definitionId)
+    }),
+    getWorkflowRun: t.field({
+      type: WorkflowRunRef,
+      args: { runId: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { runId: number }, ctx) => getWorkflowRun(ctx.db, args.runId)
     })
   })
 });
@@ -930,6 +1255,319 @@ builder.mutationType({
     deleteRoute: t.boolean({
       args: { id: t.arg.int({ required: true }) },
       resolve: async (_root, args: { id: number }, ctx) => deleteRoute(ctx.db, args.id)
+    }),
+    upsertVariantSet: t.field({
+      type: VariantSetRef,
+      args: {
+        id: t.arg.int({ required: false }),
+        siteId: t.arg.int({ required: true }),
+        contentItemId: t.arg.int({ required: true }),
+        marketCode: t.arg.string({ required: true }),
+        localeCode: t.arg.string({ required: true }),
+        fallbackVariantSetId: t.arg.int({ required: false }),
+        active: t.arg.boolean({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: {
+          id?: number | null | undefined;
+          siteId: number;
+          contentItemId: number;
+          marketCode: string;
+          localeCode: string;
+          fallbackVariantSetId?: number | null | undefined;
+          active: boolean;
+        },
+        ctx
+      ) => upsertVariantSet(ctx.db, args)
+    }),
+    deleteVariantSet: t.boolean({
+      args: { id: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { id: number }, ctx) => deleteVariantSet(ctx.db, args.id)
+    }),
+    upsertVariant: t.field({
+      type: VariantRef,
+      args: {
+        id: t.arg.int({ required: false }),
+        variantSetId: t.arg.int({ required: true }),
+        key: t.arg.string({ required: true }),
+        priority: t.arg.int({ required: true }),
+        ruleJson: t.arg.string({ required: true }),
+        state: t.arg.string({ required: true }),
+        trafficAllocation: t.arg.int({ required: false }),
+        contentVersionId: t.arg.int({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: {
+          id?: number | null | undefined;
+          variantSetId: number;
+          key: string;
+          priority: number;
+          ruleJson: string;
+          state: string;
+          trafficAllocation?: number | null | undefined;
+          contentVersionId: number;
+        },
+        ctx
+      ) => upsertVariant(ctx.db, args)
+    }),
+    deleteVariant: t.boolean({
+      args: { id: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { id: number }, ctx) => deleteVariant(ctx.db, args.id)
+    }),
+    upsertForm: t.field({
+      type: FormRef,
+      args: {
+        id: t.arg.int({ required: false }),
+        siteId: t.arg.int({ required: true }),
+        name: t.arg.string({ required: true }),
+        description: t.arg.string({ required: false }),
+        active: t.arg.boolean({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: {
+          id?: number | null | undefined;
+          siteId: number;
+          name: string;
+          description?: string | null | undefined;
+          active: boolean;
+        },
+        ctx
+      ) => upsertForm(ctx.db, args)
+    }),
+    deleteForm: t.boolean({
+      args: { id: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { id: number }, ctx) => deleteForm(ctx.db, args.id)
+    }),
+    upsertFormStep: t.field({
+      type: FormStepRef,
+      args: {
+        id: t.arg.int({ required: false }),
+        formId: t.arg.int({ required: true }),
+        name: t.arg.string({ required: true }),
+        position: t.arg.int({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: { id?: number | null | undefined; formId: number; name: string; position: number },
+        ctx
+      ) => upsertFormStep(ctx.db, args)
+    }),
+    deleteFormStep: t.boolean({
+      args: { id: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { id: number }, ctx) => deleteFormStep(ctx.db, args.id)
+    }),
+    upsertFormField: t.field({
+      type: FormFieldRef,
+      args: {
+        id: t.arg.int({ required: false }),
+        stepId: t.arg.int({ required: true }),
+        formId: t.arg.int({ required: true }),
+        key: t.arg.string({ required: true }),
+        label: t.arg.string({ required: true }),
+        fieldType: t.arg.string({ required: true }),
+        position: t.arg.int({ required: true }),
+        conditionsJson: t.arg.string({ required: true }),
+        validationsJson: t.arg.string({ required: true }),
+        uiConfigJson: t.arg.string({ required: true }),
+        active: t.arg.boolean({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: {
+          id?: number | null | undefined;
+          stepId: number;
+          formId: number;
+          key: string;
+          label: string;
+          fieldType: string;
+          position: number;
+          conditionsJson: string;
+          validationsJson: string;
+          uiConfigJson: string;
+          active: boolean;
+        },
+        ctx
+      ) => upsertFormField(ctx.db, args)
+    }),
+    deleteFormField: t.boolean({
+      args: { id: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { id: number }, ctx) => deleteFormField(ctx.db, args.id)
+    }),
+    upsertWorkflowDefinition: t.field({
+      type: WorkflowDefinitionRef,
+      args: {
+        id: t.arg.int({ required: false }),
+        name: t.arg.string({ required: true }),
+        version: t.arg.int({ required: true }),
+        graphJson: t.arg.string({ required: true }),
+        inputSchemaJson: t.arg.string({ required: true }),
+        permissionsJson: t.arg.string({ required: true }),
+        createdBy: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          id?: number | null | undefined;
+          name: string;
+          version: number;
+          graphJson: string;
+          inputSchemaJson: string;
+          permissionsJson: string;
+          createdBy?: string | null | undefined;
+        },
+        ctx
+      ) =>
+        upsertWorkflowDefinition(ctx.db, {
+          ...args,
+          createdBy: args.createdBy ?? ctx.currentUser?.username ?? 'system'
+        })
+    }),
+    deleteWorkflowDefinition: t.boolean({
+      args: { id: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { id: number }, ctx) => deleteWorkflowDefinition(ctx.db, args.id)
+    }),
+    startWorkflowRun: t.field({
+      type: WorkflowRunRef,
+      args: {
+        definitionId: t.arg.int({ required: true }),
+        contextJson: t.arg.string({ required: true }),
+        startedBy: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { definitionId: number; contextJson: string; startedBy?: string | null | undefined },
+        ctx
+      ) =>
+        startWorkflowRun(ctx.db, {
+          ...args,
+          startedBy: args.startedBy ?? ctx.currentUser?.username ?? 'system'
+        })
+    }),
+    approveStep: t.field({
+      type: WorkflowRunRef,
+      args: {
+        runId: t.arg.int({ required: true }),
+        nodeId: t.arg.string({ required: true }),
+        approvedBy: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { runId: number; nodeId: string; approvedBy?: string | null | undefined },
+        ctx
+      ) =>
+        approveWorkflowStep(ctx.db, {
+          runId: args.runId,
+          nodeId: args.nodeId,
+          approvedBy: args.approvedBy ?? ctx.currentUser?.username ?? 'system'
+        })
+    }),
+    retryFailed: t.field({
+      type: WorkflowRunRef,
+      args: {
+        runId: t.arg.int({ required: true })
+      },
+      resolve: async (_root, args: { runId: number }, ctx) => retryFailedWorkflowRun(ctx.db, args.runId)
+    }),
+    aiGenerateContentType: t.field({
+      type: ContentTypeRef,
+      args: {
+        siteId: t.arg.int({ required: true }),
+        prompt: t.arg.string({ required: true }),
+        nameHint: t.arg.string({ required: false }),
+        by: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { siteId: number; prompt: string; nameHint?: string | null | undefined; by?: string | null | undefined },
+        ctx
+      ) =>
+        aiGenerateContentType(ctx.db, {
+          siteId: args.siteId,
+          prompt: args.prompt,
+          nameHint: args.nameHint,
+          by: args.by ?? ctx.currentUser?.username ?? 'system'
+        })
+    }),
+    aiGenerateContent: t.field({
+      type: AiContentResultRef,
+      args: {
+        contentItemId: t.arg.int({ required: false }),
+        siteId: t.arg.int({ required: false }),
+        contentTypeId: t.arg.int({ required: false }),
+        prompt: t.arg.string({ required: true }),
+        by: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          contentItemId?: number | null | undefined;
+          siteId?: number | null | undefined;
+          contentTypeId?: number | null | undefined;
+          prompt: string;
+          by?: string | null | undefined;
+        },
+        ctx
+      ) =>
+        aiGenerateContent(ctx.db, {
+          contentItemId: args.contentItemId,
+          siteId: args.siteId,
+          contentTypeId: args.contentTypeId,
+          prompt: args.prompt,
+          by: args.by ?? ctx.currentUser?.username ?? 'system'
+        })
+    }),
+    aiGenerateVariants: t.field({
+      type: AiVariantsResultRef,
+      args: {
+        siteId: t.arg.int({ required: true }),
+        contentItemId: t.arg.int({ required: true }),
+        marketCode: t.arg.string({ required: true }),
+        localeCode: t.arg.string({ required: true }),
+        variantSetId: t.arg.int({ required: false }),
+        targetVersionId: t.arg.int({ required: true }),
+        prompt: t.arg.string({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: {
+          siteId: number;
+          contentItemId: number;
+          marketCode: string;
+          localeCode: string;
+          variantSetId?: number | null | undefined;
+          targetVersionId: number;
+          prompt: string;
+        },
+        ctx
+      ) => aiGenerateVariants(ctx.db, args)
+    }),
+    aiTranslateVersion: t.field({
+      type: AiContentResultRef,
+      args: {
+        versionId: t.arg.int({ required: true }),
+        targetMarketCode: t.arg.string({ required: true }),
+        targetLocaleCode: t.arg.string({ required: true }),
+        by: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          versionId: number;
+          targetMarketCode: string;
+          targetLocaleCode: string;
+          by?: string | null | undefined;
+        },
+        ctx
+      ) =>
+        aiTranslateVersion(ctx.db, {
+          versionId: args.versionId,
+          targetMarketCode: args.targetMarketCode,
+          targetLocaleCode: args.targetLocaleCode,
+          by: args.by ?? ctx.currentUser?.username ?? 'system'
+        })
     }),
     issuePreviewToken: t.field({
       type: PreviewTokenRef,

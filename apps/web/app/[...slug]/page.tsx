@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
 
 import { createSdk } from '@contenthead/sdk';
 
@@ -76,30 +77,47 @@ export default async function CatchAllPage({
   const localeCode = (resolvedSearch.locale as string | undefined) ?? 'en-US';
   const previewToken = (resolvedSearch.previewToken as string | undefined) ?? null;
   const preview = ((resolvedSearch.preview as string | undefined) ?? 'false') === 'true';
+  const segments = ((resolvedSearch.segments as string | undefined) ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('userId')?.value ?? null;
+  const contextJson = JSON.stringify({
+    userId,
+    sessionId: cookieStore.get('sessionId')?.value ?? null,
+    segments
+  });
 
   const sdk = createSdk({ endpoint: process.env.API_URL ?? 'http://localhost:4000/graphql' });
-  const result = await sdk.resolveRoute({
+  const result = await sdk.getPageByRoute({
     siteId,
     marketCode,
     localeCode,
     slug,
+    contextJson,
     previewToken,
-    preview
+    preview,
+    variantKeyOverride: (resolvedSearch.variantKey as string | undefined) ?? null,
+    versionIdOverride: resolvedSearch.versionId ? Number(resolvedSearch.versionId as string) : null
   });
 
-  const payload = result.resolveRoute;
-  if (!payload || !payload.version) {
+  const payload = result.getPageByRoute;
+  const version = payload?.selectedVersion;
+  const base = payload?.base;
+  if (!payload || !version || !base) {
     notFound();
   }
 
-  const composition = JSON.parse(payload.version.compositionJson ?? '{}') as { areas?: AreaPayload[] };
-  const components = JSON.parse(payload.version.componentsJson ?? '{}') as Record<string, ComponentPayload>;
+  const composition = JSON.parse(version.compositionJson ?? '{}') as { areas?: AreaPayload[] };
+  const components = JSON.parse(version.componentsJson ?? '{}') as Record<string, ComponentPayload>;
   const areas = composition.areas ?? [{ name: 'main', components: Object.keys(components) }];
 
   return (
     <main style={{ maxWidth: 960, margin: '0 auto', padding: '2rem' }}>
       <p style={{ color: '#64748b' }}>
-        Mode: {payload.mode} | Site: {siteId} | Market/Locale: {marketCode}/{localeCode}
+        Mode: {base.mode} | Site: {siteId} | Market/Locale: {marketCode}/{localeCode} | Variant:{' '}
+        {payload.selectedVariant?.key ?? 'none'} | Reason: {payload.selectionReason}
       </p>
       {areas.map((area) => (
         <section key={area.name} style={{ marginBottom: '1.5rem', display: 'grid', gap: '1rem' }}>

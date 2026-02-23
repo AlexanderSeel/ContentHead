@@ -15,6 +15,18 @@ export type Scalars = {
   Float: { input: number; output: number; }
 };
 
+export type AiContentResult = {
+  __typename?: 'AiContentResult';
+  contentItemId?: Maybe<Scalars['Int']['output']>;
+  draftVersionId?: Maybe<Scalars['Int']['output']>;
+};
+
+export type AiVariantsResult = {
+  __typename?: 'AiVariantsResult';
+  createdKeys?: Maybe<Array<Scalars['String']['output']>>;
+  variantSetId?: Maybe<Scalars['Int']['output']>;
+};
+
 export type AuthPayload = {
   __typename?: 'AuthPayload';
   token?: Maybe<Scalars['String']['output']>;
@@ -82,6 +94,48 @@ export type ContentVersion = {
   versionNumber?: Maybe<Scalars['Int']['output']>;
 };
 
+export type Form = {
+  __typename?: 'Form';
+  active?: Maybe<Scalars['Boolean']['output']>;
+  createdAt?: Maybe<Scalars['String']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  siteId?: Maybe<Scalars['Int']['output']>;
+  updatedAt?: Maybe<Scalars['String']['output']>;
+};
+
+export type FormEvaluation = {
+  __typename?: 'FormEvaluation';
+  errorsJson?: Maybe<Scalars['String']['output']>;
+  evaluatedFieldsJson?: Maybe<Scalars['String']['output']>;
+  formId?: Maybe<Scalars['Int']['output']>;
+  valid?: Maybe<Scalars['Boolean']['output']>;
+};
+
+export type FormField = {
+  __typename?: 'FormField';
+  active?: Maybe<Scalars['Boolean']['output']>;
+  conditionsJson?: Maybe<Scalars['String']['output']>;
+  fieldType?: Maybe<Scalars['String']['output']>;
+  formId?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  key?: Maybe<Scalars['String']['output']>;
+  label?: Maybe<Scalars['String']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
+  stepId?: Maybe<Scalars['Int']['output']>;
+  uiConfigJson?: Maybe<Scalars['String']['output']>;
+  validationsJson?: Maybe<Scalars['String']['output']>;
+};
+
+export type FormStep = {
+  __typename?: 'FormStep';
+  formId?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
+};
+
 export type Locale = {
   __typename?: 'Locale';
   active?: Maybe<Scalars['Boolean']['output']>;
@@ -118,28 +172,90 @@ export type MatrixDefaultsInput = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  aiGenerateContent?: Maybe<AiContentResult>;
+  aiGenerateContentType?: Maybe<ContentType>;
+  aiGenerateVariants?: Maybe<AiVariantsResult>;
+  aiTranslateVersion?: Maybe<AiContentResult>;
+  approveStep?: Maybe<WorkflowRun>;
   archiveContentItem?: Maybe<ContentItem>;
   createContentItem?: Maybe<ContentItem>;
   createContentType?: Maybe<ContentType>;
   createDraftVersion?: Maybe<ContentVersion>;
   createTemplate?: Maybe<Template>;
   deleteContentType?: Maybe<Scalars['Boolean']['output']>;
+  deleteForm?: Maybe<Scalars['Boolean']['output']>;
+  deleteFormField?: Maybe<Scalars['Boolean']['output']>;
+  deleteFormStep?: Maybe<Scalars['Boolean']['output']>;
   deleteRoute?: Maybe<Scalars['Boolean']['output']>;
   deleteTemplate?: Maybe<Scalars['Boolean']['output']>;
+  deleteVariant?: Maybe<Scalars['Boolean']['output']>;
+  deleteVariantSet?: Maybe<Scalars['Boolean']['output']>;
+  deleteWorkflowDefinition?: Maybe<Scalars['Boolean']['output']>;
   issuePreviewToken?: Maybe<PreviewTokenPayload>;
   login?: Maybe<AuthPayload>;
   publishVersion?: Maybe<ContentVersion>;
   reconcileTemplate?: Maybe<VersionDiff>;
+  retryFailed?: Maybe<WorkflowRun>;
   rollbackToVersion?: Maybe<ContentVersion>;
   setSiteLocales?: Maybe<Array<Locale>>;
   setSiteMarketLocaleMatrix?: Maybe<SiteMarketLocaleMatrix>;
   setSiteMarkets?: Maybe<Array<Market>>;
+  startWorkflowRun?: Maybe<WorkflowRun>;
   updateContentType?: Maybe<ContentType>;
   updateDraftVersion?: Maybe<ContentVersion>;
   updateTemplate?: Maybe<Template>;
+  upsertForm?: Maybe<Form>;
+  upsertFormField?: Maybe<FormField>;
+  upsertFormStep?: Maybe<FormStep>;
   upsertLocale?: Maybe<Array<Locale>>;
   upsertMarket?: Maybe<Array<Market>>;
   upsertRoute?: Maybe<ContentRoute>;
+  upsertVariant?: Maybe<Variant>;
+  upsertVariantSet?: Maybe<VariantSet>;
+  upsertWorkflowDefinition?: Maybe<WorkflowDefinition>;
+};
+
+
+export type MutationAiGenerateContentArgs = {
+  by?: InputMaybe<Scalars['String']['input']>;
+  contentItemId?: InputMaybe<Scalars['Int']['input']>;
+  contentTypeId?: InputMaybe<Scalars['Int']['input']>;
+  prompt: Scalars['String']['input'];
+  siteId?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type MutationAiGenerateContentTypeArgs = {
+  by?: InputMaybe<Scalars['String']['input']>;
+  nameHint?: InputMaybe<Scalars['String']['input']>;
+  prompt: Scalars['String']['input'];
+  siteId: Scalars['Int']['input'];
+};
+
+
+export type MutationAiGenerateVariantsArgs = {
+  contentItemId: Scalars['Int']['input'];
+  localeCode: Scalars['String']['input'];
+  marketCode: Scalars['String']['input'];
+  prompt: Scalars['String']['input'];
+  siteId: Scalars['Int']['input'];
+  targetVersionId: Scalars['Int']['input'];
+  variantSetId?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type MutationAiTranslateVersionArgs = {
+  by?: InputMaybe<Scalars['String']['input']>;
+  targetLocaleCode: Scalars['String']['input'];
+  targetMarketCode: Scalars['String']['input'];
+  versionId: Scalars['Int']['input'];
+};
+
+
+export type MutationApproveStepArgs = {
+  approvedBy?: InputMaybe<Scalars['String']['input']>;
+  nodeId: Scalars['String']['input'];
+  runId: Scalars['Int']['input'];
 };
 
 
@@ -192,12 +308,42 @@ export type MutationDeleteContentTypeArgs = {
 };
 
 
+export type MutationDeleteFormArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationDeleteFormFieldArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationDeleteFormStepArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
 export type MutationDeleteRouteArgs = {
   id: Scalars['Int']['input'];
 };
 
 
 export type MutationDeleteTemplateArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationDeleteVariantArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationDeleteVariantSetArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationDeleteWorkflowDefinitionArgs = {
   id: Scalars['Int']['input'];
 };
 
@@ -223,6 +369,11 @@ export type MutationPublishVersionArgs = {
 
 export type MutationReconcileTemplateArgs = {
   templateId: Scalars['Int']['input'];
+};
+
+
+export type MutationRetryFailedArgs = {
+  runId: Scalars['Int']['input'];
 };
 
 
@@ -254,6 +405,13 @@ export type MutationSetSiteMarketsArgs = {
 };
 
 
+export type MutationStartWorkflowRunArgs = {
+  contextJson: Scalars['String']['input'];
+  definitionId: Scalars['Int']['input'];
+  startedBy?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationUpdateContentTypeArgs = {
   by?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
@@ -276,6 +434,38 @@ export type MutationUpdateTemplateArgs = {
   constraintsJson: Scalars['String']['input'];
   id: Scalars['Int']['input'];
   name: Scalars['String']['input'];
+};
+
+
+export type MutationUpsertFormArgs = {
+  active: Scalars['Boolean']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['Int']['input']>;
+  name: Scalars['String']['input'];
+  siteId: Scalars['Int']['input'];
+};
+
+
+export type MutationUpsertFormFieldArgs = {
+  active: Scalars['Boolean']['input'];
+  conditionsJson: Scalars['String']['input'];
+  fieldType: Scalars['String']['input'];
+  formId: Scalars['Int']['input'];
+  id?: InputMaybe<Scalars['Int']['input']>;
+  key: Scalars['String']['input'];
+  label: Scalars['String']['input'];
+  position: Scalars['Int']['input'];
+  stepId: Scalars['Int']['input'];
+  uiConfigJson: Scalars['String']['input'];
+  validationsJson: Scalars['String']['input'];
+};
+
+
+export type MutationUpsertFormStepArgs = {
+  formId: Scalars['Int']['input'];
+  id?: InputMaybe<Scalars['Int']['input']>;
+  name: Scalars['String']['input'];
+  position: Scalars['Int']['input'];
 };
 
 
@@ -310,6 +500,48 @@ export type MutationUpsertRouteArgs = {
   slug: Scalars['String']['input'];
 };
 
+
+export type MutationUpsertVariantArgs = {
+  contentVersionId: Scalars['Int']['input'];
+  id?: InputMaybe<Scalars['Int']['input']>;
+  key: Scalars['String']['input'];
+  priority: Scalars['Int']['input'];
+  ruleJson: Scalars['String']['input'];
+  state: Scalars['String']['input'];
+  trafficAllocation?: InputMaybe<Scalars['Int']['input']>;
+  variantSetId: Scalars['Int']['input'];
+};
+
+
+export type MutationUpsertVariantSetArgs = {
+  active: Scalars['Boolean']['input'];
+  contentItemId: Scalars['Int']['input'];
+  fallbackVariantSetId?: InputMaybe<Scalars['Int']['input']>;
+  id?: InputMaybe<Scalars['Int']['input']>;
+  localeCode: Scalars['String']['input'];
+  marketCode: Scalars['String']['input'];
+  siteId: Scalars['Int']['input'];
+};
+
+
+export type MutationUpsertWorkflowDefinitionArgs = {
+  createdBy?: InputMaybe<Scalars['String']['input']>;
+  graphJson: Scalars['String']['input'];
+  id?: InputMaybe<Scalars['Int']['input']>;
+  inputSchemaJson: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  permissionsJson: Scalars['String']['input'];
+  version: Scalars['Int']['input'];
+};
+
+export type PageByRoute = {
+  __typename?: 'PageByRoute';
+  base?: Maybe<ResolvedRoute>;
+  selectedVariant?: Maybe<Variant>;
+  selectedVersion?: Maybe<ContentVersion>;
+  selectionReason?: Maybe<Scalars['String']['output']>;
+};
+
 export type PreviewTokenPayload = {
   __typename?: 'PreviewTokenPayload';
   contentItemId?: Maybe<Scalars['Int']['output']>;
@@ -319,20 +551,31 @@ export type PreviewTokenPayload = {
 export type Query = {
   __typename?: 'Query';
   diffVersions?: Maybe<VersionDiff>;
+  evaluateForm?: Maybe<FormEvaluation>;
   getContentItemDetail?: Maybe<ContentItemDetail>;
+  getPageByRoute?: Maybe<PageByRoute>;
   getSiteDefaults?: Maybe<SiteDefaults>;
   getSiteMarketLocaleMatrix?: Maybe<SiteMarketLocaleMatrix>;
+  getWorkflowRun?: Maybe<WorkflowRun>;
   listContentItems?: Maybe<Array<ContentItem>>;
   listContentTypes?: Maybe<Array<ContentType>>;
+  listFormFields?: Maybe<Array<FormField>>;
+  listFormSteps?: Maybe<Array<FormStep>>;
+  listForms?: Maybe<Array<Form>>;
   listLocales?: Maybe<Array<Locale>>;
   listMarkets?: Maybe<Array<Market>>;
   listRoutes?: Maybe<Array<ContentRoute>>;
   listSites?: Maybe<Array<Site>>;
   listTemplates?: Maybe<Array<Template>>;
+  listVariantSets?: Maybe<Array<VariantSet>>;
+  listVariants?: Maybe<Array<Variant>>;
   listVersions?: Maybe<Array<ContentVersion>>;
+  listWorkflowDefinitions?: Maybe<Array<WorkflowDefinition>>;
+  listWorkflowRuns?: Maybe<Array<WorkflowRun>>;
   me?: Maybe<User>;
   resolveMarketLocale?: Maybe<ResolvedMarketLocale>;
   resolveRoute?: Maybe<ResolvedRoute>;
+  selectVariant?: Maybe<VariantSelection>;
   validateMarketLocale?: Maybe<Scalars['Boolean']['output']>;
 };
 
@@ -343,8 +586,28 @@ export type QueryDiffVersionsArgs = {
 };
 
 
+export type QueryEvaluateFormArgs = {
+  answersJson: Scalars['String']['input'];
+  contextJson?: InputMaybe<Scalars['String']['input']>;
+  formId: Scalars['Int']['input'];
+};
+
+
 export type QueryGetContentItemDetailArgs = {
   contentItemId: Scalars['Int']['input'];
+};
+
+
+export type QueryGetPageByRouteArgs = {
+  contextJson?: InputMaybe<Scalars['String']['input']>;
+  localeCode: Scalars['String']['input'];
+  marketCode: Scalars['String']['input'];
+  preview?: InputMaybe<Scalars['Boolean']['input']>;
+  previewToken?: InputMaybe<Scalars['String']['input']>;
+  siteId: Scalars['Int']['input'];
+  slug: Scalars['String']['input'];
+  variantKeyOverride?: InputMaybe<Scalars['String']['input']>;
+  versionIdOverride?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -358,12 +621,32 @@ export type QueryGetSiteMarketLocaleMatrixArgs = {
 };
 
 
+export type QueryGetWorkflowRunArgs = {
+  runId: Scalars['Int']['input'];
+};
+
+
 export type QueryListContentItemsArgs = {
   siteId: Scalars['Int']['input'];
 };
 
 
 export type QueryListContentTypesArgs = {
+  siteId: Scalars['Int']['input'];
+};
+
+
+export type QueryListFormFieldsArgs = {
+  formId: Scalars['Int']['input'];
+};
+
+
+export type QueryListFormStepsArgs = {
+  formId: Scalars['Int']['input'];
+};
+
+
+export type QueryListFormsArgs = {
   siteId: Scalars['Int']['input'];
 };
 
@@ -390,8 +673,26 @@ export type QueryListTemplatesArgs = {
 };
 
 
+export type QueryListVariantSetsArgs = {
+  contentItemId?: InputMaybe<Scalars['Int']['input']>;
+  localeCode?: InputMaybe<Scalars['String']['input']>;
+  marketCode?: InputMaybe<Scalars['String']['input']>;
+  siteId: Scalars['Int']['input'];
+};
+
+
+export type QueryListVariantsArgs = {
+  variantSetId: Scalars['Int']['input'];
+};
+
+
 export type QueryListVersionsArgs = {
   contentItemId: Scalars['Int']['input'];
+};
+
+
+export type QueryListWorkflowRunsArgs = {
+  definitionId?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -409,6 +710,12 @@ export type QueryResolveRouteArgs = {
   previewToken?: InputMaybe<Scalars['String']['input']>;
   siteId: Scalars['Int']['input'];
   slug: Scalars['String']['input'];
+};
+
+
+export type QuerySelectVariantArgs = {
+  contextJson?: InputMaybe<Scalars['String']['input']>;
+  variantSetId: Scalars['Int']['input'];
 };
 
 
@@ -513,12 +820,67 @@ export type User = {
   username?: Maybe<Scalars['String']['output']>;
 };
 
+export type Variant = {
+  __typename?: 'Variant';
+  contentVersionId?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  key?: Maybe<Scalars['String']['output']>;
+  priority?: Maybe<Scalars['Int']['output']>;
+  ruleJson?: Maybe<Scalars['String']['output']>;
+  state?: Maybe<Scalars['String']['output']>;
+  trafficAllocation?: Maybe<Scalars['Int']['output']>;
+  variantSetId?: Maybe<Scalars['Int']['output']>;
+};
+
+export type VariantSelection = {
+  __typename?: 'VariantSelection';
+  reason?: Maybe<Scalars['String']['output']>;
+  variant?: Maybe<Variant>;
+  variantSetId?: Maybe<Scalars['Int']['output']>;
+};
+
+export type VariantSet = {
+  __typename?: 'VariantSet';
+  active?: Maybe<Scalars['Boolean']['output']>;
+  contentItemId?: Maybe<Scalars['Int']['output']>;
+  fallbackVariantSetId?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  localeCode?: Maybe<Scalars['String']['output']>;
+  marketCode?: Maybe<Scalars['String']['output']>;
+  siteId?: Maybe<Scalars['Int']['output']>;
+};
+
 export type VersionDiff = {
   __typename?: 'VersionDiff';
   changedPaths?: Maybe<Array<Scalars['String']['output']>>;
   leftVersionId?: Maybe<Scalars['Int']['output']>;
   rightVersionId?: Maybe<Scalars['Int']['output']>;
   summary?: Maybe<Scalars['String']['output']>;
+};
+
+export type WorkflowDefinition = {
+  __typename?: 'WorkflowDefinition';
+  createdAt?: Maybe<Scalars['String']['output']>;
+  createdBy?: Maybe<Scalars['String']['output']>;
+  graphJson?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  inputSchemaJson?: Maybe<Scalars['String']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  permissionsJson?: Maybe<Scalars['String']['output']>;
+  version?: Maybe<Scalars['Int']['output']>;
+};
+
+export type WorkflowRun = {
+  __typename?: 'WorkflowRun';
+  contextJson?: Maybe<Scalars['String']['output']>;
+  currentNodeId?: Maybe<Scalars['String']['output']>;
+  definitionId?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  logsJson?: Maybe<Scalars['String']['output']>;
+  startedAt?: Maybe<Scalars['String']['output']>;
+  startedBy?: Maybe<Scalars['String']['output']>;
+  status?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['String']['output']>;
 };
 
 export type ListContentTypesQueryVariables = Exact<{
@@ -737,6 +1099,284 @@ export type IssuePreviewTokenMutationVariables = Exact<{
 
 export type IssuePreviewTokenMutation = { __typename?: 'Mutation', issuePreviewToken?: { __typename?: 'PreviewTokenPayload', token?: string | null, contentItemId?: number | null } | null };
 
+export type ListVariantSetsQueryVariables = Exact<{
+  siteId: Scalars['Int']['input'];
+  contentItemId?: InputMaybe<Scalars['Int']['input']>;
+  marketCode?: InputMaybe<Scalars['String']['input']>;
+  localeCode?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type ListVariantSetsQuery = { __typename?: 'Query', listVariantSets?: Array<{ __typename?: 'VariantSet', id?: number | null, siteId?: number | null, contentItemId?: number | null, marketCode?: string | null, localeCode?: string | null, fallbackVariantSetId?: number | null, active?: boolean | null }> | null };
+
+export type ListVariantsQueryVariables = Exact<{
+  variantSetId: Scalars['Int']['input'];
+}>;
+
+
+export type ListVariantsQuery = { __typename?: 'Query', listVariants?: Array<{ __typename?: 'Variant', id?: number | null, variantSetId?: number | null, key?: string | null, priority?: number | null, ruleJson?: string | null, state?: string | null, trafficAllocation?: number | null, contentVersionId?: number | null }> | null };
+
+export type SelectVariantQueryVariables = Exact<{
+  variantSetId: Scalars['Int']['input'];
+  contextJson?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type SelectVariantQuery = { __typename?: 'Query', selectVariant?: { __typename?: 'VariantSelection', reason?: string | null, variantSetId?: number | null, variant?: { __typename?: 'Variant', id?: number | null, key?: string | null, contentVersionId?: number | null } | null } | null };
+
+export type GetPageByRouteQueryVariables = Exact<{
+  siteId: Scalars['Int']['input'];
+  marketCode: Scalars['String']['input'];
+  localeCode: Scalars['String']['input'];
+  slug: Scalars['String']['input'];
+  contextJson?: InputMaybe<Scalars['String']['input']>;
+  previewToken?: InputMaybe<Scalars['String']['input']>;
+  preview?: InputMaybe<Scalars['Boolean']['input']>;
+  variantKeyOverride?: InputMaybe<Scalars['String']['input']>;
+  versionIdOverride?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type GetPageByRouteQuery = { __typename?: 'Query', getPageByRoute?: { __typename?: 'PageByRoute', selectionReason?: string | null, selectedVariant?: { __typename?: 'Variant', id?: number | null, key?: string | null, contentVersionId?: number | null } | null, selectedVersion?: { __typename?: 'ContentVersion', id?: number | null, state?: string | null, fieldsJson?: string | null, compositionJson?: string | null, componentsJson?: string | null, metadataJson?: string | null } | null, base?: { __typename?: 'ResolvedRoute', mode?: string | null, route?: { __typename?: 'ContentRoute', id?: number | null, slug?: string | null, marketCode?: string | null, localeCode?: string | null } | null, contentItem?: { __typename?: 'ContentItem', id?: number | null, contentTypeId?: number | null } | null, contentType?: { __typename?: 'ContentType', id?: number | null, name?: string | null, fieldsJson?: string | null } | null } | null } | null };
+
+export type UpsertVariantSetMutationVariables = Exact<{
+  id?: InputMaybe<Scalars['Int']['input']>;
+  siteId: Scalars['Int']['input'];
+  contentItemId: Scalars['Int']['input'];
+  marketCode: Scalars['String']['input'];
+  localeCode: Scalars['String']['input'];
+  fallbackVariantSetId?: InputMaybe<Scalars['Int']['input']>;
+  active: Scalars['Boolean']['input'];
+}>;
+
+
+export type UpsertVariantSetMutation = { __typename?: 'Mutation', upsertVariantSet?: { __typename?: 'VariantSet', id?: number | null, siteId?: number | null, contentItemId?: number | null, marketCode?: string | null, localeCode?: string | null, fallbackVariantSetId?: number | null, active?: boolean | null } | null };
+
+export type DeleteVariantSetMutationVariables = Exact<{
+  id: Scalars['Int']['input'];
+}>;
+
+
+export type DeleteVariantSetMutation = { __typename?: 'Mutation', deleteVariantSet?: boolean | null };
+
+export type UpsertVariantMutationVariables = Exact<{
+  id?: InputMaybe<Scalars['Int']['input']>;
+  variantSetId: Scalars['Int']['input'];
+  key: Scalars['String']['input'];
+  priority: Scalars['Int']['input'];
+  ruleJson: Scalars['String']['input'];
+  state: Scalars['String']['input'];
+  trafficAllocation?: InputMaybe<Scalars['Int']['input']>;
+  contentVersionId: Scalars['Int']['input'];
+}>;
+
+
+export type UpsertVariantMutation = { __typename?: 'Mutation', upsertVariant?: { __typename?: 'Variant', id?: number | null, variantSetId?: number | null, key?: string | null, priority?: number | null, ruleJson?: string | null, state?: string | null, trafficAllocation?: number | null, contentVersionId?: number | null } | null };
+
+export type DeleteVariantMutationVariables = Exact<{
+  id: Scalars['Int']['input'];
+}>;
+
+
+export type DeleteVariantMutation = { __typename?: 'Mutation', deleteVariant?: boolean | null };
+
+export type ListFormsQueryVariables = Exact<{
+  siteId: Scalars['Int']['input'];
+}>;
+
+
+export type ListFormsQuery = { __typename?: 'Query', listForms?: Array<{ __typename?: 'Form', id?: number | null, siteId?: number | null, name?: string | null, description?: string | null, active?: boolean | null, createdAt?: string | null, updatedAt?: string | null }> | null };
+
+export type ListFormStepsQueryVariables = Exact<{
+  formId: Scalars['Int']['input'];
+}>;
+
+
+export type ListFormStepsQuery = { __typename?: 'Query', listFormSteps?: Array<{ __typename?: 'FormStep', id?: number | null, formId?: number | null, name?: string | null, position?: number | null }> | null };
+
+export type ListFormFieldsQueryVariables = Exact<{
+  formId: Scalars['Int']['input'];
+}>;
+
+
+export type ListFormFieldsQuery = { __typename?: 'Query', listFormFields?: Array<{ __typename?: 'FormField', id?: number | null, stepId?: number | null, formId?: number | null, key?: string | null, label?: string | null, fieldType?: string | null, position?: number | null, conditionsJson?: string | null, validationsJson?: string | null, uiConfigJson?: string | null, active?: boolean | null }> | null };
+
+export type EvaluateFormQueryVariables = Exact<{
+  formId: Scalars['Int']['input'];
+  answersJson: Scalars['String']['input'];
+  contextJson?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type EvaluateFormQuery = { __typename?: 'Query', evaluateForm?: { __typename?: 'FormEvaluation', formId?: number | null, valid?: boolean | null, evaluatedFieldsJson?: string | null, errorsJson?: string | null } | null };
+
+export type UpsertFormMutationVariables = Exact<{
+  id?: InputMaybe<Scalars['Int']['input']>;
+  siteId: Scalars['Int']['input'];
+  name: Scalars['String']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
+  active: Scalars['Boolean']['input'];
+}>;
+
+
+export type UpsertFormMutation = { __typename?: 'Mutation', upsertForm?: { __typename?: 'Form', id?: number | null, siteId?: number | null, name?: string | null, description?: string | null, active?: boolean | null, createdAt?: string | null, updatedAt?: string | null } | null };
+
+export type DeleteFormMutationVariables = Exact<{
+  id: Scalars['Int']['input'];
+}>;
+
+
+export type DeleteFormMutation = { __typename?: 'Mutation', deleteForm?: boolean | null };
+
+export type UpsertFormStepMutationVariables = Exact<{
+  id?: InputMaybe<Scalars['Int']['input']>;
+  formId: Scalars['Int']['input'];
+  name: Scalars['String']['input'];
+  position: Scalars['Int']['input'];
+}>;
+
+
+export type UpsertFormStepMutation = { __typename?: 'Mutation', upsertFormStep?: { __typename?: 'FormStep', id?: number | null, formId?: number | null, name?: string | null, position?: number | null } | null };
+
+export type DeleteFormStepMutationVariables = Exact<{
+  id: Scalars['Int']['input'];
+}>;
+
+
+export type DeleteFormStepMutation = { __typename?: 'Mutation', deleteFormStep?: boolean | null };
+
+export type UpsertFormFieldMutationVariables = Exact<{
+  id?: InputMaybe<Scalars['Int']['input']>;
+  stepId: Scalars['Int']['input'];
+  formId: Scalars['Int']['input'];
+  key: Scalars['String']['input'];
+  label: Scalars['String']['input'];
+  fieldType: Scalars['String']['input'];
+  position: Scalars['Int']['input'];
+  conditionsJson: Scalars['String']['input'];
+  validationsJson: Scalars['String']['input'];
+  uiConfigJson: Scalars['String']['input'];
+  active: Scalars['Boolean']['input'];
+}>;
+
+
+export type UpsertFormFieldMutation = { __typename?: 'Mutation', upsertFormField?: { __typename?: 'FormField', id?: number | null, stepId?: number | null, formId?: number | null, key?: string | null, label?: string | null, fieldType?: string | null, position?: number | null, conditionsJson?: string | null, validationsJson?: string | null, uiConfigJson?: string | null, active?: boolean | null } | null };
+
+export type DeleteFormFieldMutationVariables = Exact<{
+  id: Scalars['Int']['input'];
+}>;
+
+
+export type DeleteFormFieldMutation = { __typename?: 'Mutation', deleteFormField?: boolean | null };
+
+export type ListWorkflowDefinitionsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ListWorkflowDefinitionsQuery = { __typename?: 'Query', listWorkflowDefinitions?: Array<{ __typename?: 'WorkflowDefinition', id?: number | null, name?: string | null, version?: number | null, graphJson?: string | null, inputSchemaJson?: string | null, permissionsJson?: string | null, createdAt?: string | null, createdBy?: string | null }> | null };
+
+export type ListWorkflowRunsQueryVariables = Exact<{
+  definitionId?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type ListWorkflowRunsQuery = { __typename?: 'Query', listWorkflowRuns?: Array<{ __typename?: 'WorkflowRun', id?: number | null, definitionId?: number | null, status?: string | null, contextJson?: string | null, currentNodeId?: string | null, logsJson?: string | null, startedAt?: string | null, startedBy?: string | null, updatedAt?: string | null }> | null };
+
+export type GetWorkflowRunQueryVariables = Exact<{
+  runId: Scalars['Int']['input'];
+}>;
+
+
+export type GetWorkflowRunQuery = { __typename?: 'Query', getWorkflowRun?: { __typename?: 'WorkflowRun', id?: number | null, definitionId?: number | null, status?: string | null, contextJson?: string | null, currentNodeId?: string | null, logsJson?: string | null, startedAt?: string | null, startedBy?: string | null, updatedAt?: string | null } | null };
+
+export type UpsertWorkflowDefinitionMutationVariables = Exact<{
+  id?: InputMaybe<Scalars['Int']['input']>;
+  name: Scalars['String']['input'];
+  version: Scalars['Int']['input'];
+  graphJson: Scalars['String']['input'];
+  inputSchemaJson: Scalars['String']['input'];
+  permissionsJson: Scalars['String']['input'];
+  createdBy?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type UpsertWorkflowDefinitionMutation = { __typename?: 'Mutation', upsertWorkflowDefinition?: { __typename?: 'WorkflowDefinition', id?: number | null, name?: string | null, version?: number | null, graphJson?: string | null, inputSchemaJson?: string | null, permissionsJson?: string | null, createdAt?: string | null, createdBy?: string | null } | null };
+
+export type DeleteWorkflowDefinitionMutationVariables = Exact<{
+  id: Scalars['Int']['input'];
+}>;
+
+
+export type DeleteWorkflowDefinitionMutation = { __typename?: 'Mutation', deleteWorkflowDefinition?: boolean | null };
+
+export type StartWorkflowRunMutationVariables = Exact<{
+  definitionId: Scalars['Int']['input'];
+  contextJson: Scalars['String']['input'];
+  startedBy?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type StartWorkflowRunMutation = { __typename?: 'Mutation', startWorkflowRun?: { __typename?: 'WorkflowRun', id?: number | null, definitionId?: number | null, status?: string | null, contextJson?: string | null, currentNodeId?: string | null, logsJson?: string | null, startedAt?: string | null, startedBy?: string | null, updatedAt?: string | null } | null };
+
+export type ApproveStepMutationVariables = Exact<{
+  runId: Scalars['Int']['input'];
+  nodeId: Scalars['String']['input'];
+  approvedBy?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type ApproveStepMutation = { __typename?: 'Mutation', approveStep?: { __typename?: 'WorkflowRun', id?: number | null, definitionId?: number | null, status?: string | null, contextJson?: string | null, currentNodeId?: string | null, logsJson?: string | null, startedAt?: string | null, startedBy?: string | null, updatedAt?: string | null } | null };
+
+export type RetryFailedMutationVariables = Exact<{
+  runId: Scalars['Int']['input'];
+}>;
+
+
+export type RetryFailedMutation = { __typename?: 'Mutation', retryFailed?: { __typename?: 'WorkflowRun', id?: number | null, definitionId?: number | null, status?: string | null, contextJson?: string | null, currentNodeId?: string | null, logsJson?: string | null, startedAt?: string | null, startedBy?: string | null, updatedAt?: string | null } | null };
+
+export type AiGenerateContentTypeMutationVariables = Exact<{
+  siteId: Scalars['Int']['input'];
+  prompt: Scalars['String']['input'];
+  nameHint?: InputMaybe<Scalars['String']['input']>;
+  by?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type AiGenerateContentTypeMutation = { __typename?: 'Mutation', aiGenerateContentType?: { __typename?: 'ContentType', id?: number | null, siteId?: number | null, name?: string | null, description?: string | null, fieldsJson?: string | null } | null };
+
+export type AiGenerateContentMutationVariables = Exact<{
+  contentItemId?: InputMaybe<Scalars['Int']['input']>;
+  siteId?: InputMaybe<Scalars['Int']['input']>;
+  contentTypeId?: InputMaybe<Scalars['Int']['input']>;
+  prompt: Scalars['String']['input'];
+  by?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type AiGenerateContentMutation = { __typename?: 'Mutation', aiGenerateContent?: { __typename?: 'AiContentResult', contentItemId?: number | null, draftVersionId?: number | null } | null };
+
+export type AiGenerateVariantsMutationVariables = Exact<{
+  siteId: Scalars['Int']['input'];
+  contentItemId: Scalars['Int']['input'];
+  marketCode: Scalars['String']['input'];
+  localeCode: Scalars['String']['input'];
+  variantSetId?: InputMaybe<Scalars['Int']['input']>;
+  targetVersionId: Scalars['Int']['input'];
+  prompt: Scalars['String']['input'];
+}>;
+
+
+export type AiGenerateVariantsMutation = { __typename?: 'Mutation', aiGenerateVariants?: { __typename?: 'AiVariantsResult', variantSetId?: number | null, createdKeys?: Array<string> | null } | null };
+
+export type AiTranslateVersionMutationVariables = Exact<{
+  versionId: Scalars['Int']['input'];
+  targetMarketCode: Scalars['String']['input'];
+  targetLocaleCode: Scalars['String']['input'];
+  by?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type AiTranslateVersionMutation = { __typename?: 'Mutation', aiTranslateVersion?: { __typename?: 'AiContentResult', contentItemId?: number | null, draftVersionId?: number | null } | null };
+
 export type LoginMutationVariables = Exact<{
   username: Scalars['String']['input'];
   password: Scalars['String']['input'];
@@ -878,6 +1518,36 @@ export const ReconcileTemplateDocument = {"kind":"Document","definitions":[{"kin
 export const UpsertRouteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpsertRoute"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"contentItemId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"slug"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"isCanonical"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"upsertRoute"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}},{"kind":"Argument","name":{"kind":"Name","value":"contentItemId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"contentItemId"}}},{"kind":"Argument","name":{"kind":"Name","value":"marketCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"localeCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"slug"},"value":{"kind":"Variable","name":{"kind":"Name","value":"slug"}}},{"kind":"Argument","name":{"kind":"Name","value":"isCanonical"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isCanonical"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"siteId"}},{"kind":"Field","name":{"kind":"Name","value":"contentItemId"}},{"kind":"Field","name":{"kind":"Name","value":"marketCode"}},{"kind":"Field","name":{"kind":"Name","value":"localeCode"}},{"kind":"Field","name":{"kind":"Name","value":"slug"}},{"kind":"Field","name":{"kind":"Name","value":"isCanonical"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]} as unknown as DocumentNode<UpsertRouteMutation, UpsertRouteMutationVariables>;
 export const DeleteRouteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteRoute"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deleteRoute"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<DeleteRouteMutation, DeleteRouteMutationVariables>;
 export const IssuePreviewTokenDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"IssuePreviewToken"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"contentItemId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"issuePreviewToken"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"contentItemId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"contentItemId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"token"}},{"kind":"Field","name":{"kind":"Name","value":"contentItemId"}}]}}]}}]} as unknown as DocumentNode<IssuePreviewTokenMutation, IssuePreviewTokenMutationVariables>;
+export const ListVariantSetsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ListVariantSets"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"contentItemId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"listVariantSets"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}},{"kind":"Argument","name":{"kind":"Name","value":"contentItemId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"contentItemId"}}},{"kind":"Argument","name":{"kind":"Name","value":"marketCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"localeCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"siteId"}},{"kind":"Field","name":{"kind":"Name","value":"contentItemId"}},{"kind":"Field","name":{"kind":"Name","value":"marketCode"}},{"kind":"Field","name":{"kind":"Name","value":"localeCode"}},{"kind":"Field","name":{"kind":"Name","value":"fallbackVariantSetId"}},{"kind":"Field","name":{"kind":"Name","value":"active"}}]}}]}}]} as unknown as DocumentNode<ListVariantSetsQuery, ListVariantSetsQueryVariables>;
+export const ListVariantsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ListVariants"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"variantSetId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"listVariants"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"variantSetId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"variantSetId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"variantSetId"}},{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"priority"}},{"kind":"Field","name":{"kind":"Name","value":"ruleJson"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"trafficAllocation"}},{"kind":"Field","name":{"kind":"Name","value":"contentVersionId"}}]}}]}}]} as unknown as DocumentNode<ListVariantsQuery, ListVariantsQueryVariables>;
+export const SelectVariantDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"SelectVariant"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"variantSetId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"contextJson"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"selectVariant"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"variantSetId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"variantSetId"}}},{"kind":"Argument","name":{"kind":"Name","value":"contextJson"},"value":{"kind":"Variable","name":{"kind":"Name","value":"contextJson"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"reason"}},{"kind":"Field","name":{"kind":"Name","value":"variantSetId"}},{"kind":"Field","name":{"kind":"Name","value":"variant"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"contentVersionId"}}]}}]}}]}}]} as unknown as DocumentNode<SelectVariantQuery, SelectVariantQueryVariables>;
+export const GetPageByRouteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetPageByRoute"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"slug"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"contextJson"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"previewToken"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"preview"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"variantKeyOverride"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"versionIdOverride"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"getPageByRoute"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}},{"kind":"Argument","name":{"kind":"Name","value":"marketCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"localeCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"slug"},"value":{"kind":"Variable","name":{"kind":"Name","value":"slug"}}},{"kind":"Argument","name":{"kind":"Name","value":"contextJson"},"value":{"kind":"Variable","name":{"kind":"Name","value":"contextJson"}}},{"kind":"Argument","name":{"kind":"Name","value":"previewToken"},"value":{"kind":"Variable","name":{"kind":"Name","value":"previewToken"}}},{"kind":"Argument","name":{"kind":"Name","value":"preview"},"value":{"kind":"Variable","name":{"kind":"Name","value":"preview"}}},{"kind":"Argument","name":{"kind":"Name","value":"variantKeyOverride"},"value":{"kind":"Variable","name":{"kind":"Name","value":"variantKeyOverride"}}},{"kind":"Argument","name":{"kind":"Name","value":"versionIdOverride"},"value":{"kind":"Variable","name":{"kind":"Name","value":"versionIdOverride"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"selectionReason"}},{"kind":"Field","name":{"kind":"Name","value":"selectedVariant"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"contentVersionId"}}]}},{"kind":"Field","name":{"kind":"Name","value":"selectedVersion"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"fieldsJson"}},{"kind":"Field","name":{"kind":"Name","value":"compositionJson"}},{"kind":"Field","name":{"kind":"Name","value":"componentsJson"}},{"kind":"Field","name":{"kind":"Name","value":"metadataJson"}}]}},{"kind":"Field","name":{"kind":"Name","value":"base"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"mode"}},{"kind":"Field","name":{"kind":"Name","value":"route"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"slug"}},{"kind":"Field","name":{"kind":"Name","value":"marketCode"}},{"kind":"Field","name":{"kind":"Name","value":"localeCode"}}]}},{"kind":"Field","name":{"kind":"Name","value":"contentItem"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"contentTypeId"}}]}},{"kind":"Field","name":{"kind":"Name","value":"contentType"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"fieldsJson"}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetPageByRouteQuery, GetPageByRouteQueryVariables>;
+export const UpsertVariantSetDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpsertVariantSet"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"contentItemId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"fallbackVariantSetId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"active"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"upsertVariantSet"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}},{"kind":"Argument","name":{"kind":"Name","value":"contentItemId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"contentItemId"}}},{"kind":"Argument","name":{"kind":"Name","value":"marketCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"localeCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"fallbackVariantSetId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"fallbackVariantSetId"}}},{"kind":"Argument","name":{"kind":"Name","value":"active"},"value":{"kind":"Variable","name":{"kind":"Name","value":"active"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"siteId"}},{"kind":"Field","name":{"kind":"Name","value":"contentItemId"}},{"kind":"Field","name":{"kind":"Name","value":"marketCode"}},{"kind":"Field","name":{"kind":"Name","value":"localeCode"}},{"kind":"Field","name":{"kind":"Name","value":"fallbackVariantSetId"}},{"kind":"Field","name":{"kind":"Name","value":"active"}}]}}]}}]} as unknown as DocumentNode<UpsertVariantSetMutation, UpsertVariantSetMutationVariables>;
+export const DeleteVariantSetDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteVariantSet"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deleteVariantSet"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<DeleteVariantSetMutation, DeleteVariantSetMutationVariables>;
+export const UpsertVariantDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpsertVariant"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"variantSetId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"key"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"priority"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"ruleJson"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"state"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"trafficAllocation"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"contentVersionId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"upsertVariant"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"variantSetId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"variantSetId"}}},{"kind":"Argument","name":{"kind":"Name","value":"key"},"value":{"kind":"Variable","name":{"kind":"Name","value":"key"}}},{"kind":"Argument","name":{"kind":"Name","value":"priority"},"value":{"kind":"Variable","name":{"kind":"Name","value":"priority"}}},{"kind":"Argument","name":{"kind":"Name","value":"ruleJson"},"value":{"kind":"Variable","name":{"kind":"Name","value":"ruleJson"}}},{"kind":"Argument","name":{"kind":"Name","value":"state"},"value":{"kind":"Variable","name":{"kind":"Name","value":"state"}}},{"kind":"Argument","name":{"kind":"Name","value":"trafficAllocation"},"value":{"kind":"Variable","name":{"kind":"Name","value":"trafficAllocation"}}},{"kind":"Argument","name":{"kind":"Name","value":"contentVersionId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"contentVersionId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"variantSetId"}},{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"priority"}},{"kind":"Field","name":{"kind":"Name","value":"ruleJson"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"trafficAllocation"}},{"kind":"Field","name":{"kind":"Name","value":"contentVersionId"}}]}}]}}]} as unknown as DocumentNode<UpsertVariantMutation, UpsertVariantMutationVariables>;
+export const DeleteVariantDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteVariant"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deleteVariant"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<DeleteVariantMutation, DeleteVariantMutationVariables>;
+export const ListFormsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ListForms"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"listForms"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"siteId"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"active"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<ListFormsQuery, ListFormsQueryVariables>;
+export const ListFormStepsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ListFormSteps"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"formId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"listFormSteps"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"formId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"formId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"formId"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"position"}}]}}]}}]} as unknown as DocumentNode<ListFormStepsQuery, ListFormStepsQueryVariables>;
+export const ListFormFieldsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ListFormFields"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"formId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"listFormFields"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"formId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"formId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"stepId"}},{"kind":"Field","name":{"kind":"Name","value":"formId"}},{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"label"}},{"kind":"Field","name":{"kind":"Name","value":"fieldType"}},{"kind":"Field","name":{"kind":"Name","value":"position"}},{"kind":"Field","name":{"kind":"Name","value":"conditionsJson"}},{"kind":"Field","name":{"kind":"Name","value":"validationsJson"}},{"kind":"Field","name":{"kind":"Name","value":"uiConfigJson"}},{"kind":"Field","name":{"kind":"Name","value":"active"}}]}}]}}]} as unknown as DocumentNode<ListFormFieldsQuery, ListFormFieldsQueryVariables>;
+export const EvaluateFormDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"EvaluateForm"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"formId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"answersJson"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"contextJson"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"evaluateForm"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"formId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"formId"}}},{"kind":"Argument","name":{"kind":"Name","value":"answersJson"},"value":{"kind":"Variable","name":{"kind":"Name","value":"answersJson"}}},{"kind":"Argument","name":{"kind":"Name","value":"contextJson"},"value":{"kind":"Variable","name":{"kind":"Name","value":"contextJson"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"formId"}},{"kind":"Field","name":{"kind":"Name","value":"valid"}},{"kind":"Field","name":{"kind":"Name","value":"evaluatedFieldsJson"}},{"kind":"Field","name":{"kind":"Name","value":"errorsJson"}}]}}]}}]} as unknown as DocumentNode<EvaluateFormQuery, EvaluateFormQueryVariables>;
+export const UpsertFormDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpsertForm"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"name"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"description"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"active"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"upsertForm"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}},{"kind":"Argument","name":{"kind":"Name","value":"name"},"value":{"kind":"Variable","name":{"kind":"Name","value":"name"}}},{"kind":"Argument","name":{"kind":"Name","value":"description"},"value":{"kind":"Variable","name":{"kind":"Name","value":"description"}}},{"kind":"Argument","name":{"kind":"Name","value":"active"},"value":{"kind":"Variable","name":{"kind":"Name","value":"active"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"siteId"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"active"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<UpsertFormMutation, UpsertFormMutationVariables>;
+export const DeleteFormDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteForm"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deleteForm"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<DeleteFormMutation, DeleteFormMutationVariables>;
+export const UpsertFormStepDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpsertFormStep"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"formId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"name"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"position"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"upsertFormStep"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"formId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"formId"}}},{"kind":"Argument","name":{"kind":"Name","value":"name"},"value":{"kind":"Variable","name":{"kind":"Name","value":"name"}}},{"kind":"Argument","name":{"kind":"Name","value":"position"},"value":{"kind":"Variable","name":{"kind":"Name","value":"position"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"formId"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"position"}}]}}]}}]} as unknown as DocumentNode<UpsertFormStepMutation, UpsertFormStepMutationVariables>;
+export const DeleteFormStepDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteFormStep"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deleteFormStep"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<DeleteFormStepMutation, DeleteFormStepMutationVariables>;
+export const UpsertFormFieldDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpsertFormField"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"stepId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"formId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"key"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"label"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"fieldType"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"position"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"conditionsJson"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"validationsJson"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"uiConfigJson"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"active"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"upsertFormField"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"stepId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"stepId"}}},{"kind":"Argument","name":{"kind":"Name","value":"formId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"formId"}}},{"kind":"Argument","name":{"kind":"Name","value":"key"},"value":{"kind":"Variable","name":{"kind":"Name","value":"key"}}},{"kind":"Argument","name":{"kind":"Name","value":"label"},"value":{"kind":"Variable","name":{"kind":"Name","value":"label"}}},{"kind":"Argument","name":{"kind":"Name","value":"fieldType"},"value":{"kind":"Variable","name":{"kind":"Name","value":"fieldType"}}},{"kind":"Argument","name":{"kind":"Name","value":"position"},"value":{"kind":"Variable","name":{"kind":"Name","value":"position"}}},{"kind":"Argument","name":{"kind":"Name","value":"conditionsJson"},"value":{"kind":"Variable","name":{"kind":"Name","value":"conditionsJson"}}},{"kind":"Argument","name":{"kind":"Name","value":"validationsJson"},"value":{"kind":"Variable","name":{"kind":"Name","value":"validationsJson"}}},{"kind":"Argument","name":{"kind":"Name","value":"uiConfigJson"},"value":{"kind":"Variable","name":{"kind":"Name","value":"uiConfigJson"}}},{"kind":"Argument","name":{"kind":"Name","value":"active"},"value":{"kind":"Variable","name":{"kind":"Name","value":"active"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"stepId"}},{"kind":"Field","name":{"kind":"Name","value":"formId"}},{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"label"}},{"kind":"Field","name":{"kind":"Name","value":"fieldType"}},{"kind":"Field","name":{"kind":"Name","value":"position"}},{"kind":"Field","name":{"kind":"Name","value":"conditionsJson"}},{"kind":"Field","name":{"kind":"Name","value":"validationsJson"}},{"kind":"Field","name":{"kind":"Name","value":"uiConfigJson"}},{"kind":"Field","name":{"kind":"Name","value":"active"}}]}}]}}]} as unknown as DocumentNode<UpsertFormFieldMutation, UpsertFormFieldMutationVariables>;
+export const DeleteFormFieldDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteFormField"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deleteFormField"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<DeleteFormFieldMutation, DeleteFormFieldMutationVariables>;
+export const ListWorkflowDefinitionsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ListWorkflowDefinitions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"listWorkflowDefinitions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"version"}},{"kind":"Field","name":{"kind":"Name","value":"graphJson"}},{"kind":"Field","name":{"kind":"Name","value":"inputSchemaJson"}},{"kind":"Field","name":{"kind":"Name","value":"permissionsJson"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"createdBy"}}]}}]}}]} as unknown as DocumentNode<ListWorkflowDefinitionsQuery, ListWorkflowDefinitionsQueryVariables>;
+export const ListWorkflowRunsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ListWorkflowRuns"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"definitionId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"listWorkflowRuns"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"definitionId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"definitionId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"definitionId"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"contextJson"}},{"kind":"Field","name":{"kind":"Name","value":"currentNodeId"}},{"kind":"Field","name":{"kind":"Name","value":"logsJson"}},{"kind":"Field","name":{"kind":"Name","value":"startedAt"}},{"kind":"Field","name":{"kind":"Name","value":"startedBy"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<ListWorkflowRunsQuery, ListWorkflowRunsQueryVariables>;
+export const GetWorkflowRunDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetWorkflowRun"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"runId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"getWorkflowRun"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"runId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"runId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"definitionId"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"contextJson"}},{"kind":"Field","name":{"kind":"Name","value":"currentNodeId"}},{"kind":"Field","name":{"kind":"Name","value":"logsJson"}},{"kind":"Field","name":{"kind":"Name","value":"startedAt"}},{"kind":"Field","name":{"kind":"Name","value":"startedBy"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<GetWorkflowRunQuery, GetWorkflowRunQueryVariables>;
+export const UpsertWorkflowDefinitionDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpsertWorkflowDefinition"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"name"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"version"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"graphJson"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"inputSchemaJson"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"permissionsJson"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"createdBy"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"upsertWorkflowDefinition"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"name"},"value":{"kind":"Variable","name":{"kind":"Name","value":"name"}}},{"kind":"Argument","name":{"kind":"Name","value":"version"},"value":{"kind":"Variable","name":{"kind":"Name","value":"version"}}},{"kind":"Argument","name":{"kind":"Name","value":"graphJson"},"value":{"kind":"Variable","name":{"kind":"Name","value":"graphJson"}}},{"kind":"Argument","name":{"kind":"Name","value":"inputSchemaJson"},"value":{"kind":"Variable","name":{"kind":"Name","value":"inputSchemaJson"}}},{"kind":"Argument","name":{"kind":"Name","value":"permissionsJson"},"value":{"kind":"Variable","name":{"kind":"Name","value":"permissionsJson"}}},{"kind":"Argument","name":{"kind":"Name","value":"createdBy"},"value":{"kind":"Variable","name":{"kind":"Name","value":"createdBy"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"version"}},{"kind":"Field","name":{"kind":"Name","value":"graphJson"}},{"kind":"Field","name":{"kind":"Name","value":"inputSchemaJson"}},{"kind":"Field","name":{"kind":"Name","value":"permissionsJson"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"createdBy"}}]}}]}}]} as unknown as DocumentNode<UpsertWorkflowDefinitionMutation, UpsertWorkflowDefinitionMutationVariables>;
+export const DeleteWorkflowDefinitionDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteWorkflowDefinition"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deleteWorkflowDefinition"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<DeleteWorkflowDefinitionMutation, DeleteWorkflowDefinitionMutationVariables>;
+export const StartWorkflowRunDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"StartWorkflowRun"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"definitionId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"contextJson"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"startedBy"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"startWorkflowRun"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"definitionId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"definitionId"}}},{"kind":"Argument","name":{"kind":"Name","value":"contextJson"},"value":{"kind":"Variable","name":{"kind":"Name","value":"contextJson"}}},{"kind":"Argument","name":{"kind":"Name","value":"startedBy"},"value":{"kind":"Variable","name":{"kind":"Name","value":"startedBy"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"definitionId"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"contextJson"}},{"kind":"Field","name":{"kind":"Name","value":"currentNodeId"}},{"kind":"Field","name":{"kind":"Name","value":"logsJson"}},{"kind":"Field","name":{"kind":"Name","value":"startedAt"}},{"kind":"Field","name":{"kind":"Name","value":"startedBy"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<StartWorkflowRunMutation, StartWorkflowRunMutationVariables>;
+export const ApproveStepDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"ApproveStep"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"runId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"nodeId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"approvedBy"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"approveStep"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"runId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"runId"}}},{"kind":"Argument","name":{"kind":"Name","value":"nodeId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"nodeId"}}},{"kind":"Argument","name":{"kind":"Name","value":"approvedBy"},"value":{"kind":"Variable","name":{"kind":"Name","value":"approvedBy"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"definitionId"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"contextJson"}},{"kind":"Field","name":{"kind":"Name","value":"currentNodeId"}},{"kind":"Field","name":{"kind":"Name","value":"logsJson"}},{"kind":"Field","name":{"kind":"Name","value":"startedAt"}},{"kind":"Field","name":{"kind":"Name","value":"startedBy"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<ApproveStepMutation, ApproveStepMutationVariables>;
+export const RetryFailedDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"RetryFailed"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"runId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"retryFailed"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"runId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"runId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"definitionId"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"contextJson"}},{"kind":"Field","name":{"kind":"Name","value":"currentNodeId"}},{"kind":"Field","name":{"kind":"Name","value":"logsJson"}},{"kind":"Field","name":{"kind":"Name","value":"startedAt"}},{"kind":"Field","name":{"kind":"Name","value":"startedBy"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<RetryFailedMutation, RetryFailedMutationVariables>;
+export const AiGenerateContentTypeDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"AiGenerateContentType"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"prompt"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"nameHint"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"by"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"aiGenerateContentType"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}},{"kind":"Argument","name":{"kind":"Name","value":"prompt"},"value":{"kind":"Variable","name":{"kind":"Name","value":"prompt"}}},{"kind":"Argument","name":{"kind":"Name","value":"nameHint"},"value":{"kind":"Variable","name":{"kind":"Name","value":"nameHint"}}},{"kind":"Argument","name":{"kind":"Name","value":"by"},"value":{"kind":"Variable","name":{"kind":"Name","value":"by"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"siteId"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"fieldsJson"}}]}}]}}]} as unknown as DocumentNode<AiGenerateContentTypeMutation, AiGenerateContentTypeMutationVariables>;
+export const AiGenerateContentDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"AiGenerateContent"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"contentItemId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"contentTypeId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"prompt"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"by"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"aiGenerateContent"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"contentItemId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"contentItemId"}}},{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}},{"kind":"Argument","name":{"kind":"Name","value":"contentTypeId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"contentTypeId"}}},{"kind":"Argument","name":{"kind":"Name","value":"prompt"},"value":{"kind":"Variable","name":{"kind":"Name","value":"prompt"}}},{"kind":"Argument","name":{"kind":"Name","value":"by"},"value":{"kind":"Variable","name":{"kind":"Name","value":"by"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"contentItemId"}},{"kind":"Field","name":{"kind":"Name","value":"draftVersionId"}}]}}]}}]} as unknown as DocumentNode<AiGenerateContentMutation, AiGenerateContentMutationVariables>;
+export const AiGenerateVariantsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"AiGenerateVariants"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"contentItemId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"variantSetId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"targetVersionId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"prompt"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"aiGenerateVariants"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}},{"kind":"Argument","name":{"kind":"Name","value":"contentItemId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"contentItemId"}}},{"kind":"Argument","name":{"kind":"Name","value":"marketCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"localeCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"variantSetId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"variantSetId"}}},{"kind":"Argument","name":{"kind":"Name","value":"targetVersionId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"targetVersionId"}}},{"kind":"Argument","name":{"kind":"Name","value":"prompt"},"value":{"kind":"Variable","name":{"kind":"Name","value":"prompt"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"variantSetId"}},{"kind":"Field","name":{"kind":"Name","value":"createdKeys"}}]}}]}}]} as unknown as DocumentNode<AiGenerateVariantsMutation, AiGenerateVariantsMutationVariables>;
+export const AiTranslateVersionDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"AiTranslateVersion"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"versionId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"targetMarketCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"targetLocaleCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"by"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"aiTranslateVersion"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"versionId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"versionId"}}},{"kind":"Argument","name":{"kind":"Name","value":"targetMarketCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"targetMarketCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"targetLocaleCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"targetLocaleCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"by"},"value":{"kind":"Variable","name":{"kind":"Name","value":"by"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"contentItemId"}},{"kind":"Field","name":{"kind":"Name","value":"draftVersionId"}}]}}]}}]} as unknown as DocumentNode<AiTranslateVersionMutation, AiTranslateVersionMutationVariables>;
 export const LoginDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"Login"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"username"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"password"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"login"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"username"},"value":{"kind":"Variable","name":{"kind":"Name","value":"username"}}},{"kind":"Argument","name":{"kind":"Name","value":"password"},"value":{"kind":"Variable","name":{"kind":"Name","value":"password"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"token"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"username"}},{"kind":"Field","name":{"kind":"Name","value":"displayName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]}}]} as unknown as DocumentNode<LoginMutation, LoginMutationVariables>;
 export const MeDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"Me"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"me"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"username"}},{"kind":"Field","name":{"kind":"Name","value":"displayName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]} as unknown as DocumentNode<MeQuery, MeQueryVariables>;
 export const UpsertMarketDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpsertMarket"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"code"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"name"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"currency"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"timezone"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"active"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"isDefault"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"upsertMarket"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}},{"kind":"Argument","name":{"kind":"Name","value":"code"},"value":{"kind":"Variable","name":{"kind":"Name","value":"code"}}},{"kind":"Argument","name":{"kind":"Name","value":"name"},"value":{"kind":"Variable","name":{"kind":"Name","value":"name"}}},{"kind":"Argument","name":{"kind":"Name","value":"currency"},"value":{"kind":"Variable","name":{"kind":"Name","value":"currency"}}},{"kind":"Argument","name":{"kind":"Name","value":"timezone"},"value":{"kind":"Variable","name":{"kind":"Name","value":"timezone"}}},{"kind":"Argument","name":{"kind":"Name","value":"active"},"value":{"kind":"Variable","name":{"kind":"Name","value":"active"}}},{"kind":"Argument","name":{"kind":"Name","value":"isDefault"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isDefault"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"currency"}},{"kind":"Field","name":{"kind":"Name","value":"timezone"}},{"kind":"Field","name":{"kind":"Name","value":"active"}},{"kind":"Field","name":{"kind":"Name","value":"isDefault"}}]}}]}}]} as unknown as DocumentNode<UpsertMarketMutation, UpsertMarketMutationVariables>;

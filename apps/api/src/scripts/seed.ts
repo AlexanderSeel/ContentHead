@@ -54,6 +54,46 @@ async function main(): Promise<void> {
      )`
   );
 
+  const workflowGraph = JSON.stringify({
+    nodes: [
+      { id: 'n1', type: 'AI.GenerateContent', config: { prompt: 'Generate homepage content for demo' } },
+      { id: 'n2', type: 'CreateDraftVersion', config: {} },
+      { id: 'n3', type: 'ManualApproval', config: {} },
+      { id: 'n4', type: 'PublishVersion', config: {} },
+      { id: 'n5', type: 'ActivateVariant', config: { key: 'default', trafficAllocation: 100 } }
+    ],
+    edges: [
+      { from: 'n1', to: 'n2' },
+      { from: 'n2', to: 'n3' },
+      { from: 'n3', to: 'n4' },
+      { from: 'n4', to: 'n5' }
+    ]
+  });
+
+  await db.run(
+    `INSERT INTO workflow_definitions(
+      id,
+      name,
+      version,
+      graph_json,
+      input_schema_json,
+      permissions_json,
+      created_by
+    )
+    SELECT
+      COALESCE((SELECT MAX(id) + 1 FROM workflow_definitions), 1),
+      'Default Publish Flow',
+      1,
+      ?,
+      '{"type":"object"}',
+      '{"roles":["admin"]}',
+      'seed'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM workflow_definitions WHERE name = 'Default Publish Flow' AND version = 1
+    )`,
+    [workflowGraph]
+  );
+
   console.log('Seeded default site market/locale matrix (if missing).');
   await db.close();
 }

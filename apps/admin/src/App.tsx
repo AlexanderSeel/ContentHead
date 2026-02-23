@@ -10,6 +10,8 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { TreeTable } from 'primereact/treetable';
 import type { TreeNode } from 'primereact/treenode';
 import { createSdk } from '@contenthead/sdk';
+import { FormBuilderSection } from './features/FormBuilderSection';
+import { WorkflowDesignerSection } from './features/WorkflowDesignerSection';
 
 const sdk = createSdk({ endpoint: 'http://localhost:4000/graphql' });
 type Site = { id: number; name: string };
@@ -18,6 +20,8 @@ type CType = { id: number; name: string; description?: string | null; fieldsJson
 type CItem = { id: number; contentTypeId: number; archived: boolean; currentDraftVersionId?: number | null; currentPublishedVersionId?: number | null };
 type CVersion = { id: number; versionNumber: number; fieldsJson: string; compositionJson: string; componentsJson: string; metadataJson: string; state: string; comment?: string | null };
 type CRoute = { id: number; contentItemId: number; marketCode: string; localeCode: string; slug: string; isCanonical: boolean };
+type VariantSet = { id: number; contentItemId: number; marketCode: string; localeCode: string; fallbackVariantSetId?: number | null; active: boolean };
+type Variant = { id: number; variantSetId: number; key: string; priority: number; ruleJson: string; state: string; trafficAllocation?: number | null; contentVersionId: number };
 type FieldDef = { key: string; label: string; type: 'text' | 'richtext' | 'number' | 'boolean' };
 
 const p = <T,>(v: string, f: T): T => { try { return JSON.parse(v) as T; } catch { return f; } };
@@ -60,11 +64,27 @@ export function App() {
   const [templateComp, setTemplateComp] = useState('{"areas":[{"name":"main","components":[]}]}');
   const [templateComps, setTemplateComps] = useState('{}');
   const [templateConstraints, setTemplateConstraints] = useState('{"requiredFields":["title"]}');
+  const [variantSets, setVariantSets] = useState<VariantSet[]>([]);
+  const [variants, setVariants] = useState<Variant[]>([]);
+  const [selectedVariantSetId, setSelectedVariantSetId] = useState<number | null>(null);
+  const [variantSetFallbackId, setVariantSetFallbackId] = useState<number | null>(null);
+  const [variantSetActive, setVariantSetActive] = useState(true);
+  const [variantKey, setVariantKey] = useState('A');
+  const [variantPriority, setVariantPriority] = useState(100);
+  const [variantState, setVariantState] = useState('ACTIVE');
+  const [variantRuleJson, setVariantRuleJson] = useState('{"op":"contains","field":"segments","value":"vip"}');
+  const [variantTraffic, setVariantTraffic] = useState('50');
+  const [variantContentVersionId, setVariantContentVersionId] = useState<number | null>(null);
+  const [variantOverrideKey, setVariantOverrideKey] = useState('');
 
   const [diffLeft, setDiffLeft] = useState<number | null>(null);
   const [diffRight, setDiffRight] = useState<number | null>(null);
   const [diffOut, setDiffOut] = useState('');
   const [status, setStatus] = useState('');
+  const [previewToken, setPreviewToken] = useState('');
+  const [previewVersionId, setPreviewVersionId] = useState<string>('');
+  const [previewVariantKey, setPreviewVariantKey] = useState('');
+  const [focusedFieldPath, setFocusedFieldPath] = useState<string | null>(null);
 
   const selectedType = useMemo(() => {
     const item = items.find((x) => x.id === selectedItemId);
@@ -93,16 +113,27 @@ export function App() {
     const dl = m.getSiteMarketLocaleMatrix?.defaults?.defaultLocaleCode ?? combosRes.find((x) => x.marketCode === dm)?.localeCode ?? '';
     setMarket(dm); setLocale(dl); setRouteMarket(dm); setRouteLocale(dl);
 
-    const [t, i, r, tp] = await Promise.all([
+    const [t, i, r, tp, vs] = await Promise.all([
       sdk.listContentTypes({ siteId: effective }),
       sdk.listContentItems({ siteId: effective }),
       sdk.listRoutes({ siteId: effective, marketCode: dm || null, localeCode: dl || null }),
-      sdk.listTemplates({ siteId: effective })
+      sdk.listTemplates({ siteId: effective }),
+      sdk.listVariantSets({ siteId: effective, contentItemId: selectedItemId ?? null, marketCode: dm || null, localeCode: dl || null })
     ]);
     setTypes((t.listContentTypes ?? []) as CType[]);
     setItems((i.listContentItems ?? []) as CItem[]);
     setRoutes((r.listRoutes ?? []) as CRoute[]);
     setTemplates((tp.listTemplates ?? []) as Array<{ id: number; name: string; compositionJson: string; componentsJson: string; constraintsJson: string }>);
+    const nextVariantSets = (vs.listVariantSets ?? []) as VariantSet[];
+    setVariantSets(nextVariantSets);
+    const firstSetId = nextVariantSets[0]?.id ?? null;
+    setSelectedVariantSetId(firstSetId);
+    if (firstSetId) {
+      const v = await sdk.listVariants({ variantSetId: firstSetId });
+      setVariants((v.listVariants ?? []) as Variant[]);
+    } else {
+      setVariants([]);
+    }
   };
 
   const loadItem = async (id: number) => {
@@ -121,9 +152,45 @@ export function App() {
     setVersions(vv);
     setDiffLeft(vv[0]?.id ?? null);
     setDiffRight(vv[1]?.id ?? vv[0]?.id ?? null);
+    setVariantContentVersionId(vv[0]?.id ?? null);
+
+    const vs = await sdk.listVariantSets({
+      siteId,
+      contentItemId: id,
+      marketCode: market || null,
+      localeCode: locale || null
+    });
+    const nextVariantSets = (vs.listVariantSets ?? []) as VariantSet[];
+    setVariantSets(nextVariantSets);
+    const firstSetId = nextVariantSets[0]?.id ?? null;
+    setSelectedVariantSetId(firstSetId);
+    if (firstSetId) {
+      const listed = await sdk.listVariants({ variantSetId: firstSetId });
+      setVariants((listed.listVariants ?? []) as Variant[]);
+    } else {
+      setVariants([]);
+    }
   };
 
   useEffect(() => { refresh().catch((e: unknown) => setStatus(String(e))); }, []);
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const payload = event.data as {
+        type?: string;
+        fieldPath?: string;
+        contentItemId?: number;
+      } | null;
+      if (!payload || payload.type !== 'cms-preview-select') {
+        return;
+      }
+      if (payload.contentItemId && payload.contentItemId !== selectedItemId) {
+        loadItem(payload.contentItemId).catch((err: unknown) => setStatus(String(err)));
+      }
+      setFocusedFieldPath(payload.fieldPath ?? null);
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [selectedItemId]);
   const saveType = async () => {
     const payload = { name: typeName, description: typeDescription || null, fieldsJson: j(typeFields), by: 'admin' };
     if (typeId) {
@@ -198,6 +265,63 @@ export function App() {
     await refresh(siteId);
   };
 
+  const saveVariantSet = async () => {
+    if (!selectedItemId || !market || !locale) {
+      setStatus('Select content item + market/locale before creating variant set');
+      return;
+    }
+
+    const saved = await sdk.upsertVariantSet({
+      id: selectedVariantSetId,
+      siteId,
+      contentItemId: selectedItemId,
+      marketCode: market,
+      localeCode: locale,
+      fallbackVariantSetId: variantSetFallbackId,
+      active: variantSetActive
+    });
+    const id = saved.upsertVariantSet?.id ?? null;
+    setSelectedVariantSetId(id);
+    await loadItem(selectedItemId);
+    setStatus('Variant set saved');
+  };
+
+  const saveVariant = async () => {
+    if (!selectedVariantSetId || !variantContentVersionId) {
+      setStatus('Select variant set and target content version');
+      return;
+    }
+
+    await sdk.upsertVariant({
+      variantSetId: selectedVariantSetId,
+      key: variantKey,
+      priority: variantPriority,
+      state: variantState,
+      ruleJson: variantRuleJson,
+      trafficAllocation: Number(variantTraffic),
+      contentVersionId: variantContentVersionId
+    });
+
+    const listed = await sdk.listVariants({ variantSetId: selectedVariantSetId });
+    setVariants((listed.listVariants ?? []) as Variant[]);
+    setStatus('Variant saved');
+  };
+
+  const testSelectVariant = async () => {
+    if (!selectedVariantSetId) {
+      return;
+    }
+    const contextJson = j({
+      userId: 'u-demo',
+      segments: ['vip'],
+      country: 'US',
+      device: 'mobile',
+      query: { campaign: 'spring' }
+    });
+    const selected = await sdk.selectVariant({ variantSetId: selectedVariantSetId, contextJson });
+    setStatus(j(selected.selectVariant ?? {}));
+  };
+
   return (
     <main className="admin-shell">
       <Card title="CMS Core Admin" subTitle="Types, items, versions, templates, routes">
@@ -239,10 +363,10 @@ export function App() {
         <h3>Content Editor</h3>
         <div className="form-grid">
           <Dropdown value={selectedItemId} options={items.map((i) => ({ label: `#${i.id}`, value: i.id }))} onChange={(e) => loadItem(Number(e.value)).catch((err: unknown) => setStatus(String(err)))} placeholder="Item" />
-          <Button label="Issue Preview Token" onClick={() => sdk.issuePreviewToken({ contentItemId: selectedItemId ?? 0 }).then((r) => setStatus(r.issuePreviewToken?.token ?? '')).catch((err: unknown) => setStatus(String(err)))} />
+          <Button label="Issue Preview Token" onClick={() => sdk.issuePreviewToken({ contentItemId: selectedItemId ?? 0 }).then((r) => { setPreviewToken(r.issuePreviewToken?.token ?? ''); setStatus('Preview token issued'); }).catch((err: unknown) => setStatus(String(err)))} />
         </div>
         {selectedDefs.map((f) => (
-          <div className="form-row" key={f.key}>
+          <div className={`form-row ${focusedFieldPath === `fields.${f.key}` ? 'focused-field' : ''}`} key={f.key}>
             <label>{f.label}</label>
             {f.type === 'boolean' ? <Checkbox checked={Boolean(fields[f.key])} onChange={(e) => setFields((prev) => ({ ...prev, [f.key]: Boolean(e.checked) }))} /> : f.type === 'richtext' ? <InputTextarea rows={3} value={String(fields[f.key] ?? '')} onChange={(e) => setFields((prev) => ({ ...prev, [f.key]: e.target.value }))} /> : <InputText value={String(fields[f.key] ?? '')} onChange={(e) => setFields((prev) => ({ ...prev, [f.key]: f.type === 'number' ? Number(e.target.value) : e.target.value }))} />}
           </div>
@@ -274,6 +398,112 @@ export function App() {
           <label><Checkbox checked={routeCanonical} onChange={(e) => setRouteCanonical(Boolean(e.checked))} /> Canonical</label>
           <Button label="Save Route" onClick={() => saveRoute().catch((err: unknown) => setStatus(String(err)))} />
         </div>
+
+        <h3>Variant Manager</h3>
+        <div className="form-grid">
+          <Dropdown
+            value={selectedVariantSetId}
+            options={variantSets.map((entry) => ({ label: `Set #${entry.id} (${entry.marketCode}/${entry.localeCode})`, value: entry.id }))}
+            onChange={(e) => {
+              const id = Number(e.value);
+              setSelectedVariantSetId(id);
+              sdk.listVariants({ variantSetId: id }).then((res) => setVariants((res.listVariants ?? []) as Variant[]));
+            }}
+            placeholder="Variant set"
+          />
+          <Dropdown
+            value={variantSetFallbackId}
+            options={variantSets.map((entry) => ({ label: `Set #${entry.id}`, value: entry.id }))}
+            onChange={(e) => setVariantSetFallbackId(e.value ?? null)}
+            placeholder="Fallback set"
+            showClear
+          />
+          <label><Checkbox checked={variantSetActive} onChange={(e) => setVariantSetActive(Boolean(e.checked))} /> Active</label>
+          <Button label="Save Variant Set" onClick={() => saveVariantSet().catch((err: unknown) => setStatus(String(err)))} />
+        </div>
+
+        <DataTable value={variants} size="small">
+          <Column field="id" header="ID" />
+          <Column field="key" header="Key" />
+          <Column field="priority" header="Priority" />
+          <Column field="state" header="State" />
+          <Column field="trafficAllocation" header="Traffic" />
+          <Column field="contentVersionId" header="Version" />
+          <Column
+            header="Edit"
+            body={(row: Variant) => (
+              <Button
+                text
+                size="small"
+                label="Load"
+                onClick={() => {
+                  setVariantKey(row.key);
+                  setVariantPriority(row.priority);
+                  setVariantState(row.state);
+                  setVariantRuleJson(row.ruleJson);
+                  setVariantTraffic(String(row.trafficAllocation ?? 0));
+                  setVariantContentVersionId(row.contentVersionId);
+                }}
+              />
+            )}
+          />
+        </DataTable>
+        <div className="form-grid">
+          <InputText value={variantKey} onChange={(e) => setVariantKey(e.target.value)} placeholder="Variant key" />
+          <InputText value={String(variantPriority)} onChange={(e) => setVariantPriority(Number(e.target.value || '0'))} placeholder="Priority" />
+          <Dropdown value={variantState} options={[{ label: 'ACTIVE', value: 'ACTIVE' }, { label: 'INACTIVE', value: 'INACTIVE' }]} onChange={(e) => setVariantState(e.value)} />
+          <InputText value={variantTraffic} onChange={(e) => setVariantTraffic(e.target.value)} placeholder="Traffic allocation" />
+          <Dropdown value={variantContentVersionId} options={versions.map((entry) => ({ label: `v${entry.versionNumber} (#${entry.id})`, value: entry.id }))} onChange={(e) => setVariantContentVersionId(Number(e.value))} placeholder="Content version" />
+        </div>
+        <div className="form-row"><label>Rule JSON</label><InputTextarea rows={4} value={variantRuleJson} onChange={(e) => setVariantRuleJson(e.target.value)} /></div>
+        <div className="inline-actions">
+          <Button label="Save Variant" onClick={() => saveVariant().catch((err: unknown) => setStatus(String(err)))} />
+          <Button label="Test selectVariant" severity="secondary" onClick={() => testSelectVariant().catch((err: unknown) => setStatus(String(err)))} />
+        </div>
+        <div className="form-grid">
+          <InputText value={variantOverrideKey} onChange={(e) => setVariantOverrideKey(e.target.value)} placeholder="Preview variant override key" />
+          <Button
+            label="Preview route payload"
+            onClick={() =>
+              sdk
+                .getPageByRoute({
+                  siteId,
+                  marketCode: market,
+                  localeCode: locale,
+                  slug: routeSlug || 'home',
+                  contextJson: j({ userId: 'u-demo', segments: ['vip'] }),
+                  variantKeyOverride: variantOverrideKey || null
+                })
+                .then((res) => setStatus(j(res.getPageByRoute ?? {})))
+                .catch((err: unknown) => setStatus(String(err)))
+            }
+          />
+        </div>
+
+        <h3>Visivic Preview</h3>
+        <div className="form-grid">
+          <InputText value={previewToken} onChange={(e) => setPreviewToken(e.target.value)} placeholder="Preview token" />
+          <InputText value={previewVariantKey} onChange={(e) => setPreviewVariantKey(e.target.value)} placeholder="Variant key" />
+          <InputText value={previewVersionId} onChange={(e) => setPreviewVersionId(e.target.value)} placeholder="Version id" />
+        </div>
+        <div style={{ border: '1px solid #cbd5e1', borderRadius: 8, height: 420, overflow: 'hidden', marginBottom: '1rem' }}>
+          <iframe
+            title="Visivic Preview"
+            src={`http://localhost:3000/preview?contentItemId=${selectedItemId ?? 0}&siteId=${siteId}&market=${market}&locale=${locale}&token=${encodeURIComponent(previewToken)}&variantKey=${encodeURIComponent(previewVariantKey)}&versionId=${encodeURIComponent(previewVersionId)}`}
+            style={{ width: '100%', height: '100%', border: 0 }}
+          />
+        </div>
+
+        <FormBuilderSection siteId={siteId} onStatus={setStatus} />
+
+        <WorkflowDesignerSection
+          siteId={siteId}
+          selectedItemId={selectedItemId}
+          selectedVariantSetId={selectedVariantSetId}
+          market={market}
+          locale={locale}
+          onStatus={setStatus}
+        />
 
         <h3>Status</h3>
         <pre>{status}</pre>

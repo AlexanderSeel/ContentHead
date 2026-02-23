@@ -15,6 +15,18 @@ export type Scalars = {
   Float: { input: number; output: number; }
 };
 
+export type AiContentResult = {
+  __typename?: 'AiContentResult';
+  contentItemId?: Maybe<Scalars['Int']['output']>;
+  draftVersionId?: Maybe<Scalars['Int']['output']>;
+};
+
+export type AiVariantsResult = {
+  __typename?: 'AiVariantsResult';
+  createdKeys?: Maybe<Array<Scalars['String']['output']>>;
+  variantSetId?: Maybe<Scalars['Int']['output']>;
+};
+
 export type AuthPayload = {
   __typename?: 'AuthPayload';
   token?: Maybe<Scalars['String']['output']>;
@@ -82,6 +94,48 @@ export type ContentVersion = {
   versionNumber?: Maybe<Scalars['Int']['output']>;
 };
 
+export type Form = {
+  __typename?: 'Form';
+  active?: Maybe<Scalars['Boolean']['output']>;
+  createdAt?: Maybe<Scalars['String']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  siteId?: Maybe<Scalars['Int']['output']>;
+  updatedAt?: Maybe<Scalars['String']['output']>;
+};
+
+export type FormEvaluation = {
+  __typename?: 'FormEvaluation';
+  errorsJson?: Maybe<Scalars['String']['output']>;
+  evaluatedFieldsJson?: Maybe<Scalars['String']['output']>;
+  formId?: Maybe<Scalars['Int']['output']>;
+  valid?: Maybe<Scalars['Boolean']['output']>;
+};
+
+export type FormField = {
+  __typename?: 'FormField';
+  active?: Maybe<Scalars['Boolean']['output']>;
+  conditionsJson?: Maybe<Scalars['String']['output']>;
+  fieldType?: Maybe<Scalars['String']['output']>;
+  formId?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  key?: Maybe<Scalars['String']['output']>;
+  label?: Maybe<Scalars['String']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
+  stepId?: Maybe<Scalars['Int']['output']>;
+  uiConfigJson?: Maybe<Scalars['String']['output']>;
+  validationsJson?: Maybe<Scalars['String']['output']>;
+};
+
+export type FormStep = {
+  __typename?: 'FormStep';
+  formId?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
+};
+
 export type Locale = {
   __typename?: 'Locale';
   active?: Maybe<Scalars['Boolean']['output']>;
@@ -118,28 +172,90 @@ export type MatrixDefaultsInput = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  aiGenerateContent?: Maybe<AiContentResult>;
+  aiGenerateContentType?: Maybe<ContentType>;
+  aiGenerateVariants?: Maybe<AiVariantsResult>;
+  aiTranslateVersion?: Maybe<AiContentResult>;
+  approveStep?: Maybe<WorkflowRun>;
   archiveContentItem?: Maybe<ContentItem>;
   createContentItem?: Maybe<ContentItem>;
   createContentType?: Maybe<ContentType>;
   createDraftVersion?: Maybe<ContentVersion>;
   createTemplate?: Maybe<Template>;
   deleteContentType?: Maybe<Scalars['Boolean']['output']>;
+  deleteForm?: Maybe<Scalars['Boolean']['output']>;
+  deleteFormField?: Maybe<Scalars['Boolean']['output']>;
+  deleteFormStep?: Maybe<Scalars['Boolean']['output']>;
   deleteRoute?: Maybe<Scalars['Boolean']['output']>;
   deleteTemplate?: Maybe<Scalars['Boolean']['output']>;
+  deleteVariant?: Maybe<Scalars['Boolean']['output']>;
+  deleteVariantSet?: Maybe<Scalars['Boolean']['output']>;
+  deleteWorkflowDefinition?: Maybe<Scalars['Boolean']['output']>;
   issuePreviewToken?: Maybe<PreviewTokenPayload>;
   login?: Maybe<AuthPayload>;
   publishVersion?: Maybe<ContentVersion>;
   reconcileTemplate?: Maybe<VersionDiff>;
+  retryFailed?: Maybe<WorkflowRun>;
   rollbackToVersion?: Maybe<ContentVersion>;
   setSiteLocales?: Maybe<Array<Locale>>;
   setSiteMarketLocaleMatrix?: Maybe<SiteMarketLocaleMatrix>;
   setSiteMarkets?: Maybe<Array<Market>>;
+  startWorkflowRun?: Maybe<WorkflowRun>;
   updateContentType?: Maybe<ContentType>;
   updateDraftVersion?: Maybe<ContentVersion>;
   updateTemplate?: Maybe<Template>;
+  upsertForm?: Maybe<Form>;
+  upsertFormField?: Maybe<FormField>;
+  upsertFormStep?: Maybe<FormStep>;
   upsertLocale?: Maybe<Array<Locale>>;
   upsertMarket?: Maybe<Array<Market>>;
   upsertRoute?: Maybe<ContentRoute>;
+  upsertVariant?: Maybe<Variant>;
+  upsertVariantSet?: Maybe<VariantSet>;
+  upsertWorkflowDefinition?: Maybe<WorkflowDefinition>;
+};
+
+
+export type MutationAiGenerateContentArgs = {
+  by?: InputMaybe<Scalars['String']['input']>;
+  contentItemId?: InputMaybe<Scalars['Int']['input']>;
+  contentTypeId?: InputMaybe<Scalars['Int']['input']>;
+  prompt: Scalars['String']['input'];
+  siteId?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type MutationAiGenerateContentTypeArgs = {
+  by?: InputMaybe<Scalars['String']['input']>;
+  nameHint?: InputMaybe<Scalars['String']['input']>;
+  prompt: Scalars['String']['input'];
+  siteId: Scalars['Int']['input'];
+};
+
+
+export type MutationAiGenerateVariantsArgs = {
+  contentItemId: Scalars['Int']['input'];
+  localeCode: Scalars['String']['input'];
+  marketCode: Scalars['String']['input'];
+  prompt: Scalars['String']['input'];
+  siteId: Scalars['Int']['input'];
+  targetVersionId: Scalars['Int']['input'];
+  variantSetId?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type MutationAiTranslateVersionArgs = {
+  by?: InputMaybe<Scalars['String']['input']>;
+  targetLocaleCode: Scalars['String']['input'];
+  targetMarketCode: Scalars['String']['input'];
+  versionId: Scalars['Int']['input'];
+};
+
+
+export type MutationApproveStepArgs = {
+  approvedBy?: InputMaybe<Scalars['String']['input']>;
+  nodeId: Scalars['String']['input'];
+  runId: Scalars['Int']['input'];
 };
 
 
@@ -192,12 +308,42 @@ export type MutationDeleteContentTypeArgs = {
 };
 
 
+export type MutationDeleteFormArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationDeleteFormFieldArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationDeleteFormStepArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
 export type MutationDeleteRouteArgs = {
   id: Scalars['Int']['input'];
 };
 
 
 export type MutationDeleteTemplateArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationDeleteVariantArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationDeleteVariantSetArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationDeleteWorkflowDefinitionArgs = {
   id: Scalars['Int']['input'];
 };
 
@@ -223,6 +369,11 @@ export type MutationPublishVersionArgs = {
 
 export type MutationReconcileTemplateArgs = {
   templateId: Scalars['Int']['input'];
+};
+
+
+export type MutationRetryFailedArgs = {
+  runId: Scalars['Int']['input'];
 };
 
 
@@ -254,6 +405,13 @@ export type MutationSetSiteMarketsArgs = {
 };
 
 
+export type MutationStartWorkflowRunArgs = {
+  contextJson: Scalars['String']['input'];
+  definitionId: Scalars['Int']['input'];
+  startedBy?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationUpdateContentTypeArgs = {
   by?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
@@ -276,6 +434,38 @@ export type MutationUpdateTemplateArgs = {
   constraintsJson: Scalars['String']['input'];
   id: Scalars['Int']['input'];
   name: Scalars['String']['input'];
+};
+
+
+export type MutationUpsertFormArgs = {
+  active: Scalars['Boolean']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['Int']['input']>;
+  name: Scalars['String']['input'];
+  siteId: Scalars['Int']['input'];
+};
+
+
+export type MutationUpsertFormFieldArgs = {
+  active: Scalars['Boolean']['input'];
+  conditionsJson: Scalars['String']['input'];
+  fieldType: Scalars['String']['input'];
+  formId: Scalars['Int']['input'];
+  id?: InputMaybe<Scalars['Int']['input']>;
+  key: Scalars['String']['input'];
+  label: Scalars['String']['input'];
+  position: Scalars['Int']['input'];
+  stepId: Scalars['Int']['input'];
+  uiConfigJson: Scalars['String']['input'];
+  validationsJson: Scalars['String']['input'];
+};
+
+
+export type MutationUpsertFormStepArgs = {
+  formId: Scalars['Int']['input'];
+  id?: InputMaybe<Scalars['Int']['input']>;
+  name: Scalars['String']['input'];
+  position: Scalars['Int']['input'];
 };
 
 
@@ -310,6 +500,48 @@ export type MutationUpsertRouteArgs = {
   slug: Scalars['String']['input'];
 };
 
+
+export type MutationUpsertVariantArgs = {
+  contentVersionId: Scalars['Int']['input'];
+  id?: InputMaybe<Scalars['Int']['input']>;
+  key: Scalars['String']['input'];
+  priority: Scalars['Int']['input'];
+  ruleJson: Scalars['String']['input'];
+  state: Scalars['String']['input'];
+  trafficAllocation?: InputMaybe<Scalars['Int']['input']>;
+  variantSetId: Scalars['Int']['input'];
+};
+
+
+export type MutationUpsertVariantSetArgs = {
+  active: Scalars['Boolean']['input'];
+  contentItemId: Scalars['Int']['input'];
+  fallbackVariantSetId?: InputMaybe<Scalars['Int']['input']>;
+  id?: InputMaybe<Scalars['Int']['input']>;
+  localeCode: Scalars['String']['input'];
+  marketCode: Scalars['String']['input'];
+  siteId: Scalars['Int']['input'];
+};
+
+
+export type MutationUpsertWorkflowDefinitionArgs = {
+  createdBy?: InputMaybe<Scalars['String']['input']>;
+  graphJson: Scalars['String']['input'];
+  id?: InputMaybe<Scalars['Int']['input']>;
+  inputSchemaJson: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  permissionsJson: Scalars['String']['input'];
+  version: Scalars['Int']['input'];
+};
+
+export type PageByRoute = {
+  __typename?: 'PageByRoute';
+  base?: Maybe<ResolvedRoute>;
+  selectedVariant?: Maybe<Variant>;
+  selectedVersion?: Maybe<ContentVersion>;
+  selectionReason?: Maybe<Scalars['String']['output']>;
+};
+
 export type PreviewTokenPayload = {
   __typename?: 'PreviewTokenPayload';
   contentItemId?: Maybe<Scalars['Int']['output']>;
@@ -319,20 +551,31 @@ export type PreviewTokenPayload = {
 export type Query = {
   __typename?: 'Query';
   diffVersions?: Maybe<VersionDiff>;
+  evaluateForm?: Maybe<FormEvaluation>;
   getContentItemDetail?: Maybe<ContentItemDetail>;
+  getPageByRoute?: Maybe<PageByRoute>;
   getSiteDefaults?: Maybe<SiteDefaults>;
   getSiteMarketLocaleMatrix?: Maybe<SiteMarketLocaleMatrix>;
+  getWorkflowRun?: Maybe<WorkflowRun>;
   listContentItems?: Maybe<Array<ContentItem>>;
   listContentTypes?: Maybe<Array<ContentType>>;
+  listFormFields?: Maybe<Array<FormField>>;
+  listFormSteps?: Maybe<Array<FormStep>>;
+  listForms?: Maybe<Array<Form>>;
   listLocales?: Maybe<Array<Locale>>;
   listMarkets?: Maybe<Array<Market>>;
   listRoutes?: Maybe<Array<ContentRoute>>;
   listSites?: Maybe<Array<Site>>;
   listTemplates?: Maybe<Array<Template>>;
+  listVariantSets?: Maybe<Array<VariantSet>>;
+  listVariants?: Maybe<Array<Variant>>;
   listVersions?: Maybe<Array<ContentVersion>>;
+  listWorkflowDefinitions?: Maybe<Array<WorkflowDefinition>>;
+  listWorkflowRuns?: Maybe<Array<WorkflowRun>>;
   me?: Maybe<User>;
   resolveMarketLocale?: Maybe<ResolvedMarketLocale>;
   resolveRoute?: Maybe<ResolvedRoute>;
+  selectVariant?: Maybe<VariantSelection>;
   validateMarketLocale?: Maybe<Scalars['Boolean']['output']>;
 };
 
@@ -343,8 +586,28 @@ export type QueryDiffVersionsArgs = {
 };
 
 
+export type QueryEvaluateFormArgs = {
+  answersJson: Scalars['String']['input'];
+  contextJson?: InputMaybe<Scalars['String']['input']>;
+  formId: Scalars['Int']['input'];
+};
+
+
 export type QueryGetContentItemDetailArgs = {
   contentItemId: Scalars['Int']['input'];
+};
+
+
+export type QueryGetPageByRouteArgs = {
+  contextJson?: InputMaybe<Scalars['String']['input']>;
+  localeCode: Scalars['String']['input'];
+  marketCode: Scalars['String']['input'];
+  preview?: InputMaybe<Scalars['Boolean']['input']>;
+  previewToken?: InputMaybe<Scalars['String']['input']>;
+  siteId: Scalars['Int']['input'];
+  slug: Scalars['String']['input'];
+  variantKeyOverride?: InputMaybe<Scalars['String']['input']>;
+  versionIdOverride?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -358,12 +621,32 @@ export type QueryGetSiteMarketLocaleMatrixArgs = {
 };
 
 
+export type QueryGetWorkflowRunArgs = {
+  runId: Scalars['Int']['input'];
+};
+
+
 export type QueryListContentItemsArgs = {
   siteId: Scalars['Int']['input'];
 };
 
 
 export type QueryListContentTypesArgs = {
+  siteId: Scalars['Int']['input'];
+};
+
+
+export type QueryListFormFieldsArgs = {
+  formId: Scalars['Int']['input'];
+};
+
+
+export type QueryListFormStepsArgs = {
+  formId: Scalars['Int']['input'];
+};
+
+
+export type QueryListFormsArgs = {
   siteId: Scalars['Int']['input'];
 };
 
@@ -390,8 +673,26 @@ export type QueryListTemplatesArgs = {
 };
 
 
+export type QueryListVariantSetsArgs = {
+  contentItemId?: InputMaybe<Scalars['Int']['input']>;
+  localeCode?: InputMaybe<Scalars['String']['input']>;
+  marketCode?: InputMaybe<Scalars['String']['input']>;
+  siteId: Scalars['Int']['input'];
+};
+
+
+export type QueryListVariantsArgs = {
+  variantSetId: Scalars['Int']['input'];
+};
+
+
 export type QueryListVersionsArgs = {
   contentItemId: Scalars['Int']['input'];
+};
+
+
+export type QueryListWorkflowRunsArgs = {
+  definitionId?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -409,6 +710,12 @@ export type QueryResolveRouteArgs = {
   previewToken?: InputMaybe<Scalars['String']['input']>;
   siteId: Scalars['Int']['input'];
   slug: Scalars['String']['input'];
+};
+
+
+export type QuerySelectVariantArgs = {
+  contextJson?: InputMaybe<Scalars['String']['input']>;
+  variantSetId: Scalars['Int']['input'];
 };
 
 
@@ -513,12 +820,67 @@ export type User = {
   username?: Maybe<Scalars['String']['output']>;
 };
 
+export type Variant = {
+  __typename?: 'Variant';
+  contentVersionId?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  key?: Maybe<Scalars['String']['output']>;
+  priority?: Maybe<Scalars['Int']['output']>;
+  ruleJson?: Maybe<Scalars['String']['output']>;
+  state?: Maybe<Scalars['String']['output']>;
+  trafficAllocation?: Maybe<Scalars['Int']['output']>;
+  variantSetId?: Maybe<Scalars['Int']['output']>;
+};
+
+export type VariantSelection = {
+  __typename?: 'VariantSelection';
+  reason?: Maybe<Scalars['String']['output']>;
+  variant?: Maybe<Variant>;
+  variantSetId?: Maybe<Scalars['Int']['output']>;
+};
+
+export type VariantSet = {
+  __typename?: 'VariantSet';
+  active?: Maybe<Scalars['Boolean']['output']>;
+  contentItemId?: Maybe<Scalars['Int']['output']>;
+  fallbackVariantSetId?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  localeCode?: Maybe<Scalars['String']['output']>;
+  marketCode?: Maybe<Scalars['String']['output']>;
+  siteId?: Maybe<Scalars['Int']['output']>;
+};
+
 export type VersionDiff = {
   __typename?: 'VersionDiff';
   changedPaths?: Maybe<Array<Scalars['String']['output']>>;
   leftVersionId?: Maybe<Scalars['Int']['output']>;
   rightVersionId?: Maybe<Scalars['Int']['output']>;
   summary?: Maybe<Scalars['String']['output']>;
+};
+
+export type WorkflowDefinition = {
+  __typename?: 'WorkflowDefinition';
+  createdAt?: Maybe<Scalars['String']['output']>;
+  createdBy?: Maybe<Scalars['String']['output']>;
+  graphJson?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  inputSchemaJson?: Maybe<Scalars['String']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  permissionsJson?: Maybe<Scalars['String']['output']>;
+  version?: Maybe<Scalars['Int']['output']>;
+};
+
+export type WorkflowRun = {
+  __typename?: 'WorkflowRun';
+  contextJson?: Maybe<Scalars['String']['output']>;
+  currentNodeId?: Maybe<Scalars['String']['output']>;
+  definitionId?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  logsJson?: Maybe<Scalars['String']['output']>;
+  startedAt?: Maybe<Scalars['String']['output']>;
+  startedBy?: Maybe<Scalars['String']['output']>;
+  status?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['String']['output']>;
 };
 
 export type LoginMutationVariables = Exact<{

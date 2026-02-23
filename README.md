@@ -1,11 +1,11 @@
 # ContentHead Monorepo
 
 TypeScript-only pnpm workspace:
-- `apps/api`: GraphQL API (auth, market/locale matrix, CMS core)
-- `apps/admin`: PrimeReact CMS admin shell
-- `apps/web`: Next.js renderer (`/[...slug]`)
+- `apps/api`: GraphQL API (auth, matrix, CMS core, variants, forms, workflows, AI connector)
+- `apps/admin`: Vite + React + PrimeReact admin (content, variants, visivic preview, forms, workflow designer)
+- `apps/web`: Next.js renderer (`/[...slug]` + `/preview`)
 - `packages/schema`: exported GraphQL SDL
-- `packages/shared`: shared TS types
+- `packages/shared`: shared deterministic rule/condition engines
 - `packages/sdk`: typed GraphQL client (`graphql-request` + TypedDocumentNode)
 
 ## Prerequisites
@@ -25,99 +25,164 @@ pnpm --filter @contenthead/api seed
 - Password: `admin123!`
 
 ## URLs
-- API: `http://localhost:4000/graphql`
+- API GraphQL: `http://localhost:4000/graphql`
 - Admin: `http://localhost:5173`
 - Web: `http://localhost:3000`
+- Web Preview (Visivic): `http://localhost:3000/preview?contentItemId=<id>&token=<previewToken>&siteId=1&market=US&locale=en-US`
 
 ## Root Commands
-- `pnpm dev`: start api/admin/web
+- `pnpm dev`: run API + Admin + Web
 - `pnpm schema`: export SDL to `packages/schema/dist/schema.graphql`
 - `pnpm codegen`: generate TypedDocumentNode outputs
 - `pnpm build`: `schema -> codegen -> build all`
 - `pnpm typecheck`
 - `pnpm test`
 
-## CMS Core Implemented
+## Implemented Feature Set
 
-### Data Model
-Migrations:
-- `001_initial` users/auth
-- `002_sites_markets_locales` site + matrix
-- `003_cms_core` content types/items/versions/templates/routes
+### Market/Locale Matrix
+- Site market/locale matrix with active/default combos in DuckDB
+- API enforcement for invalid combos (`INVALID_MARKET_LOCALE`)
+- Route and variant-set binding to active combos only
 
-CMS tables:
-- `content_types`
-- `content_items`
-- `content_versions` (append-only)
-- `templates`
-- `content_routes`
+### CMS Core
+- Content Types CRUD
+- Content Items CRUD
+- Append-only Content Versions (`DRAFT|PUBLISHED|ARCHIVED`)
+- Templates CRUD + basic reconcile suggestions
+- Routes CRUD + route resolution + preview token support
 
-Route market/locale enforcement:
-- `content_routes` references `(site_id, market_code, locale_code)`
-- API validates active combo (`INVALID_MARKET_LOCALE` on violation)
+### Variants
+- VariantSet/Variant CRUD per `site + contentItem + market + locale`
+- Deterministic rule evaluation (`all/any/not`, `eq/neq/in/contains/gt/lt/regex`)
+- Deterministic traffic allocation hash for A/B
+- `getPageByRoute(...)` selects variant + version by context
 
-### GraphQL (API)
-Content Types:
-- `listContentTypes`, `createContentType`, `updateContentType`, `deleteContentType`
+### Visivic (Visual Editing)
+- New web route: `/preview?contentItemId=&token=&variantKey?=&versionId?`
+- Preview DOM annotations:
+  - `data-cms-content-item-id`
+  - `data-cms-version-id`
+  - `data-cms-component-id`
+  - `data-cms-field-path`
+- PostMessage bridge from web iframe to admin on hover/click:
+  - payload includes `fieldPath`, `componentId`, `contentItemId`, `versionId`
+- Admin preview iframe listens and focuses/highlights matching field editor
 
-Content Items + Versions:
-- `listContentItems`, `getContentItemDetail`, `archiveContentItem`, `createContentItem`
-- `createDraftVersion(fromVersionId?)`
-- `updateDraftVersion(versionId, patch, expectedVersionNumber)` (creates new draft version)
-- `publishVersion(versionId, expectedVersionNumber)` (creates published version)
-- `listVersions(contentItemId)`
-- `diffVersions(leftVersionId, rightVersionId)`
-- `rollbackToVersion(contentItemId, versionId)` (creates new draft)
+### Form Engine
+- DB tables:
+  - `forms`
+  - `form_steps`
+  - `form_fields`
+- Shared condition evaluator (`packages/shared/src/forms/conditions.ts`)
+  - show/hide, required-if, enable/disable via rule conditions
+- GraphQL:
+  - Form CRUD (`upsert/delete/list` for forms, steps, fields)
+  - `evaluateForm(formId, answersJson, contextJson)`
+- Admin Form Builder:
+  - step/field editor
+  - JSON conditions/validations/ui config
+  - evaluate panel output
 
-Templates:
-- `listTemplates`, `createTemplate`, `updateTemplate`, `deleteTemplate`, `reconcileTemplate`
+### Workflow Engine
+- DB tables:
+  - `workflow_definitions`
+  - `workflow_runs`
+  - `workflow_step_states`
+- Deterministic executor:
+  - persists run/step state after each node
+  - supports pause/resume with `ManualApproval`
+- Supported node types:
+  - `FetchContent`
+  - `CreateDraftVersion`
+  - `ManualApproval`
+  - `PublishVersion`
+  - `ActivateVariant`
+  - `AI.GenerateType`
+  - `AI.GenerateContent`
+  - `AI.GenerateVariants`
+  - `AI.Translate`
+  - `Notify` (stub)
+- GraphQL:
+  - definition CRUD
+  - run start/get/list
+  - `approveStep`
+  - `retryFailed`
+- Admin React Flow UI:
+  - node palette
+  - graph view
+  - node config panel
+  - run viewer with approve/retry
 
-Routes + Resolution:
-- `listRoutes`, `upsertRoute`, `deleteRoute`
-- `resolveRoute(siteId, marketCode, localeCode, slug, previewToken?, preview?)`
+### AI Connector
+- `AIProvider` interface (`apps/api/src/ai/provider.ts`)
+- `MockAIProvider` deterministic, no network
+- `OpenAICompatibleProviderStub` structural (enabled only if `OPENAI_API_KEY` exists)
+- GraphQL mutations:
+  - `aiGenerateContentType`
+  - `aiGenerateContent`
+  - `aiGenerateVariants`
+  - `aiTranslateVersion`
+- All AI payloads validated with Zod before commit to DB
+- AI actions are workflow-node compatible
 
-Preview:
-- `issuePreviewToken(contentItemId)`
-- `resolveRoute` supports preview token / preview flag
+## Seeded Workflow
+`pnpm --filter @contenthead/api seed` creates `Default Publish Flow v1`:
+1. `AI.GenerateContent`
+2. `CreateDraftVersion`
+3. `ManualApproval`
+4. `PublishVersion`
+5. `ActivateVariant(default)`
 
-### Admin UI (`apps/admin`)
-Implemented sections:
-- Content Tree (TreeTable from routes)
-- Content List (DataTable)
-- ContentType Builder (field definitions)
-- Content Editor (dynamic fields from ContentType, draft save, publish)
-- Version History (list, diff, rollback)
-- Template Editor (minimal)
-- Route Editor (market/locale picker limited to active combos)
-- Topbar site + market + locale selectors
+## Demo Path (End-to-End)
+1. Start all apps:
+```bash
+pnpm dev
+```
+2. Open Admin: `http://localhost:5173`
+3. Matrix setup:
+- ensure active combo `US / en-US` (already seeded)
 
-### Web Rendering (`apps/web`)
-- Catch-all route: `app/[...slug]/page.tsx`
-- Calls SDK `resolveRoute`
-- Market/locale from query params:
-  - `?siteId=1&market=US&locale=en-US`
-- Renders components from published (or preview) version JSON:
-  - `Hero`
-  - `RichText`
-  - `TeaserGrid`
+4. Create content:
+- create content type
+- create content item
+- save draft
+- publish
+- add route (for example `home`)
 
-## End-to-End Flow
-1. Open Admin (`http://localhost:5173`)
-2. Create a ContentType
-3. Create a Content Item
-4. Edit fields + save draft
-5. Publish
-6. Create Route (valid active market/locale combo)
-7. Open Web route:
-   - `http://localhost:3000/<slug>?siteId=1&market=US&locale=en-US`
+5. Variants:
+- create/select variant set for `US/en-US`
+- add at least two variants with different rules
+- bind each variant to a content version
 
-## Enforcement Example
-Invalid combo route upsert (or validation) returns GraphQL error code:
-- `INVALID_MARKET_LOCALE`
+6. Visivic preview:
+- issue preview token in Content Editor
+- open iframe preview panel
+- click/hover annotated element in preview
+- admin focuses/highlights corresponding field row
 
-## Verified
-- `pnpm schema` passes
-- `pnpm codegen` passes
-- `pnpm build` passes
-- `pnpm typecheck` passes
-- API route resolution + market/locale enforcement + Next catch-all rendering verified
+7. Forms:
+- open Form Builder
+- create form + step + field
+- set `conditionsJson` (example: `{"showIf":{"op":"eq","field":"country","value":"US"}}`)
+- run Evaluate Form with `contextJson` `{ "country": "US" }`
+
+8. Workflows:
+- open Workflow Designer
+- save workflow definition (or use seeded one)
+- start run
+- run pauses on `ManualApproval`
+- click Approve
+- run resumes and completes
+
+9. Web published rendering:
+- open route: `http://localhost:3000/home?siteId=1&market=US&locale=en-US`
+- optional variant context: `&segments=vip`
+
+## Validation Status
+Passed locally:
+- `pnpm schema`
+- `pnpm codegen`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`

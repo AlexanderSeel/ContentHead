@@ -1,0 +1,41 @@
+query WebGetPageByRoute(
+  $siteId: Int!
+  $marketCode: String!
+  $localeCode: String!
+  $slug: String!
+  $contextJson: String
+  $previewToken: String
+  $preview: Boolean
+  $variantKeyOverride: String
+  $versionIdOverride: Int
+) {
+  getPageByRoute(
+    siteId: $siteId
+    marketCode: $marketCode
+    localeCode: $localeCode
+    slug: $slug
+    contextJson: $contextJson
+    previewToken: $previewToken
+    preview: $preview
+    variantKeyOverride: $variantKeyOverride
+    versionIdOverride: $versionIdOverride
+  ) {
+    selectionReason
+    selectedVariant {
+      key
+    }
+    selectedVersion {
+      id
+      state
+      fieldsJson
+      compositionJson
+      componentsJson
+      metadataJson
+    }
+    base {
+      contentType {
+        name
+      }
+    }
+  }
+}

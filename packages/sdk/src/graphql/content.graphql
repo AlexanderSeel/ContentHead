@@ -404,3 +404,467 @@ mutation IssuePreviewToken($contentItemId: Int!) {
     contentItemId
   }
 }
+query ListVariantSets($siteId: Int!, $contentItemId: Int, $marketCode: String, $localeCode: String) {
+  listVariantSets(siteId: $siteId, contentItemId: $contentItemId, marketCode: $marketCode, localeCode: $localeCode) {
+    id
+    siteId
+    contentItemId
+    marketCode
+    localeCode
+    fallbackVariantSetId
+    active
+  }
+}
+
+query ListVariants($variantSetId: Int!) {
+  listVariants(variantSetId: $variantSetId) {
+    id
+    variantSetId
+    key
+    priority
+    ruleJson
+    state
+    trafficAllocation
+    contentVersionId
+  }
+}
+
+query SelectVariant($variantSetId: Int!, $contextJson: String) {
+  selectVariant(variantSetId: $variantSetId, contextJson: $contextJson) {
+    reason
+    variantSetId
+    variant {
+      id
+      key
+      contentVersionId
+    }
+  }
+}
+
+query GetPageByRoute(
+  $siteId: Int!
+  $marketCode: String!
+  $localeCode: String!
+  $slug: String!
+  $contextJson: String
+  $previewToken: String
+  $preview: Boolean
+  $variantKeyOverride: String
+  $versionIdOverride: Int
+) {
+  getPageByRoute(
+    siteId: $siteId
+    marketCode: $marketCode
+    localeCode: $localeCode
+    slug: $slug
+    contextJson: $contextJson
+    previewToken: $previewToken
+    preview: $preview
+    variantKeyOverride: $variantKeyOverride
+    versionIdOverride: $versionIdOverride
+  ) {
+    selectionReason
+    selectedVariant {
+      id
+      key
+      contentVersionId
+    }
+    selectedVersion {
+      id
+      state
+      fieldsJson
+      compositionJson
+      componentsJson
+      metadataJson
+    }
+    base {
+      mode
+      route {
+        id
+        slug
+        marketCode
+        localeCode
+      }
+      contentItem {
+        id
+        contentTypeId
+      }
+      contentType {
+        id
+        name
+        fieldsJson
+      }
+    }
+  }
+}
+
+mutation UpsertVariantSet(
+  $id: Int
+  $siteId: Int!
+  $contentItemId: Int!
+  $marketCode: String!
+  $localeCode: String!
+  $fallbackVariantSetId: Int
+  $active: Boolean!
+) {
+  upsertVariantSet(
+    id: $id
+    siteId: $siteId
+    contentItemId: $contentItemId
+    marketCode: $marketCode
+    localeCode: $localeCode
+    fallbackVariantSetId: $fallbackVariantSetId
+    active: $active
+  ) {
+    id
+    siteId
+    contentItemId
+    marketCode
+    localeCode
+    fallbackVariantSetId
+    active
+  }
+}
+
+mutation DeleteVariantSet($id: Int!) {
+  deleteVariantSet(id: $id)
+}
+
+mutation UpsertVariant(
+  $id: Int
+  $variantSetId: Int!
+  $key: String!
+  $priority: Int!
+  $ruleJson: String!
+  $state: String!
+  $trafficAllocation: Int
+  $contentVersionId: Int!
+) {
+  upsertVariant(
+    id: $id
+    variantSetId: $variantSetId
+    key: $key
+    priority: $priority
+    ruleJson: $ruleJson
+    state: $state
+    trafficAllocation: $trafficAllocation
+    contentVersionId: $contentVersionId
+  ) {
+    id
+    variantSetId
+    key
+    priority
+    ruleJson
+    state
+    trafficAllocation
+    contentVersionId
+  }
+}
+
+mutation DeleteVariant($id: Int!) {
+  deleteVariant(id: $id)
+}
+
+query ListForms($siteId: Int!) {
+  listForms(siteId: $siteId) {
+    id
+    siteId
+    name
+    description
+    active
+    createdAt
+    updatedAt
+  }
+}
+
+query ListFormSteps($formId: Int!) {
+  listFormSteps(formId: $formId) {
+    id
+    formId
+    name
+    position
+  }
+}
+
+query ListFormFields($formId: Int!) {
+  listFormFields(formId: $formId) {
+    id
+    stepId
+    formId
+    key
+    label
+    fieldType
+    position
+    conditionsJson
+    validationsJson
+    uiConfigJson
+    active
+  }
+}
+
+query EvaluateForm($formId: Int!, $answersJson: String!, $contextJson: String) {
+  evaluateForm(formId: $formId, answersJson: $answersJson, contextJson: $contextJson) {
+    formId
+    valid
+    evaluatedFieldsJson
+    errorsJson
+  }
+}
+
+mutation UpsertForm($id: Int, $siteId: Int!, $name: String!, $description: String, $active: Boolean!) {
+  upsertForm(id: $id, siteId: $siteId, name: $name, description: $description, active: $active) {
+    id
+    siteId
+    name
+    description
+    active
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeleteForm($id: Int!) {
+  deleteForm(id: $id)
+}
+
+mutation UpsertFormStep($id: Int, $formId: Int!, $name: String!, $position: Int!) {
+  upsertFormStep(id: $id, formId: $formId, name: $name, position: $position) {
+    id
+    formId
+    name
+    position
+  }
+}
+
+mutation DeleteFormStep($id: Int!) {
+  deleteFormStep(id: $id)
+}
+
+mutation UpsertFormField(
+  $id: Int
+  $stepId: Int!
+  $formId: Int!
+  $key: String!
+  $label: String!
+  $fieldType: String!
+  $position: Int!
+  $conditionsJson: String!
+  $validationsJson: String!
+  $uiConfigJson: String!
+  $active: Boolean!
+) {
+  upsertFormField(
+    id: $id
+    stepId: $stepId
+    formId: $formId
+    key: $key
+    label: $label
+    fieldType: $fieldType
+    position: $position
+    conditionsJson: $conditionsJson
+    validationsJson: $validationsJson
+    uiConfigJson: $uiConfigJson
+    active: $active
+  ) {
+    id
+    stepId
+    formId
+    key
+    label
+    fieldType
+    position
+    conditionsJson
+    validationsJson
+    uiConfigJson
+    active
+  }
+}
+
+mutation DeleteFormField($id: Int!) {
+  deleteFormField(id: $id)
+}
+
+query ListWorkflowDefinitions {
+  listWorkflowDefinitions {
+    id
+    name
+    version
+    graphJson
+    inputSchemaJson
+    permissionsJson
+    createdAt
+    createdBy
+  }
+}
+
+query ListWorkflowRuns($definitionId: Int) {
+  listWorkflowRuns(definitionId: $definitionId) {
+    id
+    definitionId
+    status
+    contextJson
+    currentNodeId
+    logsJson
+    startedAt
+    startedBy
+    updatedAt
+  }
+}
+
+query GetWorkflowRun($runId: Int!) {
+  getWorkflowRun(runId: $runId) {
+    id
+    definitionId
+    status
+    contextJson
+    currentNodeId
+    logsJson
+    startedAt
+    startedBy
+    updatedAt
+  }
+}
+
+mutation UpsertWorkflowDefinition(
+  $id: Int
+  $name: String!
+  $version: Int!
+  $graphJson: String!
+  $inputSchemaJson: String!
+  $permissionsJson: String!
+  $createdBy: String
+) {
+  upsertWorkflowDefinition(
+    id: $id
+    name: $name
+    version: $version
+    graphJson: $graphJson
+    inputSchemaJson: $inputSchemaJson
+    permissionsJson: $permissionsJson
+    createdBy: $createdBy
+  ) {
+    id
+    name
+    version
+    graphJson
+    inputSchemaJson
+    permissionsJson
+    createdAt
+    createdBy
+  }
+}
+
+mutation DeleteWorkflowDefinition($id: Int!) {
+  deleteWorkflowDefinition(id: $id)
+}
+
+mutation StartWorkflowRun($definitionId: Int!, $contextJson: String!, $startedBy: String) {
+  startWorkflowRun(definitionId: $definitionId, contextJson: $contextJson, startedBy: $startedBy) {
+    id
+    definitionId
+    status
+    contextJson
+    currentNodeId
+    logsJson
+    startedAt
+    startedBy
+    updatedAt
+  }
+}
+
+mutation ApproveStep($runId: Int!, $nodeId: String!, $approvedBy: String) {
+  approveStep(runId: $runId, nodeId: $nodeId, approvedBy: $approvedBy) {
+    id
+    definitionId
+    status
+    contextJson
+    currentNodeId
+    logsJson
+    startedAt
+    startedBy
+    updatedAt
+  }
+}
+
+mutation RetryFailed($runId: Int!) {
+  retryFailed(runId: $runId) {
+    id
+    definitionId
+    status
+    contextJson
+    currentNodeId
+    logsJson
+    startedAt
+    startedBy
+    updatedAt
+  }
+}
+
+mutation AiGenerateContentType($siteId: Int!, $prompt: String!, $nameHint: String, $by: String) {
+  aiGenerateContentType(siteId: $siteId, prompt: $prompt, nameHint: $nameHint, by: $by) {
+    id
+    siteId
+    name
+    description
+    fieldsJson
+  }
+}
+
+mutation AiGenerateContent(
+  $contentItemId: Int
+  $siteId: Int
+  $contentTypeId: Int
+  $prompt: String!
+  $by: String
+) {
+  aiGenerateContent(
+    contentItemId: $contentItemId
+    siteId: $siteId
+    contentTypeId: $contentTypeId
+    prompt: $prompt
+    by: $by
+  ) {
+    contentItemId
+    draftVersionId
+  }
+}
+
+mutation AiGenerateVariants(
+  $siteId: Int!
+  $contentItemId: Int!
+  $marketCode: String!
+  $localeCode: String!
+  $variantSetId: Int
+  $targetVersionId: Int!
+  $prompt: String!
+) {
+  aiGenerateVariants(
+    siteId: $siteId
+    contentItemId: $contentItemId
+    marketCode: $marketCode
+    localeCode: $localeCode
+    variantSetId: $variantSetId
+    targetVersionId: $targetVersionId
+    prompt: $prompt
+  ) {
+    variantSetId
+    createdKeys
+  }
+}
+
+mutation AiTranslateVersion(
+  $versionId: Int!
+  $targetMarketCode: String!
+  $targetLocaleCode: String!
+  $by: String
+) {
+  aiTranslateVersion(
+    versionId: $versionId
+    targetMarketCode: $targetMarketCode
+    targetLocaleCode: $targetLocaleCode
+    by: $by
+  ) {
+    contentItemId
+    draftVersionId
+  }
+}
