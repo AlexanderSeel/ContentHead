@@ -10,5 +10,7 @@ export type AuthPayload = {
   user: User;
 };
 
-export * from './rules/engine.js';
-export * from './forms/conditions.js';
+export * from './rules/engine';
+export * from './forms/conditions';
+export * from './locales/catalog';
+export * from './routing/urlPattern';

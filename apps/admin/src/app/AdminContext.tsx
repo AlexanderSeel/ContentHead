@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { createAdminSdk } from '../lib/sdk';
 
-export type Site = { id: number; name: string; active: boolean };
+export type Site = { id: number; name: string; active: boolean; urlPattern: string };
 export type Combo = { siteId: number; marketCode: string; localeCode: string; active: boolean; isDefaultForMarket: boolean };
 
 type AdminContextValue = {

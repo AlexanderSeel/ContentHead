@@ -30,6 +30,12 @@ pnpm --filter @contenthead/api seed
 - Web: `http://localhost:3000`
 - Web Preview (Visivic): `http://localhost:3000/preview?contentItemId=<id>&token=<previewToken>&siteId=1&market=US&locale=en-US`
 
+## Theme Switcher
+- Admin topbar now includes:
+  - PrimeReact theme switcher (10 presets, including dark themes)
+  - UI scale slider (12px-16px base font size)
+- Selection is persisted in localStorage and restored on reload.
+
 ## Root Commands
 - `pnpm dev`: run API + Admin + Web
 - `pnpm schema`: export SDL to `packages/schema/dist/schema.graphql`
@@ -58,8 +64,18 @@ Content Pages route (`/content/pages`) uses split-pane UX:
 ## Dev Tools GraphiQL
 - Route: `/dev/graphiql` (development mode only)
 - Embedded GraphiQL executes against `http://localhost:4000/graphql` (or `VITE_API_URL`)
-- Supports current session bearer token and optional `x-preview-token`
-- Includes clickable sample queries/mutations (`me`, `listSites`, matrix, route resolution, versions, workflow operations)
+- Supports current session bearer token, `x-preview-token`, and editable headers JSON
+- Includes sample query insertion (`me`, `listSites`, matrix, route resolution, versions, workflow operations)
+- Includes docs explorer and explorer sidebar plugin.
+
+## URL Pattern Configuration
+- Site settings support per-site URL rewrite pattern:
+  - `/{market}/{locale}/...`
+  - `/{market}-{locale}/...`
+  - `/{locale}/{market}/...`
+  - Custom patterns containing `{market}` and `{locale}`
+- Web route resolution now reads market/locale from path based on site `urlPattern`.
+- Query parameters (`market`, `locale`) still override path values for development/testing.
 
 ## Implemented Feature Set
 

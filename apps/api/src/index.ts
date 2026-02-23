@@ -22,6 +22,7 @@ async function bootstrap(): Promise<void> {
 
   const yoga = createYoga({
     schema,
+    graphiql: config.nodeEnv === 'development',
     cors: {
       origin: config.corsOrigin,
       credentials: true

@@ -13,12 +13,12 @@ export function SplitView({
   rightSize?: number;
 }) {
   return (
-    <Splitter style={{ height: 'calc(100vh - 220px)' }}>
+    <Splitter className="split-view">
       <SplitterPanel size={leftSize} minSize={20}>
-        {left}
+        <div className="split-pane">{left}</div>
       </SplitterPanel>
       <SplitterPanel size={rightSize} minSize={30}>
-        {right}
+        <div className="split-pane">{right}</div>
       </SplitterPanel>
     </Splitter>
   );

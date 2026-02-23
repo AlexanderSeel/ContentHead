@@ -145,6 +145,14 @@ export type Locale = {
   name?: Maybe<Scalars['String']['output']>;
 };
 
+export type LocaleCatalogItem = {
+  __typename?: 'LocaleCatalogItem';
+  code?: Maybe<Scalars['String']['output']>;
+  language?: Maybe<Scalars['String']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  region?: Maybe<Scalars['String']['output']>;
+};
+
 export type Market = {
   __typename?: 'Market';
   active?: Maybe<Scalars['Boolean']['output']>;
@@ -200,6 +208,7 @@ export type Mutation = {
   setSiteLocales?: Maybe<Array<Locale>>;
   setSiteMarketLocaleMatrix?: Maybe<SiteMarketLocaleMatrix>;
   setSiteMarkets?: Maybe<Array<Market>>;
+  setSiteUrlPattern?: Maybe<Site>;
   startWorkflowRun?: Maybe<WorkflowRun>;
   updateContentType?: Maybe<ContentType>;
   updateDraftVersion?: Maybe<ContentVersion>;
@@ -210,6 +219,7 @@ export type Mutation = {
   upsertLocale?: Maybe<Array<Locale>>;
   upsertMarket?: Maybe<Array<Market>>;
   upsertRoute?: Maybe<ContentRoute>;
+  upsertSiteLocaleOverride?: Maybe<Array<Locale>>;
   upsertVariant?: Maybe<Variant>;
   upsertVariantSet?: Maybe<VariantSet>;
   upsertWorkflowDefinition?: Maybe<WorkflowDefinition>;
@@ -405,6 +415,12 @@ export type MutationSetSiteMarketsArgs = {
 };
 
 
+export type MutationSetSiteUrlPatternArgs = {
+  siteId: Scalars['Int']['input'];
+  urlPattern: Scalars['String']['input'];
+};
+
+
 export type MutationStartWorkflowRunArgs = {
   contextJson: Scalars['String']['input'];
   definitionId: Scalars['Int']['input'];
@@ -501,6 +517,14 @@ export type MutationUpsertRouteArgs = {
 };
 
 
+export type MutationUpsertSiteLocaleOverrideArgs = {
+  code: Scalars['String']['input'];
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  fallbackLocaleCode?: InputMaybe<Scalars['String']['input']>;
+  siteId: Scalars['Int']['input'];
+};
+
+
 export type MutationUpsertVariantArgs = {
   contentVersionId: Scalars['Int']['input'];
   id?: InputMaybe<Scalars['Int']['input']>;
@@ -554,6 +578,7 @@ export type Query = {
   evaluateForm?: Maybe<FormEvaluation>;
   getContentItemDetail?: Maybe<ContentItemDetail>;
   getPageByRoute?: Maybe<PageByRoute>;
+  getSite?: Maybe<Site>;
   getSiteDefaults?: Maybe<SiteDefaults>;
   getSiteMarketLocaleMatrix?: Maybe<SiteMarketLocaleMatrix>;
   getWorkflowRun?: Maybe<WorkflowRun>;
@@ -572,6 +597,7 @@ export type Query = {
   listVersions?: Maybe<Array<ContentVersion>>;
   listWorkflowDefinitions?: Maybe<Array<WorkflowDefinition>>;
   listWorkflowRuns?: Maybe<Array<WorkflowRun>>;
+  localeCatalog?: Maybe<Array<LocaleCatalogItem>>;
   me?: Maybe<User>;
   resolveMarketLocale?: Maybe<ResolvedMarketLocale>;
   resolveRoute?: Maybe<ResolvedRoute>;
@@ -608,6 +634,11 @@ export type QueryGetPageByRouteArgs = {
   slug: Scalars['String']['input'];
   variantKeyOverride?: InputMaybe<Scalars['String']['input']>;
   versionIdOverride?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryGetSiteArgs = {
+  siteId: Scalars['Int']['input'];
 };
 
 
@@ -747,6 +778,7 @@ export type Site = {
   active?: Maybe<Scalars['Boolean']['output']>;
   id?: Maybe<Scalars['Int']['output']>;
   name?: Maybe<Scalars['String']['output']>;
+  urlPattern?: Maybe<Scalars['String']['output']>;
 };
 
 export type SiteDefaults = {
@@ -907,6 +939,13 @@ export type WebSiteDefaultsQueryVariables = Exact<{
 
 export type WebSiteDefaultsQuery = { __typename?: 'Query', getSiteDefaults?: { __typename?: 'SiteDefaults', defaultMarketCode?: string | null, defaultLocaleCode?: string | null } | null };
 
+export type WebSiteQueryVariables = Exact<{
+  siteId: Scalars['Int']['input'];
+}>;
+
+
+export type WebSiteQuery = { __typename?: 'Query', getSite?: { __typename?: 'Site', id?: number | null, urlPattern?: string | null } | null };
+
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -943,6 +982,7 @@ export type WebResolveRouteQuery = { __typename?: 'Query', resolveRoute?: { __ty
 export const LoginDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"Login"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"username"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"password"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"login"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"username"},"value":{"kind":"Variable","name":{"kind":"Name","value":"username"}}},{"kind":"Argument","name":{"kind":"Name","value":"password"},"value":{"kind":"Variable","name":{"kind":"Name","value":"password"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"token"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"username"}},{"kind":"Field","name":{"kind":"Name","value":"displayName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]}}]} as unknown as DocumentNode<LoginMutation, LoginMutationVariables>;
 export const WebValidateMarketLocaleDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"WebValidateMarketLocale"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"validateMarketLocale"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}},{"kind":"Argument","name":{"kind":"Name","value":"marketCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"localeCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}}}]}]}}]} as unknown as DocumentNode<WebValidateMarketLocaleQuery, WebValidateMarketLocaleQueryVariables>;
 export const WebSiteDefaultsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"WebSiteDefaults"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"getSiteDefaults"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"defaultMarketCode"}},{"kind":"Field","name":{"kind":"Name","value":"defaultLocaleCode"}}]}}]}}]} as unknown as DocumentNode<WebSiteDefaultsQuery, WebSiteDefaultsQueryVariables>;
+export const WebSiteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"WebSite"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"getSite"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"urlPattern"}}]}}]}}]} as unknown as DocumentNode<WebSiteQuery, WebSiteQueryVariables>;
 export const MeDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"Me"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"me"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"username"}},{"kind":"Field","name":{"kind":"Name","value":"displayName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]} as unknown as DocumentNode<MeQuery, MeQueryVariables>;
 export const WebGetPageByRouteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"WebGetPageByRoute"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"slug"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"contextJson"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"previewToken"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"preview"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"variantKeyOverride"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"versionIdOverride"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"getPageByRoute"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}},{"kind":"Argument","name":{"kind":"Name","value":"marketCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"localeCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"slug"},"value":{"kind":"Variable","name":{"kind":"Name","value":"slug"}}},{"kind":"Argument","name":{"kind":"Name","value":"contextJson"},"value":{"kind":"Variable","name":{"kind":"Name","value":"contextJson"}}},{"kind":"Argument","name":{"kind":"Name","value":"previewToken"},"value":{"kind":"Variable","name":{"kind":"Name","value":"previewToken"}}},{"kind":"Argument","name":{"kind":"Name","value":"preview"},"value":{"kind":"Variable","name":{"kind":"Name","value":"preview"}}},{"kind":"Argument","name":{"kind":"Name","value":"variantKeyOverride"},"value":{"kind":"Variable","name":{"kind":"Name","value":"variantKeyOverride"}}},{"kind":"Argument","name":{"kind":"Name","value":"versionIdOverride"},"value":{"kind":"Variable","name":{"kind":"Name","value":"versionIdOverride"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"selectionReason"}},{"kind":"Field","name":{"kind":"Name","value":"selectedVariant"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}}]}},{"kind":"Field","name":{"kind":"Name","value":"selectedVersion"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"fieldsJson"}},{"kind":"Field","name":{"kind":"Name","value":"compositionJson"}},{"kind":"Field","name":{"kind":"Name","value":"componentsJson"}},{"kind":"Field","name":{"kind":"Name","value":"metadataJson"}}]}},{"kind":"Field","name":{"kind":"Name","value":"base"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"contentType"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}}]}}]}}]} as unknown as DocumentNode<WebGetPageByRouteQuery, WebGetPageByRouteQueryVariables>;
 export const WebResolveRouteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"WebResolveRoute"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"slug"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"previewToken"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"preview"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"resolveRoute"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"siteId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"siteId"}}},{"kind":"Argument","name":{"kind":"Name","value":"marketCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"marketCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"localeCode"},"value":{"kind":"Variable","name":{"kind":"Name","value":"localeCode"}}},{"kind":"Argument","name":{"kind":"Name","value":"slug"},"value":{"kind":"Variable","name":{"kind":"Name","value":"slug"}}},{"kind":"Argument","name":{"kind":"Name","value":"previewToken"},"value":{"kind":"Variable","name":{"kind":"Name","value":"previewToken"}}},{"kind":"Argument","name":{"kind":"Name","value":"preview"},"value":{"kind":"Variable","name":{"kind":"Name","value":"preview"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"mode"}},{"kind":"Field","name":{"kind":"Name","value":"route"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"slug"}}]}},{"kind":"Field","name":{"kind":"Name","value":"contentType"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"fieldsJson"}}]}},{"kind":"Field","name":{"kind":"Name","value":"version"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"fieldsJson"}},{"kind":"Field","name":{"kind":"Name","value":"compositionJson"}},{"kind":"Field","name":{"kind":"Name","value":"componentsJson"}},{"kind":"Field","name":{"kind":"Name","value":"metadataJson"}}]}}]}}]}}]} as unknown as DocumentNode<WebResolveRouteQuery, WebResolveRouteQueryVariables>;

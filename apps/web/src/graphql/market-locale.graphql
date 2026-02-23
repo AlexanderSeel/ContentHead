@@ -8,3 +8,10 @@ query WebSiteDefaults($siteId: Int!) {
     defaultLocaleCode
   }
 }
+
+query WebSite($siteId: Int!) {
+  getSite(siteId: $siteId) {
+    id
+    urlPattern
+  }
+}

@@ -1,4 +1,4 @@
-import { evaluateRule, type Rule, type RuleContext } from '../rules/engine.js';
+import { evaluateRule, type Rule, type RuleContext } from '../rules/engine';
 
 export type FormConditionSet = {
   showIf?: Rule;

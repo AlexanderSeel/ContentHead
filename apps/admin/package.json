@@ -9,19 +9,24 @@
     "preview": "vite preview",
     "codegen": "graphql-codegen --config codegen.ts",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"No tests yet\"",
+    "test": "vitest run",
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
+    "@contenthead/shared": "workspace:*",
     "@contenthead/sdk": "workspace:*",
+    "@graphiql/plugin-explorer": "^5.1.1",
+    "@graphiql/react": "^0.37.1",
     "@graphiql/toolkit": "^0.11.3",
     "graphiql": "^5.2.2",
+    "primeflex": "^3.3.1",
     "primeicons": "^7.0.0",
     "primereact": "^10.9.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "6",
-    "reactflow": "^11.11.4"
+    "reactflow": "^11.11.4",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",

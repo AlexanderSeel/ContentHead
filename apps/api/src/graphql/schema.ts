@@ -66,6 +66,7 @@ import {
   upsertFormStep
 } from '../forms/service.js';
 import {
+  type LocaleCatalogItem,
   type Locale,
   type Market,
   type MarketDefaultLocale,
@@ -74,15 +75,19 @@ import {
   type ResolvedMarketLocale,
   type Site,
   type SiteDefaults,
+  getSite,
   getSiteDefaults,
   getSiteMarketLocaleMatrix,
+  listLocaleCatalog,
   listLocales,
   listMarkets,
   listSites,
   resolveMarketLocaleFallback,
+  setSiteUrlPattern,
   setSiteLocales,
   setSiteMarketLocaleMatrix,
   setSiteMarkets,
+  upsertSiteLocaleOverride,
   upsertLocale,
   upsertMarket,
   validateMarketLocale
@@ -142,6 +147,13 @@ type UpsertLocaleArgs = {
   isDefault: boolean;
 };
 
+type UpsertSiteLocaleOverrideArgs = {
+  siteId: number;
+  code: string;
+  displayName?: string | null | undefined;
+  fallbackLocaleCode?: string | null | undefined;
+};
+
 type SetSiteMarketsArgs = {
   siteId: number;
   markets: { code: string; active: boolean }[];
@@ -192,7 +204,8 @@ SiteRef.implement({
   fields: (t) => ({
     id: t.exposeInt('id'),
     name: t.exposeString('name'),
-    active: t.exposeBoolean('active')
+    active: t.exposeBoolean('active'),
+    urlPattern: t.exposeString('urlPattern')
   })
 });
 
@@ -216,6 +229,16 @@ LocaleRef.implement({
     active: t.exposeBoolean('active'),
     fallbackLocaleCode: t.exposeString('fallbackLocaleCode', { nullable: true }),
     isDefault: t.exposeBoolean('isDefault')
+  })
+});
+
+const LocaleCatalogRef = builder.objectRef<LocaleCatalogItem>('LocaleCatalogItem');
+LocaleCatalogRef.implement({
+  fields: (t) => ({
+    code: t.exposeString('code'),
+    name: t.exposeString('name'),
+    language: t.exposeString('language'),
+    region: t.exposeString('region')
   })
 });
 
@@ -623,6 +646,15 @@ builder.queryType({
       type: [SiteRef],
       resolve: async (_root, _args, ctx) => listSites(ctx.db)
     }),
+    getSite: t.field({
+      type: SiteRef,
+      args: { siteId: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { siteId: number }, ctx) => getSite(ctx.db, args.siteId)
+    }),
+    localeCatalog: t.field({
+      type: [LocaleCatalogRef],
+      resolve: async () => listLocaleCatalog()
+    }),
     listMarkets: t.field({
       type: [MarketRef],
       args: { siteId: t.arg.int({ required: true }) },
@@ -934,6 +966,25 @@ builder.mutationType({
         isDefault: t.arg.boolean({ required: true })
       },
       resolve: async (_root, args: UpsertLocaleArgs, ctx) => upsertLocale(ctx.db, args)
+    }),
+    upsertSiteLocaleOverride: t.field({
+      type: [LocaleRef],
+      args: {
+        siteId: t.arg.int({ required: true }),
+        code: t.arg.string({ required: true }),
+        displayName: t.arg.string({ required: false }),
+        fallbackLocaleCode: t.arg.string({ required: false })
+      },
+      resolve: async (_root, args: UpsertSiteLocaleOverrideArgs, ctx) => upsertSiteLocaleOverride(ctx.db, args)
+    }),
+    setSiteUrlPattern: t.field({
+      type: SiteRef,
+      args: {
+        siteId: t.arg.int({ required: true }),
+        urlPattern: t.arg.string({ required: true })
+      },
+      resolve: async (_root, args: { siteId: number; urlPattern: string }, ctx) =>
+        setSiteUrlPattern(ctx.db, args.siteId, args.urlPattern)
     }),
     setSiteMarkets: t.field({
       type: [MarketRef],

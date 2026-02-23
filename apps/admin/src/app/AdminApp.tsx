@@ -46,6 +46,7 @@ export function AdminApp() {
               <Route path="/site/markets-locales" element={<MarketsLocalesPage />} />
               <Route path="/site" element={<Navigate to="/site/overview" replace />} />
 
+              <Route path="/content/pages/:contentItemId" element={<ContentPagesPage />} />
               <Route path="/content/pages" element={<ContentPagesPage />} />
               <Route path="/content/templates" element={<TemplatesPage />} />
               <Route path="/content/routes" element={<RoutesPage />} />

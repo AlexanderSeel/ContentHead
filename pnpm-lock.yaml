@@ -56,12 +56,24 @@ importers:
       '@contenthead/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@contenthead/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@graphiql/plugin-explorer':
+        specifier: ^5.1.1
+        version: 5.1.1(@graphiql/react@0.37.3(@types/node@22.19.11)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(graphql-ws@6.0.7(graphql@16.12.0)(ws@8.19.0))(graphql@16.12.0)(react-compiler-runtime@19.1.0-rc.1(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1)))(graphql@16.12.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@graphiql/react':
+        specifier: ^0.37.1
+        version: 0.37.3(@types/node@22.19.11)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(graphql-ws@6.0.7(graphql@16.12.0)(ws@8.19.0))(graphql@16.12.0)(react-compiler-runtime@19.1.0-rc.1(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
       '@graphiql/toolkit':
         specifier: ^0.11.3
         version: 0.11.3(@types/node@22.19.11)(graphql-ws@6.0.7(graphql@16.12.0)(ws@8.19.0))(graphql@16.12.0)
       graphiql:
         specifier: ^5.2.2
         version: 5.2.2(@types/node@22.19.11)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(graphql-ws@6.0.7(graphql@16.12.0)(ws@8.19.0))(graphql@16.12.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+      primeflex:
+        specifier: ^3.3.1
+        version: 3.3.1
       primeicons:
         specifier: ^7.0.0
         version: 7.0.0
@@ -80,6 +92,9 @@ importers:
       reactflow:
         specifier: ^11.11.4
         version: 11.11.4(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
     devDependencies:
       '@types/react':
         specifier: ^18.3.18
@@ -142,6 +157,9 @@ importers:
       '@contenthead/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@contenthead/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       next:
         specifier: ^15.2.1
         version: 15.5.12(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -685,6 +703,14 @@ packages:
       graphql: ^15.5.0 || ^16.0.0 || ^17.0.0
       react: ^18 || ^19
       react-compiler-runtime: 19.1.0-rc.1
+      react-dom: ^18 || ^19
+
+  '@graphiql/plugin-explorer@5.1.1':
+    resolution: {integrity: sha512-JknPfk3f/LBWz7HXSTeiRPN6O14rkYTK1ORew7YJsGWUJ3mqZNNlaxOleP5DD+yAgpLExIoCW4TDGOcPdJ0h0w==}
+    peerDependencies:
+      '@graphiql/react': ^0.37.0
+      graphql: ^15.5.0 || ^16.0.0 || ^17.0.0-alpha.2
+      react: ^18 || ^19
       react-dom: ^18 || ^19
 
   '@graphiql/plugin-history@0.4.1':
@@ -2625,6 +2651,13 @@ packages:
     resolution: {integrity: sha512-jhIXaOzy1sb8IyocaruWSn1TjmnBVs8Ayhcy83rmxNJ8q2uWKCAj3CnJY+KpGSXCueAPc0i05kVvVKtP1t9S3g==}
     engines: {node: '>=10'}
 
+  graphiql-explorer@0.9.0:
+    resolution: {integrity: sha512-fZC/wsuatqiQDO2otchxriFO0LaWIo/ovF/CQJ1yOudmY0P7pzDiP+l9CEHUiWbizk3e99x6DQG4XG1VxA+d6A==}
+    peerDependencies:
+      graphql: ^0.6.0 || ^0.7.0 || ^0.8.0-b || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0
+      react: ^15.6.0 || ^16.0.0
+      react-dom: ^15.6.0 || ^16.0.0
+
   graphiql@5.2.2:
     resolution: {integrity: sha512-qYhw7e2QPLPEIdJXqlLa/XkZtEu2SVYyD71abOpPnrzmJzTdB+QsEswFIMg9u1WGkEtp/wi8epCsuKeA/chRcg==}
     peerDependencies:
@@ -3197,6 +3230,9 @@ packages:
     resolution: {integrity: sha512-UOnG6LftzbdaHZcKoPFtOcCKztrQ57WkHDeRD9t/PTQtmT0NHSeWWepj6pS0z/N7+08BHFDQVUrfmfMRcZwbMg==}
     engines: {node: '>=14'}
     hasBin: true
+
+  primeflex@3.3.1:
+    resolution: {integrity: sha512-zaOq3YvcOYytbAmKv3zYc+0VNS9Wg5d37dfxZnveKBFPr7vEIwfV5ydrpiouTft8MVW6qNjfkaQphHSnvgQbpQ==}
 
   primeicons@7.0.0:
     resolution: {integrity: sha512-jK3Et9UzwzTsd6tzl2RmwrVY/b8raJ3QZLzoDACj+oTJ0oX7L9Hy+XnVwgo4QVKlKpnP/Ur13SXV/pVh4LzaDw==}
@@ -3781,6 +3817,9 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
   zod@4.3.6:
     resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
@@ -4236,6 +4275,14 @@ snapshots:
       - '@types/react'
       - immer
       - use-sync-external-store
+
+  '@graphiql/plugin-explorer@5.1.1(@graphiql/react@0.37.3(@types/node@22.19.11)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(graphql-ws@6.0.7(graphql@16.12.0)(ws@8.19.0))(graphql@16.12.0)(react-compiler-runtime@19.1.0-rc.1(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1)))(graphql@16.12.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@graphiql/react': 0.37.3(@types/node@22.19.11)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(graphql-ws@6.0.7(graphql@16.12.0)(ws@8.19.0))(graphql@16.12.0)(react-compiler-runtime@19.1.0-rc.1(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+      graphiql-explorer: 0.9.0(graphql@16.12.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      graphql: 16.12.0
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   '@graphiql/plugin-history@0.4.1(@graphiql/react@0.37.3(@types/node@22.19.11)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(graphql-ws@6.0.7(graphql@16.12.0)(ws@8.19.0))(graphql@16.12.0)(react-compiler-runtime@19.1.0-rc.1(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1)))(@types/node@22.19.11)(@types/react@18.3.28)(graphql-ws@6.0.7(graphql@16.12.0)(ws@8.19.0))(graphql@16.12.0)(react-compiler-runtime@19.1.0-rc.1(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))':
     dependencies:
@@ -6464,6 +6511,12 @@ snapshots:
       merge2: 1.4.1
       slash: 3.0.0
 
+  graphiql-explorer@0.9.0(graphql@16.12.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      graphql: 16.12.0
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
   graphiql@5.2.2(@types/node@22.19.11)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(graphql-ws@6.0.7(graphql@16.12.0)(ws@8.19.0))(graphql@16.12.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1)):
     dependencies:
       '@graphiql/plugin-doc-explorer': 0.4.1(@graphiql/react@0.37.3(@types/node@22.19.11)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(graphql-ws@6.0.7(graphql@16.12.0)(ws@8.19.0))(graphql@16.12.0)(react-compiler-runtime@19.1.0-rc.1(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1)))(@types/react@18.3.28)(graphql@16.12.0)(react-compiler-runtime@19.1.0-rc.1(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
@@ -7044,6 +7097,8 @@ snapshots:
 
   prettier@3.8.1: {}
 
+  primeflex@3.3.1: {}
+
   primeicons@7.0.0: {}
 
   primereact@10.9.7(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
@@ -7616,6 +7671,8 @@ snapshots:
       yargs-parser: 21.1.1
 
   yocto-queue@0.1.0: {}
+
+  zod@3.25.76: {}
 
   zod@4.3.6: {}
 

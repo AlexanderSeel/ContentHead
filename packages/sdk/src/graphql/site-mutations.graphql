@@ -49,6 +49,35 @@ mutation UpsertLocale(
   }
 }
 
+mutation UpsertSiteLocaleOverride(
+  $siteId: Int!
+  $code: String!
+  $displayName: String
+  $fallbackLocaleCode: String
+) {
+  upsertSiteLocaleOverride(
+    siteId: $siteId
+    code: $code
+    displayName: $displayName
+    fallbackLocaleCode: $fallbackLocaleCode
+  ) {
+    code
+    name
+    active
+    fallbackLocaleCode
+    isDefault
+  }
+}
+
+mutation SetSiteUrlPattern($siteId: Int!, $urlPattern: String!) {
+  setSiteUrlPattern(siteId: $siteId, urlPattern: $urlPattern) {
+    id
+    name
+    active
+    urlPattern
+  }
+}
+
 mutation SetSiteMarkets($siteId: Int!, $markets: [SiteMarketInput!]!, $defaultMarketCode: String!) {
   setSiteMarkets(siteId: $siteId, markets: $markets, defaultMarketCode: $defaultMarketCode) {
     code

@@ -3,6 +3,25 @@ query ListSites {
     id
     name
     active
+    urlPattern
+  }
+}
+
+query GetSite($siteId: Int!) {
+  getSite(siteId: $siteId) {
+    id
+    name
+    active
+    urlPattern
+  }
+}
+
+query LocaleCatalog {
+  localeCatalog {
+    code
+    name
+    language
+    region
   }
 }
 

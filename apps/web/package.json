@@ -13,6 +13,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@contenthead/shared": "workspace:*",
     "@contenthead/sdk": "workspace:*",
     "next": "^15.2.1",
     "primeicons": "^7.0.0",

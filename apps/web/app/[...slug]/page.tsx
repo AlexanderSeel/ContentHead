@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 
 import { createSdk } from '@contenthead/sdk';
+import { parseLocalizedPath } from '@contenthead/shared';
 
 type ComponentPayload = {
   type: string;
@@ -73,8 +74,6 @@ export default async function CatchAllPage({
 
   const slug = (resolvedParams.slug ?? []).join('/');
   const siteId = Number((resolvedSearch.siteId as string | undefined) ?? '1');
-  const marketCode = (resolvedSearch.market as string | undefined) ?? 'US';
-  const localeCode = (resolvedSearch.locale as string | undefined) ?? 'en-US';
   const previewToken = (resolvedSearch.previewToken as string | undefined) ?? null;
   const preview = ((resolvedSearch.preview as string | undefined) ?? 'false') === 'true';
   const segments = ((resolvedSearch.segments as string | undefined) ?? '')
@@ -90,11 +89,19 @@ export default async function CatchAllPage({
   });
 
   const sdk = createSdk({ endpoint: process.env.API_URL ?? 'http://localhost:4000/graphql' });
+  const site = await sdk.getSite({ siteId });
+  const urlPattern = site.getSite?.urlPattern ?? '/{market}/{locale}';
+  const parsedFromPath = parseLocalizedPath(urlPattern, resolvedParams.slug ?? []);
+
+  const marketCode = (resolvedSearch.market as string | undefined) ?? parsedFromPath?.marketCode ?? 'US';
+  const localeCode = (resolvedSearch.locale as string | undefined) ?? parsedFromPath?.localeCode ?? 'en-US';
+  const effectiveSlug = parsedFromPath?.slug ?? slug;
+
   const result = await sdk.getPageByRoute({
     siteId,
     marketCode,
     localeCode,
-    slug,
+    slug: effectiveSlug,
     contextJson,
     previewToken,
     preview,

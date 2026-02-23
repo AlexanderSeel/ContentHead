@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql';
+import { localeCatalog, type LocaleCatalogItem as SharedLocaleCatalogItem, validateUrlPattern } from '@contenthead/shared';
 
 import type { DbClient } from '../db/DbClient.js';
 
@@ -6,6 +7,7 @@ export type Site = {
   id: number;
   name: string;
   active: boolean;
+  urlPattern: string;
 };
 
 export type Market = {
@@ -96,6 +98,15 @@ export type SiteMarketLocaleInput = {
   isDefaultForMarket?: boolean | null | undefined;
 };
 
+export type UpsertSiteLocaleOverrideInput = {
+  siteId: number;
+  code: string;
+  displayName?: string | null | undefined;
+  fallbackLocaleCode?: string | null | undefined;
+};
+
+export type LocaleCatalogItem = SharedLocaleCatalogItem;
+
 const INVALID_MARKET_LOCALE = 'INVALID_MARKET_LOCALE';
 
 function graphQLError(message: string): GraphQLError {
@@ -162,7 +173,37 @@ async function getLocaleFallbackChain(db: DbClient, startLocaleCode: string): Pr
 }
 
 export async function listSites(db: DbClient): Promise<Site[]> {
-  return db.all<Site>('SELECT id, name, active FROM sites ORDER BY id');
+  return db.all<Site>(
+    "SELECT id, name, active, COALESCE(url_pattern, '/{market}/{locale}') as urlPattern FROM sites ORDER BY id"
+  );
+}
+
+export async function getSite(db: DbClient, siteId: number): Promise<Site> {
+  const site = await db.get<Site>(
+    "SELECT id, name, active, COALESCE(url_pattern, '/{market}/{locale}') as urlPattern FROM sites WHERE id = ?",
+    [siteId]
+  );
+  if (!site) {
+    throw new GraphQLError(`Site ${siteId} does not exist`, { extensions: { code: 'SITE_NOT_FOUND' } });
+  }
+  return site;
+}
+
+export async function listLocaleCatalog(): Promise<LocaleCatalogItem[]> {
+  return localeCatalog;
+}
+
+export async function setSiteUrlPattern(db: DbClient, siteId: number, urlPattern: string): Promise<Site> {
+  await ensureSiteExists(db, siteId);
+  const validation = validateUrlPattern(urlPattern);
+  if (!validation.valid) {
+    throw new GraphQLError(validation.error ?? 'Invalid URL pattern', {
+      extensions: { code: 'INVALID_URL_PATTERN' }
+    });
+  }
+
+  await db.run('UPDATE sites SET url_pattern = ? WHERE id = ?', [urlPattern, siteId]);
+  return getSite(db, siteId);
 }
 
 export async function listMarkets(db: DbClient, siteId: number): Promise<Market[]> {
@@ -191,12 +232,13 @@ export async function listLocales(db: DbClient, siteId: number): Promise<Locale[
     `
 SELECT
   l.code,
-  l.name,
+  COALESCE(slo.display_name, l.name) as name,
   l.active,
-  l.fallback_locale_code as fallbackLocaleCode,
+  COALESCE(slo.fallback_locale_code, l.fallback_locale_code) as fallbackLocaleCode,
   sl.is_default as isDefault
 FROM site_locales sl
 JOIN locales l ON l.code = sl.locale_code
+LEFT JOIN site_locale_overrides slo ON slo.site_id = sl.site_id AND slo.locale_code = sl.locale_code
 WHERE sl.site_id = ?
 ORDER BY l.code
 `,
@@ -298,6 +340,41 @@ ON CONFLICT(site_id, locale_code) DO UPDATE SET
     await db.run('ROLLBACK');
     throw error;
   }
+
+  return listLocales(db, input.siteId);
+}
+
+export async function upsertSiteLocaleOverride(
+  db: DbClient,
+  input: UpsertSiteLocaleOverrideInput
+): Promise<Locale[]> {
+  await ensureSiteExists(db, input.siteId);
+  const locale = await db.get<{ code: string }>('SELECT code FROM locales WHERE code = ?', [input.code]);
+  if (!locale) {
+    throw new GraphQLError(`Locale ${input.code} does not exist`, {
+      extensions: { code: 'LOCALE_NOT_FOUND' }
+    });
+  }
+
+  if (input.fallbackLocaleCode) {
+    const fallback = await db.get<{ code: string }>('SELECT code FROM locales WHERE code = ?', [input.fallbackLocaleCode]);
+    if (!fallback) {
+      throw new GraphQLError(`Fallback locale ${input.fallbackLocaleCode} does not exist`, {
+        extensions: { code: 'LOCALE_NOT_FOUND' }
+      });
+    }
+  }
+
+  await db.run(
+    `
+INSERT INTO site_locale_overrides(site_id, locale_code, display_name, fallback_locale_code)
+VALUES (?, ?, ?, ?)
+ON CONFLICT(site_id, locale_code) DO UPDATE SET
+  display_name = excluded.display_name,
+  fallback_locale_code = excluded.fallback_locale_code
+`,
+    [input.siteId, input.code, input.displayName ?? null, input.fallbackLocaleCode ?? null]
+  );
 
   return listLocales(db, input.siteId);
 }

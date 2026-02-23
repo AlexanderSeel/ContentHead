@@ -145,6 +145,14 @@ export type Locale = {
   name?: Maybe<Scalars['String']['output']>;
 };
 
+export type LocaleCatalogItem = {
+  __typename?: 'LocaleCatalogItem';
+  code?: Maybe<Scalars['String']['output']>;
+  language?: Maybe<Scalars['String']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  region?: Maybe<Scalars['String']['output']>;
+};
+
 export type Market = {
   __typename?: 'Market';
   active?: Maybe<Scalars['Boolean']['output']>;
@@ -200,6 +208,7 @@ export type Mutation = {
   setSiteLocales?: Maybe<Array<Locale>>;
   setSiteMarketLocaleMatrix?: Maybe<SiteMarketLocaleMatrix>;
   setSiteMarkets?: Maybe<Array<Market>>;
+  setSiteUrlPattern?: Maybe<Site>;
   startWorkflowRun?: Maybe<WorkflowRun>;
   updateContentType?: Maybe<ContentType>;
   updateDraftVersion?: Maybe<ContentVersion>;
@@ -210,6 +219,7 @@ export type Mutation = {
   upsertLocale?: Maybe<Array<Locale>>;
   upsertMarket?: Maybe<Array<Market>>;
   upsertRoute?: Maybe<ContentRoute>;
+  upsertSiteLocaleOverride?: Maybe<Array<Locale>>;
   upsertVariant?: Maybe<Variant>;
   upsertVariantSet?: Maybe<VariantSet>;
   upsertWorkflowDefinition?: Maybe<WorkflowDefinition>;
@@ -405,6 +415,12 @@ export type MutationSetSiteMarketsArgs = {
 };
 
 
+export type MutationSetSiteUrlPatternArgs = {
+  siteId: Scalars['Int']['input'];
+  urlPattern: Scalars['String']['input'];
+};
+
+
 export type MutationStartWorkflowRunArgs = {
   contextJson: Scalars['String']['input'];
   definitionId: Scalars['Int']['input'];
@@ -501,6 +517,14 @@ export type MutationUpsertRouteArgs = {
 };
 
 
+export type MutationUpsertSiteLocaleOverrideArgs = {
+  code: Scalars['String']['input'];
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  fallbackLocaleCode?: InputMaybe<Scalars['String']['input']>;
+  siteId: Scalars['Int']['input'];
+};
+
+
 export type MutationUpsertVariantArgs = {
   contentVersionId: Scalars['Int']['input'];
   id?: InputMaybe<Scalars['Int']['input']>;
@@ -554,6 +578,7 @@ export type Query = {
   evaluateForm?: Maybe<FormEvaluation>;
   getContentItemDetail?: Maybe<ContentItemDetail>;
   getPageByRoute?: Maybe<PageByRoute>;
+  getSite?: Maybe<Site>;
   getSiteDefaults?: Maybe<SiteDefaults>;
   getSiteMarketLocaleMatrix?: Maybe<SiteMarketLocaleMatrix>;
   getWorkflowRun?: Maybe<WorkflowRun>;
@@ -572,6 +597,7 @@ export type Query = {
   listVersions?: Maybe<Array<ContentVersion>>;
   listWorkflowDefinitions?: Maybe<Array<WorkflowDefinition>>;
   listWorkflowRuns?: Maybe<Array<WorkflowRun>>;
+  localeCatalog?: Maybe<Array<LocaleCatalogItem>>;
   me?: Maybe<User>;
   resolveMarketLocale?: Maybe<ResolvedMarketLocale>;
   resolveRoute?: Maybe<ResolvedRoute>;
@@ -608,6 +634,11 @@ export type QueryGetPageByRouteArgs = {
   slug: Scalars['String']['input'];
   variantKeyOverride?: InputMaybe<Scalars['String']['input']>;
   versionIdOverride?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryGetSiteArgs = {
+  siteId: Scalars['Int']['input'];
 };
 
 
@@ -747,6 +778,7 @@ export type Site = {
   active?: Maybe<Scalars['Boolean']['output']>;
   id?: Maybe<Scalars['Int']['output']>;
   name?: Maybe<Scalars['String']['output']>;
+  urlPattern?: Maybe<Scalars['String']['output']>;
 };
 
 export type SiteDefaults = {

@@ -35,6 +35,10 @@ export function createSdk(options: CreateSdkOptions) {
 
     listSites: (requestOptions?: RequestOptions) =>
       execute<G.ListSitesQuery>(G.ListSitesDocument, {}, requestOptions),
+    getSite: (variables: G.GetSiteQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.GetSiteQuery>(G.GetSiteDocument, variables, requestOptions),
+    localeCatalog: (requestOptions?: RequestOptions) =>
+      execute<G.LocaleCatalogQuery>(G.LocaleCatalogDocument, {}, requestOptions),
     listMarkets: (variables: G.ListMarketsQueryVariables, requestOptions?: RequestOptions) =>
       execute<G.ListMarketsQuery>(G.ListMarketsDocument, variables, requestOptions),
     listLocales: (variables: G.ListLocalesQueryVariables, requestOptions?: RequestOptions) =>
@@ -173,6 +177,13 @@ export function createSdk(options: CreateSdkOptions) {
       execute<G.UpsertMarketMutation>(G.UpsertMarketDocument, variables, requestOptions),
     upsertLocale: (variables: G.UpsertLocaleMutationVariables, requestOptions?: RequestOptions) =>
       execute<G.UpsertLocaleMutation>(G.UpsertLocaleDocument, variables, requestOptions),
+    upsertSiteLocaleOverride: (
+      variables: G.UpsertSiteLocaleOverrideMutationVariables,
+      requestOptions?: RequestOptions
+    ) =>
+      execute<G.UpsertSiteLocaleOverrideMutation>(G.UpsertSiteLocaleOverrideDocument, variables, requestOptions),
+    setSiteUrlPattern: (variables: G.SetSiteUrlPatternMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.SetSiteUrlPatternMutation>(G.SetSiteUrlPatternDocument, variables, requestOptions),
     setSiteMarkets: (variables: G.SetSiteMarketsMutationVariables, requestOptions?: RequestOptions) =>
       execute<G.SetSiteMarketsMutation>(G.SetSiteMarketsDocument, variables, requestOptions),
     setSiteLocales: (variables: G.SetSiteLocalesMutationVariables, requestOptions?: RequestOptions) =>
