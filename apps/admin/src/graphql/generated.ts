@@ -27,10 +27,55 @@ export type AiVariantsResult = {
   variantSetId?: Maybe<Scalars['Int']['output']>;
 };
 
+export type Asset = {
+  __typename?: 'Asset';
+  altText?: Maybe<Scalars['String']['output']>;
+  bytes?: Maybe<Scalars['Int']['output']>;
+  checksum?: Maybe<Scalars['String']['output']>;
+  createdAt?: Maybe<Scalars['String']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  filename?: Maybe<Scalars['String']['output']>;
+  folderId?: Maybe<Scalars['Int']['output']>;
+  height?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  mimeType?: Maybe<Scalars['String']['output']>;
+  originalName?: Maybe<Scalars['String']['output']>;
+  siteId?: Maybe<Scalars['Int']['output']>;
+  storagePath?: Maybe<Scalars['String']['output']>;
+  tagsJson?: Maybe<Scalars['String']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['String']['output']>;
+  width?: Maybe<Scalars['Int']['output']>;
+};
+
+export type AssetFolder = {
+  __typename?: 'AssetFolder';
+  createdAt?: Maybe<Scalars['String']['output']>;
+  createdBy?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  parentId?: Maybe<Scalars['Int']['output']>;
+  path?: Maybe<Scalars['String']['output']>;
+  siteId?: Maybe<Scalars['Int']['output']>;
+};
+
 export type AuthPayload = {
   __typename?: 'AuthPayload';
   token?: Maybe<Scalars['String']['output']>;
   user?: Maybe<User>;
+};
+
+export type Connector = {
+  __typename?: 'Connector';
+  configJson?: Maybe<Scalars['String']['output']>;
+  createdAt?: Maybe<Scalars['String']['output']>;
+  domain?: Maybe<Scalars['String']['output']>;
+  enabled?: Maybe<Scalars['Boolean']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  isDefault?: Maybe<Scalars['Boolean']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  type?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['String']['output']>;
 };
 
 export type ContentItem = {
@@ -136,6 +181,26 @@ export type FormStep = {
   position?: Maybe<Scalars['Int']['output']>;
 };
 
+export type InternalRole = {
+  __typename?: 'InternalRole';
+  createdAt?: Maybe<Scalars['String']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  permissions?: Maybe<Array<Scalars['String']['output']>>;
+  updatedAt?: Maybe<Scalars['String']['output']>;
+};
+
+export type InternalUser = {
+  __typename?: 'InternalUser';
+  active?: Maybe<Scalars['Boolean']['output']>;
+  createdAt?: Maybe<Scalars['String']['output']>;
+  displayName?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  roleIds?: Maybe<Array<Scalars['Int']['output']>>;
+  username?: Maybe<Scalars['String']['output']>;
+};
+
 export type Locale = {
   __typename?: 'Locale';
   active?: Maybe<Scalars['Boolean']['output']>;
@@ -186,14 +251,19 @@ export type Mutation = {
   aiTranslateVersion?: Maybe<AiContentResult>;
   approveStep?: Maybe<WorkflowRun>;
   archiveContentItem?: Maybe<ContentItem>;
+  createAssetFolder?: Maybe<AssetFolder>;
   createContentItem?: Maybe<ContentItem>;
   createContentType?: Maybe<ContentType>;
   createDraftVersion?: Maybe<ContentVersion>;
+  createInternalUser?: Maybe<InternalUser>;
   createTemplate?: Maybe<Template>;
+  deleteAsset?: Maybe<Scalars['Boolean']['output']>;
+  deleteConnector?: Maybe<Scalars['Boolean']['output']>;
   deleteContentType?: Maybe<Scalars['Boolean']['output']>;
   deleteForm?: Maybe<Scalars['Boolean']['output']>;
   deleteFormField?: Maybe<Scalars['Boolean']['output']>;
   deleteFormStep?: Maybe<Scalars['Boolean']['output']>;
+  deleteInternalRole?: Maybe<Scalars['Boolean']['output']>;
   deleteRoute?: Maybe<Scalars['Boolean']['output']>;
   deleteTemplate?: Maybe<Scalars['Boolean']['output']>;
   deleteVariant?: Maybe<Scalars['Boolean']['output']>;
@@ -203,19 +273,27 @@ export type Mutation = {
   login?: Maybe<AuthPayload>;
   publishVersion?: Maybe<ContentVersion>;
   reconcileTemplate?: Maybe<VersionDiff>;
+  resetInternalUserPassword?: Maybe<Scalars['Boolean']['output']>;
   retryFailed?: Maybe<WorkflowRun>;
   rollbackToVersion?: Maybe<ContentVersion>;
+  setDefaultConnector?: Maybe<Connector>;
   setSiteLocales?: Maybe<Array<Locale>>;
   setSiteMarketLocaleMatrix?: Maybe<SiteMarketLocaleMatrix>;
   setSiteMarkets?: Maybe<Array<Market>>;
   setSiteUrlPattern?: Maybe<Site>;
+  setUserRoles?: Maybe<Scalars['Boolean']['output']>;
   startWorkflowRun?: Maybe<WorkflowRun>;
+  testConnector?: Maybe<Scalars['String']['output']>;
+  updateAssetMetadata?: Maybe<Asset>;
   updateContentType?: Maybe<ContentType>;
   updateDraftVersion?: Maybe<ContentVersion>;
+  updateInternalUser?: Maybe<InternalUser>;
   updateTemplate?: Maybe<Template>;
+  upsertConnector?: Maybe<Connector>;
   upsertForm?: Maybe<Form>;
   upsertFormField?: Maybe<FormField>;
   upsertFormStep?: Maybe<FormStep>;
+  upsertInternalRole?: Maybe<InternalRole>;
   upsertLocale?: Maybe<Array<Locale>>;
   upsertMarket?: Maybe<Array<Market>>;
   upsertRoute?: Maybe<ContentRoute>;
@@ -275,6 +353,14 @@ export type MutationArchiveContentItemArgs = {
 };
 
 
+export type MutationCreateAssetFolderArgs = {
+  by?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  parentId?: InputMaybe<Scalars['Int']['input']>;
+  siteId: Scalars['Int']['input'];
+};
+
+
 export type MutationCreateContentItemArgs = {
   by?: InputMaybe<Scalars['String']['input']>;
   comment?: InputMaybe<Scalars['String']['input']>;
@@ -304,12 +390,30 @@ export type MutationCreateDraftVersionArgs = {
 };
 
 
+export type MutationCreateInternalUserArgs = {
+  active: Scalars['Boolean']['input'];
+  displayName: Scalars['String']['input'];
+  password: Scalars['String']['input'];
+  username: Scalars['String']['input'];
+};
+
+
 export type MutationCreateTemplateArgs = {
   componentsJson: Scalars['String']['input'];
   compositionJson: Scalars['String']['input'];
   constraintsJson: Scalars['String']['input'];
   name: Scalars['String']['input'];
   siteId: Scalars['Int']['input'];
+};
+
+
+export type MutationDeleteAssetArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationDeleteConnectorArgs = {
+  id: Scalars['Int']['input'];
 };
 
 
@@ -329,6 +433,11 @@ export type MutationDeleteFormFieldArgs = {
 
 
 export type MutationDeleteFormStepArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationDeleteInternalRoleArgs = {
   id: Scalars['Int']['input'];
 };
 
@@ -382,6 +491,12 @@ export type MutationReconcileTemplateArgs = {
 };
 
 
+export type MutationResetInternalUserPasswordArgs = {
+  password: Scalars['String']['input'];
+  userId: Scalars['Int']['input'];
+};
+
+
 export type MutationRetryFailedArgs = {
   runId: Scalars['Int']['input'];
 };
@@ -391,6 +506,12 @@ export type MutationRollbackToVersionArgs = {
   by?: InputMaybe<Scalars['String']['input']>;
   contentItemId: Scalars['Int']['input'];
   versionId: Scalars['Int']['input'];
+};
+
+
+export type MutationSetDefaultConnectorArgs = {
+  domain: Scalars['String']['input'];
+  id: Scalars['Int']['input'];
 };
 
 
@@ -421,10 +542,32 @@ export type MutationSetSiteUrlPatternArgs = {
 };
 
 
+export type MutationSetUserRolesArgs = {
+  roleIds: Array<Scalars['Int']['input']>;
+  userId: Scalars['Int']['input'];
+};
+
+
 export type MutationStartWorkflowRunArgs = {
   contextJson: Scalars['String']['input'];
   definitionId: Scalars['Int']['input'];
   startedBy?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationTestConnectorArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationUpdateAssetMetadataArgs = {
+  altText?: InputMaybe<Scalars['String']['input']>;
+  by?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  folderId?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['Int']['input'];
+  tags?: InputMaybe<Array<Scalars['String']['input']>>;
+  title?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -444,12 +587,30 @@ export type MutationUpdateDraftVersionArgs = {
 };
 
 
+export type MutationUpdateInternalUserArgs = {
+  active: Scalars['Boolean']['input'];
+  displayName: Scalars['String']['input'];
+  id: Scalars['Int']['input'];
+};
+
+
 export type MutationUpdateTemplateArgs = {
   componentsJson: Scalars['String']['input'];
   compositionJson: Scalars['String']['input'];
   constraintsJson: Scalars['String']['input'];
   id: Scalars['Int']['input'];
   name: Scalars['String']['input'];
+};
+
+
+export type MutationUpsertConnectorArgs = {
+  configJson: Scalars['String']['input'];
+  domain: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  id?: InputMaybe<Scalars['Int']['input']>;
+  isDefault: Scalars['Boolean']['input'];
+  name: Scalars['String']['input'];
+  type: Scalars['String']['input'];
 };
 
 
@@ -482,6 +643,14 @@ export type MutationUpsertFormStepArgs = {
   id?: InputMaybe<Scalars['Int']['input']>;
   name: Scalars['String']['input'];
   position: Scalars['Int']['input'];
+};
+
+
+export type MutationUpsertInternalRoleArgs = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['Int']['input']>;
+  name: Scalars['String']['input'];
+  permissions: Array<Scalars['String']['input']>;
 };
 
 
@@ -576,17 +745,24 @@ export type Query = {
   __typename?: 'Query';
   diffVersions?: Maybe<VersionDiff>;
   evaluateForm?: Maybe<FormEvaluation>;
+  getAsset?: Maybe<Asset>;
   getContentItemDetail?: Maybe<ContentItemDetail>;
   getPageByRoute?: Maybe<PageByRoute>;
   getSite?: Maybe<Site>;
   getSiteDefaults?: Maybe<SiteDefaults>;
   getSiteMarketLocaleMatrix?: Maybe<SiteMarketLocaleMatrix>;
   getWorkflowRun?: Maybe<WorkflowRun>;
+  internalPermissions?: Maybe<Array<Scalars['String']['output']>>;
+  listAssetFolders?: Maybe<Array<AssetFolder>>;
+  listAssets?: Maybe<Array<Asset>>;
+  listConnectors?: Maybe<Array<Connector>>;
   listContentItems?: Maybe<Array<ContentItem>>;
   listContentTypes?: Maybe<Array<ContentType>>;
   listFormFields?: Maybe<Array<FormField>>;
   listFormSteps?: Maybe<Array<FormStep>>;
   listForms?: Maybe<Array<Form>>;
+  listInternalRoles?: Maybe<Array<InternalRole>>;
+  listInternalUsers?: Maybe<Array<InternalUser>>;
   listLocales?: Maybe<Array<Locale>>;
   listMarkets?: Maybe<Array<Market>>;
   listRoutes?: Maybe<Array<ContentRoute>>;
@@ -616,6 +792,11 @@ export type QueryEvaluateFormArgs = {
   answersJson: Scalars['String']['input'];
   contextJson?: InputMaybe<Scalars['String']['input']>;
   formId: Scalars['Int']['input'];
+};
+
+
+export type QueryGetAssetArgs = {
+  id: Scalars['Int']['input'];
 };
 
 
@@ -654,6 +835,26 @@ export type QueryGetSiteMarketLocaleMatrixArgs = {
 
 export type QueryGetWorkflowRunArgs = {
   runId: Scalars['Int']['input'];
+};
+
+
+export type QueryListAssetFoldersArgs = {
+  siteId: Scalars['Int']['input'];
+};
+
+
+export type QueryListAssetsArgs = {
+  folderId?: InputMaybe<Scalars['Int']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  siteId: Scalars['Int']['input'];
+  tags?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+
+export type QueryListConnectorsArgs = {
+  domain: Scalars['String']['input'];
 };
 
 

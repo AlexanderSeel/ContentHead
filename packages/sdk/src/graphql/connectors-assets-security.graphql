@@ -1,0 +1,234 @@
+query ListAssets($siteId: Int!, $limit: Int, $offset: Int, $search: String, $folderId: Int, $tags: [String!]) {
+  listAssets(siteId: $siteId, limit: $limit, offset: $offset, search: $search, folderId: $folderId, tags: $tags) {
+    id
+    siteId
+    filename
+    originalName
+    mimeType
+    bytes
+    width
+    height
+    checksum
+    storagePath
+    title
+    altText
+    description
+    tagsJson
+    folderId
+    createdAt
+    updatedAt
+  }
+}
+
+query GetAsset($id: Int!) {
+  getAsset(id: $id) {
+    id
+    siteId
+    filename
+    originalName
+    mimeType
+    bytes
+    width
+    height
+    checksum
+    storagePath
+    title
+    altText
+    description
+    tagsJson
+    folderId
+    createdAt
+    updatedAt
+  }
+}
+
+query ListAssetFolders($siteId: Int!) {
+  listAssetFolders(siteId: $siteId) {
+    id
+    siteId
+    parentId
+    name
+    path
+    createdAt
+    createdBy
+  }
+}
+
+mutation CreateAssetFolder($siteId: Int!, $name: String!, $parentId: Int, $by: String) {
+  createAssetFolder(siteId: $siteId, name: $name, parentId: $parentId, by: $by) {
+    id
+    siteId
+    parentId
+    name
+    path
+    createdAt
+    createdBy
+  }
+}
+
+mutation UpdateAssetMetadata(
+  $id: Int!
+  $title: String
+  $altText: String
+  $description: String
+  $tags: [String!]
+  $folderId: Int
+  $by: String
+) {
+  updateAssetMetadata(
+    id: $id
+    title: $title
+    altText: $altText
+    description: $description
+    tags: $tags
+    folderId: $folderId
+    by: $by
+  ) {
+    id
+    title
+    altText
+    description
+    tagsJson
+    folderId
+    updatedAt
+  }
+}
+
+mutation DeleteAsset($id: Int!) {
+  deleteAsset(id: $id)
+}
+
+query ListConnectors($domain: String!) {
+  listConnectors(domain: $domain) {
+    id
+    domain
+    type
+    name
+    enabled
+    isDefault
+    configJson
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpsertConnector(
+  $id: Int
+  $domain: String!
+  $type: String!
+  $name: String!
+  $enabled: Boolean!
+  $isDefault: Boolean!
+  $configJson: String!
+) {
+  upsertConnector(
+    id: $id
+    domain: $domain
+    type: $type
+    name: $name
+    enabled: $enabled
+    isDefault: $isDefault
+    configJson: $configJson
+  ) {
+    id
+    domain
+    type
+    name
+    enabled
+    isDefault
+    configJson
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeleteConnector($id: Int!) {
+  deleteConnector(id: $id)
+}
+
+mutation SetDefaultConnector($domain: String!, $id: Int!) {
+  setDefaultConnector(domain: $domain, id: $id) {
+    id
+    domain
+    type
+    name
+    enabled
+    isDefault
+    configJson
+  }
+}
+
+mutation TestConnector($id: Int!) {
+  testConnector(id: $id)
+}
+
+query ListInternalUsers {
+  listInternalUsers {
+    id
+    username
+    displayName
+    active
+    createdAt
+    roleIds
+  }
+}
+
+query ListInternalRoles {
+  listInternalRoles {
+    id
+    name
+    description
+    permissions
+    createdAt
+    updatedAt
+  }
+}
+
+query InternalPermissions {
+  internalPermissions
+}
+
+mutation CreateInternalUser($username: String!, $displayName: String!, $password: String!, $active: Boolean!) {
+  createInternalUser(username: $username, displayName: $displayName, password: $password, active: $active) {
+    id
+    username
+    displayName
+    active
+    createdAt
+    roleIds
+  }
+}
+
+mutation UpdateInternalUser($id: Int!, $displayName: String!, $active: Boolean!) {
+  updateInternalUser(id: $id, displayName: $displayName, active: $active) {
+    id
+    username
+    displayName
+    active
+    createdAt
+    roleIds
+  }
+}
+
+mutation ResetInternalUserPassword($userId: Int!, $password: String!) {
+  resetInternalUserPassword(userId: $userId, password: $password)
+}
+
+mutation UpsertInternalRole($id: Int, $name: String!, $description: String, $permissions: [String!]!) {
+  upsertInternalRole(id: $id, name: $name, description: $description, permissions: $permissions) {
+    id
+    name
+    description
+    permissions
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeleteInternalRole($id: Int!) {
+  deleteInternalRole(id: $id)
+}
+
+mutation SetUserRoles($userId: Int!, $roleIds: [Int!]!) {
+  setUserRoles(userId: $userId, roleIds: $roleIds)
+}

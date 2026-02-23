@@ -2,8 +2,8 @@
 
 TypeScript-only pnpm workspace:
 - `apps/api`: GraphQL API (auth, matrix, CMS core, variants, forms, workflows, AI connector)
-- `apps/admin`: Vite + React + PrimeReact admin (content, variants, visivic preview, forms, workflow designer)
-- `apps/web`: Next.js renderer (`/[...slug]` + `/preview`)
+- `apps/admin`: Vite + React + PrimeReact admin (content, variants, visivic preview, forms, workflow designer, DAM, connectors, security)
+- `apps/web`: Next.js renderer (`/[...slug]`, `/demo`, `/preview`)
 - `packages/schema`: exported GraphQL SDL
 - `packages/shared`: shared deterministic rule/condition engines
 - `packages/sdk`: typed GraphQL client (`graphql-request` + TypedDocumentNode)
@@ -28,6 +28,7 @@ pnpm --filter @contenthead/api seed
 - API GraphQL: `http://localhost:4000/graphql`
 - Admin: `http://localhost:5173`
 - Web: `http://localhost:3000`
+- Web Demo Landing: `http://localhost:3000/demo?siteId=1&market=US&locale=en-US`
 - Web Preview (Visivic): `http://localhost:3000/preview?contentItemId=<id>&token=<previewToken>&siteId=1&market=US&locale=en-US`
 
 ## Theme Switcher
@@ -60,9 +61,9 @@ Admin now uses routed backend UI with shell layout:
 - Topbar + Breadcrumbs + Site/Market/Locale switchers + user menu
 - Sidebar sections:
   - Dashboard
-  - Site Settings (`/site/overview`, `/site/markets-locales`)
-  - Content (`/content/pages`, `/content/templates`, `/content/routes`)
-  - Schema (`/schema/content-types`)
+  - Site Settings (`/site/overview`, `/site/markets-locales`, `/site/content-types`)
+  - Content (`/content/pages`, `/content/templates`, `/content/routes`, `/content/assets`)
+  - Connector Settings (`/settings/global/connectors/auth|db|dam|ai`)
   - Personalization (`/personalization/variants`)
   - Forms (`/forms/builder`)
   - Workflows (`/workflows/designer`, `/workflows/runs`)
@@ -75,6 +76,59 @@ Content Pages route (`/content/pages`) now uses a full-width CMS workspace:
 - Sticky action bar: create/save/publish, issue preview token, open `Preview website`, Ask AI
 - Raw JSON editing is `Advanced`-only (explicit enable toggle)
 - `contentLink` and `contentLinkList` field types keep the Link Selector dialog with internal/external tabs.
+- `assetRef` and `assetList` field types use DAM picker dialogs (folders, thumbnail grid, metadata preview).
+
+## Demo Landing Page
+- Seed creates a CMS-driven **Demo Landing Page** route at:
+  - `US/en-US`: `/demo`
+  - `DE/de-DE`: `/demo`
+- Composition includes:
+  - Hero
+  - Feature grid
+  - Alternating image/text teasers
+  - Pricing table
+  - FAQ
+  - Newsletter form block (`formRef`)
+  - Footer with link groups and social links
+- Seed also creates:
+  - DAM assets (`demo-hero.svg`, `demo-section.svg`)
+  - Newsletter form (`Newsletter Signup`)
+  - Variant `hero_ab` changing hero headline and section ordering
+
+## DAM (Digital Asset Management)
+- API:
+  - GraphQL: `listAssets`, `getAsset`, `listAssetFolders`, `createAssetFolder`, `updateAssetMetadata`, `deleteAsset`
+  - Upload endpoint: `POST /api/assets/upload?siteId=<id>[&folderId=<id>]` (multipart form)
+  - Serve original: `GET /assets/:id`
+  - Serve rendition: `GET /assets/:id/rendition/:kind` (`thumb|small|medium|large`)
+- Storage:
+  - `AssetStorageProvider` interface with `LocalFileStorageProvider`
+  - local default path: `apps/api/.data/assets` (configurable via DAM connector / `ASSETS_BASE_PATH`)
+  - image thumbnails generated with `sharp`
+- Admin:
+  - Asset library page: `/content/assets`
+  - Metadata editing: title, alt text, description, tags
+  - Asset picker in content fields and component props
+
+## Connector Settings
+- Generic connector framework (`connectors` table + GraphQL CRUD/test/default operations)
+- Settings pages:
+  - `/settings/global/connectors/auth`
+  - `/settings/global/connectors/db`
+  - `/settings/global/connectors/dam`
+  - `/settings/global/connectors/ai`
+- Baseline providers seeded:
+  - Auth: `internal`
+  - DB: `duckdb` (runtime still fixed to DuckDB for now)
+  - DAM: `localfs`
+  - AI: `mock`
+
+## Internal Security Baseline
+- Users and Roles are fully manageable in admin:
+  - `/security/users`: create user, activate/deactivate, reset password, assign roles
+  - `/security/roles`: CRUD roles and permissions
+- Seed ensures baseline roles/permissions and internal auth fallback.
+- Login page shows external auth provider stubs when enabled connectors exist; internal auth remains default fallback.
 
 ## Rule Editor
 - Variants and Form Builder conditions now provide a visual Rule Editor dialog.
@@ -200,6 +254,7 @@ Content Pages route (`/content/pages`) now uses a full-width CMS workspace:
   - `aiTranslateVersion`
 - All AI payloads validated with Zod before commit to DB
 - AI actions are workflow-node compatible
+- Default AI provider now resolves from connector settings (fallback: `mock`)
 
 ## Seeded Workflow
 `pnpm --filter @contenthead/api seed` creates `Default Publish Flow v1`:
@@ -218,29 +273,23 @@ pnpm dev
 3. Matrix setup:
 - ensure active combo `US / en-US` (already seeded)
 
-4. Create content:
-- create content type
-- create content item
-- save draft
-- publish
-- add route (for example `home`)
+4. Open seeded demo:
+- `http://localhost:3000/demo?siteId=1&market=US&locale=en-US`
+- optional variant segment trigger: `&segments=experiment_b`
 
-5. Variants:
-- create/select variant set for `US/en-US`
-- add at least two variants with different rules
-- bind each variant to a content version
+5. Visivic preview:
+- open `Content -> Pages`
+- select the `demo` route
+- use on-page bridge to select and edit fields/components
 
-6. Visivic preview:
-- issue preview token in Content Editor
-- open iframe preview panel
-- click/hover annotated element in preview
-- admin focuses/highlights corresponding field row
+6. DAM flow:
+- go to `/content/assets`
+- upload image(s), edit metadata
+- use `assetRef`/`assetList` in fields or component props
 
 7. Forms:
-- open Form Builder
-- create form + step + field
-- set `conditionsJson` (example: `{"showIf":{"op":"eq","field":"country","value":"US"}}`)
-- run Evaluate Form with `contextJson` `{ "country": "US" }`
+- seeded `Newsletter Signup` form is wired to newsletter component
+- submit on `/demo` executes `evaluateForm` validation
 
 8. Workflows:
 - open Workflow Designer
@@ -251,8 +300,8 @@ pnpm dev
 - run resumes and completes
 
 9. Web published rendering:
-- open route: `http://localhost:3000/home?siteId=1&market=US&locale=en-US`
-- optional variant context: `&segments=vip`
+- open route: `http://localhost:3000/demo?siteId=1&market=US&locale=en-US`
+- optional variant context: `&segments=experiment_b`
 
 ## Validation Status
 Passed locally:

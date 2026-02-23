@@ -99,6 +99,26 @@ import {
   aiTranslateVersion
 } from '../ai/service.js';
 import {
+  type AssetFolderRecord,
+  type AssetRecord,
+  createAssetFolder,
+  deleteAsset,
+  getAsset,
+  listAssetFolders,
+  listAssets,
+  updateAssetMetadata
+} from '../assets/service.js';
+import type { AssetStorageProvider } from '../assets/storage.js';
+import {
+  type ConnectorDomain,
+  type ConnectorRecord,
+  deleteConnector,
+  listConnectors,
+  setDefaultConnector,
+  testConnector,
+  upsertConnector
+} from '../connectors/service.js';
+import {
   type WorkflowDefinitionRecord,
   type WorkflowRunRecord,
   approveWorkflowStep,
@@ -111,10 +131,25 @@ import {
   upsertWorkflowDefinition
 } from '../workflow/service.js';
 import type { SafeUser } from '../types/user.js';
+import {
+  INTERNAL_PERMISSIONS,
+  type InternalRoleRecord,
+  type InternalUserRecord,
+  createInternalUser,
+  deleteInternalRole,
+  listInternalRoles,
+  listInternalUsers,
+  listUserRoles,
+  resetInternalUserPassword,
+  setUserRoles,
+  updateInternalUser,
+  upsertInternalRole
+} from '../security/service.js';
 
 export type GraphqlContext = {
   auth: InternalAuthProvider;
   db: DbClient;
+  assetStorage?: AssetStorageProvider;
   currentUser: SafeUser | null;
 };
 
@@ -521,6 +556,83 @@ FormEvaluationRef.implement({
   })
 });
 
+const AssetRef = builder.objectRef<AssetRecord>('Asset');
+AssetRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    siteId: t.exposeInt('siteId'),
+    filename: t.exposeString('filename'),
+    originalName: t.exposeString('originalName'),
+    mimeType: t.exposeString('mimeType'),
+    bytes: t.exposeInt('bytes'),
+    width: t.exposeInt('width', { nullable: true }),
+    height: t.exposeInt('height', { nullable: true }),
+    checksum: t.exposeString('checksum', { nullable: true }),
+    storagePath: t.exposeString('storagePath'),
+    title: t.exposeString('title', { nullable: true }),
+    altText: t.exposeString('altText', { nullable: true }),
+    description: t.exposeString('description', { nullable: true }),
+    tagsJson: t.exposeString('tagsJson', { nullable: true }),
+    folderId: t.exposeInt('folderId', { nullable: true }),
+    createdAt: t.exposeString('createdAt'),
+    updatedAt: t.exposeString('updatedAt')
+  })
+});
+
+const AssetFolderRef = builder.objectRef<AssetFolderRecord>('AssetFolder');
+AssetFolderRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    siteId: t.exposeInt('siteId'),
+    parentId: t.exposeInt('parentId', { nullable: true }),
+    name: t.exposeString('name'),
+    path: t.exposeString('path'),
+    createdAt: t.exposeString('createdAt'),
+    createdBy: t.exposeString('createdBy')
+  })
+});
+
+const ConnectorRef = builder.objectRef<ConnectorRecord>('Connector');
+ConnectorRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    domain: t.exposeString('domain'),
+    type: t.exposeString('type'),
+    name: t.exposeString('name'),
+    enabled: t.exposeBoolean('enabled'),
+    isDefault: t.exposeBoolean('isDefault'),
+    configJson: t.exposeString('configJson'),
+    createdAt: t.exposeString('createdAt'),
+    updatedAt: t.exposeString('updatedAt')
+  })
+});
+
+const InternalUserRef = builder.objectRef<InternalUserRecord>('InternalUser');
+InternalUserRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    username: t.exposeString('username'),
+    displayName: t.exposeString('displayName'),
+    active: t.exposeBoolean('active'),
+    createdAt: t.exposeString('createdAt'),
+    roleIds: t.intList({
+      resolve: async (parent, _args, ctx) => listUserRoles(ctx.db, parent.id)
+    })
+  })
+});
+
+const InternalRoleRef = builder.objectRef<InternalRoleRecord>('InternalRole');
+InternalRoleRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    name: t.exposeString('name'),
+    description: t.exposeString('description', { nullable: true }),
+    permissions: t.exposeStringList('permissions'),
+    createdAt: t.exposeString('createdAt'),
+    updatedAt: t.exposeString('updatedAt')
+  })
+});
+
 const WorkflowDefinitionRef = builder.objectRef<WorkflowDefinitionRecord>('WorkflowDefinition');
 WorkflowDefinitionRef.implement({
   fields: (t) => ({
@@ -900,6 +1012,57 @@ builder.queryType({
         args: { formId: number; answersJson: string; contextJson?: string | null | undefined },
         ctx
       ) => evaluateForm(ctx.db, args)
+    }),
+    listAssets: t.field({
+      type: [AssetRef],
+      args: {
+        siteId: t.arg.int({ required: true }),
+        limit: t.arg.int({ required: false }),
+        offset: t.arg.int({ required: false }),
+        search: t.arg.string({ required: false }),
+        folderId: t.arg.int({ required: false }),
+        tags: t.arg.stringList({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          siteId: number;
+          limit?: number | null | undefined;
+          offset?: number | null | undefined;
+          search?: string | null | undefined;
+          folderId?: number | null | undefined;
+          tags?: string[] | null | undefined;
+        },
+        ctx
+      ) => listAssets(ctx.db, args)
+    }),
+    getAsset: t.field({
+      type: AssetRef,
+      nullable: true,
+      args: { id: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { id: number }, ctx) => getAsset(ctx.db, args.id)
+    }),
+    listAssetFolders: t.field({
+      type: [AssetFolderRef],
+      args: { siteId: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { siteId: number }, ctx) => listAssetFolders(ctx.db, args.siteId)
+    }),
+    listConnectors: t.field({
+      type: [ConnectorRef],
+      args: { domain: t.arg.string({ required: true }) },
+      resolve: async (_root, args: { domain: string }, ctx) =>
+        listConnectors(ctx.db, args.domain as ConnectorDomain)
+    }),
+    listInternalUsers: t.field({
+      type: [InternalUserRef],
+      resolve: async (_root, _args, ctx) => listInternalUsers(ctx.db)
+    }),
+    listInternalRoles: t.field({
+      type: [InternalRoleRef],
+      resolve: async (_root, _args, ctx) => listInternalRoles(ctx.db)
+    }),
+    internalPermissions: t.stringList({
+      resolve: async () => [...INTERNAL_PERMISSIONS]
     }),
     listWorkflowDefinitions: t.field({
       type: [WorkflowDefinitionRef],
@@ -1619,6 +1782,175 @@ builder.mutationType({
           targetLocaleCode: args.targetLocaleCode,
           by: args.by ?? ctx.currentUser?.username ?? 'system'
         })
+    }),
+    createAssetFolder: t.field({
+      type: AssetFolderRef,
+      args: {
+        siteId: t.arg.int({ required: true }),
+        name: t.arg.string({ required: true }),
+        parentId: t.arg.int({ required: false }),
+        by: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { siteId: number; name: string; parentId?: number | null | undefined; by?: string | null | undefined },
+        ctx
+      ) =>
+        createAssetFolder(ctx.db, {
+          siteId: args.siteId,
+          name: args.name,
+          parentId: args.parentId,
+          by: args.by ?? ctx.currentUser?.username ?? 'system'
+        })
+    }),
+    updateAssetMetadata: t.field({
+      type: AssetRef,
+      args: {
+        id: t.arg.int({ required: true }),
+        title: t.arg.string({ required: false }),
+        altText: t.arg.string({ required: false }),
+        description: t.arg.string({ required: false }),
+        tags: t.arg.stringList({ required: false }),
+        folderId: t.arg.int({ required: false }),
+        by: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          id: number;
+          title?: string | null | undefined;
+          altText?: string | null | undefined;
+          description?: string | null | undefined;
+          tags?: string[] | null | undefined;
+          folderId?: number | null | undefined;
+          by?: string | null | undefined;
+        },
+        ctx
+      ) =>
+        updateAssetMetadata(ctx.db, {
+          ...args,
+          by: args.by ?? ctx.currentUser?.username ?? 'system'
+        })
+    }),
+    deleteAsset: t.boolean({
+      args: { id: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { id: number }, ctx) => {
+        if (!ctx.assetStorage) {
+          throw new Error('Asset storage is not configured');
+        }
+        return deleteAsset(ctx.db, ctx.assetStorage, args.id);
+      }
+    }),
+    upsertConnector: t.field({
+      type: ConnectorRef,
+      args: {
+        id: t.arg.int({ required: false }),
+        domain: t.arg.string({ required: true }),
+        type: t.arg.string({ required: true }),
+        name: t.arg.string({ required: true }),
+        enabled: t.arg.boolean({ required: true }),
+        isDefault: t.arg.boolean({ required: true }),
+        configJson: t.arg.string({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: {
+          id?: number | null | undefined;
+          domain: string;
+          type: string;
+          name: string;
+          enabled: boolean;
+          isDefault: boolean;
+          configJson: string;
+        },
+        ctx
+      ) =>
+        upsertConnector(ctx.db, {
+          id: args.id,
+          domain: args.domain as ConnectorDomain,
+          type: args.type,
+          name: args.name,
+          enabled: args.enabled,
+          isDefault: args.isDefault,
+          configJson: args.configJson
+        })
+    }),
+    deleteConnector: t.boolean({
+      args: { id: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { id: number }, ctx) => deleteConnector(ctx.db, args.id)
+    }),
+    setDefaultConnector: t.field({
+      type: ConnectorRef,
+      args: {
+        domain: t.arg.string({ required: true }),
+        id: t.arg.int({ required: true })
+      },
+      resolve: async (_root, args: { domain: string; id: number }, ctx) =>
+        setDefaultConnector(ctx.db, args.domain as ConnectorDomain, args.id)
+    }),
+    testConnector: t.string({
+      args: {
+        id: t.arg.int({ required: true })
+      },
+      resolve: async (_root, args: { id: number }, ctx) => testConnector(ctx.db, args.id)
+    }),
+    createInternalUser: t.field({
+      type: InternalUserRef,
+      args: {
+        username: t.arg.string({ required: true }),
+        displayName: t.arg.string({ required: true }),
+        password: t.arg.string({ required: true }),
+        active: t.arg.boolean({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: { username: string; displayName: string; password: string; active: boolean },
+        ctx
+      ) => createInternalUser(ctx.db, args)
+    }),
+    updateInternalUser: t.field({
+      type: InternalUserRef,
+      args: {
+        id: t.arg.int({ required: true }),
+        displayName: t.arg.string({ required: true }),
+        active: t.arg.boolean({ required: true })
+      },
+      resolve: async (_root, args: { id: number; displayName: string; active: boolean }, ctx) =>
+        updateInternalUser(ctx.db, args)
+    }),
+    resetInternalUserPassword: t.boolean({
+      args: {
+        userId: t.arg.int({ required: true }),
+        password: t.arg.string({ required: true })
+      },
+      resolve: async (_root, args: { userId: number; password: string }, ctx) =>
+        resetInternalUserPassword(ctx.db, args.userId, args.password)
+    }),
+    upsertInternalRole: t.field({
+      type: InternalRoleRef,
+      args: {
+        id: t.arg.int({ required: false }),
+        name: t.arg.string({ required: true }),
+        description: t.arg.string({ required: false }),
+        permissions: t.arg.stringList({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: { id?: number | null | undefined; name: string; description?: string | null | undefined; permissions: string[] },
+        ctx
+      ) => upsertInternalRole(ctx.db, args)
+    }),
+    deleteInternalRole: t.boolean({
+      args: { id: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { id: number }, ctx) => deleteInternalRole(ctx.db, args.id)
+    }),
+    setUserRoles: t.boolean({
+      args: {
+        userId: t.arg.int({ required: true }),
+        roleIds: t.arg.intList({ required: true })
+      },
+      resolve: async (_root, args: { userId: number; roleIds: number[] }, ctx) =>
+        setUserRoles(ctx.db, args.userId, args.roleIds)
     }),
     issuePreviewToken: t.field({
       type: PreviewTokenRef,

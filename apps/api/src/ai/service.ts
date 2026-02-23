@@ -5,6 +5,7 @@ import type { DbClient } from '../db/DbClient.js';
 import { createContentItem, createContentType, createDraftVersion, updateDraftVersion } from '../content/service.js';
 import { upsertVariantSet, upsertVariant } from '../content/variantService.js';
 import { validateMarketLocale } from '../marketLocale/service.js';
+import { resolveDefaultConnector } from '../connectors/service.js';
 import { MockAIProvider, OpenAICompatibleProviderStub, type AIProvider } from './provider.js';
 
 const fieldDefSchema = z.object({
@@ -37,10 +38,17 @@ const variantsSchema = z.object({
   )
 });
 
-function aiProvider(): AIProvider {
-  const key = process.env.OPENAI_API_KEY ?? null;
-  if (key) {
-    return new OpenAICompatibleProviderStub(key);
+async function aiProvider(db: DbClient): Promise<AIProvider> {
+  const connector = await resolveDefaultConnector(db, 'ai');
+  if (connector?.type === 'openai_compatible') {
+    try {
+      const config = JSON.parse(connector.configJson) as { apiKey?: string | null | undefined };
+      if (config.apiKey) {
+        return new OpenAICompatibleProviderStub(config.apiKey);
+      }
+    } catch {
+      return new MockAIProvider();
+    }
   }
   return new MockAIProvider();
 }
@@ -127,7 +135,7 @@ export async function aiGenerateContentType(
     by: string;
   }
 ) {
-  const raw = await aiProvider().generateContentType({ prompt: input.prompt, nameHint: input.nameHint });
+  const raw = await (await aiProvider(db)).generateContentType({ prompt: input.prompt, nameHint: input.nameHint });
   const validated = contentTypeSchema.parse(raw);
 
   return createContentType(db, {
@@ -176,7 +184,7 @@ WHERE i.id = ?
     [contentItemId]
   );
 
-  const raw = await aiProvider().generateContent({
+  const raw = await (await aiProvider(db)).generateContent({
     prompt: input.prompt,
     contentTypeName: itemType?.name ?? 'Content'
   });
@@ -224,7 +232,7 @@ export async function aiGenerateVariants(
   await validateMarketLocale(db, input.siteId, input.marketCode, input.localeCode);
   await getVersionById(db, input.targetVersionId);
 
-  const raw = await aiProvider().generateVariants({ prompt: input.prompt });
+  const raw = await (await aiProvider(db)).generateVariants({ prompt: input.prompt });
   const validated = variantsSchema.parse(raw);
 
   const set = input.variantSetId
@@ -278,7 +286,7 @@ export async function aiTranslateVersion(
 
   await validateMarketLocale(db, site.siteId, input.targetMarketCode, input.targetLocaleCode);
 
-  const raw = await aiProvider().translate({
+  const raw = await (await aiProvider(db)).translate({
     targetLocale: input.targetLocaleCode,
     targetMarket: input.targetMarketCode,
     source: {

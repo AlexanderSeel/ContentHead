@@ -1,19 +1,37 @@
-@import "primereact/resources/themes/lara-light-blue/theme.css";
-@import "primereact/resources/primereact.min.css";
-@import "primeicons/primeicons.css";
-
 :root {
-  font-family: "Segoe UI", sans-serif;
-  color: #0f172a;
-  background: #eef2ff;
+  --bg: #f5f8ff;
+  --surface: #ffffff;
+  --surface-2: #f2f5ff;
+  --text: #13203a;
+  --muted: #5b6b86;
+  --border: #d7dfef;
+  --brand: #1e5dff;
+  --brand-strong: #0f44ce;
+  --accent: #12b5a6;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 12px 36px rgba(16, 41, 95, 0.11);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  padding: 0;
+  min-height: 100%;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 8% -15%, #d6e2ff 0%, rgba(214, 226, 255, 0) 45%),
+    radial-gradient(circle at 88% 4%, #d4fbf7 0%, rgba(212, 251, 247, 0) 40%),
+    var(--bg);
+  font-family: "Sora", "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+a {
+  color: inherit;
 }
 
 .web-shell {
@@ -23,6 +41,185 @@ body {
   padding: 2rem;
 }
 
-.p-card {
-  width: min(520px, 100%);
+.cms-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 4rem;
+}
+
+.cms-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: clamp(1rem, 2vw, 2rem);
+  margin-bottom: 1rem;
+}
+
+.cms-hero {
+  position: relative;
+  overflow: hidden;
+  color: #f7fbff;
+  background: linear-gradient(130deg, #1a3b98 0%, #1e5dff 52%, #12b5a6 100%);
+}
+
+.cms-hero h1 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(2rem, 5vw, 3.45rem);
+}
+
+.cms-hero p {
+  color: rgba(255, 255, 255, 0.92);
+  max-width: 64ch;
+}
+
+.cms-buttons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.cms-btn {
+  border-radius: 999px;
+  padding: 0.7rem 1.1rem;
+  text-decoration: none;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.cms-btn:hover {
+  transform: translateY(-1px);
+}
+
+.cms-btn.primary {
+  background: #ffffff;
+  color: #11307d;
+}
+
+.cms-btn.secondary {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+}
+
+.cms-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.cms-grid.features {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.cms-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 1rem;
+}
+
+.cms-card h3,
+.cms-card h4 {
+  margin: 0 0 0.45rem;
+}
+
+.cms-muted {
+  color: var(--muted);
+}
+
+.cms-image-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  align-items: center;
+}
+
+.cms-image-row.invert .cms-image-wrap {
+  order: 2;
+}
+
+.cms-image-wrap img {
+  width: 100%;
+  height: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.cms-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.9rem;
+}
+
+.cms-pricing-tier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.cms-price {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.cms-faq-item {
+  border-top: 1px solid var(--border);
+  padding: 0.7rem 0;
+}
+
+.cms-faq-item summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.cms-newsletter {
+  background: linear-gradient(160deg, #f1f7ff 0%, #ebfdf9 100%);
+}
+
+.cms-newsletter form {
+  display: grid;
+  gap: 0.65rem;
+  max-width: 34rem;
+}
+
+.cms-newsletter input,
+.cms-newsletter textarea {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+}
+
+.cms-footer {
+  background: #0f2042;
+  color: #dce6ff;
+}
+
+.cms-footer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1rem;
+}
+
+.cms-footer a {
+  color: #dce6ff;
+  text-decoration: none;
+}
+
+.cms-top-meta {
+  color: var(--muted);
+  margin: 0.4rem auto 0.7rem;
+  max-width: 1120px;
+  padding: 0 1.25rem;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 680px) {
+  .cms-page {
+    padding: 0.8rem 0.75rem 2rem;
+  }
 }

@@ -13,7 +13,8 @@ export function Sidebar({ showDevTools }: { showDevTools: boolean }) {
         icon: 'pi pi-cog',
         items: [
           { label: 'Markets & Locales', command: () => navigate('/site/markets-locales') },
-          { label: 'Site Overview', command: () => navigate('/site/overview') }
+          { label: 'Site Overview', command: () => navigate('/site/overview') },
+          { label: 'Content Types', command: () => navigate('/site/content-types') }
         ]
       },
       {
@@ -22,13 +23,19 @@ export function Sidebar({ showDevTools }: { showDevTools: boolean }) {
         items: [
           { label: 'Pages', command: () => navigate('/content/pages') },
           { label: 'Templates', command: () => navigate('/content/templates') },
-          { label: 'Routes', command: () => navigate('/content/routes') }
+          { label: 'Routes', command: () => navigate('/content/routes') },
+          { label: 'Assets (DAM)', command: () => navigate('/content/assets') }
         ]
       },
       {
-        label: 'Schema',
-        icon: 'pi pi-sitemap',
-        items: [{ label: 'Content Types', command: () => navigate('/schema/content-types') }]
+        label: 'Connector Settings',
+        icon: 'pi pi-plug',
+        items: [
+          { label: 'Auth', command: () => navigate('/settings/global/connectors/auth') },
+          { label: 'DB', command: () => navigate('/settings/global/connectors/db') },
+          { label: 'DAM', command: () => navigate('/settings/global/connectors/dam') },
+          { label: 'AI', command: () => navigate('/settings/global/connectors/ai') }
+        ]
       },
       {
         label: 'Personalization',

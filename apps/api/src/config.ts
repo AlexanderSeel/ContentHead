@@ -16,6 +16,8 @@ export const config = {
   seedAdminUsername: process.env.SEED_ADMIN_USERNAME ?? 'admin',
   seedAdminPassword: process.env.SEED_ADMIN_PASSWORD ?? 'admin123!',
   seedAdminDisplayName: process.env.SEED_ADMIN_DISPLAY_NAME ?? 'Administrator',
+  assetsBasePath: process.env.ASSETS_BASE_PATH ?? './.data/assets',
+  connectorSecretKey: process.env.CONNECTOR_SECRET_KEY ?? process.env.JWT_SECRET ?? 'change-me',
   enableIntrospection:
     (process.env.GRAPHQL_INTROSPECTION ?? '').toLowerCase() === 'true' ||
     (process.env.NODE_ENV ?? 'development') === 'development'

@@ -10,7 +10,9 @@ export const CONTENT_FIELD_TYPES = [
     { label: 'Reference', value: 'reference' },
     { label: 'JSON', value: 'json' },
     { label: 'Content Link', value: 'contentLink' },
-    { label: 'Content Link List', value: 'contentLinkList' }
+    { label: 'Content Link List', value: 'contentLinkList' },
+    { label: 'Asset Reference', value: 'assetRef' },
+    { label: 'Asset List', value: 'assetList' }
 ];
 export function parseFieldsJson(value) {
     try {

@@ -13,13 +13,8 @@ type AreaPayload = {
 
 type ComponentPayload = {
   type: string;
-  title?: string;
-  subtitle?: string;
-  body?: string;
-  text?: string;
-  html?: string;
-  href?: string;
-  items?: Array<{ title: string; href: string }>;
+  props?: Record<string, unknown>;
+  [key: string]: unknown;
 };
 
 export default async function CatchAllPage({
@@ -80,10 +75,67 @@ export default async function CatchAllPage({
   const composition = JSON.parse(version.compositionJson ?? '{}') as { areas?: AreaPayload[] };
   const components = JSON.parse(version.componentsJson ?? '{}') as Record<string, ComponentPayload>;
   const fields = JSON.parse(version.fieldsJson ?? '{}') as Record<string, unknown>;
+  const apiBaseUrl = (process.env.API_URL ?? 'http://localhost:4000/graphql').replace('/graphql', '');
+
+  const componentEntries = Object.values(components ?? {});
+  const collectAssetIds = (value: unknown, acc: Set<number>) => {
+    if (typeof value === 'number') {
+      acc.add(value);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((entry) => collectAssetIds(entry, acc));
+      return;
+    }
+    if (value && typeof value === 'object') {
+      Object.values(value as Record<string, unknown>).forEach((entry) => collectAssetIds(entry, acc));
+    }
+  };
+  const assetIds = new Set<number>();
+  const formIds = new Set<number>();
+  for (const component of componentEntries) {
+    const props = component?.props && typeof component.props === 'object' ? component.props : component;
+    collectAssetIds(props, assetIds);
+    const maybeFormId = (props as Record<string, unknown>).formId;
+    if (typeof maybeFormId === 'number') {
+      formIds.add(maybeFormId);
+    }
+  }
+
+  const assetRows = await Promise.all(
+    Array.from(assetIds).map(async (id) => {
+      const res = await sdk.getAsset({ id });
+      return res.getAsset;
+    })
+  );
+  const assets = Object.fromEntries(
+    assetRows.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)).map((entry) => [entry.id, entry])
+  );
+
+  const formRows = await Promise.all(
+    Array.from(formIds).map(async (formId) => {
+      const formFields = await sdk.listFormFields({ formId });
+      return [
+        formId,
+        {
+          fields: (formFields.listFormFields ?? [])
+            .filter((entry) => typeof entry.id === 'number' && typeof entry.key === 'string')
+            .map((entry) => ({
+              id: entry.id as number,
+              key: entry.key as string,
+              label: (entry.label as string | null | undefined) ?? (entry.key as string),
+              fieldType: (entry.fieldType as string | null | undefined) ?? 'text',
+              active: Boolean(entry.active ?? true)
+            }))
+        }
+      ] as const;
+    })
+  );
+  const forms = Object.fromEntries(formRows);
 
   return (
     <>
-      <p style={{ color: '#64748b', margin: '1rem auto', maxWidth: 960, padding: '0 2rem' }}>
+      <p className="cms-top-meta">
         Mode: {base.mode} | Site: {siteId} | Market/Locale: {marketCode}/{localeCode} | Variant:{' '}
         {payload.selectedVariant?.key ?? 'none'} | Reason: {payload.selectionReason}
       </p>
@@ -93,6 +145,9 @@ export default async function CatchAllPage({
         fields={fields}
         composition={composition}
         components={components}
+        forms={forms}
+        assets={assets}
+        apiBaseUrl={apiBaseUrl}
         cmsBridge={cmsBridge}
       />
     </>

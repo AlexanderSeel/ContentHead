@@ -1,21 +1,39 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+
+type ContentLink = {
+  kind?: 'internal' | 'external';
+  url?: string;
+  contentItemId?: number;
+  text?: string;
+  target?: '_self' | '_blank';
+};
 
 type ComponentPayload = {
   type: string;
-  title?: string;
-  subtitle?: string;
-  body?: string;
-  text?: string;
-  html?: string;
-  href?: string;
-  items?: Array<{ title: string; href: string }>;
+  props?: Record<string, unknown>;
+  [key: string]: unknown;
 };
 
 type AreaPayload = {
   name: string;
   components: string[];
+};
+
+type FormFieldPayload = {
+  id: number;
+  key: string;
+  label: string;
+  fieldType: string;
+  active: boolean;
+};
+
+type AssetPayload = {
+  id: number;
+  title?: string | null;
+  altText?: string | null;
+  description?: string | null;
 };
 
 type CmsRendererClientProps = {
@@ -25,6 +43,9 @@ type CmsRendererClientProps = {
   composition: { areas?: AreaPayload[] };
   components: Record<string, ComponentPayload>;
   cmsBridge: boolean;
+  forms?: Record<string, { fields: FormFieldPayload[] }>;
+  assets?: Record<string, AssetPayload>;
+  apiBaseUrl?: string;
 };
 
 type CmsRect = { top: number; left: number; width: number; height: number };
@@ -76,7 +97,7 @@ function findByBridgeSelector(componentId?: string, fieldPath?: string): HTMLEle
 }
 
 function normalizeType(type: string): string {
-  return type.trim().toLowerCase();
+  return type.trim().toLowerCase().replace(/component$/i, '').replace(/\s+/g, '_');
 }
 
 function emitSelect(target: HTMLElement) {
@@ -97,40 +118,172 @@ function emitSelect(target: HTMLElement) {
   }
 }
 
-function FieldText({
-  contentItemId,
-  versionId,
-  fieldPath,
-  value
-}: {
-  contentItemId: number;
-  versionId: number;
-  fieldPath: string;
-  value: string;
-}) {
+function linkHref(link?: ContentLink | null): string {
+  if (!link) {
+    return '#';
+  }
+  if (link.url) {
+    return link.url;
+  }
+  if (link.contentItemId) {
+    return `#content-${link.contentItemId}`;
+  }
+  return '#';
+}
+
+function CmsLink({ link, className }: { link?: ContentLink | null; className?: string }) {
+  if (!link) {
+    return null;
+  }
   return (
-    <span
-      data-cms-content-item-id={contentItemId}
-      data-cms-version-id={versionId}
-      data-cms-field-path={fieldPath}
-      data-cms-component-type="field"
-    >
-      {value}
-    </span>
+    <a className={className} href={linkHref(link)} target={link.target ?? '_self'} rel={link.target === '_blank' ? 'noreferrer' : undefined}>
+      {link.text ?? link.url ?? 'Learn more'}
+    </a>
   );
+}
+
+function CmsImage({
+  assetId,
+  asset,
+  kind,
+  altOverride,
+  apiBaseUrl
+}: {
+  assetId?: number | null;
+  asset?: AssetPayload | null;
+  kind?: 'thumb' | 'small' | 'medium' | 'large';
+  altOverride?: string;
+  apiBaseUrl: string;
+}) {
+  if (!assetId) {
+    return null;
+  }
+  const url = kind ? `${apiBaseUrl}/assets/${assetId}/rendition/${kind}` : `${apiBaseUrl}/assets/${assetId}`;
+  const alt = altOverride ?? asset?.altText ?? asset?.title ?? `Asset ${assetId}`;
+  return <img src={url} alt={alt} loading="lazy" />;
+}
+
+function NewsletterForm({
+  formId,
+  title,
+  description,
+  submitLabel,
+  fields,
+  apiBaseUrl
+}: {
+  formId?: number | null;
+  title?: string;
+  description?: string;
+  submitLabel?: string;
+  fields: FormFieldPayload[];
+  apiBaseUrl: string;
+}) {
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [status, setStatus] = useState('');
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!formId) {
+      setStatus('No form connected.');
+      return;
+    }
+
+    const body = {
+      query:
+        'query EvaluateForm($formId:Int!,$answersJson:String!,$contextJson:String){ evaluateForm(formId:$formId,answersJson:$answersJson,contextJson:$contextJson){ valid errorsJson } }',
+      variables: {
+        formId,
+        answersJson: JSON.stringify(answers),
+        contextJson: JSON.stringify({ source: 'web-demo' })
+      }
+    };
+
+    const response = await fetch(`${apiBaseUrl}/graphql`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const json = (await response.json()) as {
+      data?: { evaluateForm?: { valid: boolean; errorsJson: string } };
+      errors?: Array<{ message?: string }>;
+    };
+
+    if (json.errors?.length) {
+      setStatus(json.errors[0]?.message ?? 'Evaluation failed');
+      return;
+    }
+
+    const result = json.data?.evaluateForm;
+    if (!result) {
+      setStatus('No evaluation result');
+      return;
+    }
+
+    if (result.valid) {
+      setStatus('Thanks! Form validation passed.');
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(result.errorsJson) as Array<{ key: string; message: string }>;
+      setStatus(parsed.map((entry) => `${entry.key}: ${entry.message}`).join('; '));
+    } catch {
+      setStatus('Validation failed.');
+    }
+  };
+
+  return (
+    <section className="cms-section cms-newsletter">
+      <h2>{title ?? 'Newsletter'}</h2>
+      <p className="cms-muted">{description ?? 'Stay updated with product releases.'}</p>
+      <form onSubmit={submit}>
+        {(fields.length > 0 ? fields : [{ id: 0, key: 'email', label: 'Email', fieldType: 'email', active: true }]).map((field) => (
+          <label key={field.id || field.key}>
+            <div>{field.label}</div>
+            <input
+              type={field.fieldType === 'email' ? 'email' : 'text'}
+              value={answers[field.key] ?? ''}
+              onChange={(event) => setAnswers((prev) => ({ ...prev, [field.key]: event.target.value }))}
+            />
+          </label>
+        ))}
+        <button className="cms-btn primary" type="submit">
+          {submitLabel ?? 'Submit'}
+        </button>
+      </form>
+      {status ? <small className="cms-muted">{status}</small> : null}
+    </section>
+  );
+}
+
+function componentProps(component: ComponentPayload | undefined): Record<string, unknown> {
+  if (!component) {
+    return {};
+  }
+  if (component.props && typeof component.props === 'object' && !Array.isArray(component.props)) {
+    return component.props;
+  }
+  const rest = { ...component };
+  delete (rest as { type?: unknown }).type;
+  return rest;
 }
 
 function renderComponent(
   contentItemId: number,
   versionId: number,
   id: string,
-  component: ComponentPayload | undefined
+  component: ComponentPayload | undefined,
+  forms: Record<string, { fields: FormFieldPayload[] }>,
+  assets: Record<string, AssetPayload>,
+  apiBaseUrl: string
 ) {
   if (!component) {
     return <div key={id}>Missing component: {id}</div>;
   }
 
   const componentType = normalizeType(component.type);
+  const props = componentProps(component);
   const wrapperProps = {
     'data-cms-content-item-id': contentItemId,
     'data-cms-version-id': versionId,
@@ -138,71 +291,172 @@ function renderComponent(
     'data-cms-component-type': component.type
   };
 
-  if (componentType === 'hero') {
+  if (componentType === 'hero' || componentType === 'hero_component') {
+    const backgroundAssetRef = typeof props.backgroundAssetRef === 'number' ? props.backgroundAssetRef : null;
+    const primaryCta = (props.primaryCta as ContentLink | undefined) ?? null;
+    const secondaryCta = (props.secondaryCta as ContentLink | undefined) ?? null;
+
     return (
-      <section key={id} {...wrapperProps} style={{ padding: '2rem', border: '1px solid #cbd5e1', borderRadius: 8 }}>
-        <h1>
-          <FieldText contentItemId={contentItemId} versionId={versionId} fieldPath={`components.${id}.props.title`} value={String(component.title ?? '')} />
-        </h1>
-        <p>
-          <FieldText contentItemId={contentItemId} versionId={versionId} fieldPath={`components.${id}.props.subtitle`} value={String(component.subtitle ?? '')} />
-        </p>
+      <section key={id} {...wrapperProps} className="cms-section cms-hero">
+        {backgroundAssetRef ? (
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.2 }}>
+            <CmsImage assetId={backgroundAssetRef} asset={assets[String(backgroundAssetRef)] ?? null} kind="large" apiBaseUrl={apiBaseUrl} />
+          </div>
+        ) : null}
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <h1 data-cms-field-path={`components.${id}.props.title`}>{String(props.title ?? 'Demo hero')}</h1>
+          <p data-cms-field-path={`components.${id}.props.subtitle`}>{String(props.subtitle ?? '')}</p>
+          <div className="cms-buttons">
+            <CmsLink link={primaryCta} className="cms-btn primary" />
+            <CmsLink link={secondaryCta} className="cms-btn secondary" />
+          </div>
+        </div>
       </section>
     );
   }
 
-  if (componentType === 'richtext' || componentType === 'text_block') {
-    const html = String(component.html ?? component.body ?? component.text ?? '');
+  if (componentType === 'feature_grid') {
+    const items = Array.isArray(props.items) ? (props.items as Array<{ icon?: string; title?: string; description?: string }>) : [];
     return (
-      <section key={id} {...wrapperProps} style={{ padding: '1rem 0' }}>
-        <div
-          data-cms-content-item-id={contentItemId}
-          data-cms-version-id={versionId}
-          data-cms-component-id={id}
-          data-cms-component-type={component.type}
-          data-cms-field-path={`components.${id}.props.body`}
-          dangerouslySetInnerHTML={{ __html: html || '<p></p>' }}
-        />
-      </section>
-    );
-  }
-
-  if (componentType === 'teasergrid') {
-    return (
-      <section key={id} {...wrapperProps}>
-        <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))' }}>
-          {(component.items ?? []).map((item, index) => (
-            <a
-              key={`${id}-${index}`}
-              href={item.href}
-              style={{ border: '1px solid #cbd5e1', borderRadius: 8, padding: '1rem', textDecoration: 'none', color: '#0f172a' }}
-              data-cms-content-item-id={contentItemId}
-              data-cms-version-id={versionId}
-              data-cms-component-id={id}
-              data-cms-component-type={component.type}
-              data-cms-field-path={`components.${id}.props.items.${index}.title`}
-            >
-              {item.title}
-            </a>
+      <section key={id} {...wrapperProps} className="cms-section" id="features">
+        <h2>{String(props.title ?? 'Features')}</h2>
+        <div className="cms-grid features">
+          {items.map((item, index) => (
+            <article key={`${id}-${index}`} className="cms-card" data-cms-field-path={`components.${id}.props.items.${index}.title`}>
+              <h3>{item.icon ? <i className={`pi ${item.icon}`} style={{ marginRight: 6 }} /> : null}{item.title ?? `Feature ${index + 1}`}</h3>
+              <p className="cms-muted">{item.description ?? ''}</p>
+            </article>
           ))}
         </div>
       </section>
     );
   }
 
+  if (componentType === 'image_text') {
+    const imageAssetRef = typeof props.imageAssetRef === 'number' ? props.imageAssetRef : null;
+    const invert = Boolean(props.invert);
+    const cta = (props.cta as ContentLink | undefined) ?? null;
+    return (
+      <section key={id} {...wrapperProps} className={`cms-section cms-image-row${invert ? ' invert' : ''}`}>
+        <div className="cms-image-wrap">
+          <CmsImage assetId={imageAssetRef} asset={imageAssetRef ? assets[String(imageAssetRef)] ?? null : null} kind="medium" apiBaseUrl={apiBaseUrl} />
+        </div>
+        <div>
+          <h2>{String(props.title ?? '')}</h2>
+          <p className="cms-muted">{String(props.body ?? '')}</p>
+          <CmsLink link={cta} className="cms-btn primary" />
+        </div>
+      </section>
+    );
+  }
+
+  if (componentType === 'pricing') {
+    const tiers = Array.isArray(props.tiers) ? (props.tiers as Array<Record<string, unknown>>) : [];
+    return (
+      <section key={id} {...wrapperProps} className="cms-section" id="pricing">
+        <h2>{String(props.title ?? 'Pricing')}</h2>
+        <div className="cms-pricing-grid">
+          {tiers.map((tier, index) => (
+            <article key={`${id}-${index}`} className="cms-card cms-pricing-tier">
+              <h3>{String(tier.name ?? `Tier ${index + 1}`)}</h3>
+              <div className="cms-price">{String(tier.price ?? '')}</div>
+              <p className="cms-muted">{String(tier.description ?? '')}</p>
+              <ul>
+                {(Array.isArray(tier.features) ? tier.features : []).map((feature, featureIndex) => (
+                  <li key={`${id}-${index}-${featureIndex}`}>{String(feature)}</li>
+                ))}
+              </ul>
+              <CmsLink link={(tier.cta as ContentLink | undefined) ?? null} className="cms-btn primary" />
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (componentType === 'faq') {
+    const items = Array.isArray(props.items)
+      ? (props.items as Array<{ question?: string; answer?: string }>)
+      : [];
+    return (
+      <section key={id} {...wrapperProps} className="cms-section" id="faq">
+        <h2>{String(props.title ?? 'FAQ')}</h2>
+        <div>
+          {items.map((item, index) => (
+            <details key={`${id}-${index}`} className="cms-faq-item">
+              <summary>{item.question ?? `Question ${index + 1}`}</summary>
+              <p className="cms-muted">{item.answer ?? ''}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (componentType === 'newsletter_form') {
+    const formId = typeof props.formId === 'number' ? props.formId : null;
+    const title = typeof props.title === 'string' ? props.title : null;
+    const description = typeof props.description === 'string' ? props.description : null;
+    const submitLabel = typeof props.submitLabel === 'string' ? props.submitLabel : null;
+    return (
+      <div key={id} {...wrapperProps}>
+        <NewsletterForm
+          formId={formId}
+          {...(title ? { title } : {})}
+          {...(description ? { description } : {})}
+          {...(submitLabel ? { submitLabel } : {})}
+          fields={formId ? forms[String(formId)]?.fields ?? [] : []}
+          apiBaseUrl={apiBaseUrl}
+        />
+      </div>
+    );
+  }
+
+  if (componentType === 'footer') {
+    const linkGroups = Array.isArray(props.linkGroups)
+      ? (props.linkGroups as Array<{ title?: string; links?: ContentLink[] }>)
+      : [];
+    const socials = Array.isArray(props.socialLinks) ? (props.socialLinks as ContentLink[]) : [];
+    return (
+      <footer key={id} {...wrapperProps} className="cms-section cms-footer">
+        <div className="cms-footer-grid">
+          {linkGroups.map((group, index) => (
+            <div key={`${id}-${index}`}>
+              <h4>{group.title ?? `Group ${index + 1}`}</h4>
+              <div className="cms-grid">
+                {(group.links ?? []).map((entry, linkIndex) => (
+                  <CmsLink key={`${id}-${index}-${linkIndex}`} link={entry} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', gap: '0.8rem', flexWrap: 'wrap' }}>
+          <small>{String(props.copyright ?? '')}</small>
+          <div className="cms-buttons" style={{ marginTop: 0 }}>
+            {socials.map((entry, index) => (
+              <CmsLink key={`${id}-social-${index}`} link={entry} className="cms-btn secondary" />
+            ))}
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
+  if (componentType === 'richtext' || componentType === 'text_block') {
+    const html = String((props.html as string | undefined) ?? (props.body as string | undefined) ?? '');
+    return (
+      <section key={id} {...wrapperProps} className="cms-section">
+        <div data-cms-field-path={`components.${id}.props.body`} dangerouslySetInnerHTML={{ __html: html || '<p></p>' }} />
+      </section>
+    );
+  }
+
   if (componentType === 'cta') {
     return (
-      <section key={id} {...wrapperProps} style={{ padding: '0.5rem 0' }}>
-        <a
-          href={component.href ?? '#'}
-          data-cms-content-item-id={contentItemId}
-          data-cms-version-id={versionId}
-          data-cms-component-id={id}
-          data-cms-component-type={component.type}
-          data-cms-field-path={`components.${id}.props.text`}
-          style={{ display: 'inline-block', border: '1px solid #0f172a', borderRadius: 999, padding: '0.4rem 0.9rem', textDecoration: 'none', color: '#0f172a' }}
-        >
-          {String(component.text ?? 'CTA')}
+      <section key={id} {...wrapperProps} className="cms-section">
+        <a className="cms-btn primary" href={String(props.href ?? '#')}>
+          {String(props.text ?? 'CTA')}
         </a>
       </section>
     );
@@ -211,11 +465,19 @@ function renderComponent(
   return <div key={id}>Unsupported component type: {component.type}</div>;
 }
 
-export function CmsRendererClient({ contentItemId, versionId, fields, composition, components, cmsBridge }: CmsRendererClientProps) {
+export function CmsRendererClient({
+  contentItemId,
+  versionId,
+  fields,
+  composition,
+  components,
+  cmsBridge,
+  forms = {},
+  assets = {},
+  apiBaseUrl = 'http://localhost:4000'
+}: CmsRendererClientProps) {
   const hoverRef = useRef<HTMLElement | null>(null);
   const selectedRef = useRef<HTMLElement | null>(null);
-  const hoverOverlayRef = useRef<HTMLDivElement | null>(null);
-  const selectedOverlayRef = useRef<HTMLDivElement | null>(null);
   const fieldEntries = useMemo(() => Object.entries(fields), [fields]);
   const areas = composition.areas ?? [{ name: 'main', components: Object.keys(components) }];
 
@@ -232,7 +494,6 @@ export function CmsRendererClient({ contentItemId, versionId, fields, compositio
     hover.style.borderRadius = '6px';
     hover.style.display = 'none';
     document.body.appendChild(hover);
-    hoverOverlayRef.current = hover;
 
     const selected = document.createElement('div');
     selected.style.position = 'fixed';
@@ -242,7 +503,6 @@ export function CmsRendererClient({ contentItemId, versionId, fields, compositio
     selected.style.borderRadius = '6px';
     selected.style.display = 'none';
     document.body.appendChild(selected);
-    selectedOverlayRef.current = selected;
 
     const syncOverlays = () => {
       drawOverlay(hover, hoverRef.current, '#2563eb', 'rgba(37, 99, 235, 0.08)');
@@ -299,34 +559,25 @@ export function CmsRendererClient({ contentItemId, versionId, fields, compositio
       window.removeEventListener('message', onMessage);
       hover.remove();
       selected.remove();
-      hoverOverlayRef.current = null;
-      selectedOverlayRef.current = null;
       hoverRef.current = null;
       selectedRef.current = null;
     };
   }, [cmsBridge]);
 
   return (
-    <main style={{ maxWidth: 960, margin: '0 auto', padding: '2rem' }}>
-      <h2>Preview Item #{contentItemId}</h2>
-      <p style={{ color: '#64748b' }}>Version #{versionId}</p>
-      <section style={{ marginBottom: '1rem' }}>
+    <main className="cms-page">
+      <section className="cms-section" style={{ marginBottom: '0.9rem' }}>
         {fieldEntries.map(([key, value]) => (
-          <div
-            key={key}
-            style={{ marginBottom: '0.25rem' }}
-            data-cms-content-item-id={contentItemId}
-            data-cms-version-id={versionId}
-            data-cms-field-path={`fields.${key}`}
-            data-cms-component-type="field"
-          >
-            <strong>{key}:</strong> {String(value ?? '')}
+          <div key={key} data-cms-field-path={`fields.${key}`} data-cms-content-item-id={contentItemId} data-cms-version-id={versionId}>
+            <strong>{key}:</strong> <span className="cms-muted">{String(value ?? '')}</span>
           </div>
         ))}
       </section>
       {areas.map((area) => (
-        <section key={area.name} style={{ marginBottom: '1.5rem', display: 'grid', gap: '1rem' }}>
-          {area.components.map((componentId) => renderComponent(contentItemId, versionId, componentId, components[componentId]))}
+        <section key={area.name} style={{ display: 'grid', gap: '0.9rem' }}>
+          {area.components.map((componentId) =>
+            renderComponent(contentItemId, versionId, componentId, components[componentId], forms, assets, apiBaseUrl)
+          )}
         </section>
       ))}
     </main>

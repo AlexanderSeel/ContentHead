@@ -3,6 +3,7 @@ export type DbUser = {
   username: string;
   passwordHash: string;
   displayName: string;
+  active?: boolean;
   createdAt: string;
 };
 

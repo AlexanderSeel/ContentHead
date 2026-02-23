@@ -35,7 +35,7 @@ export class InternalAuthProvider {
     );
 
     const created = await this.db.get<DbUser>(
-      'SELECT id, username, password_hash as passwordHash, display_name as displayName, created_at as createdAt FROM users WHERE username = ?',
+      'SELECT id, username, password_hash as passwordHash, display_name as displayName, COALESCE(active, TRUE) as active, created_at as createdAt FROM users WHERE username = ?',
       [input.username]
     );
 
@@ -48,11 +48,11 @@ export class InternalAuthProvider {
 
   async validateCredentials(username: string, password: string): Promise<SafeUser | null> {
     const user = await this.db.get<DbUser>(
-      'SELECT id, username, password_hash as passwordHash, display_name as displayName, created_at as createdAt FROM users WHERE username = ?',
+      'SELECT id, username, password_hash as passwordHash, display_name as displayName, COALESCE(active, TRUE) as active, created_at as createdAt FROM users WHERE username = ?',
       [username]
     );
 
-    if (!user) {
+    if (!user || user.active === false) {
       return null;
     }
 
@@ -66,11 +66,11 @@ export class InternalAuthProvider {
 
   async getUserById(id: number): Promise<SafeUser | null> {
     const user = await this.db.get<DbUser>(
-      'SELECT id, username, password_hash as passwordHash, display_name as displayName, created_at as createdAt FROM users WHERE id = ?',
+      'SELECT id, username, password_hash as passwordHash, display_name as displayName, COALESCE(active, TRUE) as active, created_at as createdAt FROM users WHERE id = ?',
       [id]
     );
 
-    if (!user) {
+    if (!user || user.active === false) {
       return null;
     }
 

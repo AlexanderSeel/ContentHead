@@ -8,6 +8,7 @@ import { MultiSelect } from 'primereact/multiselect';
 
 import { ContentReferencePicker } from '../../../components/inputs/ContentReferencePicker';
 import type { ContentFieldDef } from '../../schema/fieldValidationUi';
+import { AssetListEditor, AssetRefEditor } from './AssetEditors';
 import { ContentLinkEditor, ContentLinkListEditor } from './ContentLinkEditors';
 
 export type FieldRendererProps = {
@@ -56,6 +57,14 @@ export function FieldRenderer({ field, value, onChange, siteId, token, readOnly 
 
   if (field.type === 'contentLinkList') {
     return <ContentLinkListEditor token={token} siteId={siteId} value={Array.isArray(value) ? (value as any[]) : []} onChange={onChange as any} />;
+  }
+
+  if (field.type === 'assetRef') {
+    return <AssetRefEditor token={token} siteId={siteId} value={typeof value === 'number' ? value : null} onChange={onChange as (value: number | null) => void} />;
+  }
+
+  if (field.type === 'assetList') {
+    return <AssetListEditor token={token} siteId={siteId} value={Array.isArray(value) ? value.filter((entry): entry is number => typeof entry === 'number') : []} onChange={onChange as (value: number[]) => void} />;
   }
 
   if (field.type === 'json') {

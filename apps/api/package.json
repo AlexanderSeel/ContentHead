@@ -18,14 +18,17 @@
     "@contenthead/shared": "workspace:*",
     "@duckdb/node-api": "1.4.4-r.1",
     "@pothos/core": "^4.3.0",
+    "busboy": "^1.6.0",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.7",
     "graphql": "^16.10.0",
     "graphql-yoga": "^5.13.1",
     "jsonwebtoken": "^9.0.2",
+    "sharp": "^0.34.4",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/busboy": "^1.5.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.9",
     "tsx": "^4.19.3"

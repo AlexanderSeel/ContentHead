@@ -3,8 +3,7 @@ export default function HomePage() {
     <main className="web-shell">
       <div>
         <h1>ContentHead Web</h1>
-        <p>Open a resolved page route after publishing content.</p>
-        <p>Example: <code>/home?siteId=1&market=US&locale=en-US</code></p>
+        <p>Open the CMS demo landing page: <code>/demo?siteId=1&market=US&locale=en-US</code></p>
       </div>
     </main>
   );

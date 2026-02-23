@@ -106,6 +106,51 @@ export function createSdk(options: CreateSdkOptions) {
       execute<G.ResolveRouteQuery>(G.ResolveRouteDocument, variables, requestOptions),
     getPageByRoute: (variables: G.GetPageByRouteQueryVariables, requestOptions?: RequestOptions) =>
       execute<G.GetPageByRouteQuery>(G.GetPageByRouteDocument, variables, requestOptions),
+    listAssets: (variables: G.ListAssetsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListAssetsQuery>(G.ListAssetsDocument, variables, requestOptions),
+    getAsset: (variables: G.GetAssetQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.GetAssetQuery>(G.GetAssetDocument, variables, requestOptions),
+    listAssetFolders: (variables: G.ListAssetFoldersQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListAssetFoldersQuery>(G.ListAssetFoldersDocument, variables, requestOptions),
+    createAssetFolder: (variables: G.CreateAssetFolderMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.CreateAssetFolderMutation>(G.CreateAssetFolderDocument, variables, requestOptions),
+    updateAssetMetadata: (
+      variables: G.UpdateAssetMetadataMutationVariables,
+      requestOptions?: RequestOptions
+    ) => execute<G.UpdateAssetMetadataMutation>(G.UpdateAssetMetadataDocument, variables, requestOptions),
+    deleteAsset: (variables: G.DeleteAssetMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DeleteAssetMutation>(G.DeleteAssetDocument, variables, requestOptions),
+    listConnectors: (variables: G.ListConnectorsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListConnectorsQuery>(G.ListConnectorsDocument, variables, requestOptions),
+    upsertConnector: (variables: G.UpsertConnectorMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpsertConnectorMutation>(G.UpsertConnectorDocument, variables, requestOptions),
+    deleteConnector: (variables: G.DeleteConnectorMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DeleteConnectorMutation>(G.DeleteConnectorDocument, variables, requestOptions),
+    setDefaultConnector: (variables: G.SetDefaultConnectorMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.SetDefaultConnectorMutation>(G.SetDefaultConnectorDocument, variables, requestOptions),
+    testConnector: (variables: G.TestConnectorMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.TestConnectorMutation>(G.TestConnectorDocument, variables, requestOptions),
+    listInternalUsers: (requestOptions?: RequestOptions) =>
+      execute<G.ListInternalUsersQuery>(G.ListInternalUsersDocument, {}, requestOptions),
+    listInternalRoles: (requestOptions?: RequestOptions) =>
+      execute<G.ListInternalRolesQuery>(G.ListInternalRolesDocument, {}, requestOptions),
+    internalPermissions: (requestOptions?: RequestOptions) =>
+      execute<G.InternalPermissionsQuery>(G.InternalPermissionsDocument, {}, requestOptions),
+    createInternalUser: (variables: G.CreateInternalUserMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.CreateInternalUserMutation>(G.CreateInternalUserDocument, variables, requestOptions),
+    updateInternalUser: (variables: G.UpdateInternalUserMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpdateInternalUserMutation>(G.UpdateInternalUserDocument, variables, requestOptions),
+    resetInternalUserPassword: (
+      variables: G.ResetInternalUserPasswordMutationVariables,
+      requestOptions?: RequestOptions
+    ) =>
+      execute<G.ResetInternalUserPasswordMutation>(G.ResetInternalUserPasswordDocument, variables, requestOptions),
+    upsertInternalRole: (variables: G.UpsertInternalRoleMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpsertInternalRoleMutation>(G.UpsertInternalRoleDocument, variables, requestOptions),
+    deleteInternalRole: (variables: G.DeleteInternalRoleMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DeleteInternalRoleMutation>(G.DeleteInternalRoleDocument, variables, requestOptions),
+    setUserRoles: (variables: G.SetUserRolesMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.SetUserRolesMutation>(G.SetUserRolesDocument, variables, requestOptions),
 
     listVariantSets: (variables: G.ListVariantSetsQueryVariables, requestOptions?: RequestOptions) =>
       execute<G.ListVariantSetsQuery>(G.ListVariantSetsDocument, variables, requestOptions),

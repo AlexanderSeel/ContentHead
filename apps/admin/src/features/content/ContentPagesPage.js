@@ -674,7 +674,7 @@ export function ContentPagesPage() {
                                     })] }) }), _jsxs(TabPanel, { header: "Components", children: [_jsxs("div", { className: "content-card", children: [_jsxs("div", { className: "inline-actions", style: { justifyContent: 'space-between' }, children: [_jsx("h4", { style: { margin: 0 }, children: "Composition" }), _jsx(Button, { label: "Add Component", onClick: () => setShowAddComponent(true) })] }), _jsx(ComponentList, { areas: composition.areas, componentMap: componentMap, selected: selectedComponentId, onSelect: (id) => {
                                                 setSelectedComponentId(id);
                                                 setSelectedFieldPath(`components.${id}`);
-                                            }, onMove: moveComponent, onDuplicate: duplicateComponent, onDelete: removeComponent })] }), _jsx("div", { className: "content-card", style: { marginTop: '0.75rem' }, children: _jsx(ComponentInspector, { component: selectedComponent, selectedFieldPath: selectedFieldPath, onSelectFieldPath: (path) => {
+                                            }, onMove: moveComponent, onDuplicate: duplicateComponent, onDelete: removeComponent })] }), _jsx("div", { className: "content-card", style: { marginTop: '0.75rem' }, children: _jsx(ComponentInspector, { component: selectedComponent, siteId: siteId, selectedFieldPath: selectedFieldPath, onSelectFieldPath: (path) => {
                                             setSelectedFieldPath(path);
                                             const parsed = parseComponentFieldPath(path);
                                             if (parsed) {

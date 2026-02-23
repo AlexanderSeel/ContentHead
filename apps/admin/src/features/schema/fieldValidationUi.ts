@@ -10,7 +10,9 @@ export type ContentFieldType =
   | 'reference'
   | 'json'
   | 'contentLink'
-  | 'contentLinkList';
+  | 'contentLinkList'
+  | 'assetRef'
+  | 'assetList';
 
 export type ContentFieldDef = {
   key: string;
@@ -50,7 +52,9 @@ export const CONTENT_FIELD_TYPES: Array<{ label: string; value: ContentFieldType
   { label: 'JSON', value: 'json' }
   ,
   { label: 'Content Link', value: 'contentLink' },
-  { label: 'Content Link List', value: 'contentLinkList' }
+  { label: 'Content Link List', value: 'contentLinkList' },
+  { label: 'Asset Reference', value: 'assetRef' },
+  { label: 'Asset List', value: 'assetList' }
 ];
 
 export function parseFieldsJson(value: string): ContentFieldDef[] {

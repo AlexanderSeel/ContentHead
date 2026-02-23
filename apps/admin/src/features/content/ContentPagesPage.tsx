@@ -842,6 +842,7 @@ export function ContentPagesPage() {
             <div className="content-card" style={{ marginTop: '0.75rem' }}>
               <ComponentInspector
                 component={selectedComponent}
+                siteId={siteId}
                 selectedFieldPath={selectedFieldPath}
                 onSelectFieldPath={(path) => {
                   setSelectedFieldPath(path);

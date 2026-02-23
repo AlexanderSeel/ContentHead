@@ -15,12 +15,17 @@ import { ContentPagesPage } from '../features/content/ContentPagesPage';
 import { TemplatesPage } from '../features/content/TemplatesPage';
 import { RoutesPage } from '../features/content/RoutesPage';
 import { ContentTypesPage } from '../features/schema/ContentTypesPage';
+import { AssetLibraryPage } from '../features/assets/AssetLibraryPage';
 import { VariantsPage } from '../features/personalization/VariantsPage';
 import { FormBuilderPage } from '../features/forms/FormBuilderPage';
 import { WorkflowDesignerPage } from '../features/workflows/WorkflowDesignerPage';
 import { WorkflowRunsPage } from '../features/workflows/WorkflowRunsPage';
 import { UsersPage } from '../features/security/UsersPage';
 import { RolesPage } from '../features/security/RolesPage';
+import { AuthConnectorsPage } from '../features/settings/AuthConnectorsPage';
+import { DbConnectorsPage } from '../features/settings/DbConnectorsPage';
+import { DamConnectorsPage } from '../features/settings/DamConnectorsPage';
+import { AiConnectorsPage } from '../features/settings/AiConnectorsPage';
 import { GraphiQLPage } from '../features/devtools/GraphiQLPage';
 import { DiagnosticsPage } from '../features/devtools/DiagnosticsPage';
 
@@ -44,16 +49,23 @@ export function AdminApp() {
 
               <Route path="/site/overview" element={<SiteOverviewPage />} />
               <Route path="/site/markets-locales" element={<MarketsLocalesPage />} />
+              <Route path="/site/content-types" element={<ContentTypesPage />} />
               <Route path="/site" element={<Navigate to="/site/overview" replace />} />
 
               <Route path="/content/pages/:contentItemId" element={<ContentPagesPage />} />
               <Route path="/content/pages" element={<ContentPagesPage />} />
               <Route path="/content/templates" element={<TemplatesPage />} />
               <Route path="/content/routes" element={<RoutesPage />} />
+              <Route path="/content/assets" element={<AssetLibraryPage />} />
               <Route path="/content" element={<Navigate to="/content/pages" replace />} />
 
-              <Route path="/schema/content-types" element={<ContentTypesPage />} />
-              <Route path="/schema" element={<Navigate to="/schema/content-types" replace />} />
+              <Route path="/schema/content-types" element={<Navigate to="/site/content-types" replace />} />
+              <Route path="/schema" element={<Navigate to="/site/content-types" replace />} />
+
+              <Route path="/settings/global/connectors/auth" element={<AuthConnectorsPage />} />
+              <Route path="/settings/global/connectors/db" element={<DbConnectorsPage />} />
+              <Route path="/settings/global/connectors/dam" element={<DamConnectorsPage />} />
+              <Route path="/settings/global/connectors/ai" element={<AiConnectorsPage />} />
 
               <Route path="/personalization/variants" element={<VariantsPage />} />
               <Route path="/personalization" element={<Navigate to="/personalization/variants" replace />} />

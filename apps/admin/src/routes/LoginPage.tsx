@@ -2,20 +2,40 @@ import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import { InputText } from 'primereact/inputtext';
 import { Password } from 'primereact/password';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../app/AuthContext';
+import { createAdminSdk } from '../lib/sdk';
 
 export function LoginPage() {
   const { login } = useAuth();
+  const sdk = useMemo(() => createAdminSdk(null), []);
   const navigate = useNavigate();
   const location = useLocation();
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('admin123!');
   const [error, setError] = useState('');
+  const [externalProviders, setExternalProviders] = useState<Array<{ id: number; name: string; type: string }>>([]);
 
   const from = (location.state as { from?: string } | undefined)?.from ?? '/';
+
+  useEffect(() => {
+    sdk
+      .listConnectors({ domain: 'auth' })
+      .then((res) =>
+        setExternalProviders(
+          (res.listConnectors ?? [])
+            .filter((entry) => entry.enabled && entry.type !== 'internal')
+            .filter(
+              (entry): entry is { id: number; name: string; type: string } =>
+                typeof entry.id === 'number' && typeof entry.name === 'string' && typeof entry.type === 'string'
+            )
+            .map((entry) => ({ id: entry.id, name: entry.name, type: entry.type }))
+        )
+      )
+      .catch(() => setExternalProviders([]));
+  }, [sdk]);
 
   return (
     <main className="centered-page">
@@ -43,6 +63,21 @@ export function LoginPage() {
               .catch((err: unknown) => setError(String(err)))
           }
         />
+        {externalProviders.length > 0 ? (
+          <div className="form-row" style={{ marginTop: '0.75rem' }}>
+            <label>External providers</label>
+            <div className="inline-actions">
+              {externalProviders.map((provider) => (
+                <Button
+                  key={provider.id}
+                  text
+                  label={`Continue with ${provider.name}`}
+                  onClick={() => setError(`${provider.type} connector is configured. External login flow is stubbed in this build.`)}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
       </Card>
     </main>
   );
