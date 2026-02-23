@@ -47,6 +47,79 @@
   border: 1px solid var(--surface-border);
   border-radius: 8px;
   overflow: hidden;
+  min-height: 0;
+}
+
+.graphiql-host,
+.graphiql-host .graphiql-container,
+.graphiql-host .ch-graphiql,
+.graphiql-host .graphiql-session,
+.graphiql-host .graphiql-sessions,
+.graphiql-host .graphiql-main,
+.graphiql-host .graphiql-editor,
+.graphiql-host .graphiql-explorer,
+.graphiql-host .graphiql-response,
+.graphiql-host .graphiql-editor-tools {
+  height: 100%;
+  min-height: 0;
+}
+
+.graphiql-host .graphiql-container {
+  --color-base: var(--surface-card);
+  --color-primary: var(--primary-color);
+  --color-secondary: var(--text-color-secondary);
+  --color-tertiary: var(--surface-100);
+  --color-info: var(--text-color);
+  --color-success: var(--green-500);
+  --color-warning: var(--yellow-500);
+  --color-error: var(--red-500);
+  --color-border: var(--surface-border);
+  width: 100%;
+}
+
+.graphiql-host .graphiql-explorer-root {
+  min-width: 260px;
+}
+
+.graphiql-host .graphiql-main {
+  min-width: 0;
+}
+
+.graphiql-host .graphiql-sessions {
+  margin: 0;
+  border-radius: 0;
+  height: 100%;
+}
+
+.graphiql-host .graphiql-editor {
+  min-width: 0;
+}
+
+.graphiql-host .graphiql-response {
+  min-width: 0;
+  display: none;
+}
+
+.graphiql-host .graphiql-horizontal-drag-bar {
+  display: none;
+}
+
+.ch-graphiql-explorer-tree {
+  max-height: 20rem;
+  overflow: auto;
+}
+
+.devtools-response-pre {
+  margin: 0;
+  max-height: 22rem;
+  overflow: auto;
+}
+
+.graphiql-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
 }
 
 .sample-list {

@@ -30,16 +30,21 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .admin-content {
   padding: var(--ch-content-padding);
   min-width: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .admin-content > div {
   display: grid;
   gap: var(--ch-card-gap);
+  min-height: 0;
 }
 
 .admin-sidebar {
@@ -122,6 +127,38 @@ body {
   border: 1px solid var(--surface-border);
   overflow: hidden;
   background: var(--surface-card);
+}
+
+.pageRoot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.pageBodyFlex {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.paneScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.splitFill {
+  height: 100%;
+  min-height: 0;
 }
 
 .split-pane {

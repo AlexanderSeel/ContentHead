@@ -37,6 +37,16 @@ pnpm --filter @contenthead/api seed
 - Selection is persisted in localStorage and restored on reload.
 - Dev diagnostics includes a theme token panel at `/dev/diagnostics` to inspect active CSS variables (`--surface-*`, `--text-color`, `--primary-color`).
 
+## Ask AI
+- Every major admin section exposes an `Ask AI` action in the page header.
+- Context-specific prompt templates are included for:
+  - Content Types
+  - Content Editing
+  - Forms
+  - Workflows
+  - GraphQL
+- Suggested text can be copied, inserted into active editors, or applied where supported.
+
 ## Root Commands
 - `pnpm dev`: run API + Admin + Web
 - `pnpm schema`: export SDL to `packages/schema/dist/schema.graphql`
@@ -63,6 +73,15 @@ Content Pages route (`/content/pages`) uses split-pane UX:
 - Right: Edit / Routes / Versions / Variants / Preview tabs
   - Edit uses visual PrimeReact property editors for content fields and component props
   - Raw JSON is available in Advanced sections with explicit enable toggle
+  - `contentLink` and `contentLinkList` field types use a Link Selector dialog with internal/external tabs.
+
+## Rule Editor
+- Variants and Form Builder conditions now provide a visual Rule Editor dialog.
+- Supports `ALL/ANY` groups and comparators: `eq`, `neq`, `in`, `contains`, `gt`, `lt`, `regex`.
+- Includes:
+  - visual row builder
+  - Advanced JSON tab
+  - test context evaluation panel
 
 ## Dev Tools GraphiQL
 - Route: `/dev/graphiql` (development mode only)
@@ -70,6 +89,11 @@ Content Pages route (`/content/pages`) uses split-pane UX:
 - Supports current session bearer token, `x-preview-token`, and editable headers JSON
 - Includes sample query insertion (`me`, `listSites`, matrix, route resolution, versions, workflow operations)
 - Includes docs explorer and explorer sidebar plugin.
+- Splitter layout is now resizable and includes response inspector + quick actions:
+  - Prettify
+  - Copy cURL
+  - Copy fetch()
+  - Clear/Copy response
 
 ## URL Pattern Configuration
 - Site settings support per-site URL rewrite pattern:

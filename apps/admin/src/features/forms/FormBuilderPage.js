@@ -9,5 +9,5 @@ export function FormBuilderPage() {
     const { formId } = useParams();
     const [status, setStatus] = useState('');
     const initialFormId = formId ? Number(formId) : null;
-    return (_jsxs("div", { children: [_jsx(PageHeader, { title: "Form Builder", subtitle: "Steps, fields and conditional rules" }), _jsx(FormBuilderSection, { siteId: siteId, initialFormId: Number.isFinite(initialFormId) ? initialFormId : null, onStatus: setStatus }), status ? _jsx("pre", { children: status }) : null] }));
+    return (_jsxs("div", { className: "pageRoot", children: [_jsx(PageHeader, { title: "Form Builder", subtitle: "Steps, fields and conditional rules", helpTopicKey: "forms", askAiContext: "forms", askAiPayload: { siteId } }), _jsx(FormBuilderSection, { siteId: siteId, initialFormId: Number.isFinite(initialFormId) ? initialFormId : null, onStatus: setStatus }), status ? _jsx("pre", { children: status }) : null] }));
 }

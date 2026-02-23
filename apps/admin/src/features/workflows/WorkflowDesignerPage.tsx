@@ -9,8 +9,14 @@ export function WorkflowDesignerPage() {
   const [status, setStatus] = useState('');
 
   return (
-    <div>
-      <PageHeader title="Workflow Designer" subtitle="Design and configure workflow graphs" />
+    <div className="pageRoot">
+      <PageHeader
+        title="Workflow Designer"
+        subtitle="Design and configure workflow graphs"
+        helpTopicKey="workflows"
+        askAiContext="workflows"
+        askAiPayload={{ siteId, marketCode, localeCode }}
+      />
       <WorkflowDesignerSection
         siteId={siteId}
         selectedItemId={null}

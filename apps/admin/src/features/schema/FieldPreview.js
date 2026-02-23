@@ -27,6 +27,12 @@ export function FieldPreview({ field }) {
     if (field.type === 'multiselect') {
         return _jsx(MultiSelect, { options: allowed, placeholder: ui.placeholder ?? '' });
     }
+    if (field.type === 'contentLink') {
+        return _jsx(InputText, { value: "internal: /sample-route", readOnly: true });
+    }
+    if (field.type === 'contentLinkList') {
+        return _jsx(InputTextarea, { rows: 3, value: '[{"kind":"external","url":"https://example.com"}]', readOnly: true });
+    }
     if (field.type === 'richtext' || ui.multiline) {
         return _jsx(InputTextarea, { rows: ui.rows ?? 4, value: String(ui.defaultValue ?? '') });
     }

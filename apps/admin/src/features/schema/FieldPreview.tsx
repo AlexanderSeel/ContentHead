@@ -31,6 +31,12 @@ export function FieldPreview({ field }: { field: ContentFieldDef | null }) {
   if (field.type === 'multiselect') {
     return <MultiSelect options={allowed} placeholder={ui.placeholder ?? ''} />;
   }
+  if (field.type === 'contentLink') {
+    return <InputText value="internal: /sample-route" readOnly />;
+  }
+  if (field.type === 'contentLinkList') {
+    return <InputTextarea rows={3} value='[{"kind":"external","url":"https://example.com"}]' readOnly />;
+  }
   if (field.type === 'richtext' || ui.multiline) {
     return <InputTextarea rows={ui.rows ?? 4} value={String(ui.defaultValue ?? '')} />;
   }

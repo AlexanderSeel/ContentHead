@@ -8,7 +8,9 @@ export type ContentFieldType =
   | 'select'
   | 'multiselect'
   | 'reference'
-  | 'json';
+  | 'json'
+  | 'contentLink'
+  | 'contentLinkList';
 
 export type ContentFieldDef = {
   key: string;
@@ -46,6 +48,9 @@ export const CONTENT_FIELD_TYPES: Array<{ label: string; value: ContentFieldType
   { label: 'Multi Select', value: 'multiselect' },
   { label: 'Reference', value: 'reference' },
   { label: 'JSON', value: 'json' }
+  ,
+  { label: 'Content Link', value: 'contentLink' },
+  { label: 'Content Link List', value: 'contentLinkList' }
 ];
 
 export function parseFieldsJson(value: string): ContentFieldDef[] {

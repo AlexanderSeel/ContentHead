@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from 'primereact/button';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Accordion, AccordionTab } from 'primereact/accordion';
-import ReactFlow, { Background, Controls, type Connection, type Edge, type Node, type OnConnect } from 'reactflow';
+import { Splitter, SplitterPanel } from 'primereact/splitter';
+import ReactFlow, { Background, Controls, MiniMap, type Connection, type Edge, type Node, type OnConnect } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import { createSdk } from '@contenthead/sdk';
-import { getNodeRegistryEntry, nodeRegistry, validateNodeConfig } from './workflows/nodeRegistry';
+import { nodeRegistry, validateNodeConfig } from './workflows/nodeRegistry';
 import { NodeInspector } from './workflows/NodeInspector';
 
 const sdk = createSdk({ endpoint: 'http://localhost:4000/graphql' });
@@ -23,15 +23,6 @@ type WorkflowDefinition = {
   graphJson: string;
   inputSchemaJson: string;
   permissionsJson: string;
-};
-
-type WorkflowRun = {
-  id: number;
-  definitionId: number;
-  status: string;
-  contextJson: string;
-  currentNodeId?: string | null;
-  logsJson: string;
 };
 
 type GraphNode = { id: string; type: string; config?: Record<string, unknown> };
@@ -73,6 +64,7 @@ export function WorkflowDesignerSection({
   locale: string;
   onStatus: (value: string) => void;
 }) {
+  const navigate = useNavigate();
   const [definitions, setDefinitions] = useState<WorkflowDefinition[]>([]);
   const [definitionId, setDefinitionId] = useState<number | null>(null);
   const [definitionName, setDefinitionName] = useState('Default Publishing Workflow');
@@ -83,14 +75,11 @@ export function WorkflowDesignerSection({
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([]);
   const [graphEdges, setGraphEdges] = useState<GraphEdge[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [runs, setRuns] = useState<WorkflowRun[]>([]);
-  const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
   const [runContextJson, setRunContextJson] = useState(
     JSON.stringify({ siteId, contentItemId: selectedItemId, variantSetId: selectedVariantSetId, marketCode: market, localeCode: locale }, null, 2)
   );
 
   const selectedNode = graphNodes.find((entry) => entry.id === selectedNodeId) ?? null;
-  const selectedNodeRegistry = selectedNode ? getNodeRegistryEntry(selectedNode.type) : null;
 
   const flowNodes = useMemo<Node[]>(
     () =>
@@ -116,14 +105,6 @@ export function WorkflowDesignerSection({
     setDefinitions(all);
     const activeId = definitionId ?? all[0]?.id ?? null;
     setDefinitionId(activeId);
-    if (activeId) {
-      await refreshRuns(activeId);
-    }
-  };
-
-  const refreshRuns = async (defId: number) => {
-    const runsRes = await sdk.listWorkflowRuns({ definitionId: defId });
-    setRuns((runsRes.listWorkflowRuns ?? []) as WorkflowRun[]);
   };
 
   useEffect(() => {
@@ -151,7 +132,7 @@ export function WorkflowDesignerSection({
   };
 
   const addNode = (type: string) => {
-    const registry = getNodeRegistryEntry(type);
+    const registry = nodeRegistry.find((entry) => entry.type === type);
     if (!registry) {
       return;
     }
@@ -187,128 +168,122 @@ export function WorkflowDesignerSection({
       return;
     }
     await sdk.startWorkflowRun({ definitionId, contextJson: runContextJson, startedBy: 'admin' });
-    await refreshRuns(definitionId);
+    navigate('/workflows/runs');
   };
 
-  const selectedRun = runs.find((entry) => entry.id === selectedRunId) ?? null;
-
   return (
-    <section>
-      <div className="form-grid" style={{ gridTemplateColumns: '320px 1fr 360px' }}>
-        <div className="content-card">
-          <h3>Definitions</h3>
-          <div className="form-row">
-            <Dropdown
-              value={definitionId}
-              options={definitions.map((entry) => ({ label: `${entry.name} v${entry.version}`, value: entry.id }))}
-              onChange={(event) => {
-                const id = Number(event.value);
-                const picked = definitions.find((entry) => entry.id === id);
-                if (!picked) {
-                  return;
-                }
-                setDefinitionId(id);
-                setDefinitionName(picked.name);
-                setDefinitionVersion(picked.version);
-                setInputSchemaJson(picked.inputSchemaJson);
-                setPermissionsJson(picked.permissionsJson);
-                const graph = parseGraph(picked.graphJson);
-                setGraphNodes(graph.nodes);
-                setGraphEdges(graph.edges);
-                refreshRuns(id).catch((error: unknown) => onStatus(String(error)));
-              }}
-              placeholder="Select workflow"
-            />
-          </div>
-          <div className="form-row">
-            <InputText value={definitionName} onChange={(event) => setDefinitionName(event.target.value)} placeholder="Workflow name" />
-            <InputNumber value={definitionVersion} min={1} onValueChange={(event) => setDefinitionVersion(event.value ?? 1)} />
-          </div>
-          <div className="inline-actions">
-            <Button label="Save" onClick={() => saveDefinition().catch((error: unknown) => onStatus(String(error)))} />
-            <Button label="Auto-layout" severity="secondary" onClick={() => setGraphNodes((prev) => [...prev])} />
-          </div>
-          <h4>Node Palette</h4>
-          <div className="sample-list">
-            {nodeRegistry.map((entry) => (
-              <Button key={entry.type} text icon={entry.icon} label={entry.label} onClick={() => addNode(entry.type)} />
-            ))}
-          </div>
-          <Accordion>
-            <AccordionTab header="Advanced: Input Schema JSON">
-              <InputTextarea rows={4} value={inputSchemaJson} onChange={(event) => setInputSchemaJson(event.target.value)} />
-            </AccordionTab>
-            <AccordionTab header="Advanced: Permissions JSON">
-              <InputTextarea rows={4} value={permissionsJson} onChange={(event) => setPermissionsJson(event.target.value)} />
-            </AccordionTab>
-          </Accordion>
-        </div>
+    <section className="pageRoot">
+      <div className="pageBodyFlex splitFill">
+        <Splitter className="splitFill" style={{ width: '100%' }}>
+          <SplitterPanel size={22} minSize={16}>
+            <div className="content-card pane paneScroll">
+              <h3>Definitions</h3>
+              <div className="form-row">
+                <Dropdown
+                  value={definitionId}
+                  options={definitions.map((entry) => ({ label: `${entry.name} v${entry.version}`, value: entry.id }))}
+                  onChange={(event) => {
+                    const id = Number(event.value);
+                    const picked = definitions.find((entry) => entry.id === id);
+                    if (!picked) {
+                      return;
+                    }
+                    setDefinitionId(id);
+                    setDefinitionName(picked.name);
+                    setDefinitionVersion(picked.version);
+                    setInputSchemaJson(picked.inputSchemaJson);
+                    setPermissionsJson(picked.permissionsJson);
+                    const graph = parseGraph(picked.graphJson);
+                    setGraphNodes(graph.nodes);
+                    setGraphEdges(graph.edges);
+                  }}
+                  placeholder="Select workflow"
+                />
+              </div>
+              <div className="form-row">
+                <InputText value={definitionName} onChange={(event) => setDefinitionName(event.target.value)} placeholder="Workflow name" />
+                <InputNumber value={definitionVersion} min={1} onValueChange={(event) => setDefinitionVersion(event.value ?? 1)} />
+              </div>
+              <div className="inline-actions">
+                <Button label="Save" onClick={() => saveDefinition().catch((error: unknown) => onStatus(String(error)))} />
+              </div>
 
-        <div className="content-card">
-          <div style={{ height: 520 }}>
-            <ReactFlow
-              nodes={flowNodes}
-              edges={flowEdges}
-              fitView
-              snapToGrid
-              snapGrid={[20, 20]}
-              onNodeClick={(_event, node) => setSelectedNodeId(node.id)}
-              onConnect={onConnect}
-              onEdgesChange={() => undefined}
-              onNodesChange={() => undefined}
-            >
-              <Background />
-              <Controls />
-            </ReactFlow>
-          </div>
-          <div className="inline-actions">
-            <Button label="Remove Node" severity="danger" disabled={!selectedNodeId} onClick={removeSelectedNode} />
-          </div>
-        </div>
+              <h4>Node Palette</h4>
+              <Accordion multiple activeIndex={[0]}>
+                <AccordionTab header="All Nodes">
+                  <div className="sample-list">
+                    {nodeRegistry.map((entry) => (
+                      <Button key={entry.type} text icon={entry.icon} label={entry.label} onClick={() => addNode(entry.type)} />
+                    ))}
+                  </div>
+                </AccordionTab>
+              </Accordion>
 
-        <div className="content-card">
-          <h3>Inspector</h3>
-          {!selectedNode ? <div className="status-panel">Select a node on the canvas.</div> : null}
-          {selectedNode && selectedNodeRegistry ? (
-            <NodeInspector
-              node={selectedNode}
-              onChange={(nextConfig) => {
-                const errors = validateNodeConfig(selectedNode.type, nextConfig);
-                onStatus(errors[0] ?? '');
-                setGraphNodes((prev) => prev.map((node) => (node.id === selectedNode.id ? { ...node, config: nextConfig } : node)));
-              }}
-            />
-          ) : null}
-        </div>
-      </div>
+              <Accordion>
+                <AccordionTab header="Advanced: Input Schema JSON">
+                  <InputTextarea rows={4} value={inputSchemaJson} onChange={(event) => setInputSchemaJson(event.target.value)} />
+                </AccordionTab>
+                <AccordionTab header="Advanced: Permissions JSON">
+                  <InputTextarea rows={4} value={permissionsJson} onChange={(event) => setPermissionsJson(event.target.value)} />
+                </AccordionTab>
+                <AccordionTab header="Run Context JSON">
+                  <InputTextarea rows={4} value={runContextJson} onChange={(event) => setRunContextJson(event.target.value)} />
+                </AccordionTab>
+              </Accordion>
+            </div>
+          </SplitterPanel>
 
-      <div className="content-card">
-        <h3>Run Workflow</h3>
-        <div className="form-row">
-          <label>Run context</label>
-          <InputTextarea rows={4} value={runContextJson} onChange={(event) => setRunContextJson(event.target.value)} />
-        </div>
-        <div className="inline-actions">
-          <Button label="Start Run" onClick={() => startRun().catch((error: unknown) => onStatus(String(error)))} />
-        </div>
-        <DataTable value={runs} size="small" selectionMode="single" selection={selectedRun} onSelectionChange={(event) => setSelectedRunId((event.value as WorkflowRun | null)?.id ?? null)}>
-          <Column field="id" header="Run ID" />
-          <Column field="status" header="Status" />
-          <Column field="currentNodeId" header="Current Node" />
-          <Column
-            header="Approve"
-            body={(row: WorkflowRun) => (
-              <Button text size="small" disabled={row.status !== 'PAUSED' || !row.currentNodeId} label="Approve" onClick={() => sdk.approveStep({ runId: row.id, nodeId: row.currentNodeId!, approvedBy: 'admin' }).then(() => refreshRuns(row.definitionId))} />
-            )}
-          />
-          <Column
-            header="Retry"
-            body={(row: WorkflowRun) => (
-              <Button text size="small" disabled={row.status !== 'FAILED'} label="Retry" onClick={() => sdk.retryFailed({ runId: row.id }).then(() => refreshRuns(row.definitionId))} />
-            )}
-          />
-        </DataTable>
-        {selectedRun ? <pre>{selectedRun.logsJson}</pre> : null}
+          <SplitterPanel size={54} minSize={30}>
+            <div className="content-card pane splitFill">
+              <div className="inline-actions" style={{ justifyContent: 'space-between' }}>
+                <h3 style={{ margin: 0 }}>Canvas</h3>
+                <div className="inline-actions">
+                  <Button label="Auto-layout" text onClick={() => setGraphNodes((prev) => [...prev])} />
+                  <Button label="Run This Workflow" severity="success" onClick={() => startRun().catch((error: unknown) => onStatus(String(error)))} />
+                </div>
+              </div>
+              <div className="paneScroll">
+                <ReactFlow
+                  nodes={flowNodes}
+                  edges={flowEdges}
+                  fitView
+                  snapToGrid
+                  snapGrid={[20, 20]}
+                  onNodeClick={(_event, node) => setSelectedNodeId(node.id)}
+                  onConnect={onConnect}
+                  onEdgesChange={() => undefined}
+                  onNodesChange={() => undefined}
+                >
+                  <Background />
+                  <Controls />
+                  <MiniMap />
+                </ReactFlow>
+              </div>
+              <div className="inline-actions">
+                <Button label="Remove Node" severity="danger" disabled={!selectedNodeId} onClick={removeSelectedNode} />
+              </div>
+            </div>
+          </SplitterPanel>
+
+          <SplitterPanel size={24} minSize={18}>
+            <div className="content-card pane paneScroll">
+              <h3>Inspector</h3>
+              <NodeInspector
+                node={selectedNode}
+                onChange={(nextConfig) => {
+                  const errors = validateNodeConfig(selectedNode?.type ?? '', nextConfig);
+                  if (errors.length > 0) {
+                    onStatus(errors[0] ?? 'Invalid config');
+                  }
+                  if (!selectedNode) {
+                    return;
+                  }
+                  setGraphNodes((prev) => prev.map((node) => (node.id === selectedNode.id ? { ...node, config: nextConfig } : node)));
+                }}
+              />
+            </div>
+          </SplitterPanel>
+        </Splitter>
       </div>
     </section>
   );

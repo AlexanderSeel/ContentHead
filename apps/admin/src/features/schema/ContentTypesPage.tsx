@@ -121,10 +121,16 @@ export function ContentTypesPage() {
   };
 
   return (
-    <div>
+    <div className="pageRoot">
       <PageHeader
         title="Content Types"
         subtitle="Visual schema builder with field inspector and preview"
+        helpTopicKey="content_types"
+        askAiContext="types"
+        askAiPayload={{ siteId, selectedType: selected, fields }}
+        onAskAiInsert={(value) => {
+          setSelected((prev) => (prev ? { ...prev, description: `${prev.description ?? ''}\n${value}`.trim() } : prev));
+        }}
         actions={
           <div className="inline-actions">
             <Button label="New Type" onClick={createType} />

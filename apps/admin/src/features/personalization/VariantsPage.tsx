@@ -5,11 +5,13 @@ import { DataTable } from 'primereact/datatable';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
+import type { Rule } from '@contenthead/shared';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { PageHeader } from '../../components/common/PageHeader';
+import { RuleEditorDialog } from '../../components/rules/RuleEditorDialog';
 
 type Item = { id: number };
 type Version = { id: number; versionNumber: number };
@@ -28,6 +30,7 @@ export function VariantsPage() {
   const [variantSets, setVariantSets] = useState<VariantSet[]>([]);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [draft, setDraft] = useState({ key: 'default', priority: 100, state: 'ACTIVE', ruleJson: '{}', trafficAllocation: 100, contentVersionId: 0 });
+  const [ruleEditorOpen, setRuleEditorOpen] = useState(false);
 
   useEffect(() => {
     sdk.listContentItems({ siteId }).then((res) => setItems((res.listContentItems ?? []) as Item[]));
@@ -54,8 +57,14 @@ export function VariantsPage() {
   };
 
   return (
-    <div>
-      <PageHeader title="Variants" subtitle="Personalization and A/B configurations" />
+    <div className="pageRoot">
+      <PageHeader
+        title="Variants"
+        subtitle="Personalization and A/B configurations"
+        helpTopicKey="variants"
+        askAiContext="content"
+        askAiPayload={{ siteId, marketCode, localeCode, contentItemId, draft }}
+      />
       <div className="form-grid">
         <Dropdown value={contentItemId} options={items.map((entry) => ({ label: `#${entry.id}`, value: entry.id }))} onChange={(e) => loadItem(Number(e.value)).catch(() => undefined)} placeholder="Content item" />
         <Dropdown value={variantSetId} options={variantSets.map((entry) => ({ label: `Set #${entry.id}`, value: entry.id }))} onChange={(e) => {
@@ -81,7 +90,31 @@ export function VariantsPage() {
         <Dropdown value={draft.contentVersionId} options={versions.map((entry) => ({ label: `v${entry.versionNumber}`, value: entry.id }))} onChange={(e) => setDraft((prev) => ({ ...prev, contentVersionId: Number(e.value) }))} placeholder="version" />
       </div>
       <div className="form-row"><label>Rule JSON</label><InputTextarea rows={4} value={draft.ruleJson} onChange={(e) => setDraft((prev) => ({ ...prev, ruleJson: e.target.value }))} /></div>
+      <div className="inline-actions">
+        <Button label="Rule Editor" text onClick={() => setRuleEditorOpen(true)} />
+      </div>
       <Button label="Save Variant" onClick={() => variantSetId ? sdk.upsertVariant({ variantSetId, key: draft.key, priority: draft.priority, state: draft.state, ruleJson: draft.ruleJson, trafficAllocation: draft.trafficAllocation, contentVersionId: draft.contentVersionId }).then(() => sdk.listVariants({ variantSetId }).then((res) => setVariants((res.listVariants ?? []) as Variant[]))) : Promise.resolve()} disabled={!variantSetId} />
+      <RuleEditorDialog
+        visible={ruleEditorOpen}
+        initialRule={(() => {
+          try {
+            return JSON.parse(draft.ruleJson) as Rule;
+          } catch {
+            return null;
+          }
+        })()}
+        fields={[
+          { label: 'country', value: 'country' },
+          { label: 'device', value: 'device' },
+          { label: 'segments', value: 'segments' },
+          { label: 'query.answer.plan', value: 'query.answer.plan' }
+        ]}
+        onHide={() => setRuleEditorOpen(false)}
+        onApply={(rule) => {
+          setDraft((prev) => ({ ...prev, ruleJson: JSON.stringify(rule) }));
+          setRuleEditorOpen(false);
+        }}
+      />
     </div>
   );
 }

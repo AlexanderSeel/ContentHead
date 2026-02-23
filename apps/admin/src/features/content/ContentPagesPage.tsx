@@ -531,10 +531,14 @@ export function ContentPagesPage() {
   );
 
   return (
-    <div>
+    <div className="pageRoot">
       <PageHeader
         title="Content Pages"
         subtitle="URL-driven tree navigation with synchronized editor."
+        helpTopicKey="content_pages"
+        askAiContext="content"
+        askAiPayload={{ siteId, marketCode, localeCode, selectedItemId, fields, compositionJson, componentsJson }}
+        onAskAiInsert={(value) => setMetadataJson((prev) => `${prev}\n${value}`.trim())}
         actions={
           <div className="inline-actions">
             <Dropdown value={selectedContentTypeId} options={types.map((entry) => ({ label: entry.name, value: entry.id }))} onChange={(event) => setSelectedContentTypeId(Number(event.value))} placeholder="Content type" />

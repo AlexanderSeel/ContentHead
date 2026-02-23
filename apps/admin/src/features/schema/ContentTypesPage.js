@@ -99,7 +99,9 @@ export function ContentTypesPage() {
         setNewFieldType('text');
         setNewFieldRequired(false);
     };
-    return (_jsxs("div", { children: [_jsx(PageHeader, { title: "Content Types", subtitle: "Visual schema builder with field inspector and preview", actions: _jsxs("div", { className: "inline-actions", children: [_jsx(Button, { label: "New Type", onClick: createType }), _jsx(Button, { label: "Save Type", severity: "success", onClick: () => saveType().catch(() => undefined), disabled: !selected })] }) }), _jsxs("div", { className: "form-builder-layout", children: [_jsx("section", { className: "content-card", children: _jsx(ContentTypeList, { items: types, selectedId: selected?.id ?? null, onCreate: createType, onSelect: (item) => {
+    return (_jsxs("div", { className: "pageRoot", children: [_jsx(PageHeader, { title: "Content Types", subtitle: "Visual schema builder with field inspector and preview", helpTopicKey: "content_types", askAiContext: "types", askAiPayload: { siteId, selectedType: selected, fields }, onAskAiInsert: (value) => {
+                    setSelected((prev) => (prev ? { ...prev, description: `${prev.description ?? ''}\n${value}`.trim() } : prev));
+                }, actions: _jsxs("div", { className: "inline-actions", children: [_jsx(Button, { label: "New Type", onClick: createType }), _jsx(Button, { label: "Save Type", severity: "success", onClick: () => saveType().catch(() => undefined), disabled: !selected })] }) }), _jsxs("div", { className: "form-builder-layout", children: [_jsx("section", { className: "content-card", children: _jsx(ContentTypeList, { items: types, selectedId: selected?.id ?? null, onCreate: createType, onSelect: (item) => {
                                 setSelected(item);
                                 const parsed = parseFieldsJson(item.fieldsJson);
                                 setFields(parsed);

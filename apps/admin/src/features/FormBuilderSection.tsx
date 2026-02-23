@@ -11,6 +11,7 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { Sidebar } from 'primereact/sidebar';
 import { TabPanel, TabView } from 'primereact/tabview';
 import { evaluateFieldConditions, type Rule } from '@contenthead/shared';
+import { RuleEditorDialog } from '../components/rules/RuleEditorDialog';
 
 import { useAuth } from '../app/AuthContext';
 import { createAdminSdk } from '../lib/sdk';
@@ -263,6 +264,8 @@ export function FormBuilderSection({
   const [previewContextJson, setPreviewContextJson] = useState(EMPTY_CONTEXT);
   const [previewAnswers, setPreviewAnswers] = useState<Record<string, unknown>>({});
   const [showTestDrawer, setShowTestDrawer] = useState(false);
+  const [ruleEditorOpen, setRuleEditorOpen] = useState(false);
+  const [ruleEditorTarget, setRuleEditorTarget] = useState<keyof FormConditionSet>('showIf');
 
   const refreshFormDetails = async (id: number) => {
     const [stepRes, fieldRes] = await Promise.all([sdk.listFormSteps({ formId: id }), sdk.listFormFields({ formId: id })]);
@@ -1125,6 +1128,11 @@ export function FormBuilderSection({
               </TabPanel>
 
               <TabPanel header="Conditions">
+                <div className="inline-actions">
+                  <Button text label="Edit Show If" onClick={() => { setRuleEditorTarget('showIf'); setRuleEditorOpen(true); }} />
+                  <Button text label="Edit Required If" onClick={() => { setRuleEditorTarget('requiredIf'); setRuleEditorOpen(true); }} />
+                  <Button text label="Edit Enabled If" onClick={() => { setRuleEditorTarget('enabledIf'); setRuleEditorOpen(true); }} />
+                </div>
                 <div className="form-row">
                   <label>Show If</label>
                   <Dropdown value={showIfDraft.field} options={fieldKeyOptions} onChange={(event) => patchSelectedCondition('showIf', { ...showIfDraft, field: String(event.value) })} />
@@ -1170,6 +1178,23 @@ export function FormBuilderSection({
           </div>
         ))}
       </Sidebar>
+      <RuleEditorDialog
+        visible={ruleEditorOpen}
+        initialRule={parsedConditions[ruleEditorTarget]}
+        fields={fieldKeyOptions}
+        onHide={() => setRuleEditorOpen(false)}
+        onApply={(rule) => {
+          if (!selectedField) {
+            return;
+          }
+          const current = parseJsonObject<FormConditionSet>(selectedField.conditionsJson, {});
+          updateField(selectedField.id, (field) => ({
+            ...field,
+            conditionsJson: JSON.stringify({ ...current, [ruleEditorTarget]: rule })
+          }));
+          setRuleEditorOpen(false);
+        }}
+      />
     </section>
   );
 }

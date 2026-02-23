@@ -8,7 +8,9 @@ export const CONTENT_FIELD_TYPES = [
     { label: 'Select', value: 'select' },
     { label: 'Multi Select', value: 'multiselect' },
     { label: 'Reference', value: 'reference' },
-    { label: 'JSON', value: 'json' }
+    { label: 'JSON', value: 'json' },
+    { label: 'Content Link', value: 'contentLink' },
+    { label: 'Content Link List', value: 'contentLinkList' }
 ];
 export function parseFieldsJson(value) {
     try {

@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "packageManager": "pnpm@10.6.0",
   "scripts": {
-    "dev": "concurrently -n api,admin,web -c blue,green,yellow \"pnpm --filter @contenthead/api dev\" \"pnpm --filter @contenthead/admin dev\" \"pnpm --filter @contenthead/web dev\"",
+    "dev": "concurrently --kill-others --kill-others-on-fail -n api,admin,web -c blue,green,yellow \"pnpm --filter @contenthead/api dev\" \"pnpm --filter @contenthead/admin dev\" \"pnpm --filter @contenthead/web dev\"",
+    "dev:kill": "taskkill /F /T /IM node.exe",
     "schema": "pnpm --filter @contenthead/api schema:export",
     "codegen": "pnpm --filter @contenthead/admin codegen && pnpm --filter @contenthead/web codegen && pnpm --filter @contenthead/sdk codegen",
     "build": "pnpm schema && pnpm codegen && pnpm -r build",

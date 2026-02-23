@@ -12,8 +12,8 @@ export function FormBuilderPage() {
   const initialFormId = formId ? Number(formId) : null;
 
   return (
-    <div>
-      <PageHeader title="Form Builder" subtitle="Steps, fields and conditional rules" />
+    <div className="pageRoot">
+      <PageHeader title="Form Builder" subtitle="Steps, fields and conditional rules" helpTopicKey="forms" askAiContext="forms" askAiPayload={{ siteId }} />
       <FormBuilderSection siteId={siteId} initialFormId={Number.isFinite(initialFormId) ? initialFormId : null} onStatus={setStatus} />
       {status ? <pre>{status}</pre> : null}
     </div>
