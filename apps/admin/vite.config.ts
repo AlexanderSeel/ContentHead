@@ -7,7 +7,8 @@ export default defineConfig({
     format: 'es'
   },
   optimizeDeps: {
-    exclude: ['graphiql', '@graphiql/react', 'monaco-editor', 'monaco-graphql']
+    include: ['react-compiler-runtime', 'nullthrows', 'graphql-language-service'],
+    exclude: ['monaco-editor', 'monaco-graphql']
   },
   resolve: {
     // Prefer TypeScript sources when .ts/.tsx and .js siblings both exist.
