@@ -266,7 +266,7 @@ OFFSET ?
 
   return {
     rows: rows.map((row) => ({ ...row, status: mapStatus(row.status) })),
-    total: countRow?.total ?? 0
+    total: Number(countRow?.total ?? 0)
   };
 }
 

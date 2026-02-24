@@ -4,6 +4,7 @@ import { Toast } from 'primereact/toast';
 import type { ToastMessage } from 'primereact/toast';
 import { PRIME_THEMES, type ThemeOption } from '../theme/themeList';
 import { applyScale, applyTheme } from '../theme/themeManager';
+import { setGraphqlErrorNotifier } from '../lib/graphqlReliability';
 
 const THEME_STORAGE_KEY = 'contenthead.admin.theme';
 const SCALE_STORAGE_KEY = 'contenthead.admin.scale';
@@ -36,6 +37,18 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
     applyScale(normalized);
     localStorage.setItem(SCALE_STORAGE_KEY, String(normalized));
   }, [scale]);
+
+  useEffect(() => {
+    setGraphqlErrorNotifier((failure) => {
+      toastRef.current?.show({
+        severity: 'error',
+        summary: `${failure.operationName} failed`,
+        detail: failure.message,
+        life: 5000
+      });
+    });
+    return () => setGraphqlErrorNotifier(null);
+  }, []);
 
   const value = useMemo<UiContextValue>(
     () => ({

@@ -10,11 +10,11 @@ import { Splitter, SplitterPanel } from 'primereact/splitter';
 import ReactFlow, { Background, Controls, MiniMap, type Connection, type Edge, type Node, type OnConnect } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import { createSdk } from '@contenthead/sdk';
+import { createAdminSdk } from '../lib/sdk';
 import { nodeRegistry, validateNodeConfig } from './workflows/nodeRegistry';
 import { NodeInspector } from './workflows/NodeInspector';
 
-const sdk = createSdk({ endpoint: 'http://localhost:4000/graphql' });
+const sdk = createAdminSdk(null);
 
 type WorkflowDefinition = {
   id: number;

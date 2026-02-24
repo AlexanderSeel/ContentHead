@@ -4,11 +4,13 @@ export type NavItem = {
   label: string;
   to: string;
   matchPrefix?: string;
+  icon?: string;
 };
 
 export type NavArea = {
   key: string;
   label: string;
+  icon: string;
   items: NavItem[];
 };
 
@@ -17,93 +19,107 @@ export function buildNavAreas(showDevTools: boolean): NavArea[] {
     {
       key: 'content',
       label: 'Content',
+      icon: 'pi pi-file',
       items: [
-        { label: 'Pages', to: '/content/pages' },
-        { label: 'Routes', to: '/content/routes' }
+        { label: 'Pages', to: '/content/pages', icon: 'pi pi-copy' },
+        { label: 'Routes', to: '/content/routes', icon: 'pi pi-sitemap' }
       ]
     },
     {
       key: 'build',
       label: 'Build',
+      icon: 'pi pi-wrench',
       items: [
-        { label: 'Content Types', to: '/site/content-types' },
-        { label: 'Templates', to: '/content/templates' },
-        { label: 'Components', to: '/build/components' }
+        { label: 'Content Types', to: '/site/content-types', icon: 'pi pi-list' },
+        { label: 'Templates', to: '/content/templates', icon: 'pi pi-clone' },
+        { label: 'Components', to: '/build/components', icon: 'pi pi-th-large' }
       ]
     },
     {
       key: 'personalization',
       label: 'Personalization',
+      icon: 'pi pi-sliders-h',
       items: [
-        { label: 'Workflows', to: '/personalization/workflows', matchPrefix: '/personalization/workflows' },
-        { label: 'Variants (Advanced)', to: '/personalization/variants', matchPrefix: '/personalization/variants' }
+        { label: 'Workflows', to: '/personalization/workflows', matchPrefix: '/personalization/workflows', icon: 'pi pi-share-alt' },
+        { label: 'Variants', to: '/personalization/variants', matchPrefix: '/personalization/variants', icon: 'pi pi-percentage' }
       ]
     },
     {
       key: 'forms',
       label: 'Forms',
+      icon: 'pi pi-check-square',
       items: [
-        { label: 'Builder', to: '/forms/builder' },
-        { label: 'Submissions', to: '/forms/submissions' }
+        { label: 'Builder', to: '/forms/builder', icon: 'pi pi-pencil' },
+        { label: 'Submissions', to: '/forms/submissions', icon: 'pi pi-inbox' }
       ]
     },
     {
       key: 'workflows',
       label: 'Workflows',
+      icon: 'pi pi-directions-alt',
       items: [
-        { label: 'Designer', to: '/workflows/designer' },
-        { label: 'Runs', to: '/workflows/runs' }
+        { label: 'Designer', to: '/workflows/designer', icon: 'pi pi-sitemap' },
+        { label: 'Runs', to: '/workflows/runs', icon: 'pi pi-history' }
       ]
     },
     {
       key: 'assets',
-      label: 'Assets (DAM)',
-      items: [{ label: 'Library', to: '/content/assets' }]
+      label: 'Assets',
+      icon: 'pi pi-images',
+      items: [{ label: 'Library', to: '/content/assets', icon: 'pi pi-folder-open' }]
     },
     {
       key: 'settings',
       label: 'Settings',
+      icon: 'pi pi-cog',
       items: [
-        { label: 'Connectors (Auth)', to: '/settings/global/connectors/auth' },
-        { label: 'Connectors (DB)', to: '/settings/global/connectors/db' },
-        { label: 'Connectors (DAM)', to: '/settings/global/connectors/dam' },
-        { label: 'Connectors (AI)', to: '/settings/global/connectors/ai' },
-        { label: 'DB Admin', to: '/settings/global/db-admin' },
-        { label: 'DuckDB Admin', to: '/settings/global/duckdb' }
+        { label: 'Connectors (Auth)', to: '/settings/global/connectors/auth', icon: 'pi pi-id-card' },
+        { label: 'Connectors (DB)', to: '/settings/global/connectors/db', icon: 'pi pi-database' },
+        { label: 'Connectors (DAM)', to: '/settings/global/connectors/dam', icon: 'pi pi-images' },
+        { label: 'Connectors (AI)', to: '/settings/global/connectors/ai', icon: 'pi pi-sparkles' },
+        { label: 'DB Admin', to: '/settings/global/db-admin', icon: 'pi pi-table' },
+        { label: 'DuckDB Admin', to: '/settings/global/duckdb', icon: 'pi pi-server' },
+        { label: 'Preferences', to: '/settings/preferences', icon: 'pi pi-sliders-h' }
       ]
     },
     {
       key: 'security',
       label: 'Security',
+      icon: 'pi pi-shield',
       items: [
-        { label: 'Users', to: '/security/users' },
-        { label: 'Roles', to: '/security/roles' }
+        { label: 'Users', to: '/security/users', icon: 'pi pi-users' },
+        { label: 'Roles', to: '/security/roles', icon: 'pi pi-lock' }
       ]
     },
-    ...(showDevTools
-      ? [
-          {
-            key: 'devtools',
-            label: 'Dev Tools',
-            items: [
-              { label: 'GraphiQL', to: '/dev/graphiql' },
-              { label: 'Diagnostics', to: '/dev/diagnostics' }
-            ]
-          } satisfies NavArea
-        ]
-      : [])
+    {
+      key: 'devtools',
+      label: 'Dev Tools',
+      icon: 'pi pi-wrench',
+      items: showDevTools
+        ? [
+            { label: 'GraphiQL', to: '/dev/graphiql', icon: 'pi pi-code' },
+            { label: 'Diagnostics', to: '/dev/diagnostics', icon: 'pi pi-heart' }
+          ]
+        : [{ label: 'Diagnostics', to: '/dev/diagnostics', icon: 'pi pi-heart' }]
+    }
   ];
 
   for (const item of extensionNavItems) {
     const area = baseAreas.find((entry) => entry.key === item.areaKey);
     if (area) {
-      area.items.push({ label: item.label, to: item.to, ...(item.matchPrefix ? { matchPrefix: item.matchPrefix } : {}) });
+      area.items.push({
+        label: item.label,
+        to: item.to,
+        icon: 'pi pi-link',
+        ...(item.matchPrefix ? { matchPrefix: item.matchPrefix } : {})
+      });
       continue;
     }
     baseAreas.push({
       key: item.areaKey,
       label: item.areaLabel,
-      items: [{ label: item.label, to: item.to, ...(item.matchPrefix ? { matchPrefix: item.matchPrefix } : {}) }]
+      icon: 'pi pi-box',
+      items: [{ label: item.label, to: item.to, icon: 'pi pi-link', ...(item.matchPrefix ? { matchPrefix: item.matchPrefix } : {}) }]
     });
   }
 
@@ -116,6 +132,7 @@ export function areaForPath(pathname: string, areas: NavArea[]): NavArea {
   return matched ?? {
     key: 'content',
     label: 'Content',
+    icon: 'pi pi-file',
     items: [{ label: 'Pages', to: '/content/pages' }]
   };
 }

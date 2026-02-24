@@ -8,6 +8,7 @@ export type Combo = { siteId: number; marketCode: string; localeCode: string; ac
 
 type AdminContextValue = {
   loading: boolean;
+  error: string | null;
   sites: Site[];
   siteId: number;
   marketCode: string;
@@ -25,6 +26,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const { token, isAuthenticated } = useAuth();
   const sdk = useMemo(() => createAdminSdk(token), [token]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [sites, setSites] = useState<Site[]>([]);
   const [siteId, setSiteId] = useState(1);
   const [marketCode, setMarketCode] = useState('US');
@@ -37,8 +39,14 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     }
 
     setLoading(true);
+    setError(null);
     try {
-      const sitesRes = await sdk.listSites();
+      const sitesResult = await sdk.safe.listSites();
+      if (!sitesResult.ok) {
+        setError(sitesResult.error.message);
+        return;
+      }
+      const sitesRes = sitesResult.data;
       const nextSites = (sitesRes.listSites ?? []) as Site[];
       setSites(nextSites);
       const effectiveSiteId = nextSites.find((entry) => entry.id === siteId)?.id ?? nextSites[0]?.id ?? 1;
@@ -46,7 +54,12 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         setSiteId(effectiveSiteId);
       }
 
-      const matrix = await sdk.getSiteMarketLocaleMatrix({ siteId: effectiveSiteId });
+      const matrixResult = await sdk.safe.getSiteMarketLocaleMatrix({ siteId: effectiveSiteId });
+      if (!matrixResult.ok) {
+        setError(matrixResult.error.message);
+        return;
+      }
+      const matrix = matrixResult.data;
       const matrixValue = matrix.getSiteMarketLocaleMatrix;
       const nextCombos = (matrixValue?.combinations ?? []) as Combo[];
       setCombos(nextCombos);
@@ -73,6 +86,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AdminContextValue>(
     () => ({
       loading,
+      error,
       sites,
       siteId,
       marketCode,
@@ -83,7 +97,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       setMarketCode,
       setLocaleCode
     }),
-    [loading, sites, siteId, marketCode, localeCode, combos]
+    [loading, error, sites, siteId, marketCode, localeCode, combos]
   );
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;

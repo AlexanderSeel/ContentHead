@@ -76,20 +76,27 @@ body {
   position: sticky;
   top: 0;
   z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  padding: 0.5rem 1rem 0.45rem;
+  padding: 0.45rem 0.8rem;
   border-bottom: 1px solid var(--surface-border);
+  background: color-mix(in srgb, var(--surface-card), var(--surface-ground) 14%);
+}
+
+.admin-topbar .p-menubar {
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 0.35rem 0.5rem;
   background: var(--surface-card);
 }
 
-.admin-topbar-primary {
-  display: grid;
-  grid-template-columns: auto minmax(180px, 300px) 1fr;
+.admin-topbar .p-menubar-root-list {
+  margin-left: 1rem;
+  flex: 1 1 auto;
+}
+
+.topbar-start {
+  display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-width: 0;
 }
 
 .topbar-brand {
@@ -98,59 +105,59 @@ body {
   white-space: nowrap !important;
   justify-content: flex-start !important;
   padding-left: 0 !important;
+  padding: 0 0.35rem !important;
 }
 
-.topbar-area-selector {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  justify-self: center;
+.topbar-global-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  min-width: 13rem;
 }
 
-.topbar-area-label {
-  font-size: 0.75rem;
-  color: var(--text-color-secondary);
+.topbar-global-search .p-inputtext {
+  border: 0;
+  box-shadow: none !important;
+  padding: 0.15rem 0;
+  background: transparent;
 }
 
-.topbar-controls {
+.topbar-end {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: nowrap;
+  padding-left: 0.5rem;
+}
+
+.ch-nav-icon {
+  margin-right: 0.45rem;
+}
+
+.ch-nav-root-active > .p-menuitem-content .p-menuitem-link {
+  background: color-mix(in srgb, var(--primary-color), transparent 82%);
+  border-radius: 8px;
+}
+
+.admin-topbar .p-menubar .p-menuitem-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.admin-topbar .p-menubar-end {
+  display: flex;
+  align-items: center;
   justify-content: flex-end;
   min-width: 0;
   overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 0.1rem;
-  flex: 1 1 auto;
 }
 
 .topbar-control {
-  min-width: 8.75rem;
+  min-width: 7.6rem;
   flex: 0 0 auto;
-}
-
-.topbar-area-control {
-  min-width: 12rem;
-}
-
-.admin-topbar-secondary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  min-width: 0;
-  padding-bottom: 0.1rem;
-}
-
-.topbar-subnav {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.35rem;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  min-width: 0;
 }
 
 .page-header {
@@ -480,6 +487,20 @@ body {
   gap: 0.75rem;
 }
 
+.diagnostics-error-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.diagnostics-error-item pre {
+  margin: 0.4rem 0 0;
+  padding: 0.45rem;
+  border-radius: 6px;
+  max-height: 160px;
+  overflow: auto;
+  background: var(--surface-ground);
+}
+
 @media (max-width: 1100px) {
   .admin-body {
     flex-direction: column;
@@ -492,13 +513,16 @@ body {
     border-right: none;
   }
 
-  .admin-topbar-primary {
-    grid-template-columns: 1fr;
-    align-items: stretch;
+  .admin-topbar .p-menubar {
+    flex-wrap: wrap;
   }
 
-  .admin-topbar-secondary {
-    flex-direction: column;
-    align-items: stretch;
+  .topbar-start {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .topbar-global-search {
+    min-width: 10rem;
   }
 }
