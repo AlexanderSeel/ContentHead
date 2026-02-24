@@ -9,7 +9,6 @@ import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { useUi } from '../../app/UiContext';
 import { createAdminSdk } from '../../lib/sdk';
-import { PageHeader } from '../../components/common/PageHeader';
 import { ComponentInspector } from './components/ComponentInspector';
 import { componentRegistry, getComponentRegistryEntry } from './components/componentRegistry';
 import {
@@ -23,7 +22,7 @@ import {
   type ComponentRecord
 } from './builder/visualBuilderModel';
 import { VisualBuilderWorkspace } from './builder/VisualBuilderWorkspace';
-import { InspectorSection } from '../../ui/molecules';
+import { InspectorSection, WorkspaceActionBar, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { TextInput } from '../../ui/atoms';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
@@ -322,11 +321,13 @@ export function TemplatesPage() {
   const contextItems = contextTemplate ? toTieredMenuItems(commandRegistry.getCommands(rowContextFor(contextTemplate), 'rowOverflow'), rowContextFor(contextTemplate)) : [];
 
   return (
-    <div>
-      <PageHeader
+    <WorkspacePage>
+      <WorkspaceHeader
         title="Templates"
         subtitle="Visual template builder with palette, canvas, inspector, and update rollout."
-        actions={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+      />
+      <WorkspaceActionBar
+        overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
       <ContextMenu ref={contextMenuRef} model={contextItems} />
       <DataTable
@@ -450,6 +451,6 @@ export function TemplatesPage() {
         />
       </div>
       {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
-    </div>
+    </WorkspacePage>
   );
 }

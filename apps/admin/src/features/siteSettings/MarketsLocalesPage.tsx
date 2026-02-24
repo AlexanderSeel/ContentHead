@@ -11,7 +11,7 @@ import { AutoComplete } from 'primereact/autocomplete';
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
-import { PageHeader } from '../../components/common/PageHeader';
+import { WorkspaceActionBar, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { useUi } from '../../app/UiContext';
 
 type LocaleCatalog = { code: string; name: string; language: string; region: string };
@@ -83,8 +83,12 @@ export function MarketsLocalesPage() {
   }, [combos, locales]);
 
   return (
-    <div>
-      <PageHeader title="Markets & Locales" subtitle="Catalog-driven locales, overrides, matrix defaults and URL-ready combinations." actions={<Button label="Refresh" onClick={() => refresh().catch(() => undefined)} />} />
+    <WorkspacePage>
+      <WorkspaceHeader
+        title="Markets & Locales"
+        subtitle="Catalog-driven locales, overrides, matrix defaults and URL-ready combinations."
+      />
+      <WorkspaceActionBar primary={<Button label="Refresh" onClick={() => refresh().catch(() => undefined)} />} />
       <TabView>
         <TabPanel header="Markets">
           <DataTable value={markets} size="small">
@@ -264,6 +268,6 @@ export function MarketsLocalesPage() {
           </div>
         </TabPanel>
       </TabView>
-    </div>
+    </WorkspacePage>
   );
 }

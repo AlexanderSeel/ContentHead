@@ -11,7 +11,6 @@ import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { useUi } from '../../app/UiContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { MarketLocalePicker } from '../../components/inputs/MarketLocalePicker';
 import { SlugEditor } from '../../components/inputs/SlugEditor';
 import { ContentReferencePicker } from '../../components/inputs/ContentReferencePicker';
@@ -20,6 +19,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadCsv, downloadJson, routeStartsWith } from '../../ui/commands/utils';
+import { WorkspaceActionBar, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type Route = { id: number; contentItemId: number; marketCode: string; localeCode: string; slug: string; isCanonical: boolean };
 
@@ -171,11 +171,10 @@ export function RoutesPage() {
     : [];
 
   return (
-    <div>
-      <PageHeader
-        title="Routes"
-        subtitle="Route bindings per market/locale"
-        actions={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+    <WorkspacePage>
+      <WorkspaceHeader title="Routes" subtitle="Route bindings per market/locale" />
+      <WorkspaceActionBar
+        overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
       <div className="table-toolbar">
         <InputText placeholder="Search slug or item id" />
@@ -241,6 +240,6 @@ export function RoutesPage() {
           }
         />
       </div>
-    </div>
+    </WorkspacePage>
   );
 }

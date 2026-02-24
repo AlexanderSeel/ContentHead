@@ -5,8 +5,8 @@ import { InputTextarea } from 'primereact/inputtextarea';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
+import { WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type ExportedItem = {
   externalId?: string;
@@ -562,8 +562,8 @@ export function DuckDbAdminPage() {
   };
 
   return (
-    <div className="pageRoot">
-      <PageHeader title="DuckDB Admin" subtitle="Runtime DB operations, demo data, and JSON import/export." />
+    <WorkspacePage>
+      <WorkspaceHeader title="DuckDB Admin" subtitle="Runtime DB operations, demo data, and JSON import/export." />
       <div className="card-grid">
         <section className="content-card">
           <h3 style={{ marginTop: 0 }}>Load Demo Data</h3>
@@ -615,6 +615,6 @@ export function DuckDbAdminPage() {
         </section>
       </div>
       {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
-    </div>
+    </WorkspacePage>
   );
 }

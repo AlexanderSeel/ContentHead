@@ -8,9 +8,9 @@ import type { Rule } from '@contenthead/shared';
 
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { RuleEditorDialog } from '../../components/rules/RuleEditorDialog';
 import { createAdminSdk } from '../../lib/sdk';
+import { WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type Item = { id: number };
 type Version = { id: number; versionNumber: number };
@@ -295,8 +295,8 @@ export function PersonalizationWorkflowsPage() {
   };
 
   return (
-    <div className="pageRoot">
-      <PageHeader
+    <WorkspacePage>
+      <WorkspaceHeader
         title="Personalization Workflows"
         subtitle="Guided setup for audiences, experiences, and rollout"
         helpTopicKey="personalization_workflows"
@@ -492,6 +492,6 @@ export function PersonalizationWorkflowsPage() {
           setRuleEditorOpen(false);
         }}
       />
-    </div>
+    </WorkspacePage>
   );
 }
