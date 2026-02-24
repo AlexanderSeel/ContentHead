@@ -82,10 +82,11 @@ CREATE TABLE IF NOT EXISTS asset_renditions (
   kind VARCHAR NOT NULL,
   width INTEGER NOT NULL,
   height INTEGER NOT NULL,
+  fit_mode VARCHAR NOT NULL DEFAULT 'cover',
   storage_path VARCHAR NOT NULL,
   bytes BIGINT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
-  UNIQUE(asset_id, kind),
+  UNIQUE(asset_id, kind, fit_mode, width),
   FOREIGN KEY (asset_id) REFERENCES assets(id)
 );
 `

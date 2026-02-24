@@ -704,6 +704,7 @@ export function ContentPagesPage() {
   const [newComponentArea, setNewComponentArea] = useState('main');
   const [centerTabIndex, setCenterTabIndex] = useState(0);
   const [leftPaneCollapsed, setLeftPaneCollapsed] = useState(false);
+  const [workspaceSizes, setWorkspaceSizes] = useState<number[]>([28, 72]);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('split');
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>('web');
   const [treeFilter, setTreeFilter] = useState('');
@@ -722,6 +723,21 @@ export function ContentPagesPage() {
   const [onPageLinkPicker, setOnPageLinkPicker] = useState<{ visible: boolean; path: string; value: ContentLinkValue | null } | null>(null);
   const [onPageFormPicker, setOnPageFormPicker] = useState<{ visible: boolean; path: string; value: number | null } | null>(null);
   const [formOptions, setFormOptions] = useState<FormListRow[]>([]);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('content-pages.workspace.sizes');
+    if (!saved) {
+      return;
+    }
+    try {
+      const parsed = JSON.parse(saved) as number[];
+      if (parsed.length === 2) {
+        setWorkspaceSizes(parsed);
+      }
+    } catch {
+      // ignore invalid saved layout
+    }
+  }, []);
 
   const previewIframeRef = useRef<HTMLIFrameElement | null>(null);
   const treeContextMenuRef = useRef<ContextMenu>(null);
@@ -2800,6 +2816,13 @@ export function ContentPagesPage() {
         }
         modeToggle={
           <>
+            <Button
+              label={leftPaneCollapsed ? 'Expand tree' : 'Collapse tree'}
+              size="small"
+              text
+              icon={leftPaneCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'}
+              onClick={() => setLeftPaneCollapsed((prev) => !prev)}
+            />
             <Button label="Split" size="small" text={workspaceMode !== 'split'} onClick={() => setWorkspaceMode('split')} />
             <Button label="Properties" size="small" text={workspaceMode !== 'properties'} onClick={() => setWorkspaceMode('properties')} />
             <Button label="On-page" size="small" text={workspaceMode !== 'onpage'} onClick={() => setWorkspaceMode('onpage')} />
@@ -2816,8 +2839,16 @@ export function ContentPagesPage() {
         }
       />
       <WorkspaceBody>
-        <Splitter className="splitFill cms-editor-workspace" style={{ width: '100%' }}>
-          <SplitterPanel size={28} minSize={20}>
+        <Splitter
+          className="splitFill cms-editor-workspace"
+          style={{ width: '100%' }}
+          onResizeEnd={(event) => {
+            const next = (event.sizes as number[]) ?? [28, 72];
+            setWorkspaceSizes(next);
+            window.localStorage.setItem('content-pages.workspace.sizes', JSON.stringify(next));
+          }}
+        >
+          <SplitterPanel size={leftPaneCollapsed ? 4 : (workspaceSizes[0] ?? 28)} minSize={leftPaneCollapsed ? 4 : 20}>
             <div className="paneRoot paneScroll cms-pane cms-left-pane">
               <ContextMenu ref={treeContextMenuRef} model={treeContextMenuItems} />
               <div className="inline-actions" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -2937,7 +2968,7 @@ export function ContentPagesPage() {
               )}
             </div>
           </SplitterPanel>
-          <SplitterPanel size={72} minSize={35}>
+          <SplitterPanel size={leftPaneCollapsed ? 96 : (workspaceSizes[1] ?? 72)} minSize={35}>
             {workspaceMode === 'split' ? (
               <Splitter className="splitFill cms-editor-detail-workspace" style={{ width: '100%' }}>
                 <SplitterPanel size={62} minSize={35}>

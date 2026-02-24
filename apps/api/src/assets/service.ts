@@ -52,6 +52,7 @@ export type AssetRenditionRecord = {
   kind: string;
   width: number;
   height: number;
+  fitMode: 'cover' | 'contain';
   storagePath: string;
   bytes: number;
   createdAt: string;
@@ -311,7 +312,10 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'local', ?, NULL, ?, ?, NULL, NULL, ?, ?, 
   );
 
   if (input.mimeType.startsWith('image/')) {
-    await ensureImageRendition(db, storage, id, 'thumb', 320);
+    await ensureImageRendition(db, storage, id, 'thumb', 320, 'cover');
+    await ensureImageRendition(db, storage, id, 'small', 640, 'cover');
+    await ensureImageRendition(db, storage, id, 'medium', 1024, 'cover');
+    await ensureImageRendition(db, storage, id, 'large', 1600, 'cover');
   }
 
   const created = await getAsset(db, id);
@@ -327,7 +331,8 @@ export async function ensureImageRendition(
   storage: AssetStorageProvider,
   assetId: number,
   kind: 'thumb' | 'small' | 'medium' | 'large',
-  targetWidth: number
+  targetWidth: number,
+  fitMode: 'cover' | 'contain' = 'cover'
 ): Promise<AssetRenditionRecord | null> {
   const existing = await db.get<AssetRenditionRecord>(
     `
@@ -337,13 +342,14 @@ SELECT
   kind,
   width,
   height,
+  fit_mode as fitMode,
   storage_path as storagePath,
   bytes,
   CAST(created_at AS VARCHAR) as createdAt
 FROM asset_renditions
-WHERE asset_id = ? AND kind = ?
+WHERE asset_id = ? AND kind = ? AND fit_mode = ? AND width = ?
 `,
-    [assetId, kind]
+    [assetId, kind, fitMode, targetWidth]
   );
   if (existing) {
     return existing;
@@ -355,18 +361,21 @@ WHERE asset_id = ? AND kind = ?
   }
 
   const original = await storage.read(asset.storagePath);
-  const rendered = await sharp(original).resize({ width: targetWidth, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
-  const key = asset.storagePath.replace(extname(asset.storagePath), `-${kind}.webp`);
+  const rendered = await sharp(original)
+    .resize({ width: targetWidth, withoutEnlargement: true, fit: fitMode })
+    .webp({ quality: 82 })
+    .toBuffer();
+  const key = asset.storagePath.replace(extname(asset.storagePath), `-${kind}-${fitMode}-${targetWidth}.webp`);
   const saved = await storage.save(rendered, key);
   const metadata = await sharp(rendered).metadata();
 
   const id = await nextId(db, 'asset_renditions');
   await db.run(
     `
-INSERT INTO asset_renditions(id, asset_id, kind, width, height, storage_path, bytes)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO asset_renditions(id, asset_id, kind, width, height, fit_mode, storage_path, bytes)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `,
-    [id, assetId, kind, metadata.width ?? targetWidth, metadata.height ?? 1, saved.storagePath, saved.bytes]
+    [id, assetId, kind, metadata.width ?? targetWidth, metadata.height ?? 1, fitMode, saved.storagePath, saved.bytes]
   );
 
   return (
@@ -378,6 +387,7 @@ SELECT
   kind,
   width,
   height,
+  fit_mode as fitMode,
   storage_path as storagePath,
   bytes,
   CAST(created_at AS VARCHAR) as createdAt
@@ -392,8 +402,12 @@ WHERE id = ?
 export async function getAssetRendition(
   db: DbClient,
   assetId: number,
-  kind: string
+  kind: string,
+  fitMode: 'cover' | 'contain' = 'cover',
+  width?: number
 ): Promise<AssetRenditionRecord | null> {
+  const widthClause = width ? ' AND width = ?' : '';
+  const params = width ? [assetId, kind, fitMode, width] : [assetId, kind, fitMode];
   return (
     (await db.get<AssetRenditionRecord>(
       `
@@ -403,13 +417,14 @@ SELECT
   kind,
   width,
   height,
+  fit_mode as fitMode,
   storage_path as storagePath,
   bytes,
   CAST(created_at AS VARCHAR) as createdAt
 FROM asset_renditions
-WHERE asset_id = ? AND kind = ?
+WHERE asset_id = ? AND kind = ? AND fit_mode = ?${widthClause}
 `,
-      [assetId, kind]
+      params
     )) ?? null
   );
 }

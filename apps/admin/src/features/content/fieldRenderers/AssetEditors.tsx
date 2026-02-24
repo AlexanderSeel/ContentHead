@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
+import { Dropdown } from 'primereact/dropdown';
+import { InputNumber } from 'primereact/inputnumber';
 
 import { createAdminSdk } from '../../../lib/sdk';
 import { getApiBaseUrl } from '../../../lib/api';
@@ -33,11 +35,13 @@ export function AssetRefEditor({
 }: {
   token: string | null;
   siteId: number;
-  value: number | null;
-  onChange: (value: number | null) => void;
+  value: number | { assetId: number | null; renditionKind?: string; fitMode?: string; customWidth?: number } | null;
+  onChange: (value: number | { assetId: number | null; renditionKind?: string; fitMode?: string; customWidth?: number } | null) => void;
 }) {
   const sdk = useMemo(() => createAdminSdk(token), [token]);
   const [asset, setAsset] = useState<AssetRow | null>(null);
+  const selection = typeof value === 'number' ? { assetId: value } : (value ?? { assetId: null });
+  const selectedId = selection.assetId ?? null;
 
   const load = async (id: number | null) => {
     if (!id) {
@@ -55,10 +59,10 @@ export function AssetRefEditor({
           <AssetPickerButton
             token={token}
             siteId={siteId}
-            selected={value ? [value] : []}
+            selected={selectedId ? [selectedId] : []}
             onChange={(assetIds) => {
               const next = assetIds[0] ?? null;
-              onChange(next);
+              onChange(next ? { ...selection, assetId: next } : null);
               load(next).catch(() => undefined);
             }}
             label="Select asset"
@@ -70,17 +74,51 @@ export function AssetRefEditor({
               onChange(null);
               setAsset(null);
             }}
-            disabled={!value}
+            disabled={!selectedId}
           />
         </div>
-        {value ? (
+        {selectedId ? (
           <div className="inline-actions asset-ref-selected">
-            <AssetPreview id={value} />
-            <small>{asset?.title ?? asset?.originalName ?? `Asset #${value}`}</small>
+            <AssetPreview id={selectedId} />
+            <small>{asset?.title ?? asset?.originalName ?? `Asset #${selectedId}`}</small>
           </div>
         ) : (
           <small className="muted">No asset selected</small>
         )}
+      </div>
+      <div className="inline-actions" style={{ marginTop: '0.5rem', gap: '0.5rem' }}>
+        <Dropdown
+          value={selection.renditionKind ?? 'medium'}
+          options={[
+            { label: 'Original', value: 'original' },
+            { label: 'Thumb', value: 'thumb' },
+            { label: 'Small', value: 'small' },
+            { label: 'Medium', value: 'medium' },
+            { label: 'Large', value: 'large' }
+          ]}
+          onChange={(event) => onChange({ ...selection, renditionKind: String(event.value) })}
+        />
+        <Dropdown
+          value={selection.fitMode ?? 'cover'}
+          options={[{ label: 'Cover', value: 'cover' }, { label: 'Contain', value: 'contain' }]}
+          onChange={(event) => onChange({ ...selection, fitMode: String(event.value) })}
+        />
+        <InputNumber
+          value={selection.customWidth ?? null}
+          onValueChange={(event) => {
+            const width = Number(event.value ?? 0);
+            if (width > 0) {
+              onChange({ ...selection, customWidth: width });
+              return;
+            }
+            const next = { ...selection } as { assetId: number | null; renditionKind?: string; fitMode?: string };
+            onChange(next);
+          }}
+          placeholder="Custom width"
+          min={1}
+          max={2400}
+          useGrouping={false}
+        />
       </div>
     </div>
   );

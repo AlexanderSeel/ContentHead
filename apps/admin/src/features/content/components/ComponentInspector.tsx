@@ -236,7 +236,7 @@ export function ComponentInspector({
         <AssetRefEditor
           token={token}
           siteId={siteId}
-          value={typeof value === 'number' ? value : null}
+          value={(value as any) ?? null}
           onChange={(next) => onChangeValue(next)}
         />
       );

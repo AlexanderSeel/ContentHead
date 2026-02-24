@@ -214,6 +214,7 @@ import {
   updateInternalUser,
   upsertInternalRole
 } from '../security/service.js';
+import { cacheKey, requestCache } from '../cache/requestCache.js';
 
 export type GraphqlContext = {
   auth: InternalAuthProvider;
@@ -1189,7 +1190,12 @@ builder.queryType({
     getSiteMarketLocaleMatrix: t.field({
       type: MatrixRef,
       args: { siteId: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { siteId: number }, ctx) => getSiteMarketLocaleMatrix(ctx.db, args.siteId)
+      resolve: async (_root, args: { siteId: number }, ctx) =>
+        requestCache.getOrSet(
+          cacheKey('matrix', [args.siteId]),
+          120_000,
+          () => getSiteMarketLocaleMatrix(ctx.db, args.siteId)
+        )
     }),
     validateMarketLocale: t.boolean({
       args: {
@@ -1213,7 +1219,8 @@ builder.queryType({
     listContentTypes: t.field({
       type: [ContentTypeRef],
       args: { siteId: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { siteId: number }, ctx) => listContentTypes(ctx.db, args.siteId)
+      resolve: async (_root, args: { siteId: number }, ctx) =>
+        requestCache.getOrSet(cacheKey('types', [args.siteId]), 120_000, () => listContentTypes(ctx.db, args.siteId))
     }),
     listComponentTypeSettings: t.field({
       type: [ComponentTypeSettingRef],
@@ -1346,13 +1353,18 @@ builder.queryType({
           previewAllowed = true;
         }
 
-        const resolved = await resolveRoute(ctx.db, {
-          siteId: args.siteId,
-          marketCode: args.marketCode,
-          localeCode: args.localeCode,
-          slug: args.slug,
-          previewAllowed
-        });
+        const resolved = await requestCache.getOrSet(
+          cacheKey('resolveRoute', [args.siteId, args.marketCode, args.localeCode, args.slug, previewAllowed]),
+          10_000,
+          () =>
+            resolveRoute(ctx.db, {
+              siteId: args.siteId,
+              marketCode: args.marketCode,
+              localeCode: args.localeCode,
+              slug: args.slug,
+              previewAllowed
+            })
+        );
         if (!resolved) {
           return null;
         }
@@ -1404,17 +1416,32 @@ builder.queryType({
           previewAllowed = true;
         }
 
-        return getPageByRoute(ctx.db, {
-          siteId: args.siteId,
-          marketCode: args.marketCode,
-          localeCode: args.localeCode,
-          slug: args.slug,
-          contextJson: args.contextJson,
-          previewAllowed,
-          variantKeyOverride: args.variantKeyOverride,
-          versionIdOverride: args.versionIdOverride,
-          userId: ctx.currentUser?.id ?? null
-        });
+        return requestCache.getOrSet(
+          cacheKey('getPageByRoute', [
+            args.siteId,
+            args.marketCode,
+            args.localeCode,
+            args.slug,
+            previewAllowed,
+            args.variantKeyOverride,
+            args.versionIdOverride,
+            ctx.currentUser?.id ?? null,
+            args.contextJson ?? ''
+          ]),
+          10_000,
+          () =>
+            getPageByRoute(ctx.db, {
+              siteId: args.siteId,
+              marketCode: args.marketCode,
+              localeCode: args.localeCode,
+              slug: args.slug,
+              contextJson: args.contextJson,
+              previewAllowed,
+              variantKeyOverride: args.variantKeyOverride,
+              versionIdOverride: args.versionIdOverride,
+              userId: ctx.currentUser?.id ?? null
+            })
+        );
       }
     }),
     listForms: t.field({
@@ -1529,7 +1556,12 @@ builder.queryType({
           tags?: string[] | null | undefined;
         },
         ctx
-      ) => listAssets(ctx.db, args)
+      ) =>
+        requestCache.getOrSet(
+          cacheKey('assets', [args.siteId, args.search, args.folderId, args.tags?.join(','), args.limit, args.offset]),
+          60_000,
+          () => listAssets(ctx.db, args)
+        )
     }),
     getAsset: t.field({
       type: AssetRef,
@@ -1540,7 +1572,8 @@ builder.queryType({
     listAssetFolders: t.field({
       type: [AssetFolderRef],
       args: { siteId: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { siteId: number }, ctx) => listAssetFolders(ctx.db, args.siteId)
+      resolve: async (_root, args: { siteId: number }, ctx) =>
+        requestCache.getOrSet(cacheKey('assetFolders', [args.siteId]), 60_000, () => listAssetFolders(ctx.db, args.siteId))
     }),
     listConnectors: t.field({
       type: [ConnectorRef],

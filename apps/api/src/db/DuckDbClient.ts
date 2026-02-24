@@ -6,6 +6,9 @@ import { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api';
 import type { DbClient } from './DbClient.js';
 
 export class DuckDbClient implements DbClient {
+  private queue: Promise<unknown> = Promise.resolve();
+  private closed = false;
+
   private constructor(
     private readonly instance: DuckDBInstance,
     private readonly connection: DuckDBConnection
@@ -45,18 +48,24 @@ export class DuckDbClient implements DbClient {
   }
 
   run(sql: string, params: unknown[] = []): Promise<void> {
-    return this.connection.run(sql, params as never[]).then(() => undefined).catch((error) => {
-      throw enrichDbError(error, sql, params);
+    return this.enqueue(async () => {
+      try {
+        await this.connection.run(sql, params as never[]);
+      } catch (error) {
+        throw enrichDbError(error, sql, params);
+      }
     });
   }
 
   async all<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-    try {
-      const result = await this.connection.runAndReadAll(sql, params as never[]);
-      return result.getRowObjectsJS() as T[];
-    } catch (error) {
-      throw enrichDbError(error, sql, params);
-    }
+    return this.enqueue(async () => {
+      try {
+        const result = await this.connection.runAndReadAll(sql, params as never[]);
+        return result.getRowObjectsJS() as T[];
+      } catch (error) {
+        throw enrichDbError(error, sql, params);
+      }
+    });
   }
 
   async get<T>(sql: string, params: unknown[] = []): Promise<T | undefined> {
@@ -65,8 +74,22 @@ export class DuckDbClient implements DbClient {
   }
 
   async close(): Promise<void> {
+    if (this.closed) {
+      return;
+    }
+    this.closed = true;
+    await this.queue.catch(() => undefined);
     this.connection.closeSync();
     this.instance.closeSync();
+  }
+
+  private enqueue<T>(task: () => Promise<T>): Promise<T> {
+    if (this.closed) {
+      throw new Error('DuckDB client already closed');
+    }
+    const result = this.queue.then(task, task);
+    this.queue = result.then(() => undefined, () => undefined);
+    return result;
   }
 }
 

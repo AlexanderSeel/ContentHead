@@ -11,6 +11,7 @@ import { migration010 } from './010_extensions_demo_entities.js';
 import { migration011 } from './011_content_item_hierarchy.js';
 import { migration012 } from './012_entity_acl_and_targeting.js';
 import { migration013 } from './013_fk_compatibility_fixes.js';
+import { migration014 } from './014_asset_rendition_fit_mode.js';
 
 export type Migration = {
   id: string;
@@ -30,5 +31,6 @@ export const migrations: Migration[] = [
   migration010,
   migration011,
   migration012,
-  migration013
+  migration013,
+  migration014
 ];
