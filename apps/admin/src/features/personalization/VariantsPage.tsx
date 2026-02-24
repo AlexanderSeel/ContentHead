@@ -59,8 +59,8 @@ export function VariantsPage() {
   return (
     <div className="pageRoot">
       <PageHeader
-        title="Variants"
-        subtitle="Personalization and A/B configurations"
+        title="Variants (Advanced)"
+        subtitle="Power-user table editor for personalization and A/B configurations"
         helpTopicKey="variants"
         askAiContext="content"
         askAiPayload={{ siteId, marketCode, localeCode, contentItemId, draft }}

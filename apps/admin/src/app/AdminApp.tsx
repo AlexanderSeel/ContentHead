@@ -17,6 +17,7 @@ import { RoutesPage } from '../features/content/RoutesPage';
 import { ContentTypesPage } from '../features/schema/ContentTypesPage';
 import { ComponentRegistryPage } from '../features/schema/ComponentRegistryPage';
 import { AssetLibraryPage } from '../features/assets/AssetLibraryPage';
+import { PersonalizationWorkflowsPage } from '../features/personalization/PersonalizationWorkflowsPage';
 import { VariantsPage } from '../features/personalization/VariantsPage';
 import { FormBuilderPage } from '../features/forms/FormBuilderPage';
 import { FormSubmissionsPage } from '../features/forms/FormSubmissionsPage';
@@ -78,8 +79,9 @@ export function AdminApp() {
               <Route path="/settings/global/connectors" element={<Navigate to="/settings/global/connectors/db" replace />} />
               <Route path="/settings" element={<Navigate to="/settings/preferences" replace />} />
 
+              <Route path="/personalization/workflows" element={<PersonalizationWorkflowsPage />} />
               <Route path="/personalization/variants" element={<VariantsPage />} />
-              <Route path="/personalization" element={<Navigate to="/personalization/variants" replace />} />
+              <Route path="/personalization" element={<Navigate to="/personalization/workflows" replace />} />
 
               <Route path="/forms/builder/:formId" element={<FormBuilderPage />} />
               <Route path="/forms/builder" element={<FormBuilderPage />} />

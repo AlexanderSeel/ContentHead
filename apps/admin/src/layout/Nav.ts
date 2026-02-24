@@ -33,9 +33,8 @@ export function buildNavAreas(showDevTools: boolean): NavArea[] {
       key: 'personalization',
       label: 'Personalization',
       items: [
-        { label: 'Variants', to: '/personalization/variants' },
-        { label: 'Targeting Rules', to: '/personalization/variants', matchPrefix: '/personalization/variants' },
-        { label: 'Personalization Workflows', to: '/workflows/designer', matchPrefix: '/workflows/designer' }
+        { label: 'Workflows', to: '/personalization/workflows', matchPrefix: '/personalization/workflows' },
+        { label: 'Variants (Advanced)', to: '/personalization/variants', matchPrefix: '/personalization/variants' }
       ]
     },
     {

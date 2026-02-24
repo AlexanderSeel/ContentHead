@@ -40,6 +40,11 @@ export const helpContent: Record<string, HelpTopic> = {
     tooltip: 'Manage A/B variants and targeting rules.',
     markdown: 'Select content item + variant set, then define variants.\n\nUse Rule Editor to avoid hand-writing JSON.'
   },
+  personalization_workflows: {
+    title: 'Personalization Workflows',
+    tooltip: 'Guided setup for audiences, experiences, and rollout workflows.',
+    markdown: 'Use the guided 5-step flow:\n\n1. Pick page/content item.\n2. Define 2-3 experience variants.\n3. Build audience targeting in Rule Editor.\n4. Choose rollout strategy.\n5. Generate workflow definition and run it.'
+  },
   rules: {
     title: 'Rules',
     tooltip: 'Targeting rules for personalization and workflows.',
