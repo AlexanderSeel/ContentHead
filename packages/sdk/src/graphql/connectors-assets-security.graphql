@@ -237,7 +237,11 @@ mutation SetUserRoles($userId: Int!, $roleIds: [Int!]!) {
 }
 
 query DbAdminTables($dangerMode: Boolean) {
-  dbAdminTables(dangerMode: $dangerMode)
+  dbAdminTables(dangerMode: $dangerMode) {
+    name
+    schema
+    rowCount
+  }
 }
 
 query DbAdminDescribe($table: String!, $dangerMode: Boolean) {

@@ -125,6 +125,7 @@ import {
   type DbAdminListResult,
   type DbAdminMutationResult,
   type DbAdminSqlResult,
+  type DbAdminTableListItem,
   type DbAdminTableDescription,
   dbAdminDelete,
   dbAdminDescribe,
@@ -251,6 +252,41 @@ async function requirePermission(ctx: GraphqlContext, permission: string): Promi
   if (!permissions.includes(permission)) {
     throw new GraphQLError('Forbidden', { extensions: { code: 'FORBIDDEN' } });
   }
+}
+
+async function hasAdminRole(ctx: GraphqlContext): Promise<boolean> {
+  if (!ctx.currentUser) {
+    return false;
+  }
+  const row = await ctx.db.get<{ hasAdmin: boolean }>(
+    `
+SELECT EXISTS(
+  SELECT 1
+  FROM user_roles ur
+  INNER JOIN roles r ON r.id = ur.role_id
+  WHERE ur.user_id = ? AND lower(r.name) = 'admin'
+) as hasAdmin
+`,
+    [ctx.currentUser.id]
+  );
+  return Boolean(row?.hasAdmin);
+}
+
+async function requireDbAdminAccess(
+  ctx: GraphqlContext,
+  legacyPermission: 'DB_ADMIN_READ' | 'DB_ADMIN_WRITE'
+): Promise<void> {
+  if (!ctx.currentUser) {
+    throw new GraphQLError('Unauthorized', { extensions: { code: 'UNAUTHORIZED' } });
+  }
+  if (await hasAdminRole(ctx)) {
+    return;
+  }
+  const permissions = await listUserPermissions(ctx.db, ctx.currentUser.id);
+  if (permissions.includes('DB_ADMIN') || permissions.includes(legacyPermission)) {
+    return;
+  }
+  throw new GraphQLError('Forbidden', { extensions: { code: 'FORBIDDEN' } });
 }
 
 const UserRef = builder.objectRef<SafeUser>('User');
@@ -732,6 +768,15 @@ DbAdminTableRef.implement({
     columns: t.field({ type: [DbAdminColumnRef], resolve: (parent) => parent.columns }),
     primaryKey: t.stringList({ resolve: (parent) => parent.primaryKey }),
     indexes: t.field({ type: [DbAdminIndexRef], resolve: (parent) => parent.indexes })
+  })
+});
+
+const DbAdminTableListItemRef = builder.objectRef<DbAdminTableListItem>('DbAdminTableListItem');
+DbAdminTableListItemRef.implement({
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    schema: t.exposeString('schema'),
+    rowCount: t.exposeInt('rowCount', { nullable: true })
   })
 });
 
@@ -1280,12 +1325,13 @@ builder.queryType({
     internalPermissions: t.stringList({
       resolve: async () => [...INTERNAL_PERMISSIONS]
     }),
-    dbAdminTables: t.stringList({
+    dbAdminTables: t.field({
+      type: [DbAdminTableListItemRef],
       args: {
         dangerMode: t.arg.boolean({ required: false })
       },
       resolve: async (_root, args: { dangerMode?: boolean | null | undefined }, ctx) => {
-        await requirePermission(ctx, 'DB_ADMIN_READ');
+        await requireDbAdminAccess(ctx, 'DB_ADMIN_READ');
         return dbAdminTables(ctx.db, args.dangerMode);
       }
     }),
@@ -1296,7 +1342,7 @@ builder.queryType({
         dangerMode: t.arg.boolean({ required: false })
       },
       resolve: async (_root, args: { table: string; dangerMode?: boolean | null | undefined }, ctx) => {
-        await requirePermission(ctx, 'DB_ADMIN_READ');
+        await requireDbAdminAccess(ctx, 'DB_ADMIN_READ');
         return dbAdminDescribe(ctx.db, args.table, args.dangerMode);
       }
     }),
@@ -1320,7 +1366,7 @@ builder.queryType({
         },
         ctx
       ) => {
-        await requirePermission(ctx, 'DB_ADMIN_READ');
+        await requireDbAdminAccess(ctx, 'DB_ADMIN_READ');
         return dbAdminList(ctx.db, args);
       }
     }),
@@ -2211,7 +2257,7 @@ builder.mutationType({
         dangerMode: t.arg.boolean({ required: false })
       },
       resolve: async (_root, args: { table: string; rowJson: string; dangerMode?: boolean | null | undefined }, ctx) => {
-        await requirePermission(ctx, 'DB_ADMIN_WRITE');
+        await requireDbAdminAccess(ctx, 'DB_ADMIN_WRITE');
         return dbAdminInsert(ctx.db, args.table, args.rowJson, args.dangerMode);
       }
     }),
@@ -2228,7 +2274,7 @@ builder.mutationType({
         args: { table: string; pkJson: string; patchJson: string; dangerMode?: boolean | null | undefined },
         ctx
       ) => {
-        await requirePermission(ctx, 'DB_ADMIN_WRITE');
+        await requireDbAdminAccess(ctx, 'DB_ADMIN_WRITE');
         return dbAdminUpdate(ctx.db, args.table, args.pkJson, args.patchJson, args.dangerMode);
       }
     }),
@@ -2240,7 +2286,7 @@ builder.mutationType({
         dangerMode: t.arg.boolean({ required: false })
       },
       resolve: async (_root, args: { table: string; pkJson: string; dangerMode?: boolean | null | undefined }, ctx) => {
-        await requirePermission(ctx, 'DB_ADMIN_WRITE');
+        await requireDbAdminAccess(ctx, 'DB_ADMIN_WRITE');
         return dbAdminDelete(ctx.db, args.table, args.pkJson, args.dangerMode);
       }
     }),
@@ -2257,9 +2303,9 @@ builder.mutationType({
         ctx
       ) => {
         if (args.allowWrites) {
-          await requirePermission(ctx, 'DB_ADMIN_WRITE');
+          await requireDbAdminAccess(ctx, 'DB_ADMIN_WRITE');
         } else {
-          await requirePermission(ctx, 'DB_ADMIN_READ');
+          await requireDbAdminAccess(ctx, 'DB_ADMIN_READ');
         }
         return dbAdminSql(ctx.db, args.query, args.paramsJson, args.allowWrites);
       }

@@ -209,6 +209,13 @@ export type DbAdminTable = {
   table?: Maybe<Scalars['String']['output']>;
 };
 
+export type DbAdminTableListItem = {
+  __typename?: 'DbAdminTableListItem';
+  name?: Maybe<Scalars['String']['output']>;
+  rowCount?: Maybe<Scalars['Int']['output']>;
+  schema?: Maybe<Scalars['String']['output']>;
+};
+
 export type Form = {
   __typename?: 'Form';
   active?: Maybe<Scalars['Boolean']['output']>;
@@ -899,7 +906,7 @@ export type Query = {
   __typename?: 'Query';
   dbAdminDescribe?: Maybe<DbAdminTable>;
   dbAdminList?: Maybe<DbAdminListResult>;
-  dbAdminTables?: Maybe<Array<Scalars['String']['output']>>;
+  dbAdminTables?: Maybe<Array<DbAdminTableListItem>>;
   diffVersions?: Maybe<VersionDiff>;
   evaluateForm?: Maybe<FormEvaluation>;
   exportFormSubmissions?: Maybe<Scalars['String']['output']>;

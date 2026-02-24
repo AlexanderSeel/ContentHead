@@ -49,6 +49,12 @@ type DbAdminSqlResult = {
   executedSql?: string | null;
 };
 
+type DbAdminTableListItem = {
+  name: string;
+  schema: string;
+  rowCount?: number | null;
+};
+
 type RowRecord = Record<string, unknown> & { __rowKey: string };
 
 const FILTER_OPS = [
@@ -152,7 +158,10 @@ export function DbAdminPage() {
   const { token } = useAuth();
   const ui = useUi();
   const sdk = useMemo(() => createAdminSdk(token), [token]);
-  const [tables, setTables] = useState<string[]>([]);
+  const [tables, setTables] = useState<DbAdminTableListItem[]>([]);
+  const [tablesLoading, setTablesLoading] = useState(false);
+  const [rowsLoading, setRowsLoading] = useState(false);
+  const [forbiddenMessage, setForbiddenMessage] = useState<string | null>(null);
   const [tableSearch, setTableSearch] = useState('');
   const [dangerMode, setDangerMode] = useState(false);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
@@ -179,8 +188,8 @@ export function DbAdminPage() {
 
   const tableRows = useMemo(() => {
     const search = tableSearch.trim().toLowerCase();
-    const list = search ? tables.filter((name) => name.toLowerCase().includes(search)) : tables;
-    return list.map((name) => ({ name }));
+    const list = search ? tables.filter((table) => table.name.toLowerCase().includes(search)) : tables;
+    return list;
   }, [tables, tableSearch]);
 
   const selectedTableRow = useMemo(
@@ -188,14 +197,45 @@ export function DbAdminPage() {
     [selectedTable, tableRows]
   );
 
+  const parseErrorCode = (error: unknown): string => {
+    const candidate = error as {
+      response?: { errors?: Array<{ extensions?: { code?: string } }> };
+      message?: string;
+    };
+    const code = candidate?.response?.errors?.[0]?.extensions?.code;
+    if (typeof code === 'string') {
+      return code;
+    }
+    const text = String(candidate?.message ?? error);
+    return text.includes('FORBIDDEN') ? 'FORBIDDEN' : '';
+  };
+
+  const getErrorMessage = (error: unknown): string =>
+    parseErrorCode(error) === 'FORBIDDEN'
+      ? 'Forbidden: DB Admin requires DB_ADMIN permission or admin role.'
+      : String(error);
+
   const refreshTables = async (nextDangerMode = dangerMode) => {
-    const result = await sdk.dbAdminTables({ dangerMode: nextDangerMode });
-    const tableList = (result.dbAdminTables ?? []) as string[];
-    setTables(tableList);
-    if (selectedTable && !tableList.includes(selectedTable)) {
-      setSelectedTable(tableList[0] ?? null);
-    } else if (!selectedTable && tableList.length > 0) {
-      setSelectedTable(tableList[0] ?? null);
+    setTablesLoading(true);
+    setForbiddenMessage(null);
+    try {
+      const result = await sdk.dbAdminTables({ dangerMode: nextDangerMode });
+      const tableList = (result.dbAdminTables ?? []) as DbAdminTableListItem[];
+      setTables(tableList);
+      if (selectedTable && !tableList.some((table) => table.name === selectedTable)) {
+        setSelectedTable(tableList[0]?.name ?? null);
+      } else if (!selectedTable && tableList.length > 0) {
+        setSelectedTable(tableList[0]?.name ?? null);
+      }
+    } catch (error) {
+      if (parseErrorCode(error) === 'FORBIDDEN') {
+        setForbiddenMessage('Forbidden: DB Admin requires DB_ADMIN permission or admin role.');
+      }
+      setStatus(getErrorMessage(error));
+      setTables([]);
+      setSelectedTable(null);
+    } finally {
+      setTablesLoading(false);
     }
   };
 
@@ -207,33 +247,38 @@ export function DbAdminPage() {
   };
 
   const loadRows = async (tableName: string, primaryKeyOverride?: string[]) => {
-    const filter =
-      filterColumn && (filterValue.trim() || ['is_null', 'not_null'].includes(filterOp))
-        ? [
-            {
-              column: filterColumn,
-              op: filterOp,
-              value: filterValue.trim() || null
-            }
-          ]
-        : null;
+    setRowsLoading(true);
+    try {
+      const filter =
+        filterColumn && (filterValue.trim() || ['is_null', 'not_null'].includes(filterOp))
+          ? [
+              {
+                column: filterColumn,
+                op: filterOp,
+                value: filterValue.trim() || null
+              }
+            ]
+          : null;
 
-    const result = await sdk.dbAdminList({
-      table: tableName,
-      paging: { limit, offset },
-      sort: sort ? { column: sort.column, direction: sort.direction } : null,
-      filter,
-      dangerMode
-    });
+      const result = await sdk.dbAdminList({
+        table: tableName,
+        paging: { limit, offset },
+        sort: sort ? { column: sort.column, direction: sort.direction } : null,
+        filter,
+        dangerMode
+      });
 
-    const list = result.dbAdminList;
-    const primaryKey = primaryKeyOverride ?? tableInfo?.primaryKey ?? [];
-    setRows(parseRows(list?.rowsJson ?? '[]', primaryKey));
-    setTotalRows(list?.total ?? 0);
+      const list = result.dbAdminList;
+      const primaryKey = primaryKeyOverride ?? tableInfo?.primaryKey ?? [];
+      setRows(parseRows(list?.rowsJson ?? '[]', primaryKey));
+      setTotalRows(list?.total ?? 0);
+    } finally {
+      setRowsLoading(false);
+    }
   };
 
   useEffect(() => {
-    refreshTables().catch((error: unknown) => setStatus(String(error)));
+    refreshTables().catch((error: unknown) => setStatus(getErrorMessage(error)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -255,7 +300,7 @@ export function DbAdminPage() {
     setFilterOp('contains');
     loadTableInfo(selectedTable)
       .then((info) => loadRows(selectedTable, info?.primaryKey ?? []))
-      .catch((error: unknown) => setStatus(String(error)));
+      .catch((error: unknown) => setStatus(getErrorMessage(error)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTable, dangerMode]);
 
@@ -263,7 +308,7 @@ export function DbAdminPage() {
     if (!selectedTable) {
       return;
     }
-    loadRows(selectedTable).catch((error: unknown) => setStatus(String(error)));
+    loadRows(selectedTable).catch((error: unknown) => setStatus(getErrorMessage(error)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [limit, offset, sort, filterColumn, filterOp, filterValue]);
 
@@ -323,7 +368,7 @@ export function DbAdminPage() {
       await loadRows(selectedTable);
       setStatus('Saved changes.');
     } catch (error) {
-      setStatus(String(error));
+      setStatus(getErrorMessage(error));
     }
   };
 
@@ -342,7 +387,7 @@ export function DbAdminPage() {
       });
       await sdk.dbAdminDelete({ table: selectedTable, pkJson: JSON.stringify(pk), dangerMode });
     } catch (error) {
-      setStatus(String(error));
+      setStatus(getErrorMessage(error));
     }
   };
 
@@ -495,14 +540,14 @@ export function DbAdminPage() {
                 />
                 <div className="inline-actions">
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    Danger
+                    Show System
                     <InputSwitch
                       checked={dangerMode}
                       onChange={async (event) => {
                         if (event.value) {
                           const confirmed = await ui.confirm({
-                            header: 'Enable Danger Mode',
-                            message: 'This will expose system tables and sensitive data. Continue?',
+                            header: 'Show System Tables',
+                            message: 'This will include internal DuckDB/system tables. Continue?',
                             acceptLabel: 'Enable',
                             rejectLabel: 'Cancel'
                           });
@@ -520,11 +565,14 @@ export function DbAdminPage() {
               <DataTable
                 value={tableRows}
                 size="small"
+                loading={tablesLoading}
                 selectionMode="single"
                 selection={selectedTableRow}
-                onSelectionChange={(event) => setSelectedTable((event.value as { name: string } | null)?.name ?? null)}
+                onSelectionChange={(event) => setSelectedTable((event.value as DbAdminTableListItem | null)?.name ?? null)}
               >
                 <Column field="name" header="Tables" />
+                <Column field="schema" header="Schema" />
+                <Column field="rowCount" header="Rows" body={(row: DbAdminTableListItem) => row.rowCount ?? '-'} />
               </DataTable>
             </div>
           </SplitterPanel>
@@ -532,7 +580,10 @@ export function DbAdminPage() {
             <div className="pane paneScroll">
               <div className="table-toolbar">
                 <div className="inline-actions">
-                  <Button label="Refresh" onClick={() => selectedTable && loadRows(selectedTable).catch((error: unknown) => setStatus(String(error)))} />
+                  <Button
+                    label="Refresh"
+                    onClick={() => selectedTable && loadRows(selectedTable).catch((error: unknown) => setStatus(getErrorMessage(error)))}
+                  />
                   <Button label="New Row" onClick={startNewRow} disabled={!tableInfo} />
                   <Button label="Delete Selected" severity="danger" onClick={() => void bulkDelete()} disabled={!selectedRows.length} />
                   <Button label="Export JSON" severity="secondary" onClick={() => exportSelected('json')} disabled={!selectedRows.length} />
@@ -557,6 +608,7 @@ export function DbAdminPage() {
               <DataTable
                 value={rows}
                 size="small"
+                loading={rowsLoading}
                 dataKey="__rowKey"
                 selectionMode="multiple"
                 selection={selectedRows}
@@ -695,7 +747,10 @@ export function DbAdminPage() {
                           />
                         </div>
                         <div className="inline-actions">
-                          <Button label="Run Query" onClick={() => runSql().catch((error: unknown) => setStatus(String(error)))} />
+                          <Button
+                            label="Run Query"
+                            onClick={() => runSql().catch((error: unknown) => setStatus(getErrorMessage(error)))}
+                          />
                           <Button
                             label="Clear Results"
                             severity="secondary"
@@ -730,6 +785,11 @@ export function DbAdminPage() {
           </SplitterPanel>
         </Splitter>
       </div>
+      {forbiddenMessage ? (
+        <div className="status-panel">
+          <pre>{forbiddenMessage}</pre>
+        </div>
+      ) : null}
       {status ? (
         <div className="status-panel">
           <pre>{status}</pre>

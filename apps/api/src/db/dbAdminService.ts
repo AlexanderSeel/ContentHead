@@ -25,6 +25,12 @@ export type DbAdminTableDescription = {
   indexes: DbAdminIndex[];
 };
 
+export type DbAdminTableListItem = {
+  name: string;
+  schema: string;
+  rowCount?: number | null;
+};
+
 export type DbAdminListResult = {
   total: number;
   rowsJson: string;
@@ -123,6 +129,61 @@ ORDER BY table_name
 `
   );
   return rows.map((row) => row.name);
+}
+
+async function listTableEntries(db: DbClient, showSystemTables: boolean): Promise<DbAdminTableListItem[]> {
+  const rows = await db.all<{
+    schema: string;
+    name: string;
+    internal: boolean;
+    temporary: boolean;
+  }>(
+    `
+SELECT
+  schema_name as schema,
+  table_name as name,
+  internal,
+  temporary
+FROM duckdb_tables()
+WHERE
+  temporary = FALSE
+  AND (
+    schema_name = 'main'
+    OR ?
+  )
+  AND (
+    internal = FALSE
+    OR ?
+  )
+ORDER BY
+  CASE WHEN schema_name = 'main' THEN 0 ELSE 1 END,
+  schema_name,
+  table_name
+`,
+    [showSystemTables, showSystemTables]
+  );
+
+  const entries: DbAdminTableListItem[] = [];
+  for (const row of rows) {
+    let rowCount: number | null = null;
+    if (row.schema === 'main' && !row.internal) {
+      try {
+        const countRow = await db.get<{ total: number }>(
+          `SELECT COUNT(*)::INTEGER as total FROM ${quoteIdent(row.schema)}.${quoteIdent(row.name)}`
+        );
+        rowCount = countRow?.total ?? 0;
+      } catch {
+        rowCount = null;
+      }
+    }
+    entries.push({
+      name: row.name,
+      schema: row.schema,
+      rowCount
+    });
+  }
+
+  return entries;
 }
 
 async function ensureTableAllowed(db: DbClient, table: string, dangerMode?: boolean | null): Promise<void> {
@@ -278,9 +339,8 @@ function parseJsonArray(value: string | null | undefined, name: string): unknown
   }
 }
 
-export async function dbAdminTables(db: DbClient, dangerMode?: boolean | null): Promise<string[]> {
-  const tables = await listAllTables(db);
-  return dangerMode ? tables : tables.filter((table) => SAFE_TABLES.has(table));
+export async function dbAdminTables(db: DbClient, dangerMode?: boolean | null): Promise<DbAdminTableListItem[]> {
+  return listTableEntries(db, Boolean(dangerMode));
 }
 
 export async function dbAdminDescribe(
