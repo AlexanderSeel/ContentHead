@@ -13,6 +13,7 @@ import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { Tag } from 'primereact/tag';
+import { InputSwitch } from 'primereact/inputswitch';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
@@ -22,7 +23,7 @@ import { PageHeader } from '../../components/common/PageHeader';
 import { MarketLocalePicker } from '../../components/inputs/MarketLocalePicker';
 import { SlugEditor } from '../../components/inputs/SlugEditor';
 import { useUi } from '../../app/UiContext';
-import type { ContentFieldDef } from '../schema/fieldValidationUi';
+import { DEFAULT_RICH_TEXT_FEATURES, type ContentFieldDef, type RichTextFeature } from '../schema/fieldValidationUi';
 import { parseFieldsJson } from '../schema/fieldValidationUi';
 import { FieldRenderer } from './fieldRenderers/FieldRenderer';
 import { validationMessage } from './fieldRenderers/rendererRegistry';
@@ -30,7 +31,7 @@ import { buildWebUrl } from './buildWebUrl';
 import { ComponentList } from './components/ComponentList';
 import { ComponentInspector } from './components/ComponentInspector';
 import { componentRegistry, getComponentRegistryEntry } from './components/componentRegistry';
-import type { CmsBridgeMessage, CmsSelectMessage } from './previewBridge';
+import type { CmsBridgeMessage } from './previewBridge';
 
 type CType = { id: number; name: string; fieldsJson: string };
 type Template = { id: number; name: string; compositionJson: string; componentsJson: string };
@@ -99,6 +100,41 @@ function parseComponentFieldPath(path: string | null): { componentId: string; ke
   return { componentId, key };
 }
 
+function setNestedValue<T>(input: T, path: string, value: unknown): T {
+  const parts = path.split('.').filter(Boolean);
+  if (parts.length === 0) {
+    return input;
+  }
+  const clone: any = Array.isArray(input)
+    ? [...(input as unknown[])]
+    : input && typeof input === 'object'
+      ? { ...(input as Record<string, unknown>) }
+      : {};
+  let cursor: any = clone;
+
+  for (let i = 0; i < parts.length - 1; i += 1) {
+    const raw = parts[i] ?? '';
+    const key: string | number = /^\d+$/.test(raw) ? Number(raw) : raw;
+    const current = cursor[key];
+    let next: any;
+    if (Array.isArray(current)) {
+      next = [...current];
+    } else if (current && typeof current === 'object') {
+      next = { ...current };
+    } else {
+      const nextRaw = parts[i + 1] ?? '';
+      next = /^\d+$/.test(nextRaw) ? [] : {};
+    }
+    cursor[key] = next;
+    cursor = next;
+  }
+
+  const lastRaw = parts[parts.length - 1] ?? '';
+  const lastKey: string | number = /^\d+$/.test(lastRaw) ? Number(lastRaw) : lastRaw;
+  cursor[lastKey] = value;
+  return clone as T;
+}
+
 function sanitizeForAttribute(value: string): string {
   return value.replace(/"/g, '\\"');
 }
@@ -124,6 +160,7 @@ export function ContentPagesPage() {
   const [componentsJson, setComponentsJson] = useState('{}');
   const [metadataJson, setMetadataJson] = useState('{}');
   const [status, setStatus] = useState('');
+  const [savingDraft, setSavingDraft] = useState(false);
   const [loadingItem, setLoadingItem] = useState(false);
   const [previewToken, setPreviewToken] = useState('');
   const [selectedContentTypeId, setSelectedContentTypeId] = useState<number | null>(null);
@@ -165,8 +202,13 @@ export function ContentPagesPage() {
   const [aiSuggestion, setAiSuggestion] = useState('');
   const [targetMarketCode, setTargetMarketCode] = useState(marketCode);
   const [targetLocaleCode, setTargetLocaleCode] = useState(localeCode);
+  const [inlineEdit, setInlineEdit] = useState(false);
 
   const previewIframeRef = useRef<HTMLIFrameElement | null>(null);
+  const saveTimerRef = useRef<number | null>(null);
+  const lastSavedRef = useRef<string>('');
+  const saveInFlightRef = useRef(false);
+  const pendingSaveRef = useRef(false);
 
   const selectedType = useMemo(() => {
     const item = items.find((entry) => entry.id === selectedItemId);
@@ -331,6 +373,37 @@ export function ContentPagesPage() {
 
   const selectedComponent = selectedComponentId ? componentMap[selectedComponentId] ?? null : null;
 
+  const resolveRichTextFeatures = (path: string | null): RichTextFeature[] | undefined => {
+    if (!path) {
+      return undefined;
+    }
+    if (path.startsWith('fields.')) {
+      const key = fieldPathToKey(path);
+      if (!key) {
+        return undefined;
+      }
+      const def = fieldDefs.find((entry) => entry.key === key);
+      if (!def || def.type !== 'richtext') {
+        return undefined;
+      }
+      return (def.uiConfig?.richTextFeatures ?? DEFAULT_RICH_TEXT_FEATURES) as RichTextFeature[];
+    }
+    if (path.startsWith('components.')) {
+      const parsed = parseComponentFieldPath(path);
+      if (!parsed) {
+        return undefined;
+      }
+      const component = componentMap[parsed.componentId];
+      const entry = component ? getComponentRegistryEntry(component.type) : null;
+      const fieldKey = parsed.key.split('.')[0] ?? '';
+      const fieldDef = entry?.fields.find((field) => field.key === fieldKey);
+      if (fieldDef?.type === 'richtext') {
+        return DEFAULT_RICH_TEXT_FEATURES;
+      }
+    }
+    return undefined;
+  };
+
   const selectedStatus = useMemo(() => {
     if (!selectedItemId) {
       return null;
@@ -338,6 +411,8 @@ export function ContentPagesPage() {
     const item = items.find((entry) => entry.id === selectedItemId);
     return getItemStatus(item);
   }, [items, selectedItemId]);
+
+  const canInlineEdit = Boolean(previewToken?.trim()) && Boolean(draft) && draft?.state !== 'PUBLISHED';
 
   const previewIframeUrl = useMemo(() => {
     if (!selectedItemId || !activeRoute) {
@@ -356,9 +431,10 @@ export function ContentPagesPage() {
       previewToken,
       versionId: draft?.id,
       previewMode,
-      cmsBridge: true
+      cmsBridge: true,
+      inlineEdit: inlineEdit && canInlineEdit
     });
-  }, [selectedItemId, activeRoute, draft, webBaseUrl, siteId, site, marketCode, localeCode, previewToken]);
+  }, [selectedItemId, activeRoute, draft, webBaseUrl, siteId, site, marketCode, localeCode, previewToken, inlineEdit, canInlineEdit]);
 
   const sendPreviewMessage = (message: CmsBridgeMessage) => {
     const target = previewIframeRef.current?.contentWindow;
@@ -366,6 +442,15 @@ export function ContentPagesPage() {
       return;
     }
     target.postMessage(message, '*');
+  };
+
+  const scheduleDraftSave = (force = false, delay = 1000) => {
+    if (saveTimerRef.current) {
+      window.clearTimeout(saveTimerRef.current);
+    }
+    saveTimerRef.current = window.setTimeout(() => {
+      saveDraft({ force, silent: true }).catch((e: unknown) => setStatus(String(e)));
+    }, delay);
   };
 
   const refresh = async () => {
@@ -390,11 +475,20 @@ export function ContentPagesPage() {
       const activeVersion = (detail.getContentItemDetail?.currentDraftVersion ?? detail.getContentItemDetail?.currentPublishedVersion ?? null) as CVersion | null;
       setDraft(activeVersion);
       if (activeVersion) {
-        setFields(parseJson(activeVersion.fieldsJson, {}));
+        const parsedFields = parseJson(activeVersion.fieldsJson, {});
+        setFields(parsedFields);
         setCompositionJson(activeVersion.compositionJson);
         setComponentsJson(activeVersion.componentsJson);
         setMetadataJson(activeVersion.metadataJson);
         setVariantDraft((prev) => ({ ...prev, contentVersionId: activeVersion.id }));
+        lastSavedRef.current = JSON.stringify({
+          fields: parsedFields,
+          compositionJson: activeVersion.compositionJson,
+          componentsJson: activeVersion.componentsJson,
+          metadataJson: activeVersion.metadataJson
+        });
+      } else {
+        lastSavedRef.current = '';
       }
 
       const versionsRes = await sdk.listVersions({ contentItemId: id });
@@ -500,9 +594,56 @@ export function ContentPagesPage() {
   }, [selectedItemId, siteId, marketCode, localeCode]);
 
   useEffect(() => {
+    if (!canInlineEdit) {
+      setInlineEdit(false);
+    }
+  }, [canInlineEdit]);
+
+  useEffect(() => {
     const handler = (event: MessageEvent<unknown>) => {
-      const payload = event.data as Partial<CmsSelectMessage> | undefined;
-      if (!payload || payload.type !== 'CMS_SELECT') {
+      const payload = event.data as Partial<CmsBridgeMessage> | undefined;
+      if (!payload?.type) {
+        return;
+      }
+
+      if (payload.type === 'CMS_INLINE_EDIT') {
+        if (!inlineEdit || !draft) {
+          return;
+        }
+        const fieldPath = typeof payload.fieldPath === 'string' ? payload.fieldPath : null;
+        const html = typeof payload.html === 'string' ? payload.html : null;
+        if (!fieldPath || html == null) {
+          return;
+        }
+        if (fieldPath.startsWith('fields.')) {
+          const key = fieldPathToKey(fieldPath);
+          if (!key) {
+            return;
+          }
+          setFields((prev) => ({ ...prev, [key]: html }));
+          setSelectedComponentId(null);
+          setSelectedFieldPath(fieldPath);
+          scheduleDraftSave(true, 50);
+          return;
+        }
+        const parsed = parseComponentFieldPath(fieldPath);
+        if (!parsed) {
+          return;
+        }
+        const component = componentMap[parsed.componentId];
+        if (!component) {
+          return;
+        }
+        const nextProps = setNestedValue(component.props ?? {}, parsed.key, html);
+        const nextMap = { ...componentMap, [parsed.componentId]: { ...component, props: nextProps } };
+        updateComponentMap(nextMap);
+        setSelectedComponentId(parsed.componentId);
+        setSelectedFieldPath(fieldPath);
+        scheduleDraftSave(true, 50);
+        return;
+      }
+
+      if (payload.type !== 'CMS_SELECT') {
         return;
       }
 
@@ -533,7 +674,23 @@ export function ContentPagesPage() {
 
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [selectedItemId]);
+  }, [selectedItemId, componentMap, inlineEdit, draft, scheduleDraftSave]);
+
+  useEffect(() => {
+    if (!draft || loadingItem) {
+      return;
+    }
+    const snapshot = JSON.stringify({
+      fields,
+      compositionJson,
+      componentsJson,
+      metadataJson
+    });
+    if (snapshot === lastSavedRef.current) {
+      return;
+    }
+    scheduleDraftSave(false, 1000);
+  }, [draft, loadingItem, fields, compositionJson, componentsJson, metadataJson]);
 
   useEffect(() => {
     if (!previewIframeUrl) {
@@ -543,13 +700,24 @@ export function ContentPagesPage() {
     sendPreviewMessage({
       type: 'CMS_HIGHLIGHT',
       componentId: selectedComponentId ?? undefined,
-      fieldPath: selectedFieldPath ?? undefined
+      fieldPath: selectedFieldPath ?? undefined,
+      richTextFeatures: resolveRichTextFeatures(selectedFieldPath)
     });
 
     if (selectedComponentId) {
       sendPreviewMessage({ type: 'CMS_SCROLL_TO', componentId: selectedComponentId });
     }
   }, [selectedComponentId, selectedFieldPath, previewIframeUrl, previewReloadKey]);
+
+  useEffect(() => {
+    if (!previewIframeUrl) {
+      return;
+    }
+    sendPreviewMessage({
+      type: 'CMS_INLINE_MODE',
+      enabled: inlineEdit && canInlineEdit
+    });
+  }, [inlineEdit, canInlineEdit, previewIframeUrl, previewReloadKey]);
 
   const createPage = async () => {
     const contentTypeId = selectedContentTypeId ?? types[0]?.id;
@@ -575,28 +743,57 @@ export function ContentPagesPage() {
     }
   };
 
-  const saveDraft = async () => {
+  const saveDraft = async (options: { force?: boolean; silent?: boolean } = {}) => {
     if (!draft) {
       return;
     }
-    const updated = await sdk.updateDraftVersion({
-      versionId: draft.id,
-      expectedVersionNumber: draft.versionNumber,
-      patch: {
-        fieldsJson: JSON.stringify(fields),
-        compositionJson,
-        componentsJson,
-        metadataJson,
-        comment: 'Save draft',
-        createdBy: 'admin'
-      }
+    if (saveInFlightRef.current) {
+      pendingSaveRef.current = true;
+      return;
+    }
+    const snapshot = JSON.stringify({
+      fields,
+      compositionJson,
+      componentsJson,
+      metadataJson
     });
-    setDraft((updated.updateDraftVersion ?? null) as CVersion | null);
-    if (selectedItemId) {
-      await loadItem(selectedItemId);
-      setPreviewReloadKey((prev) => prev + 1);
-      sendPreviewMessage({ type: 'CMS_REFRESH' });
-      toast({ severity: 'success', summary: 'Draft saved' });
+    if (!options.force && snapshot === lastSavedRef.current) {
+      return;
+    }
+    saveInFlightRef.current = true;
+    setSavingDraft(true);
+    try {
+      const updated = await sdk.updateDraftVersion({
+        versionId: draft.id,
+        expectedVersionNumber: draft.versionNumber,
+        patch: {
+          fieldsJson: JSON.stringify(fields),
+          compositionJson,
+          componentsJson,
+          metadataJson,
+          comment: 'Save draft',
+          createdBy: 'admin'
+        }
+      });
+      setDraft((updated.updateDraftVersion ?? null) as CVersion | null);
+      lastSavedRef.current = snapshot;
+      if (selectedItemId) {
+        if (!options.silent) {
+          await loadItem(selectedItemId);
+        }
+        setPreviewReloadKey((prev) => prev + 1);
+        sendPreviewMessage({ type: 'CMS_REFRESH' });
+        if (!options.silent) {
+          toast({ severity: 'success', summary: 'Draft saved' });
+        }
+      }
+    } finally {
+      saveInFlightRef.current = false;
+      setSavingDraft(false);
+      if (pendingSaveRef.current) {
+        pendingSaveRef.current = false;
+        scheduleDraftSave(true, 200);
+      }
     }
   };
 
@@ -1092,6 +1289,10 @@ export function ContentPagesPage() {
           <Button label="Web" size="small" text={previewDevice !== 'web'} onClick={() => setPreviewDevice('web')} />
           <Button label="Tablet" size="small" text={previewDevice !== 'tablet'} onClick={() => setPreviewDevice('tablet')} />
           <Button label="Mobile" size="small" text={previewDevice !== 'mobile'} onClick={() => setPreviewDevice('mobile')} />
+          <div className="inline-actions">
+            <InputSwitch checked={inlineEdit} onChange={(event) => setInlineEdit(Boolean(event.value))} disabled={!canInlineEdit} />
+            <small className={canInlineEdit ? '' : 'muted'}>Inline edit</small>
+          </div>
           <Button text icon="pi pi-refresh" label="Reload" onClick={() => setPreviewReloadKey((prev) => prev + 1)} disabled={!previewIframeUrl} />
         </div>
       </div>
@@ -1106,6 +1307,18 @@ export function ContentPagesPage() {
               title="Content Preview"
               src={previewIframeUrl}
               className="cms-preview-iframe"
+              onLoad={() => {
+                sendPreviewMessage({
+                  type: 'CMS_HIGHLIGHT',
+                  componentId: selectedComponentId ?? undefined,
+                  fieldPath: selectedFieldPath ?? undefined,
+                  richTextFeatures: resolveRichTextFeatures(selectedFieldPath)
+                });
+                if (selectedComponentId) {
+                  sendPreviewMessage({ type: 'CMS_SCROLL_TO', componentId: selectedComponentId });
+                }
+                sendPreviewMessage({ type: 'CMS_INLINE_MODE', enabled: inlineEdit && canInlineEdit });
+              }}
             />
           </div>
         </div>
@@ -1134,8 +1347,10 @@ export function ContentPagesPage() {
               placeholder="Template"
             />
             <Button label="Create Page" onClick={() => createPage().catch((e: unknown) => setStatus(String(e)))} />
-            <Button label="Save Draft" severity="secondary" onClick={() => saveDraft().catch((e: unknown) => setStatus(String(e)))} disabled={!draft} />
+            <Button label="Save Draft" severity="secondary" onClick={() => saveDraft().catch((e: unknown) => setStatus(String(e)))} disabled={!draft || savingDraft} loading={savingDraft} />
             <Button label="Publish" severity="success" onClick={() => publish().catch((e: unknown) => setStatus(String(e)))} disabled={!draft} />
+            <Button label="Preview website" icon="pi pi-external-link" severity="info" onClick={openPreviewWebsite} disabled={!selectedItemId} />
+            <Button label="Ask AI" text icon="pi pi-sparkles" onClick={() => setAiDialogOpen(true)} disabled={!selectedItemId} />
           </div>
         }
       />
@@ -1144,8 +1359,6 @@ export function ContentPagesPage() {
           <Button label="Split" size="small" text={workspaceMode !== 'split'} onClick={() => setWorkspaceMode('split')} />
           <Button label="Properties" size="small" text={workspaceMode !== 'properties'} onClick={() => setWorkspaceMode('properties')} />
           <Button label="On-page" size="small" text={workspaceMode !== 'onpage'} onClick={() => setWorkspaceMode('onpage')} />
-          <Button label="Preview website" size="small" icon="pi pi-external-link" severity="info" onClick={openPreviewWebsite} disabled={!selectedItemId} />
-          <Button label="Ask AI" size="small" text icon="pi pi-sparkles" onClick={() => setAiDialogOpen(true)} disabled={!selectedItemId} />
         </div>
         <div className="inline-actions">
           <InputText value={previewToken} onChange={(event) => setPreviewToken(event.target.value)} placeholder="preview token" style={{ width: 180 }} />

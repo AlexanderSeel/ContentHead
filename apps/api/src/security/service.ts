@@ -9,6 +9,8 @@ export const INTERNAL_PERMISSIONS = [
   'ASSET_DELETE',
   'CONTENT_READ',
   'CONTENT_WRITE',
+  'DB_ADMIN_READ',
+  'DB_ADMIN_WRITE',
   'SETTINGS_MANAGE',
   'SECURITY_MANAGE'
 ] as const;
@@ -224,6 +226,19 @@ export async function deleteInternalRole(db: DbClient, roleId: number): Promise<
 export async function listUserRoles(db: DbClient, userId: number): Promise<number[]> {
   const rows = await db.all<{ roleId: number }>('SELECT role_id as roleId FROM user_roles WHERE user_id = ?', [userId]);
   return rows.map((row) => row.roleId);
+}
+
+export async function listUserPermissions(db: DbClient, userId: number): Promise<string[]> {
+  const rows = await db.all<{ permissionKey: string }>(
+    `
+SELECT rp.permission_key as permissionKey
+FROM role_permissions rp
+INNER JOIN user_roles ur ON ur.role_id = rp.role_id
+WHERE ur.user_id = ?
+`,
+    [userId]
+  );
+  return Array.from(new Set(rows.map((row) => row.permissionKey)));
 }
 
 export async function setUserRoles(db: DbClient, userId: number, roleIds: number[]): Promise<boolean> {

@@ -553,13 +553,15 @@ export async function updateDraftVersion(db: DbClient, input: {
     ? parseJsonObject(input.patch.metadataJson, 'patch.metadataJson')
     : {};
 
+  const nextComponents = input.patch.componentsJson ? componentsPatch : components;
+
   const next = await createVersion(db, {
     contentItemId: base.contentItemId,
     state: 'DRAFT',
     sourceVersionId: base.id,
     fieldsJson: stringify({ ...fields, ...fieldsPatch }),
     compositionJson: stringify({ ...composition, ...compositionPatch }),
-    componentsJson: stringify({ ...components, ...componentsPatch }),
+    componentsJson: stringify(nextComponents),
     metadataJson: stringify({ ...metadata, ...metadataPatch }),
     comment: input.patch.comment ?? 'Update draft',
     createdBy: input.patch.createdBy ?? base.createdBy

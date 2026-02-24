@@ -31,6 +31,11 @@ export type AssetRecord = {
   updatedBy: string;
 };
 
+export type AssetListResult = {
+  items: AssetRecord[];
+  total: number;
+};
+
 export type AssetFolderRecord = {
   id: number;
   siteId: number;
@@ -96,17 +101,22 @@ SELECT
 FROM assets`;
 }
 
-export async function listAssets(
-  db: DbClient,
-  input: {
-    siteId: number;
-    limit?: number | null | undefined;
-    offset?: number | null | undefined;
-    search?: string | null | undefined;
-    folderId?: number | null | undefined;
-    tags?: string[] | null | undefined;
-  }
-): Promise<AssetRecord[]> {
+function normalizeAsset(record: AssetRecord): AssetRecord {
+  return {
+    ...record,
+    bytes: Number(record.bytes),
+    width: record.width == null ? null : Number(record.width),
+    height: record.height == null ? null : Number(record.height),
+    duration: record.duration == null ? null : Number(record.duration)
+  };
+}
+
+function buildAssetFilters(input: {
+  siteId: number;
+  search?: string | null | undefined;
+  folderId?: number | null | undefined;
+  tags?: string[] | null | undefined;
+}) {
   const clauses = ['site_id = ?'];
   const params: unknown[] = [input.siteId];
 
@@ -128,15 +138,41 @@ export async function listAssets(
     }
   }
 
-  return db.all<AssetRecord>(
-    `${mapAssetSelect()} WHERE ${clauses.join(' AND ')} ORDER BY id DESC LIMIT ? OFFSET ?`,
-    [...params, Math.max(1, Math.min(200, input.limit ?? 50)), Math.max(0, input.offset ?? 0)]
+  return { clauses, params };
+}
+
+export async function listAssets(
+  db: DbClient,
+  input: {
+    siteId: number;
+    limit?: number | null | undefined;
+    offset?: number | null | undefined;
+    search?: string | null | undefined;
+    folderId?: number | null | undefined;
+    tags?: string[] | null | undefined;
+  }
+): Promise<AssetListResult> {
+  const { clauses, params } = buildAssetFilters(input);
+  const limit = Math.max(1, Math.min(200, input.limit ?? 50));
+  const offset = Math.max(0, input.offset ?? 0);
+  const whereClause = `WHERE ${clauses.join(' AND ')}`;
+
+  const rows = await db.all<AssetRecord>(
+    `${mapAssetSelect()} ${whereClause} ORDER BY id DESC LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
   );
+
+  const countRow = await db.get<{ total: number }>(`SELECT COUNT(*) as total FROM assets ${whereClause}`, params);
+
+  return {
+    items: rows.map((row) => normalizeAsset(row)),
+    total: Number(countRow?.total ?? 0)
+  };
 }
 
 export async function getAsset(db: DbClient, id: number): Promise<AssetRecord | null> {
   const row = await db.get<AssetRecord>(`${mapAssetSelect()} WHERE id = ?`, [id]);
-  return row ?? null;
+  return row ? normalizeAsset(row) : null;
 }
 
 export async function listAssetFolders(db: DbClient, siteId: number): Promise<AssetFolderRecord[]> {

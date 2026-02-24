@@ -5,9 +5,11 @@ import { DataTable } from 'primereact/datatable';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Chips } from 'primereact/chips';
+import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
+import { getApiBaseUrl } from '../../lib/api';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 
@@ -46,7 +48,7 @@ export function AssetLibraryPage() {
 
   const refresh = async () => {
     const res = await sdk.listAssets({ siteId, limit: 200, offset: 0, search: search || null, folderId: null, tags: null });
-    const rows = (res.listAssets ?? []) as AssetRow[];
+    const rows = (res.listAssets?.items ?? []) as AssetRow[];
     setAssets(rows);
     setSelected((prev) => rows.find((entry) => entry.id === prev?.id) ?? rows[0] ?? null);
   };
@@ -63,7 +65,7 @@ export function AssetLibraryPage() {
     setUploading(true);
     setStatus('');
     try {
-      const endpoint = `${import.meta.env.VITE_API_URL?.replace('/graphql', '') ?? 'http://localhost:4000'}/api/assets/upload?siteId=${siteId}`;
+      const endpoint = `${getApiBaseUrl()}/api/assets/upload?siteId=${siteId}`;
       for (const file of Array.from(fileList)) {
         const form = new FormData();
         form.append('file', file);
@@ -113,14 +115,14 @@ export function AssetLibraryPage() {
     }
   };
 
-  const apiBase = import.meta.env.VITE_API_URL?.replace('/graphql', '') ?? 'http://localhost:4000';
+  const apiBase = getApiBaseUrl();
 
   return (
     <div className="pageRoot">
       <PageHeader
         title="Asset Library"
         subtitle="Upload and manage images with metadata and renditions"
-        helpTopicKey="content_pages"
+        helpTopicKey="dam"
         actions={
           <div className="inline-actions">
             <label className="p-button p-component p-button-sm">
@@ -132,64 +134,73 @@ export function AssetLibraryPage() {
         }
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '1rem' }}>
-        <section className="content-card">
-          <DataTable
-            value={assets}
-            size="small"
-            selectionMode="single"
-            selection={selected}
-            onSelectionChange={(event) => setSelected((event.value as AssetRow) ?? null)}
-          >
-            <Column
-              header="Preview"
-              body={(row: AssetRow) => (
-                <img
-                  src={`${apiBase}/assets/${row.id}/rendition/thumb`}
-                  alt={row.altText ?? row.title ?? row.originalName}
-                  style={{ width: 64, height: 42, objectFit: 'cover', borderRadius: 6 }}
-                />
-              )}
-            />
-            <Column field="originalName" header="Filename" />
-            <Column field="title" header="Title" />
-          </DataTable>
-        </section>
-
-        <section className="content-card">
-          {!selected ? (
-            <p className="muted">Select an asset to edit metadata.</p>
-          ) : (
-            <div className="form-row">
-              <img
-                src={`${apiBase}/assets/${selected.id}`}
-                alt={selected.altText ?? selected.title ?? selected.originalName}
-                style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 8 }}
-              />
-              <label>Title</label>
-              <InputText value={selected.title ?? ''} onChange={(event) => setSelected({ ...selected, title: event.target.value })} />
-              <label>Alt Text</label>
-              <InputText value={selected.altText ?? ''} onChange={(event) => setSelected({ ...selected, altText: event.target.value })} />
-              <label>Description</label>
-              <InputTextarea rows={4} value={selected.description ?? ''} onChange={(event) => setSelected({ ...selected, description: event.target.value })} />
-              <label>Tags</label>
-              <Chips value={parseTags(selected.tagsJson)} onChange={(event) => setSelected({ ...selected, tagsJson: JSON.stringify(event.value ?? []) })} separator="," />
-              <div className="inline-actions">
-                <Button label="Save metadata" onClick={() => saveMetadata().catch(() => undefined)} loading={saving} />
-                <Button
-                  label="Delete"
-                  severity="danger"
-                  onClick={() =>
-                    sdk
-                      .deleteAsset({ id: selected.id })
-                      .then(() => refresh())
-                      .catch((error: unknown) => setStatus(String(error)))
-                  }
-                />
-              </div>
+      <div className="pageBodyFlex splitFill">
+        <Splitter className="splitFill" style={{ width: '100%' }}>
+          <SplitterPanel size={62} minSize={35}>
+            <div className="pane paneScroll">
+              <section className="content-card">
+                <DataTable
+                  value={assets}
+                  size="small"
+                  selectionMode="single"
+                  selection={selected}
+                  onSelectionChange={(event) => setSelected((event.value as AssetRow) ?? null)}
+                >
+                  <Column
+                    header="Preview"
+                    body={(row: AssetRow) => (
+                      <img
+                        src={`${apiBase}/assets/${row.id}/rendition/thumb`}
+                        alt={row.altText ?? row.title ?? row.originalName}
+                        style={{ width: 64, height: 42, objectFit: 'cover', borderRadius: 6 }}
+                      />
+                    )}
+                  />
+                  <Column field="originalName" header="Filename" />
+                  <Column field="title" header="Title" />
+                </DataTable>
+              </section>
             </div>
-          )}
-        </section>
+          </SplitterPanel>
+          <SplitterPanel size={38} minSize={25}>
+            <div className="pane paneScroll">
+              <section className="content-card">
+                {!selected ? (
+                  <p className="muted">Select an asset to edit metadata.</p>
+                ) : (
+                  <div className="form-row">
+                    <img
+                      src={`${apiBase}/assets/${selected.id}`}
+                      alt={selected.altText ?? selected.title ?? selected.originalName}
+                      style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 8 }}
+                    />
+                    <label>Title</label>
+                    <InputText value={selected.title ?? ''} onChange={(event) => setSelected({ ...selected, title: event.target.value })} />
+                    <label>Alt Text</label>
+                    <InputText value={selected.altText ?? ''} onChange={(event) => setSelected({ ...selected, altText: event.target.value })} />
+                    <label>Description</label>
+                    <InputTextarea rows={4} value={selected.description ?? ''} onChange={(event) => setSelected({ ...selected, description: event.target.value })} />
+                    <label>Tags</label>
+                    <Chips value={parseTags(selected.tagsJson)} onChange={(event) => setSelected({ ...selected, tagsJson: JSON.stringify(event.value ?? []) })} separator="," />
+                    <div className="inline-actions">
+                      <Button label="Save metadata" onClick={() => saveMetadata().catch(() => undefined)} loading={saving} />
+                      <Button
+                        label="Delete"
+                        severity="danger"
+                        onClick={() =>
+                          sdk
+                            .deleteAsset({ id: selected.id })
+                            .then(() => refresh())
+                            .catch((error: unknown) => setStatus(String(error)))
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
+          </SplitterPanel>
+        </Splitter>
       </div>
       {uploading ? <div className="status-panel">Uploading files...</div> : null}
       {status ? <div className="status-panel"><pre>{status}</pre></div> : null}

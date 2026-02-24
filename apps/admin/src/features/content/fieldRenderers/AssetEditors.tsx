@@ -5,6 +5,7 @@ import { DataTable } from 'primereact/datatable';
 
 import { AssetPickerDialog } from '../../../components/inputs/AssetPickerDialog';
 import { createAdminSdk } from '../../../lib/sdk';
+import { getApiBaseUrl } from '../../../lib/api';
 
 type AssetRow = {
   id: number;
@@ -14,7 +15,7 @@ type AssetRow = {
 };
 
 function AssetPreview({ id }: { id: number }) {
-  const base = import.meta.env.VITE_API_URL?.replace('/graphql', '') ?? 'http://localhost:4000';
+  const base = getApiBaseUrl();
   return (
     <img
       src={`${base}/assets/${id}/rendition/thumb`}

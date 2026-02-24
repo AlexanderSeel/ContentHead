@@ -55,6 +55,17 @@ body {
   overflow: auto;
 }
 
+.admin-sidebar .p-accordion-content .p-button {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.admin-sidebar .p-accordion-content .p-button .p-button-label {
+  flex: 1;
+  text-align: left;
+}
+
 .admin-topbar {
   position: sticky;
   top: 0;

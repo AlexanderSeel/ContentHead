@@ -18,6 +18,7 @@ export default async function PreviewPage({
   const versionIdOverride = query.versionId ? Number(query.versionId as string) : null;
   const token = (query.token as string | undefined) ?? null;
   const cmsBridge = (query.cmsBridge as string | undefined) === '1';
+  const inlineEdit = (query.inline as string | undefined) === '1';
 
   if (!Number.isFinite(contentItemId) || contentItemId <= 0) {
     notFound();
@@ -71,6 +72,13 @@ export default async function PreviewPage({
     items?: Array<{ title: string; href: string }>;
   }>;
 
+  let fieldDefs: Array<{ key: string; type: string }> = [];
+  try {
+    fieldDefs = JSON.parse(entity.contentType?.fieldsJson ?? '[]') as Array<{ key: string; type: string }>;
+  } catch {
+    fieldDefs = [];
+  }
+
   return (
     <>
       <div style={{ padding: '0.5rem 1rem', fontSize: 12, background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
@@ -80,9 +88,11 @@ export default async function PreviewPage({
         contentItemId={contentItemId}
         versionId={version.id ?? 0}
         fields={fields}
+        fieldDefs={fieldDefs}
         composition={composition}
         components={components}
         cmsBridge={cmsBridge}
+        inlineEdit={inlineEdit}
       />
     </>
   );

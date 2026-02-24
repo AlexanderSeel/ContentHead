@@ -14,6 +14,48 @@ export type ContentFieldType =
   | 'assetRef'
   | 'assetList';
 
+export type RichTextFeature =
+  | 'bold'
+  | 'italic'
+  | 'underline'
+  | 'h1'
+  | 'h2'
+  | 'list'
+  | 'ordered'
+  | 'link'
+  | 'quote'
+  | 'code'
+  | 'table'
+  | 'image';
+
+export const DEFAULT_RICH_TEXT_FEATURES: RichTextFeature[] = [
+  'bold',
+  'italic',
+  'underline',
+  'h1',
+  'h2',
+  'list',
+  'ordered',
+  'link',
+  'quote',
+  'code'
+];
+
+export const RICH_TEXT_FEATURE_OPTIONS: Array<{ label: string; value: RichTextFeature }> = [
+  { label: 'Bold', value: 'bold' },
+  { label: 'Italic', value: 'italic' },
+  { label: 'Underline', value: 'underline' },
+  { label: 'Heading 1', value: 'h1' },
+  { label: 'Heading 2', value: 'h2' },
+  { label: 'Bullet List', value: 'list' },
+  { label: 'Ordered List', value: 'ordered' },
+  { label: 'Link', value: 'link' },
+  { label: 'Quote', value: 'quote' },
+  { label: 'Code Block', value: 'code' },
+  { label: 'Table', value: 'table' },
+  { label: 'Image', value: 'image' }
+];
+
 export type ContentFieldDef = {
   key: string;
   label: string;
@@ -36,6 +78,7 @@ export type ContentFieldDef = {
     rows?: number;
     displayFormat?: string;
     section?: string;
+    richTextFeatures?: RichTextFeature[];
   };
 };
 

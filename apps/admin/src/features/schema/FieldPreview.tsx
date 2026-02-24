@@ -7,6 +7,7 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { MultiSelect } from 'primereact/multiselect';
 
 import type { ContentFieldDef } from './fieldValidationUi';
+import { RichTextEditor } from '../content/fieldRenderers/RichTextEditor';
 
 export function FieldPreview({ field }: { field: ContentFieldDef | null }) {
   if (!field) {
@@ -37,7 +38,17 @@ export function FieldPreview({ field }: { field: ContentFieldDef | null }) {
   if (field.type === 'contentLinkList') {
     return <InputTextarea rows={3} value='[{"kind":"external","url":"https://example.com"}]' readOnly />;
   }
-  if (field.type === 'richtext' || ui.multiline) {
+  if (field.type === 'richtext') {
+    return (
+      <RichTextEditor
+        value={String(ui.defaultValue ?? '')}
+        onChange={() => undefined}
+        features={ui.richTextFeatures ?? null}
+        readOnly
+      />
+    );
+  }
+  if (ui.multiline) {
     return <InputTextarea rows={ui.rows ?? 4} value={String(ui.defaultValue ?? '')} />;
   }
 

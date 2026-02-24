@@ -3,7 +3,6 @@ import { GraphiQL } from 'graphiql';
 import type { Fetcher } from '@graphiql/toolkit';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
-import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
@@ -13,35 +12,11 @@ import type { TreeNode } from 'primereact/treenode';
 
 import { PageHeader } from '../../components/common/PageHeader';
 import { useAuth } from '../../app/AuthContext';
+import { HelpDialog } from '../../help/HelpDialog';
+import { HelpIcon } from '../../help/HelpIcon';
+import { helpContent } from '../../help/helpContent';
 
 import 'graphiql/style.css';
-
-const samples: Array<{ label: string; query: string; variables?: string }> = [
-  { label: 'me', query: `query Me { me { id username displayName } }` },
-  { label: 'listSites', query: `query ListSites { listSites { id name active urlPattern } }` },
-  {
-    label: 'getSiteMarketLocaleMatrix',
-    query: `query Matrix($siteId: Int!) { getSiteMarketLocaleMatrix(siteId: $siteId) { siteId combinations { marketCode localeCode active } } }`,
-    variables: `{"siteId":1}`
-  },
-  {
-    label: 'resolveRoute',
-    query: `query ResolveRoute($siteId:Int!,$marketCode:String!,$localeCode:String!,$slug:String!){ resolveRoute(siteId:$siteId,marketCode:$marketCode,localeCode:$localeCode,slug:$slug){ mode version { id versionNumber state } } }`,
-    variables: `{"siteId":1,"marketCode":"US","localeCode":"en-US","slug":"start"}`
-  },
-  {
-    label: 'getPageByRoute',
-    query: `query PageByRoute($siteId:Int!,$marketCode:String!,$localeCode:String!,$slug:String!,$contextJson:String){ getPageByRoute(siteId:$siteId,marketCode:$marketCode,localeCode:$localeCode,slug:$slug,contextJson:$contextJson){ selectionReason selectedVariant { key } selectedVersion { id state } } }`,
-    variables: `{"siteId":1,"marketCode":"US","localeCode":"en-US","slug":"start","contextJson":"{}"}`
-  },
-  { label: 'listVersions', query: `query Versions($contentItemId:Int!){ listVersions(contentItemId:$contentItemId){ id versionNumber state } }`, variables: `{"contentItemId":1}` },
-  { label: 'workflows list', query: `query Workflows { listWorkflowDefinitions { id name version } }` },
-  {
-    label: 'startRun',
-    query: `mutation StartRun($definitionId:Int!,$contextJson:String!){ startWorkflowRun(definitionId:$definitionId,contextJson:$contextJson){ id status currentNodeId } }`,
-    variables: `{"definitionId":1,"contextJson":"{}"}`
-  }
-];
 
 const INTROSPECTION_QUERY = `
   query IntrospectionQuery {
@@ -108,14 +83,14 @@ export function GraphiQLPage() {
   const endpoint = `${import.meta.env.VITE_API_URL ?? 'http://localhost:4000/graphql'}`;
   const [previewToken, setPreviewToken] = useState('');
   const [useSessionToken, setUseSessionToken] = useState(true);
-  const [query, setQuery] = useState(samples[0]!.query);
-  const [variables, setVariables] = useState(samples[0]!.variables ?? '{}');
+  const [query, setQuery] = useState('');
+  const [variables, setVariables] = useState('{}');
   const [headersEditor, setHeadersEditor] = useState('{}');
   const [headersError, setHeadersError] = useState('');
   const [headersDialogOpen, setHeadersDialogOpen] = useState(false);
+  const [headersHelpOpen, setHeadersHelpOpen] = useState(false);
   const [editorSeed, setEditorSeed] = useState(0);
-  const [selectedSampleLabel, setSelectedSampleLabel] = useState(samples[0]!.label);
-  const [activeQuery, setActiveQuery] = useState(samples[0]!.query);
+  const [activeQuery, setActiveQuery] = useState('');
   const [lastResponse, setLastResponse] = useState('');
   const [schemaNodes, setSchemaNodes] = useState<TreeNode[]>([]);
   const [schemaError, setSchemaError] = useState('');
@@ -176,14 +151,6 @@ export function GraphiQLPage() {
     },
     [endpoint, parsedHeaders]
   );
-
-  const applySample = (sample: { label: string; query: string; variables?: string }) => {
-    setSelectedSampleLabel(sample.label);
-    setQuery(sample.query);
-    setActiveQuery(sample.query);
-    setVariables(sample.variables ?? '{}');
-    setEditorSeed((prev) => prev + 1);
-  };
 
   const insertOperationFromExplorer = (nodeData: { fieldName?: string; operation?: 'query' | 'mutation'; args?: Array<{ name: string; type: string }> }) => {
     if (!nodeData.fieldName || !nodeData.operation) {
@@ -292,7 +259,7 @@ export function GraphiQLPage() {
     <div className="pageRoot">
       <PageHeader
         title="GraphiQL Dev Tool"
-        subtitle="SWAPI-like GraphQL playground with samples, docs, explorer, variables and headers."
+        subtitle="GraphQL playground with docs, explorer, variables, headers, and response inspector."
         helpTopicKey="graphiql"
         askAiContext="graphql"
         askAiPayload={{ endpoint, query: activeQuery, variables, headers: headersEditor }}
@@ -303,20 +270,6 @@ export function GraphiQLPage() {
         }}
         actions={(
           <div className="graphiql-header-actions">
-            <Dropdown
-              value={selectedSampleLabel}
-              options={samples.map((sample) => ({ label: sample.label, value: sample.label }))}
-              onChange={(event) => {
-                const label = String(event.value);
-                setSelectedSampleLabel(label);
-                const sample = samples.find((entry) => entry.label === label);
-                if (sample) {
-                  applySample(sample);
-                }
-              }}
-              placeholder="Sample"
-              className="topbar-control"
-            />
             <Button text size="small" icon="pi pi-sliders-h" label="Headers & Variables" onClick={() => setHeadersDialogOpen(true)} />
           </div>
         )}
@@ -394,7 +347,15 @@ export function GraphiQLPage() {
         </Splitter>
       </div>
       <Dialog
-        header="Headers & Variables"
+        header={(
+          <div className="inline-actions" style={{ justifyContent: 'space-between', width: '100%' }}>
+            <span>Headers & Variables</span>
+            <HelpIcon
+              tooltip={helpContent.graphiql_headers?.tooltip ?? 'Headers and variables help'}
+              onClick={() => setHeadersHelpOpen(true)}
+            />
+          </div>
+        )}
         visible={headersDialogOpen}
         onHide={() => setHeadersDialogOpen(false)}
         style={{ width: 'min(52rem, 96vw)' }}
@@ -435,6 +396,7 @@ export function GraphiQLPage() {
           <InputTextarea rows={8} value={variables} onChange={(event) => setVariables(event.target.value)} />
         </div>
       </Dialog>
+      <HelpDialog topicKey="graphiql_headers" visible={headersHelpOpen} onHide={() => setHeadersHelpOpen(false)} />
     </div>
   );
 }

@@ -69,8 +69,8 @@ async function ensureDemoForm(db: DuckDbClient): Promise<number> {
 
 async function ensureDemoAssets(db: DuckDbClient): Promise<{ heroAssetId: number; sectionAssetId: number }> {
   const existing = await listAssets(db, { siteId: 1, limit: 50, offset: 0 });
-  const hero = existing.find((entry) => entry.filename === 'demo-hero.svg');
-  const section = existing.find((entry) => entry.filename === 'demo-section.svg');
+  const hero = existing.items.find((entry) => entry.filename === 'demo-hero.svg');
+  const section = existing.items.find((entry) => entry.filename === 'demo-section.svg');
   if (hero && section) {
     return { heroAssetId: hero.id, sectionAssetId: section.id };
   }

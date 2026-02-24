@@ -12,6 +12,7 @@ type BuildWebUrlParams = {
   versionId?: number | null | undefined;
   previewMode: 'draft' | 'published';
   cmsBridge?: boolean;
+  inlineEdit?: boolean;
 };
 
 function normalizeBaseUrl(value: string | undefined): string {
@@ -47,6 +48,9 @@ export function buildWebUrl(params: BuildWebUrlParams): string {
   }
   if (params.cmsBridge) {
     query.set('cmsBridge', '1');
+  }
+  if (params.inlineEdit) {
+    query.set('inline', '1');
   }
 
   return `${baseUrl}/preview?${query.toString()}`;

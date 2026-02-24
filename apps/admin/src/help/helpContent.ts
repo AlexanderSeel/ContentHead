@@ -23,7 +23,12 @@ export const helpContent: Record<string, HelpTopic> = {
   graphiql: {
     title: 'GraphiQL',
     tooltip: 'Run and inspect GraphQL queries with session auth and headers.',
-    markdown: 'Use samples to bootstrap operations.\n\nSession auth uses your current admin token.\n\nOverride headers in Advanced when needed.'
+    markdown: 'Run queries/mutations with docs + explorer.\n\nSession auth uses your current admin token.\n\nOverride headers and variables when needed.'
+  },
+  graphiql_headers: {
+    title: 'GraphiQL Headers & Variables',
+    tooltip: 'Override headers, preview tokens, and variables for testing.',
+    markdown: 'Use **Session Auth** to toggle your current admin token.\n\nAdd `x-preview-token` for preview content requests.\n\nVariables must be valid JSON.'
   },
   forms: {
     title: 'Form Builder',
@@ -34,5 +39,20 @@ export const helpContent: Record<string, HelpTopic> = {
     title: 'Variants',
     tooltip: 'Manage A/B variants and targeting rules.',
     markdown: 'Select content item + variant set, then define variants.\n\nUse Rule Editor to avoid hand-writing JSON.'
+  },
+  rules: {
+    title: 'Rules',
+    tooltip: 'Targeting rules for personalization and workflows.',
+    markdown: 'Define conditions using **ALL** (AND) or **ANY** (OR).\n\nUse **Advanced JSON** only for complex cases.'
+  },
+  dam: {
+    title: 'Asset Library (DAM)',
+    tooltip: 'Upload, tag, and organize assets with renditions.',
+    markdown: 'Use folders/tags to organize assets.\n\nSelect an asset to edit metadata and see renditions.'
+  },
+  db_admin: {
+    title: 'DB Admin',
+    tooltip: 'Browse tables, edit rows, and run safe SQL.',
+    markdown: 'Use **Danger Mode** to access all tables.\n\nRow edits require a primary key.\n\nSQL console is read-only unless you enable writes.'
   }
 };

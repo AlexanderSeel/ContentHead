@@ -9,13 +9,18 @@ export type ComponentUiField = {
     | 'select'
     | 'boolean'
     | 'multiline'
+    | 'richtext'
+    | 'stringList'
     | 'assetRef'
     | 'assetList'
     | 'contentLink'
     | 'contentLinkList'
     | 'formRef'
+    | 'objectList'
     | 'json';
   options?: Array<{ label: string; value: string }>;
+  fields?: ComponentUiField[];
+  itemLabelKey?: string;
 };
 
 export type ComponentRegistryEntry = {
@@ -86,7 +91,17 @@ export const componentRegistry: ComponentRegistryEntry[] = [
     },
     fields: [
       { key: 'title', label: 'Title', type: 'text' },
-      { key: 'items', label: 'Items JSON', type: 'json' }
+      {
+        key: 'items',
+        label: 'Items',
+        type: 'objectList',
+        itemLabelKey: 'title',
+        fields: [
+          { key: 'icon', label: 'Icon', type: 'text' },
+          { key: 'title', label: 'Title', type: 'text' },
+          { key: 'description', label: 'Description', type: 'multiline' }
+        ]
+      }
     ]
   },
   {
@@ -121,7 +136,15 @@ export const componentRegistry: ComponentRegistryEntry[] = [
     icon: 'pi pi-wallet',
     schema: z.object({
       title: z.string().optional(),
-      tiers: z.array(z.record(z.string(), z.unknown()))
+      tiers: z.array(
+        z.object({
+          name: z.string().min(1),
+          price: z.string().min(1),
+          description: z.string().optional(),
+          features: z.array(z.string()).optional(),
+          cta: contentLinkSchema.optional()
+        })
+      )
     }),
     defaultProps: {
       title: 'Pricing',
@@ -133,7 +156,19 @@ export const componentRegistry: ComponentRegistryEntry[] = [
     },
     fields: [
       { key: 'title', label: 'Title', type: 'text' },
-      { key: 'tiers', label: 'Tiers JSON', type: 'json' }
+      {
+        key: 'tiers',
+        label: 'Tiers',
+        type: 'objectList',
+        itemLabelKey: 'name',
+        fields: [
+          { key: 'name', label: 'Name', type: 'text' },
+          { key: 'price', label: 'Price', type: 'text' },
+          { key: 'description', label: 'Description', type: 'multiline' },
+          { key: 'features', label: 'Features', type: 'stringList' },
+          { key: 'cta', label: 'CTA', type: 'contentLink' }
+        ]
+      }
     ]
   },
   {
@@ -142,7 +177,12 @@ export const componentRegistry: ComponentRegistryEntry[] = [
     icon: 'pi pi-question-circle',
     schema: z.object({
       title: z.string().optional(),
-      items: z.array(z.record(z.string(), z.unknown()))
+      items: z.array(
+        z.object({
+          question: z.string().min(1),
+          answer: z.string().min(1)
+        })
+      )
     }),
     defaultProps: {
       title: 'Frequently asked questions',
@@ -153,7 +193,16 @@ export const componentRegistry: ComponentRegistryEntry[] = [
     },
     fields: [
       { key: 'title', label: 'Title', type: 'text' },
-      { key: 'items', label: 'FAQ JSON', type: 'json' }
+      {
+        key: 'items',
+        label: 'FAQ Items',
+        type: 'objectList',
+        itemLabelKey: 'question',
+        fields: [
+          { key: 'question', label: 'Question', type: 'text' },
+          { key: 'answer', label: 'Answer', type: 'multiline' }
+        ]
+      }
     ]
   },
   {
@@ -185,7 +234,12 @@ export const componentRegistry: ComponentRegistryEntry[] = [
     icon: 'pi pi-minus',
     schema: z.object({
       copyright: z.string().optional(),
-      linkGroups: z.array(z.record(z.string(), z.unknown())),
+      linkGroups: z.array(
+        z.object({
+          title: z.string().min(1),
+          links: z.array(contentLinkSchema).optional()
+        })
+      ),
       socialLinks: z.array(contentLinkSchema).optional()
     }),
     defaultProps: {
@@ -201,7 +255,16 @@ export const componentRegistry: ComponentRegistryEntry[] = [
     },
     fields: [
       { key: 'copyright', label: 'Copyright', type: 'text' },
-      { key: 'linkGroups', label: 'Link Groups JSON', type: 'json' },
+      {
+        key: 'linkGroups',
+        label: 'Link Groups',
+        type: 'objectList',
+        itemLabelKey: 'title',
+        fields: [
+          { key: 'title', label: 'Group Title', type: 'text' },
+          { key: 'links', label: 'Links', type: 'contentLinkList' }
+        ]
+      },
       { key: 'socialLinks', label: 'Social Links', type: 'contentLinkList' }
     ]
   },
@@ -212,7 +275,7 @@ export const componentRegistry: ComponentRegistryEntry[] = [
     schema: z.object({ body: z.string().min(1), columns: z.number().int().min(1).max(3).default(1) }),
     defaultProps: { body: 'Lorem ipsum', columns: 1 },
     fields: [
-      { key: 'body', label: 'Body', type: 'multiline' },
+      { key: 'body', label: 'Body', type: 'richtext' },
       { key: 'columns', label: 'Columns', type: 'number' }
     ]
   },

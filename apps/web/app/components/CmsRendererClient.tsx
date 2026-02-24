@@ -47,6 +47,12 @@ type AssetPayload = {
   description?: string | null;
 };
 
+type FieldDef = {
+  key: string;
+  type: string;
+  uiConfig?: Record<string, unknown> | null;
+};
+
 type CmsRendererClientProps = {
   contentItemId: number;
   versionId: number;
@@ -55,9 +61,11 @@ type CmsRendererClientProps = {
   localeCode?: string;
   routeSlug?: string;
   fields: Record<string, unknown>;
+  fieldDefs?: FieldDef[];
   composition: { areas?: AreaPayload[] };
   components: Record<string, ComponentPayload>;
   cmsBridge: boolean;
+  inlineEdit?: boolean;
   forms?: Record<string, { fields: FormFieldPayload[]; steps?: FormStepPayload[] }>;
   assets?: Record<string, AssetPayload>;
   apiBaseUrl?: string;
@@ -115,16 +123,28 @@ function normalizeType(type: string): string {
   return type.trim().toLowerCase().replace(/component$/i, '').replace(/\s+/g, '_');
 }
 
+function findDatasetValue(target: HTMLElement, key: string): string | undefined {
+  let current: HTMLElement | null = target;
+  while (current) {
+    const value = current.dataset[key as keyof DOMStringMap];
+    if (value) {
+      return value;
+    }
+    current = current.parentElement;
+  }
+  return undefined;
+}
+
 function emitSelect(target: HTMLElement) {
-  const contentItemId = Number(target.dataset.cmsContentItemId ?? '0');
-  const versionId = Number(target.dataset.cmsVersionId ?? '0');
+  const contentItemId = Number(findDatasetValue(target, 'cmsContentItemId') ?? '0');
+  const versionId = Number(findDatasetValue(target, 'cmsVersionId') ?? '0');
   const payload = {
     type: 'CMS_SELECT',
     contentItemId,
     versionId,
-    componentId: target.dataset.cmsComponentId,
-    componentType: target.dataset.cmsComponentType,
-    fieldPath: target.dataset.cmsFieldPath,
+    componentId: target.dataset.cmsComponentId ?? findDatasetValue(target, 'cmsComponentId'),
+    componentType: target.dataset.cmsComponentType ?? findDatasetValue(target, 'cmsComponentType'),
+    fieldPath: target.dataset.cmsFieldPath ?? findDatasetValue(target, 'cmsFieldPath'),
     rect: toRect(target)
   };
 
@@ -146,12 +166,29 @@ function linkHref(link?: ContentLink | null): string {
   return '#';
 }
 
-function CmsLink({ link, className }: { link?: ContentLink | null; className?: string }) {
+function CmsLink({
+  link,
+  className,
+  fieldPath,
+  bridgeAttrs
+}: {
+  link?: ContentLink | null;
+  className?: string;
+  fieldPath?: string;
+  bridgeAttrs?: Record<string, string | number>;
+}) {
   if (!link) {
     return null;
   }
   return (
-    <a className={className} href={linkHref(link)} target={link.target ?? '_self'} rel={link.target === '_blank' ? 'noreferrer' : undefined}>
+    <a
+      className={className}
+      href={linkHref(link)}
+      target={link.target ?? '_self'}
+      rel={link.target === '_blank' ? 'noreferrer' : undefined}
+      {...(bridgeAttrs ?? {})}
+      {...(fieldPath ? { 'data-cms-field-path': fieldPath } : {})}
+    >
       {link.text ?? link.url ?? 'Learn more'}
     </a>
   );
@@ -162,20 +199,32 @@ function CmsImage({
   asset,
   kind,
   altOverride,
-  apiBaseUrl
+  apiBaseUrl,
+  fieldPath,
+  bridgeAttrs
 }: {
   assetId?: number | null;
   asset?: AssetPayload | null;
   kind?: 'thumb' | 'small' | 'medium' | 'large';
   altOverride?: string;
   apiBaseUrl: string;
+  fieldPath?: string;
+  bridgeAttrs?: Record<string, string | number>;
 }) {
   if (!assetId) {
     return null;
   }
   const url = kind ? `${apiBaseUrl}/assets/${assetId}/rendition/${kind}` : `${apiBaseUrl}/assets/${assetId}`;
   const alt = altOverride ?? asset?.altText ?? asset?.title ?? `Asset ${assetId}`;
-  return <img src={url} alt={alt} loading="lazy" />;
+  return (
+    <img
+      src={url}
+      alt={alt}
+      loading="lazy"
+      {...(bridgeAttrs ?? {})}
+      {...(fieldPath ? { 'data-cms-field-path': fieldPath } : {})}
+    />
+  );
 }
 
 function NewsletterForm({
@@ -190,7 +239,9 @@ function NewsletterForm({
   submitLabel,
   steps,
   fields,
-  apiBaseUrl
+  apiBaseUrl,
+  fieldPathPrefix,
+  bridgeAttrs
 }: {
   siteId: number;
   marketCode: string;
@@ -204,6 +255,8 @@ function NewsletterForm({
   steps: FormStepPayload[];
   fields: FormFieldPayload[];
   apiBaseUrl: string;
+  fieldPathPrefix?: string;
+  bridgeAttrs?: Record<string, string | number>;
 }) {
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [status, setStatus] = useState('');
@@ -271,6 +324,12 @@ function NewsletterForm({
     const stepId = typeof field.stepId === 'number' ? field.stepId : parsedSteps[0]?.id ?? 0;
     return stepId === currentStepId && field.behavior.visible;
   });
+  const fieldAttrs = (suffix: string) => {
+    if (!fieldPathPrefix) {
+      return undefined;
+    }
+    return { ...(bridgeAttrs ?? {}), 'data-cms-field-path': `${fieldPathPrefix}.${suffix}` };
+  };
 
   const parseUiConfig = (field: FormFieldPayload): Record<string, unknown> => {
     try {
@@ -488,8 +547,8 @@ function NewsletterForm({
 
   return (
     <section className="cms-section cms-newsletter">
-      <h2>{title ?? 'Newsletter'}</h2>
-      <p className="cms-muted">{description ?? 'Stay updated with product releases.'}</p>
+      <h2 {...fieldAttrs('title')}>{title ?? 'Newsletter'}</h2>
+      <p className="cms-muted" {...fieldAttrs('description')}>{description ?? 'Stay updated with product releases.'}</p>
       <form onSubmit={submit}>
         {visibleStepIds.length > 1 ? (
           <small className="cms-muted">Step {activeStepIndex + 1} of {visibleStepIds.length}</small>
@@ -503,7 +562,7 @@ function NewsletterForm({
             {fieldErrors[field.key] ? <small style={{ color: '#dc2626' }}>{fieldErrors[field.key]}</small> : null}
           </label>
         ))}
-        <button className="cms-btn primary" type="submit">
+        <button className="cms-btn primary" type="submit" {...fieldAttrs('submitLabel')}>
           {activeStepIndex < visibleStepIds.length - 1 ? 'Continue' : submitLabel ?? 'Submit'}
         </button>
         {activeStepIndex > 0 ? (
@@ -554,6 +613,14 @@ function renderComponent(
     'data-cms-component-id': id,
     'data-cms-component-type': component.type
   };
+  const bridgeAttrs = {
+    'data-cms-content-item-id': contentItemId,
+    'data-cms-version-id': versionId
+  };
+  const fieldAttrs = (path: string) => ({
+    ...bridgeAttrs,
+    'data-cms-field-path': path
+  });
 
   if (componentType === 'hero' || componentType === 'hero_component') {
     const backgroundAssetRef = typeof props.backgroundAssetRef === 'number' ? props.backgroundAssetRef : null;
@@ -564,15 +631,22 @@ function renderComponent(
       <section key={id} {...wrapperProps} className="cms-section cms-hero">
         {backgroundAssetRef ? (
           <div style={{ position: 'absolute', inset: 0, opacity: 0.2 }}>
-            <CmsImage assetId={backgroundAssetRef} asset={assets[String(backgroundAssetRef)] ?? null} kind="large" apiBaseUrl={apiBaseUrl} />
+            <CmsImage
+              assetId={backgroundAssetRef}
+              asset={assets[String(backgroundAssetRef)] ?? null}
+              kind="large"
+              apiBaseUrl={apiBaseUrl}
+              fieldPath={`components.${id}.props.backgroundAssetRef`}
+              bridgeAttrs={bridgeAttrs}
+            />
           </div>
         ) : null}
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <h1 data-cms-field-path={`components.${id}.props.title`}>{String(props.title ?? 'Demo hero')}</h1>
-          <p data-cms-field-path={`components.${id}.props.subtitle`}>{String(props.subtitle ?? '')}</p>
+          <h1 {...fieldAttrs(`components.${id}.props.title`)}>{String(props.title ?? 'Demo hero')}</h1>
+          <p {...fieldAttrs(`components.${id}.props.subtitle`)}>{String(props.subtitle ?? '')}</p>
           <div className="cms-buttons">
-            <CmsLink link={primaryCta} className="cms-btn primary" />
-            <CmsLink link={secondaryCta} className="cms-btn secondary" />
+            <CmsLink link={primaryCta} className="cms-btn primary" fieldPath={`components.${id}.props.primaryCta`} bridgeAttrs={bridgeAttrs} />
+            <CmsLink link={secondaryCta} className="cms-btn secondary" fieldPath={`components.${id}.props.secondaryCta`} bridgeAttrs={bridgeAttrs} />
           </div>
         </div>
       </section>
@@ -583,10 +657,10 @@ function renderComponent(
     const items = Array.isArray(props.items) ? (props.items as Array<{ icon?: string; title?: string; description?: string }>) : [];
     return (
       <section key={id} {...wrapperProps} className="cms-section" id="features">
-        <h2>{String(props.title ?? 'Features')}</h2>
+        <h2 {...fieldAttrs(`components.${id}.props.title`)}>{String(props.title ?? 'Features')}</h2>
         <div className="cms-grid features">
           {items.map((item, index) => (
-            <article key={`${id}-${index}`} className="cms-card" data-cms-field-path={`components.${id}.props.items.${index}.title`}>
+            <article key={`${id}-${index}`} className="cms-card" {...fieldAttrs(`components.${id}.props.items`)}>
               <h3>{item.icon ? <i className={`pi ${item.icon}`} style={{ marginRight: 6 }} /> : null}{item.title ?? `Feature ${index + 1}`}</h3>
               <p className="cms-muted">{item.description ?? ''}</p>
             </article>
@@ -603,12 +677,19 @@ function renderComponent(
     return (
       <section key={id} {...wrapperProps} className={`cms-section cms-image-row${invert ? ' invert' : ''}`}>
         <div className="cms-image-wrap">
-          <CmsImage assetId={imageAssetRef} asset={imageAssetRef ? assets[String(imageAssetRef)] ?? null : null} kind="medium" apiBaseUrl={apiBaseUrl} />
+          <CmsImage
+            assetId={imageAssetRef}
+            asset={imageAssetRef ? assets[String(imageAssetRef)] ?? null : null}
+            kind="medium"
+            apiBaseUrl={apiBaseUrl}
+            fieldPath={`components.${id}.props.imageAssetRef`}
+            bridgeAttrs={bridgeAttrs}
+          />
         </div>
         <div>
-          <h2>{String(props.title ?? '')}</h2>
-          <p className="cms-muted">{String(props.body ?? '')}</p>
-          <CmsLink link={cta} className="cms-btn primary" />
+          <h2 {...fieldAttrs(`components.${id}.props.title`)}>{String(props.title ?? '')}</h2>
+          <p className="cms-muted" {...fieldAttrs(`components.${id}.props.body`)}>{String(props.body ?? '')}</p>
+          <CmsLink link={cta} className="cms-btn primary" fieldPath={`components.${id}.props.cta`} bridgeAttrs={bridgeAttrs} />
         </div>
       </section>
     );
@@ -618,10 +699,10 @@ function renderComponent(
     const tiers = Array.isArray(props.tiers) ? (props.tiers as Array<Record<string, unknown>>) : [];
     return (
       <section key={id} {...wrapperProps} className="cms-section" id="pricing">
-        <h2>{String(props.title ?? 'Pricing')}</h2>
+        <h2 {...fieldAttrs(`components.${id}.props.title`)}>{String(props.title ?? 'Pricing')}</h2>
         <div className="cms-pricing-grid">
           {tiers.map((tier, index) => (
-            <article key={`${id}-${index}`} className="cms-card cms-pricing-tier">
+            <article key={`${id}-${index}`} className="cms-card cms-pricing-tier" {...fieldAttrs(`components.${id}.props.tiers`)}>
               <h3>{String(tier.name ?? `Tier ${index + 1}`)}</h3>
               <div className="cms-price">{String(tier.price ?? '')}</div>
               <p className="cms-muted">{String(tier.description ?? '')}</p>
@@ -630,7 +711,12 @@ function renderComponent(
                   <li key={`${id}-${index}-${featureIndex}`}>{String(feature)}</li>
                 ))}
               </ul>
-              <CmsLink link={(tier.cta as ContentLink | undefined) ?? null} className="cms-btn primary" />
+              <CmsLink
+                link={(tier.cta as ContentLink | undefined) ?? null}
+                className="cms-btn primary"
+                fieldPath={`components.${id}.props.tiers`}
+                bridgeAttrs={bridgeAttrs}
+              />
             </article>
           ))}
         </div>
@@ -644,10 +730,10 @@ function renderComponent(
       : [];
     return (
       <section key={id} {...wrapperProps} className="cms-section" id="faq">
-        <h2>{String(props.title ?? 'FAQ')}</h2>
+        <h2 {...fieldAttrs(`components.${id}.props.title`)}>{String(props.title ?? 'FAQ')}</h2>
         <div>
           {items.map((item, index) => (
-            <details key={`${id}-${index}`} className="cms-faq-item">
+            <details key={`${id}-${index}`} className="cms-faq-item" {...fieldAttrs(`components.${id}.props.items`)}>
               <summary>{item.question ?? `Question ${index + 1}`}</summary>
               <p className="cms-muted">{item.answer ?? ''}</p>
             </details>
@@ -677,6 +763,8 @@ function renderComponent(
           steps={formId ? forms[String(formId)]?.steps ?? [] : []}
           fields={formId ? forms[String(formId)]?.fields ?? [] : []}
           apiBaseUrl={apiBaseUrl}
+          fieldPathPrefix={`components.${id}.props`}
+          bridgeAttrs={bridgeAttrs}
         />
       </div>
     );
@@ -691,21 +779,32 @@ function renderComponent(
       <footer key={id} {...wrapperProps} className="cms-section cms-footer">
         <div className="cms-footer-grid">
           {linkGroups.map((group, index) => (
-            <div key={`${id}-${index}`}>
+            <div key={`${id}-${index}`} {...fieldAttrs(`components.${id}.props.linkGroups`)}>
               <h4>{group.title ?? `Group ${index + 1}`}</h4>
               <div className="cms-grid">
                 {(group.links ?? []).map((entry, linkIndex) => (
-                  <CmsLink key={`${id}-${index}-${linkIndex}`} link={entry} />
+                  <CmsLink
+                    key={`${id}-${index}-${linkIndex}`}
+                    link={entry}
+                    fieldPath={`components.${id}.props.linkGroups`}
+                    bridgeAttrs={bridgeAttrs}
+                  />
                 ))}
               </div>
             </div>
           ))}
         </div>
         <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', gap: '0.8rem', flexWrap: 'wrap' }}>
-          <small>{String(props.copyright ?? '')}</small>
+          <small {...fieldAttrs(`components.${id}.props.copyright`)}>{String(props.copyright ?? '')}</small>
           <div className="cms-buttons" style={{ marginTop: 0 }}>
             {socials.map((entry, index) => (
-              <CmsLink key={`${id}-social-${index}`} link={entry} className="cms-btn secondary" />
+              <CmsLink
+                key={`${id}-social-${index}`}
+                link={entry}
+                className="cms-btn secondary"
+                fieldPath={`components.${id}.props.socialLinks`}
+                bridgeAttrs={bridgeAttrs}
+              />
             ))}
           </div>
         </div>
@@ -717,7 +816,11 @@ function renderComponent(
     const html = String((props.html as string | undefined) ?? (props.body as string | undefined) ?? '');
     return (
       <section key={id} {...wrapperProps} className="cms-section">
-        <div data-cms-field-path={`components.${id}.props.body`} dangerouslySetInnerHTML={{ __html: html || '<p></p>' }} />
+        <div
+          {...fieldAttrs(`components.${id}.props.body`)}
+          data-cms-field-type="richtext"
+          dangerouslySetInnerHTML={{ __html: html || '<p></p>' }}
+        />
       </section>
     );
   }
@@ -725,7 +828,7 @@ function renderComponent(
   if (componentType === 'cta') {
     return (
       <section key={id} {...wrapperProps} className="cms-section">
-        <a className="cms-btn primary" href={String(props.href ?? '#')}>
+        <a className="cms-btn primary" href={String(props.href ?? '#')} {...fieldAttrs(`components.${id}.props.text`)}>
           {String(props.text ?? 'CTA')}
         </a>
       </section>
@@ -743,17 +846,107 @@ export function CmsRendererClient({
   localeCode = 'en-US',
   routeSlug = '',
   fields,
+  fieldDefs = [],
   composition,
   components,
   cmsBridge,
+  inlineEdit = false,
   forms = {},
   assets = {},
   apiBaseUrl = 'http://localhost:4000'
 }: CmsRendererClientProps) {
   const hoverRef = useRef<HTMLElement | null>(null);
   const selectedRef = useRef<HTMLElement | null>(null);
+  const inlineModeRef = useRef(Boolean(cmsBridge && inlineEdit));
+  const inlineTargetRef = useRef<HTMLElement | null>(null);
+  const inlineHandlersRef = useRef<{ blur: () => void; keydown: (event: KeyboardEvent) => void } | null>(null);
+  const inlineFeaturesRef = useRef<string[]>([]);
   const fieldEntries = useMemo(() => Object.entries(fields), [fields]);
+  const fieldDefMap = useMemo(() => new Map(fieldDefs.map((def) => [def.key, def])), [fieldDefs]);
   const areas = composition.areas ?? [{ name: 'main', components: Object.keys(components) }];
+
+  const clearInlineTarget = () => {
+    const target = inlineTargetRef.current;
+    const handlers = inlineHandlersRef.current;
+    if (target && handlers) {
+      target.removeEventListener('blur', handlers.blur);
+      target.removeEventListener('keydown', handlers.keydown);
+    }
+    if (target) {
+      target.removeAttribute('contenteditable');
+      target.classList.remove('cms-inline-editing');
+    }
+    inlineTargetRef.current = null;
+    inlineHandlersRef.current = null;
+  };
+
+  const postInlineEdit = (target: HTMLElement) => {
+    const fieldPath = target.dataset.cmsFieldPath;
+    if (!fieldPath) {
+      return;
+    }
+    const html = target.innerHTML;
+    window.parent?.postMessage(
+      {
+        type: 'CMS_INLINE_EDIT',
+        fieldPath,
+        html
+      },
+      '*'
+    );
+  };
+
+  const enableInlineTarget = (target: HTMLElement | null) => {
+    clearInlineTarget();
+    if (!inlineModeRef.current || !target) {
+      return;
+    }
+    if (target.dataset.cmsFieldType !== 'richtext') {
+      return;
+    }
+    target.setAttribute('contenteditable', 'true');
+    target.classList.add('cms-inline-editing');
+    const blur = () => postInlineEdit(target);
+    const keydown = (event: KeyboardEvent) => {
+      const allowed = new Set(inlineFeaturesRef.current);
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'b' && !allowed.has('bold')) {
+        event.preventDefault();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'i' && !allowed.has('italic')) {
+        event.preventDefault();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'u' && !allowed.has('underline')) {
+        event.preventDefault();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k' && !allowed.has('link')) {
+        event.preventDefault();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        event.preventDefault();
+        postInlineEdit(target);
+        (target as HTMLElement).blur();
+      }
+    };
+    target.addEventListener('blur', blur);
+    target.addEventListener('keydown', keydown);
+    inlineTargetRef.current = target;
+    inlineHandlersRef.current = { blur, keydown };
+  };
+
+  useEffect(() => {
+    inlineModeRef.current = Boolean(cmsBridge && inlineEdit);
+    if (!inlineModeRef.current) {
+      clearInlineTarget();
+      return;
+    }
+    if (selectedRef.current) {
+      enableInlineTarget(selectedRef.current);
+    }
+  }, [cmsBridge, inlineEdit]);
 
   useEffect(() => {
     if (!cmsBridge) {
@@ -799,6 +992,9 @@ export function CmsRendererClient({
       selectedRef.current = target;
       syncOverlays();
       emitSelect(target);
+      if (inlineModeRef.current) {
+        enableInlineTarget(target);
+      }
     };
 
     const onMessage = (event: MessageEvent<unknown>) => {
@@ -807,12 +1003,28 @@ export function CmsRendererClient({
         return;
       }
       if (payload.type === 'CMS_HIGHLIGHT') {
+        inlineFeaturesRef.current = Array.isArray((payload as { richTextFeatures?: string[] }).richTextFeatures)
+          ? ((payload as { richTextFeatures?: string[] }).richTextFeatures ?? [])
+          : [];
         selectedRef.current = findByBridgeSelector(payload.componentId, payload.fieldPath);
         syncOverlays();
+        if (inlineModeRef.current) {
+          enableInlineTarget(selectedRef.current);
+        }
       }
       if (payload.type === 'CMS_SCROLL_TO' && payload.componentId) {
         const target = findByBridgeSelector(payload.componentId, undefined);
         target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      if (payload.type === 'CMS_INLINE_MODE') {
+        const enabled = Boolean((payload as { enabled?: boolean }).enabled);
+        inlineModeRef.current = enabled;
+        if (!enabled) {
+          inlineFeaturesRef.current = [];
+          clearInlineTarget();
+        } else if (selectedRef.current) {
+          enableInlineTarget(selectedRef.current);
+        }
       }
       if (payload.type === 'CMS_REFRESH') {
         window.location.reload();
@@ -831,6 +1043,7 @@ export function CmsRendererClient({
       window.removeEventListener('resize', syncOverlays);
       window.removeEventListener('scroll', syncOverlays, true);
       window.removeEventListener('message', onMessage);
+      clearInlineTarget();
       hover.remove();
       selected.remove();
       hoverRef.current = null;
@@ -841,11 +1054,30 @@ export function CmsRendererClient({
   return (
     <main className="cms-page">
       <section className="cms-section" style={{ marginBottom: '0.9rem' }}>
-        {fieldEntries.map(([key, value]) => (
-          <div key={key} data-cms-field-path={`fields.${key}`} data-cms-content-item-id={contentItemId} data-cms-version-id={versionId}>
-            <strong>{key}:</strong> <span className="cms-muted">{String(value ?? '')}</span>
-          </div>
-        ))}
+        {fieldEntries.map(([key, value]) => {
+          const fieldDef = fieldDefMap.get(key);
+          const isRichText = fieldDef?.type === 'richtext';
+          if (isRichText) {
+            const html = String(value ?? '');
+            return (
+              <div key={key} className="cms-field-block">
+                <small className="cms-field-label">{key}</small>
+                <div
+                  data-cms-field-path={`fields.${key}`}
+                  data-cms-field-type="richtext"
+                  data-cms-content-item-id={contentItemId}
+                  data-cms-version-id={versionId}
+                  dangerouslySetInnerHTML={{ __html: html || '<p></p>' }}
+                />
+              </div>
+            );
+          }
+          return (
+            <div key={key} data-cms-field-path={`fields.${key}`} data-cms-content-item-id={contentItemId} data-cms-version-id={versionId}>
+              <strong>{key}:</strong> <span className="cms-muted">{String(value ?? '')}</span>
+            </div>
+          );
+        })}
       </section>
       {areas.map((area) => (
         <section key={area.name} style={{ display: 'grid', gap: '0.9rem' }}>

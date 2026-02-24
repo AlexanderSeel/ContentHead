@@ -6,6 +6,9 @@ import { Button } from 'primereact/button';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { TabPanel, TabView } from 'primereact/tabview';
 import { evaluateRule, type Rule, type RuleContext } from '@contenthead/shared';
+import { HelpDialog } from '../../help/HelpDialog';
+import { HelpIcon } from '../../help/HelpIcon';
+import { helpContent } from '../../help/helpContent';
 
 type GroupMode = 'all' | 'any';
 type Comparator = 'eq' | 'neq' | 'in' | 'contains' | 'gt' | 'lt' | 'regex';
@@ -68,6 +71,7 @@ export function RuleEditorDialog({
   const [jsonValue, setJsonValue] = useState(JSON.stringify(rowsToRule(initial.mode, initial.rows), null, 2));
   const [testContext, setTestContext] = useState('{"country":"US"}');
   const [jsonError, setJsonError] = useState('');
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const currentRule = useMemo(() => rowsToRule(mode, rows), [mode, rows]);
   const testResult = useMemo(() => {
@@ -80,7 +84,21 @@ export function RuleEditorDialog({
   }, [testContext, currentRule]);
 
   return (
-    <Dialog header="Rule Editor" visible={visible} onHide={onHide} style={{ width: '46rem' }}>
+    <>
+      <Dialog
+        header={(
+          <div className="inline-actions" style={{ justifyContent: 'space-between', width: '100%' }}>
+            <span>Rule Editor</span>
+            <HelpIcon
+              tooltip={helpContent.rules?.tooltip ?? 'Rule editor help'}
+              onClick={() => setHelpOpen(true)}
+            />
+          </div>
+        )}
+        visible={visible}
+        onHide={onHide}
+        style={{ width: '46rem' }}
+      >
       <TabView>
         <TabPanel header="Visual">
           <div className="form-row">
@@ -162,6 +180,8 @@ export function RuleEditorDialog({
           </div>
         </TabPanel>
       </TabView>
-    </Dialog>
+      </Dialog>
+      <HelpDialog topicKey="rules" visible={helpOpen} onHide={() => setHelpOpen(false)} />
+    </>
   );
 }

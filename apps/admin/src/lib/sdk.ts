@@ -1,8 +1,9 @@
 import { createSdk } from '@contenthead/sdk';
+import { getApiGraphqlUrl } from './api';
 
 export function createAdminSdk(token: string | null) {
   return createSdk({
-    endpoint: import.meta.env.VITE_API_URL ?? 'http://localhost:4000/graphql',
+    endpoint: getApiGraphqlUrl(),
     headersProvider: async () =>
       token
         ? {

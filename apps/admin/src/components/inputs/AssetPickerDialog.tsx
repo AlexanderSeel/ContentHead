@@ -8,6 +8,7 @@ import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 
 import { createAdminSdk } from '../../lib/sdk';
+import { getApiBaseUrl } from '../../lib/api';
 
 type AssetRow = {
   id: number;
@@ -78,7 +79,7 @@ export function AssetPickerDialog({
       sdk.listAssets({ siteId, limit: 200, offset: 0, search: search || null, folderId: activeFolderId, tags: null }),
       sdk.listAssetFolders({ siteId })
     ]);
-    setAssets((assetRes.listAssets ?? []) as AssetRow[]);
+    setAssets((assetRes.listAssets?.items ?? []) as AssetRow[]);
     setFolders((folderRes.listAssetFolders ?? []) as FolderRow[]);
   };
 
@@ -102,6 +103,7 @@ export function AssetPickerDialog({
   }, [assets, visible]);
 
   const treeNodes = useMemo(() => buildTree(folders), [folders]);
+  const apiBase = getApiBaseUrl();
 
   return (
     <Dialog header="Asset Picker" visible={visible} onHide={onHide} style={{ width: 'min(92rem, 98vw)' }}>
@@ -153,7 +155,7 @@ export function AssetPickerDialog({
               header="Preview"
               body={(row: AssetRow) => (
                 <img
-                  src={`${import.meta.env.VITE_API_URL?.replace('/graphql', '') ?? 'http://localhost:4000'}/assets/${row.id}/rendition/thumb`}
+                  src={`${apiBase}/assets/${row.id}/rendition/thumb`}
                   alt={row.altText ?? row.title ?? row.originalName}
                   style={{ width: 56, height: 40, objectFit: 'cover', borderRadius: 6 }}
                 />
@@ -168,7 +170,7 @@ export function AssetPickerDialog({
           {focusedAsset ? (
             <div className="form-row">
               <img
-                src={`${import.meta.env.VITE_API_URL?.replace('/graphql', '') ?? 'http://localhost:4000'}/assets/${focusedAsset.id}`}
+                src={`${apiBase}/assets/${focusedAsset.id}`}
                 alt={focusedAsset.altText ?? focusedAsset.title ?? focusedAsset.originalName}
                 style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8 }}
               />

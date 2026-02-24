@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
@@ -17,6 +18,7 @@ export function NodeInspector({
   node: GraphNode | null;
   onChange: (nextConfig: Record<string, unknown>) => void;
 }) {
+  const [advancedIndex, setAdvancedIndex] = useState<number[] | number | null>([]);
   if (!node) {
     return <div className="status-panel">Select a node on the canvas.</div>;
   }
@@ -57,7 +59,7 @@ export function NodeInspector({
         </div>
       ) : null}
 
-      <Accordion>
+      <Accordion multiple activeIndex={advancedIndex} onTabChange={(event) => setAdvancedIndex(event.index)}>
         <AccordionTab header="Advanced JSON">
           <InputTextarea
             rows={10}

@@ -1,4 +1,5 @@
 import SchemaBuilder from '@pothos/core';
+import { GraphQLError } from 'graphql';
 
 import type { InternalAuthProvider } from '../auth/InternalAuthProvider.js';
 import type { DbClient } from '../db/DbClient.js';
@@ -109,6 +110,7 @@ import {
 } from '../ai/service.js';
 import {
   type AssetFolderRecord,
+  type AssetListResult,
   type AssetRecord,
   createAssetFolder,
   deleteAsset,
@@ -117,6 +119,21 @@ import {
   listAssets,
   updateAssetMetadata
 } from '../assets/service.js';
+import {
+  type DbAdminColumn,
+  type DbAdminIndex,
+  type DbAdminListResult,
+  type DbAdminMutationResult,
+  type DbAdminSqlResult,
+  type DbAdminTableDescription,
+  dbAdminDelete,
+  dbAdminDescribe,
+  dbAdminInsert,
+  dbAdminList,
+  dbAdminSql,
+  dbAdminTables,
+  dbAdminUpdate
+} from '../db/dbAdminService.js';
 import type { AssetStorageProvider } from '../assets/storage.js';
 import {
   type ConnectorDomain,
@@ -148,6 +165,7 @@ import {
   deleteInternalRole,
   listInternalRoles,
   listInternalUsers,
+  listUserPermissions,
   listUserRoles,
   resetInternalUserPassword,
   setUserRoles,
@@ -224,6 +242,16 @@ type SetSiteMatrixArgs = {
 };
 
 const builder = new SchemaBuilder<{ Context: GraphqlContext }>({});
+
+async function requirePermission(ctx: GraphqlContext, permission: string): Promise<void> {
+  if (!ctx.currentUser) {
+    throw new GraphQLError('Unauthorized', { extensions: { code: 'UNAUTHORIZED' } });
+  }
+  const permissions = await listUserPermissions(ctx.db, ctx.currentUser.id);
+  if (!permissions.includes(permission)) {
+    throw new GraphQLError('Forbidden', { extensions: { code: 'FORBIDDEN' } });
+  }
+}
 
 const UserRef = builder.objectRef<SafeUser>('User');
 UserRef.implement({
@@ -614,6 +642,14 @@ AssetRef.implement({
   })
 });
 
+const AssetListRef = builder.objectRef<AssetListResult>('AssetList');
+AssetListRef.implement({
+  fields: (t) => ({
+    items: t.field({ type: [AssetRef], resolve: (parent) => parent.items }),
+    total: t.exposeInt('total')
+  })
+});
+
 const AssetFolderRef = builder.objectRef<AssetFolderRecord>('AssetFolder');
 AssetFolderRef.implement({
   fields: (t) => ({
@@ -665,6 +701,88 @@ InternalRoleRef.implement({
     permissions: t.exposeStringList('permissions'),
     createdAt: t.exposeString('createdAt'),
     updatedAt: t.exposeString('updatedAt')
+  })
+});
+
+const DbAdminColumnRef = builder.objectRef<DbAdminColumn>('DbAdminColumn');
+DbAdminColumnRef.implement({
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    type: t.exposeString('type'),
+    nullable: t.exposeBoolean('nullable'),
+    defaultValue: t.exposeString('defaultValue', { nullable: true }),
+    primaryKey: t.exposeBoolean('primaryKey'),
+    position: t.exposeInt('position')
+  })
+});
+
+const DbAdminIndexRef = builder.objectRef<DbAdminIndex>('DbAdminIndex');
+DbAdminIndexRef.implement({
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    columns: t.exposeStringList('columns'),
+    unique: t.exposeBoolean('unique')
+  })
+});
+
+const DbAdminTableRef = builder.objectRef<DbAdminTableDescription>('DbAdminTable');
+DbAdminTableRef.implement({
+  fields: (t) => ({
+    table: t.exposeString('table'),
+    columns: t.field({ type: [DbAdminColumnRef], resolve: (parent) => parent.columns }),
+    primaryKey: t.stringList({ resolve: (parent) => parent.primaryKey }),
+    indexes: t.field({ type: [DbAdminIndexRef], resolve: (parent) => parent.indexes })
+  })
+});
+
+const DbAdminListResultRef = builder.objectRef<DbAdminListResult>('DbAdminListResult');
+DbAdminListResultRef.implement({
+  fields: (t) => ({
+    total: t.exposeInt('total'),
+    rowsJson: t.exposeString('rowsJson')
+  })
+});
+
+const DbAdminMutationResultRef = builder.objectRef<DbAdminMutationResult>('DbAdminMutationResult');
+DbAdminMutationResultRef.implement({
+  fields: (t) => ({
+    ok: t.exposeBoolean('ok'),
+    affected: t.exposeInt('affected')
+  })
+});
+
+const DbAdminSqlResultRef = builder.objectRef<DbAdminSqlResult>('DbAdminSqlResult');
+DbAdminSqlResultRef.implement({
+  fields: (t) => ({
+    readOnly: t.exposeBoolean('readOnly'),
+    columns: t.exposeStringList('columns'),
+    rowsJson: t.exposeString('rowsJson'),
+    rowCount: t.exposeInt('rowCount'),
+    message: t.exposeString('message', { nullable: true }),
+    executedSql: t.exposeString('executedSql', { nullable: true })
+  })
+});
+
+const DbAdminPagingInputRef = builder.inputType('DbAdminPagingInput', {
+  fields: (t) => ({
+    limit: t.int({ required: false }),
+    offset: t.int({ required: false })
+  })
+});
+
+const DbAdminSortInputRef = builder.inputType('DbAdminSortInput', {
+  fields: (t) => ({
+    column: t.string({ required: false }),
+    direction: t.string({ required: false })
+  })
+});
+
+const DbAdminFilterInputRef = builder.inputType('DbAdminFilterInput', {
+  fields: (t) => ({
+    column: t.string({ required: true }),
+    op: t.string({ required: true }),
+    value: t.string({ required: false }),
+    values: t.stringList({ required: false })
   })
 });
 
@@ -1112,7 +1230,7 @@ builder.queryType({
       ) => exportFormSubmissions(ctx.db, args)
     }),
     listAssets: t.field({
-      type: [AssetRef],
+      type: AssetListRef,
       args: {
         siteId: t.arg.int({ required: true }),
         limit: t.arg.int({ required: false }),
@@ -1161,6 +1279,50 @@ builder.queryType({
     }),
     internalPermissions: t.stringList({
       resolve: async () => [...INTERNAL_PERMISSIONS]
+    }),
+    dbAdminTables: t.stringList({
+      args: {
+        dangerMode: t.arg.boolean({ required: false })
+      },
+      resolve: async (_root, args: { dangerMode?: boolean | null | undefined }, ctx) => {
+        await requirePermission(ctx, 'DB_ADMIN_READ');
+        return dbAdminTables(ctx.db, args.dangerMode);
+      }
+    }),
+    dbAdminDescribe: t.field({
+      type: DbAdminTableRef,
+      args: {
+        table: t.arg.string({ required: true }),
+        dangerMode: t.arg.boolean({ required: false })
+      },
+      resolve: async (_root, args: { table: string; dangerMode?: boolean | null | undefined }, ctx) => {
+        await requirePermission(ctx, 'DB_ADMIN_READ');
+        return dbAdminDescribe(ctx.db, args.table, args.dangerMode);
+      }
+    }),
+    dbAdminList: t.field({
+      type: DbAdminListResultRef,
+      args: {
+        table: t.arg.string({ required: true }),
+        paging: t.arg({ type: DbAdminPagingInputRef, required: false }),
+        sort: t.arg({ type: DbAdminSortInputRef, required: false }),
+        filter: t.arg({ type: [DbAdminFilterInputRef], required: false }),
+        dangerMode: t.arg.boolean({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          table: string;
+          paging?: { limit?: number | null | undefined; offset?: number | null | undefined } | null | undefined;
+          sort?: { column?: string | null | undefined; direction?: string | null | undefined } | null | undefined;
+          filter?: { column: string; op: string; value?: string | null | undefined; values?: string[] | null | undefined }[] | null | undefined;
+          dangerMode?: boolean | null | undefined;
+        },
+        ctx
+      ) => {
+        await requirePermission(ctx, 'DB_ADMIN_READ');
+        return dbAdminList(ctx.db, args);
+      }
     }),
     listWorkflowDefinitions: t.field({
       type: [WorkflowDefinitionRef],
@@ -2040,6 +2202,67 @@ builder.mutationType({
         id: t.arg.int({ required: true })
       },
       resolve: async (_root, args: { id: number }, ctx) => testConnector(ctx.db, args.id)
+    }),
+    dbAdminInsert: t.field({
+      type: DbAdminMutationResultRef,
+      args: {
+        table: t.arg.string({ required: true }),
+        rowJson: t.arg.string({ required: true }),
+        dangerMode: t.arg.boolean({ required: false })
+      },
+      resolve: async (_root, args: { table: string; rowJson: string; dangerMode?: boolean | null | undefined }, ctx) => {
+        await requirePermission(ctx, 'DB_ADMIN_WRITE');
+        return dbAdminInsert(ctx.db, args.table, args.rowJson, args.dangerMode);
+      }
+    }),
+    dbAdminUpdate: t.field({
+      type: DbAdminMutationResultRef,
+      args: {
+        table: t.arg.string({ required: true }),
+        pkJson: t.arg.string({ required: true }),
+        patchJson: t.arg.string({ required: true }),
+        dangerMode: t.arg.boolean({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { table: string; pkJson: string; patchJson: string; dangerMode?: boolean | null | undefined },
+        ctx
+      ) => {
+        await requirePermission(ctx, 'DB_ADMIN_WRITE');
+        return dbAdminUpdate(ctx.db, args.table, args.pkJson, args.patchJson, args.dangerMode);
+      }
+    }),
+    dbAdminDelete: t.field({
+      type: DbAdminMutationResultRef,
+      args: {
+        table: t.arg.string({ required: true }),
+        pkJson: t.arg.string({ required: true }),
+        dangerMode: t.arg.boolean({ required: false })
+      },
+      resolve: async (_root, args: { table: string; pkJson: string; dangerMode?: boolean | null | undefined }, ctx) => {
+        await requirePermission(ctx, 'DB_ADMIN_WRITE');
+        return dbAdminDelete(ctx.db, args.table, args.pkJson, args.dangerMode);
+      }
+    }),
+    dbAdminSql: t.field({
+      type: DbAdminSqlResultRef,
+      args: {
+        query: t.arg.string({ required: true }),
+        paramsJson: t.arg.string({ required: false }),
+        allowWrites: t.arg.boolean({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { query: string; paramsJson?: string | null | undefined; allowWrites?: boolean | null | undefined },
+        ctx
+      ) => {
+        if (args.allowWrites) {
+          await requirePermission(ctx, 'DB_ADMIN_WRITE');
+        } else {
+          await requirePermission(ctx, 'DB_ADMIN_READ');
+        }
+        return dbAdminSql(ctx.db, args.query, args.paramsJson, args.allowWrites);
+      }
     }),
     createInternalUser: t.field({
       type: InternalUserRef,

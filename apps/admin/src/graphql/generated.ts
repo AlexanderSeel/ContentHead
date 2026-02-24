@@ -59,6 +59,12 @@ export type AssetFolder = {
   siteId?: Maybe<Scalars['Int']['output']>;
 };
 
+export type AssetList = {
+  __typename?: 'AssetList';
+  items?: Maybe<Array<Asset>>;
+  total?: Maybe<Scalars['Int']['output']>;
+};
+
 export type AuthPayload = {
   __typename?: 'AuthPayload';
   token?: Maybe<Scalars['String']['output']>;
@@ -137,6 +143,70 @@ export type ContentVersion = {
   sourceVersionId?: Maybe<Scalars['Int']['output']>;
   state?: Maybe<Scalars['String']['output']>;
   versionNumber?: Maybe<Scalars['Int']['output']>;
+};
+
+export type DbAdminColumn = {
+  __typename?: 'DbAdminColumn';
+  defaultValue?: Maybe<Scalars['String']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  nullable?: Maybe<Scalars['Boolean']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
+  primaryKey?: Maybe<Scalars['Boolean']['output']>;
+  type?: Maybe<Scalars['String']['output']>;
+};
+
+export type DbAdminFilterInput = {
+  column: Scalars['String']['input'];
+  op: Scalars['String']['input'];
+  value?: InputMaybe<Scalars['String']['input']>;
+  values?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+export type DbAdminIndex = {
+  __typename?: 'DbAdminIndex';
+  columns?: Maybe<Array<Scalars['String']['output']>>;
+  name?: Maybe<Scalars['String']['output']>;
+  unique?: Maybe<Scalars['Boolean']['output']>;
+};
+
+export type DbAdminListResult = {
+  __typename?: 'DbAdminListResult';
+  rowsJson?: Maybe<Scalars['String']['output']>;
+  total?: Maybe<Scalars['Int']['output']>;
+};
+
+export type DbAdminMutationResult = {
+  __typename?: 'DbAdminMutationResult';
+  affected?: Maybe<Scalars['Int']['output']>;
+  ok?: Maybe<Scalars['Boolean']['output']>;
+};
+
+export type DbAdminPagingInput = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type DbAdminSortInput = {
+  column?: InputMaybe<Scalars['String']['input']>;
+  direction?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type DbAdminSqlResult = {
+  __typename?: 'DbAdminSqlResult';
+  columns?: Maybe<Array<Scalars['String']['output']>>;
+  executedSql?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  readOnly?: Maybe<Scalars['Boolean']['output']>;
+  rowCount?: Maybe<Scalars['Int']['output']>;
+  rowsJson?: Maybe<Scalars['String']['output']>;
+};
+
+export type DbAdminTable = {
+  __typename?: 'DbAdminTable';
+  columns?: Maybe<Array<DbAdminColumn>>;
+  indexes?: Maybe<Array<DbAdminIndex>>;
+  primaryKey?: Maybe<Array<Scalars['String']['output']>>;
+  table?: Maybe<Scalars['String']['output']>;
 };
 
 export type Form = {
@@ -279,6 +349,10 @@ export type Mutation = {
   createDraftVersion?: Maybe<ContentVersion>;
   createInternalUser?: Maybe<InternalUser>;
   createTemplate?: Maybe<Template>;
+  dbAdminDelete?: Maybe<DbAdminMutationResult>;
+  dbAdminInsert?: Maybe<DbAdminMutationResult>;
+  dbAdminSql?: Maybe<DbAdminSqlResult>;
+  dbAdminUpdate?: Maybe<DbAdminMutationResult>;
   deleteAsset?: Maybe<Scalars['Boolean']['output']>;
   deleteConnector?: Maybe<Scalars['Boolean']['output']>;
   deleteContentType?: Maybe<Scalars['Boolean']['output']>;
@@ -429,6 +503,35 @@ export type MutationCreateTemplateArgs = {
   constraintsJson: Scalars['String']['input'];
   name: Scalars['String']['input'];
   siteId: Scalars['Int']['input'];
+};
+
+
+export type MutationDbAdminDeleteArgs = {
+  dangerMode?: InputMaybe<Scalars['Boolean']['input']>;
+  pkJson: Scalars['String']['input'];
+  table: Scalars['String']['input'];
+};
+
+
+export type MutationDbAdminInsertArgs = {
+  dangerMode?: InputMaybe<Scalars['Boolean']['input']>;
+  rowJson: Scalars['String']['input'];
+  table: Scalars['String']['input'];
+};
+
+
+export type MutationDbAdminSqlArgs = {
+  allowWrites?: InputMaybe<Scalars['Boolean']['input']>;
+  paramsJson?: InputMaybe<Scalars['String']['input']>;
+  query: Scalars['String']['input'];
+};
+
+
+export type MutationDbAdminUpdateArgs = {
+  dangerMode?: InputMaybe<Scalars['Boolean']['input']>;
+  patchJson: Scalars['String']['input'];
+  pkJson: Scalars['String']['input'];
+  table: Scalars['String']['input'];
 };
 
 
@@ -794,6 +897,9 @@ export type PreviewTokenPayload = {
 
 export type Query = {
   __typename?: 'Query';
+  dbAdminDescribe?: Maybe<DbAdminTable>;
+  dbAdminList?: Maybe<DbAdminListResult>;
+  dbAdminTables?: Maybe<Array<Scalars['String']['output']>>;
   diffVersions?: Maybe<VersionDiff>;
   evaluateForm?: Maybe<FormEvaluation>;
   exportFormSubmissions?: Maybe<Scalars['String']['output']>;
@@ -806,7 +912,7 @@ export type Query = {
   getWorkflowRun?: Maybe<WorkflowRun>;
   internalPermissions?: Maybe<Array<Scalars['String']['output']>>;
   listAssetFolders?: Maybe<Array<AssetFolder>>;
-  listAssets?: Maybe<Array<Asset>>;
+  listAssets?: Maybe<AssetList>;
   listConnectors?: Maybe<Array<Connector>>;
   listContentItems?: Maybe<Array<ContentItem>>;
   listContentTypes?: Maybe<Array<ContentType>>;
@@ -832,6 +938,26 @@ export type Query = {
   resolveRoute?: Maybe<ResolvedRoute>;
   selectVariant?: Maybe<VariantSelection>;
   validateMarketLocale?: Maybe<Scalars['Boolean']['output']>;
+};
+
+
+export type QueryDbAdminDescribeArgs = {
+  dangerMode?: InputMaybe<Scalars['Boolean']['input']>;
+  table: Scalars['String']['input'];
+};
+
+
+export type QueryDbAdminListArgs = {
+  dangerMode?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Array<DbAdminFilterInput>>;
+  paging?: InputMaybe<DbAdminPagingInput>;
+  sort?: InputMaybe<DbAdminSortInput>;
+  table: Scalars['String']['input'];
+};
+
+
+export type QueryDbAdminTablesArgs = {
+  dangerMode?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 

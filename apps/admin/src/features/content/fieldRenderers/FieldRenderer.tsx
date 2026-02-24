@@ -10,6 +10,7 @@ import { ContentReferencePicker } from '../../../components/inputs/ContentRefere
 import type { ContentFieldDef } from '../../schema/fieldValidationUi';
 import { AssetListEditor, AssetRefEditor } from './AssetEditors';
 import { ContentLinkEditor, ContentLinkListEditor } from './ContentLinkEditors';
+import { RichTextEditor } from './RichTextEditor';
 
 export type FieldRendererProps = {
   field: ContentFieldDef;
@@ -72,7 +73,14 @@ export function FieldRenderer({ field, value, onChange, siteId, token, readOnly 
   }
 
   if (field.type === 'richtext') {
-    return <InputTextarea rows={8} value={String(value ?? '')} onChange={(event) => onChange(event.target.value)} readOnly={readOnly} />;
+    return (
+      <RichTextEditor
+        value={String(value ?? '')}
+        onChange={(next) => onChange(next)}
+        features={ui.richTextFeatures ?? null}
+        readOnly={Boolean(readOnly)}
+      />
+    );
   }
 
   if (ui.multiline) {

@@ -12,6 +12,7 @@ export type CmsHighlightMessage = {
   type: 'CMS_HIGHLIGHT';
   componentId?: string | undefined;
   fieldPath?: string | undefined;
+  richTextFeatures?: string[] | undefined;
 };
 
 export type CmsScrollToMessage = {
@@ -23,4 +24,21 @@ export type CmsRefreshMessage = {
   type: 'CMS_REFRESH';
 };
 
-export type CmsBridgeMessage = CmsSelectMessage | CmsHighlightMessage | CmsScrollToMessage | CmsRefreshMessage;
+export type CmsInlineModeMessage = {
+  type: 'CMS_INLINE_MODE';
+  enabled: boolean;
+};
+
+export type CmsInlineEditMessage = {
+  type: 'CMS_INLINE_EDIT';
+  fieldPath: string;
+  html: string;
+};
+
+export type CmsBridgeMessage =
+  | CmsSelectMessage
+  | CmsHighlightMessage
+  | CmsScrollToMessage
+  | CmsRefreshMessage
+  | CmsInlineModeMessage
+  | CmsInlineEditMessage;

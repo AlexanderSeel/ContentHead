@@ -28,6 +28,7 @@ import { DbConnectorsPage } from '../features/settings/DbConnectorsPage';
 import { DamConnectorsPage } from '../features/settings/DamConnectorsPage';
 import { AiConnectorsPage } from '../features/settings/AiConnectorsPage';
 import { PreferencesPage } from '../features/settings/PreferencesPage';
+import { DbAdminPage } from '../features/settings/DbAdminPage';
 import { DuckDbAdminPage } from '../features/settings/DuckDbAdminPage';
 import { GraphiQLPage } from '../features/devtools/GraphiQLPage';
 import { DiagnosticsPage } from '../features/devtools/DiagnosticsPage';
@@ -66,6 +67,7 @@ export function AdminApp() {
               <Route path="/schema" element={<Navigate to="/site/content-types" replace />} />
 
               <Route path="/settings/preferences" element={<PreferencesPage />} />
+              <Route path="/settings/global/db-admin" element={<DbAdminPage />} />
               <Route path="/settings/global/duckdb" element={<DuckDbAdminPage />} />
               <Route path="/settings/global/connectors/auth" element={<AuthConnectorsPage />} />
               <Route path="/settings/global/connectors/db" element={<DbConnectorsPage />} />

@@ -32,6 +32,7 @@ export function Sidebar({ showDevTools }: { showDevTools: boolean }) {
         label: 'Settings',
         items: [
           { label: 'Preferences', to: '/settings/preferences' },
+          { label: 'DB Admin', to: '/settings/global/db-admin' },
           { label: 'DuckDB Admin', to: '/settings/global/duckdb' },
           { label: 'Auth', to: '/settings/global/connectors/auth' },
           { label: 'DB', to: '/settings/global/connectors/db' },

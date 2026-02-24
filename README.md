@@ -97,6 +97,7 @@ Admin now uses routed backend UI with shell layout:
   - Site Settings (`/site/overview`, `/site/markets-locales`, `/site/content-types`)
   - Content (`/content/pages`, `/content/templates`, `/content/routes`, `/content/assets`)
   - Connector Settings (`/settings/global/connectors/auth|db|dam|ai`)
+  - DB Admin (`/settings/global/db-admin`)
   - Personalization (`/personalization/variants`)
   - Forms (`/forms/builder`, `/forms/submissions`)
   - Workflows (`/workflows/designer`, `/workflows/runs`)
@@ -175,7 +176,7 @@ Content Pages route (`/content/pages`) now uses a full-width CMS workspace:
 - Route: `/dev/graphiql` (development mode only)
 - Embedded GraphiQL executes against `http://localhost:4000/graphql` (or `VITE_API_URL`)
 - Supports current session bearer token, `x-preview-token`, and editable headers JSON
-- Includes sample query insertion (`me`, `listSites`, matrix, route resolution, versions, workflow operations)
+- Includes explorer, docs, headers/variables editor, and response inspector (no built-in samples)
 - Includes docs explorer and explorer sidebar plugin.
 - Splitter layout is now resizable and includes response inspector + quick actions:
   - Prettify

@@ -1,22 +1,25 @@
 query ListAssets($siteId: Int!, $limit: Int, $offset: Int, $search: String, $folderId: Int, $tags: [String!]) {
   listAssets(siteId: $siteId, limit: $limit, offset: $offset, search: $search, folderId: $folderId, tags: $tags) {
-    id
-    siteId
-    filename
-    originalName
-    mimeType
-    bytes
-    width
-    height
-    checksum
-    storagePath
-    title
-    altText
-    description
-    tagsJson
-    folderId
-    createdAt
-    updatedAt
+    total
+    items {
+      id
+      siteId
+      filename
+      originalName
+      mimeType
+      bytes
+      width
+      height
+      checksum
+      storagePath
+      title
+      altText
+      description
+      tagsJson
+      folderId
+      createdAt
+      updatedAt
+    }
   }
 }
 
@@ -231,4 +234,73 @@ mutation DeleteInternalRole($id: Int!) {
 
 mutation SetUserRoles($userId: Int!, $roleIds: [Int!]!) {
   setUserRoles(userId: $userId, roleIds: $roleIds)
+}
+
+query DbAdminTables($dangerMode: Boolean) {
+  dbAdminTables(dangerMode: $dangerMode)
+}
+
+query DbAdminDescribe($table: String!, $dangerMode: Boolean) {
+  dbAdminDescribe(table: $table, dangerMode: $dangerMode) {
+    table
+    primaryKey
+    columns {
+      name
+      type
+      nullable
+      defaultValue
+      primaryKey
+      position
+    }
+    indexes {
+      name
+      columns
+      unique
+    }
+  }
+}
+
+query DbAdminList(
+  $table: String!
+  $paging: DbAdminPagingInput
+  $sort: DbAdminSortInput
+  $filter: [DbAdminFilterInput!]
+  $dangerMode: Boolean
+) {
+  dbAdminList(table: $table, paging: $paging, sort: $sort, filter: $filter, dangerMode: $dangerMode) {
+    total
+    rowsJson
+  }
+}
+
+mutation DbAdminInsert($table: String!, $rowJson: String!, $dangerMode: Boolean) {
+  dbAdminInsert(table: $table, rowJson: $rowJson, dangerMode: $dangerMode) {
+    ok
+    affected
+  }
+}
+
+mutation DbAdminUpdate($table: String!, $pkJson: String!, $patchJson: String!, $dangerMode: Boolean) {
+  dbAdminUpdate(table: $table, pkJson: $pkJson, patchJson: $patchJson, dangerMode: $dangerMode) {
+    ok
+    affected
+  }
+}
+
+mutation DbAdminDelete($table: String!, $pkJson: String!, $dangerMode: Boolean) {
+  dbAdminDelete(table: $table, pkJson: $pkJson, dangerMode: $dangerMode) {
+    ok
+    affected
+  }
+}
+
+mutation DbAdminSql($query: String!, $paramsJson: String, $allowWrites: Boolean) {
+  dbAdminSql(query: $query, paramsJson: $paramsJson, allowWrites: $allowWrites) {
+    readOnly
+    columns
+    rowsJson
+    rowCount
+    message
+    executedSql
+  }
 }

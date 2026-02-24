@@ -151,6 +151,20 @@ export function createSdk(options: CreateSdkOptions) {
       execute<G.DeleteInternalRoleMutation>(G.DeleteInternalRoleDocument, variables, requestOptions),
     setUserRoles: (variables: G.SetUserRolesMutationVariables, requestOptions?: RequestOptions) =>
       execute<G.SetUserRolesMutation>(G.SetUserRolesDocument, variables, requestOptions),
+    dbAdminTables: (variables: G.DbAdminTablesQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.DbAdminTablesQuery>(G.DbAdminTablesDocument, variables, requestOptions),
+    dbAdminDescribe: (variables: G.DbAdminDescribeQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.DbAdminDescribeQuery>(G.DbAdminDescribeDocument, variables, requestOptions),
+    dbAdminList: (variables: G.DbAdminListQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.DbAdminListQuery>(G.DbAdminListDocument, variables, requestOptions),
+    dbAdminInsert: (variables: G.DbAdminInsertMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DbAdminInsertMutation>(G.DbAdminInsertDocument, variables, requestOptions),
+    dbAdminUpdate: (variables: G.DbAdminUpdateMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DbAdminUpdateMutation>(G.DbAdminUpdateDocument, variables, requestOptions),
+    dbAdminDelete: (variables: G.DbAdminDeleteMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DbAdminDeleteMutation>(G.DbAdminDeleteDocument, variables, requestOptions),
+    dbAdminSql: (variables: G.DbAdminSqlMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DbAdminSqlMutation>(G.DbAdminSqlDocument, variables, requestOptions),
 
     listVariantSets: (variables: G.ListVariantSetsQueryVariables, requestOptions?: RequestOptions) =>
       execute<G.ListVariantSetsQuery>(G.ListVariantSetsDocument, variables, requestOptions),

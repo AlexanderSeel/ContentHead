@@ -5,8 +5,16 @@ import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
+import { MultiSelect } from 'primereact/multiselect';
 
-import { CONTENT_FIELD_TYPES, ensureUniqueFieldKey, type ContentFieldDef } from './fieldValidationUi';
+import {
+  CONTENT_FIELD_TYPES,
+  DEFAULT_RICH_TEXT_FEATURES,
+  RICH_TEXT_FEATURE_OPTIONS,
+  ensureUniqueFieldKey,
+  type ContentFieldDef,
+  type RichTextFeature
+} from './fieldValidationUi';
 
 function replaceField(fields: ContentFieldDef[], key: string, next: ContentFieldDef): ContentFieldDef[] {
   return fields.map((entry) => (entry.key === key ? next : entry));
@@ -45,6 +53,9 @@ function cleanUiConfig(value: ContentFieldDef['uiConfig']): NonNullable<ContentF
   }
   if (!next.section) {
     delete next.section;
+  }
+  if (!next.richTextFeatures || next.richTextFeatures.length === 0) {
+    delete next.richTextFeatures;
   }
   return next;
 }
@@ -146,6 +157,23 @@ export function FieldInspector({
           <label>
             <Checkbox checked={Boolean(uiConfig.multiline)} onChange={(event) => apply({ uiConfig: { ...uiConfig, multiline: Boolean(event.checked) } })} /> Multiline editor
           </label>
+          {selected.type === 'richtext' ? (
+            <div className="form-row">
+              <label>Rich Text Features</label>
+              <MultiSelect
+                value={uiConfig.richTextFeatures ?? DEFAULT_RICH_TEXT_FEATURES}
+                options={RICH_TEXT_FEATURE_OPTIONS}
+                onChange={(event) =>
+                  apply({
+                    uiConfig: cleanUiConfig({ ...uiConfig, richTextFeatures: event.value as RichTextFeature[] })
+                  })
+                }
+                display="chip"
+                placeholder="Select toolbar features"
+              />
+              <small className="muted">Toolbar buttons and inline edit shortcuts.</small>
+            </div>
+          ) : null}
           <div className="form-grid">
             <div className="form-row">
               <label>Rows</label>

@@ -15,6 +15,7 @@ export const routeLabels: Record<string, string> = {
   '/security/users': 'Users',
   '/security/roles': 'Roles',
   '/settings/preferences': 'Preferences',
+  '/settings/global/db-admin': 'DB Admin',
   '/settings/global/duckdb': 'DuckDB Admin',
   '/settings/global/connectors/auth': 'Auth Connectors',
   '/settings/global/connectors/db': 'DB Connectors',

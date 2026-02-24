@@ -78,6 +78,7 @@ export function WorkflowDesignerSection({
   const [runContextJson, setRunContextJson] = useState(
     JSON.stringify({ siteId, contentItemId: selectedItemId, variantSetId: selectedVariantSetId, marketCode: market, localeCode: locale }, null, 2)
   );
+  const [advancedTabs, setAdvancedTabs] = useState<number[] | number | null>([]);
 
   const selectedNode = graphNodes.find((entry) => entry.id === selectedNodeId) ?? null;
 
@@ -219,7 +220,7 @@ export function WorkflowDesignerSection({
                 </AccordionTab>
               </Accordion>
 
-              <Accordion>
+              <Accordion multiple activeIndex={advancedTabs} onTabChange={(event) => setAdvancedTabs(event.index)}>
                 <AccordionTab header="Advanced: Input Schema JSON">
                   <InputTextarea rows={4} value={inputSchemaJson} onChange={(event) => setInputSchemaJson(event.target.value)} />
                 </AccordionTab>
