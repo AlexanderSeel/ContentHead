@@ -34,6 +34,7 @@ import { DbAdminPage } from '../features/settings/DbAdminPage';
 import { DuckDbAdminPage } from '../features/settings/DuckDbAdminPage';
 import { GraphiQLPage } from '../features/devtools/GraphiQLPage';
 import { DiagnosticsPage } from '../features/devtools/DiagnosticsPage';
+import { extensionRoutes } from '../extensions/core/registry';
 
 export function AdminApp() {
   return (
@@ -95,6 +96,10 @@ export function AdminApp() {
               <Route path="/security/users" element={<UsersPage />} />
               <Route path="/security/roles" element={<RolesPage />} />
               <Route path="/security" element={<Navigate to="/security/users" replace />} />
+
+              {extensionRoutes.map((route) => (
+                <Route key={route.path} path={route.path} element={route.element} />
+              ))}
 
               <Route element={<DevGuard />}>
                 <Route path="/dev/graphiql" element={<GraphiQLPage />} />

@@ -5,7 +5,8 @@ import { DataTable } from 'primereact/datatable';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 
-import { LinkSelectorDialog, type ContentLinkValue } from './LinkSelectorDialog';
+import { type ContentLinkValue } from './LinkSelectorDialog';
+import { LinkPickerButton } from '../../../ui/atoms';
 
 export function ContentLinkEditor({
   token,
@@ -18,12 +19,10 @@ export function ContentLinkEditor({
   value: ContentLinkValue | null;
   onChange: (value: ContentLinkValue | null) => void;
 }) {
-  const [open, setOpen] = useState(false);
-
   return (
     <div className="form-row">
       <div className="inline-actions">
-        <Button label="Select Link" onClick={() => setOpen(true)} />
+        <LinkPickerButton token={token} siteId={siteId} value={value} onChange={onChange} label="Select Link" />
         <Button text label="Clear" onClick={() => onChange(null)} disabled={!value} />
       </div>
       <small>{value ? `${value.kind}: ${value.url ?? `#${value.contentItemId ?? ''}`}` : 'No link selected'}</small>
@@ -41,7 +40,7 @@ export function ContentLinkEditor({
           />
         </div>
       </div>
-      <LinkSelectorDialog visible={open} token={token} siteId={siteId} value={value} onHide={() => setOpen(false)} onApply={onChange} />
+      {/* handled by LinkPickerButton */}
     </div>
   );
 }
@@ -102,26 +101,27 @@ export function ContentLinkListEditor({
         />
       </DataTable>
 
-      <LinkSelectorDialog
-        visible={editingIndex != null}
-        token={token}
-        siteId={siteId}
-        value={editingIndex != null && editingIndex < value.length ? (value[editingIndex] ?? null) : null}
-        onHide={() => setEditingIndex(null)}
-        onApply={(nextValue) => {
-          const next = [...value];
-          if (editingIndex == null) {
-            return;
-          }
-          if (editingIndex >= next.length) {
-            next.push(nextValue);
-          } else {
-            next[editingIndex] = nextValue;
-          }
-          onChange(next);
-          setEditingIndex(null);
-        }}
-      />
+      {editingIndex != null ? (
+        <div className="inline-actions">
+          <LinkPickerButton
+            token={token}
+            siteId={siteId}
+            value={editingIndex < value.length ? (value[editingIndex] ?? null) : null}
+            label="Pick Link"
+            onChange={(nextValue) => {
+              const next = [...value];
+              if (editingIndex >= next.length) {
+                next.push(nextValue);
+              } else {
+                next[editingIndex] = nextValue;
+              }
+              onChange(next);
+              setEditingIndex(null);
+            }}
+          />
+          <Button text label="Cancel" onClick={() => setEditingIndex(null)} />
+        </div>
+      ) : null}
     </div>
   );
 }

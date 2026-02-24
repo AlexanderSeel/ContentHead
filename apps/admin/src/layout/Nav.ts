@@ -1,3 +1,5 @@
+import { extensionNavItems } from '../extensions/core/registry';
+
 export type NavItem = {
   label: string;
   to: string;
@@ -11,7 +13,7 @@ export type NavArea = {
 };
 
 export function buildNavAreas(showDevTools: boolean): NavArea[] {
-  return [
+  const baseAreas: NavArea[] = [
     {
       key: 'content',
       label: 'Content',
@@ -91,6 +93,21 @@ export function buildNavAreas(showDevTools: boolean): NavArea[] {
         ]
       : [])
   ];
+
+  for (const item of extensionNavItems) {
+    const area = baseAreas.find((entry) => entry.key === item.areaKey);
+    if (area) {
+      area.items.push({ label: item.label, to: item.to, ...(item.matchPrefix ? { matchPrefix: item.matchPrefix } : {}) });
+      continue;
+    }
+    baseAreas.push({
+      key: item.areaKey,
+      label: item.areaLabel,
+      items: [{ label: item.label, to: item.to, ...(item.matchPrefix ? { matchPrefix: item.matchPrefix } : {}) }]
+    });
+  }
+
+  return baseAreas;
 }
 
 export function areaForPath(pathname: string, areas: NavArea[]): NavArea {

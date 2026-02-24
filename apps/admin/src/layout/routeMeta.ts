@@ -25,6 +25,8 @@ export const routeLabels: Record<string, string> = {
   '/settings/global/connectors/ai': 'AI Connectors',
   '/dev/graphiql': 'GraphQL / GraphiQL Test',
   '/dev/diagnostics': 'Diagnostics',
+  '/extensions/customers': 'Customers & Organisations',
+  '/extensions/scheduler': 'Scheduler & Booking',
   '/access-denied': 'Access Denied'
 };
 

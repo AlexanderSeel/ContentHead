@@ -12,7 +12,8 @@ export function ComponentList({
   onSelect,
   onMove,
   onDuplicate,
-  onDelete
+  onDelete,
+  sourceResolver
 }: {
   areas: CompositionArea[];
   componentMap: Record<string, ComponentRecord>;
@@ -21,6 +22,7 @@ export function ComponentList({
   onMove: (id: string, direction: -1 | 1) => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
+  sourceResolver?: (id: string) => 'template' | 'override' | null;
 }) {
   return (
     <div className="cms-component-list">
@@ -35,6 +37,7 @@ export function ComponentList({
             const component = componentMap[id];
             const meta = getComponentRegistryEntry(component?.type ?? '');
             const active = selected === id;
+            const source = sourceResolver?.(id) ?? null;
             return (
               <article
                 key={id}
@@ -53,6 +56,7 @@ export function ComponentList({
                   <strong>{meta?.label ?? component?.type ?? 'Unknown'}</strong>
                   <small>{id}</small>
                 </div>
+                {source ? <small className={`cms-component-source cms-component-source-${source}`}>{source}</small> : null}
                 <div className="inline-actions">
                   <Button text size="small" icon="pi pi-angle-up" onClick={(event) => { event.stopPropagation(); onMove(id, -1); }} />
                   <Button text size="small" icon="pi pi-angle-down" onClick={(event) => { event.stopPropagation(); onMove(id, 1); }} />

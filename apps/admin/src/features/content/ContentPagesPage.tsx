@@ -30,6 +30,14 @@ import { validationMessage } from './fieldRenderers/rendererRegistry';
 import { buildWebUrl } from './buildWebUrl';
 import { ComponentList } from './components/ComponentList';
 import { ComponentInspector } from './components/ComponentInspector';
+import { VisualBuilderWorkspace } from './builder/VisualBuilderWorkspace';
+import {
+  cloneProps,
+  duplicateComponentInAreas,
+  moveComponentInAreas,
+  placeComponentInArea,
+  removeComponentFromAreas
+} from './builder/visualBuilderModel';
 import {
   componentRegistry,
   getComponentRegistryEntry,
@@ -37,6 +45,8 @@ import {
   type ComponentTypeSetting
 } from './components/componentRegistry';
 import type { CmsBridgeMessage } from './previewBridge';
+import { extensionInspectorPanels } from '../../extensions/core/registry';
+import { InspectorSection } from '../../ui/molecules';
 
 type CType = {
   id: number;
@@ -149,6 +159,15 @@ function setNestedValue<T>(input: T, path: string, value: unknown): T {
 
 function sanitizeForAttribute(value: string): string {
   return value.replace(/"/g, '\\"');
+}
+
+function parseTemplateIdFromMetadata(metadataJson: string): number | null {
+  try {
+    const parsed = JSON.parse(metadataJson) as { templateId?: unknown };
+    return typeof parsed.templateId === 'number' ? parsed.templateId : null;
+  } catch {
+    return null;
+  }
 }
 
 export function ContentPagesPage() {
@@ -385,6 +404,19 @@ export function ContentPagesPage() {
   }, [componentsJson]);
 
   const selectedComponent = selectedComponentId ? componentMap[selectedComponentId] ?? null : null;
+  const templateComponentIds = useMemo(() => {
+    if (!selectedTemplate) {
+      return new Set<string>();
+    }
+    const parsed = parseJson<Record<string, unknown>>(selectedTemplate.componentsJson, {});
+    return new Set(Object.keys(parsed));
+  }, [selectedTemplate]);
+  const componentSourceResolver = (id: string): 'template' | 'override' | null => {
+    if (!selectedTemplate) {
+      return null;
+    }
+    return templateComponentIds.has(id) ? 'template' : 'override';
+  };
   const resolvedComponentRegistry = useMemo(() => resolveComponentRegistry(componentSettings), [componentSettings]);
   const enabledComponentRegistry = useMemo(
     () => resolvedComponentRegistry.filter((entry) => entry.enabled),
@@ -535,6 +567,13 @@ export function ContentPagesPage() {
         setCompositionJson(activeVersion.compositionJson);
         setComponentsJson(activeVersion.componentsJson);
         setMetadataJson(activeVersion.metadataJson);
+        const linkedTemplateId = parseTemplateIdFromMetadata(activeVersion.metadataJson);
+        setSelectedTemplate((prev) => {
+          if (!linkedTemplateId) {
+            return prev;
+          }
+          return templates.find((entry) => entry.id === linkedTemplateId) ?? prev;
+        });
         setVariantDraft((prev) => ({ ...prev, contentVersionId: activeVersion.id }));
         lastSavedRef.current = JSON.stringify({
           fields: parsedFields,
@@ -796,7 +835,12 @@ export function ContentPagesPage() {
       by: 'admin',
       initialFieldsJson: '{}',
       initialCompositionJson: selectedTemplate?.compositionJson ?? '{"areas":[{"name":"main","components":[]}]}',
-      initialComponentsJson: selectedTemplate?.componentsJson ?? '{}'
+      initialComponentsJson: selectedTemplate?.componentsJson ?? '{}',
+      metadataJson: JSON.stringify({
+        templateId: selectedTemplate?.id ?? null,
+        templateName: selectedTemplate?.name ?? null,
+        templateAppliedAt: new Date().toISOString()
+      })
     });
 
     const id = created.createContentItem?.id;
@@ -925,28 +969,11 @@ export function ContentPagesPage() {
   };
 
   const moveComponent = (id: string, direction: -1 | 1) => {
-    const nextAreas = composition.areas.map((area) => {
-      const index = area.components.findIndex((entry) => entry === id);
-      if (index < 0) {
-        return area;
-      }
-      const target = index + direction;
-      if (target < 0 || target >= area.components.length) {
-        return area;
-      }
-      const nextComponents = [...area.components];
-      const [current] = nextComponents.splice(index, 1);
-      if (!current) {
-        return area;
-      }
-      nextComponents.splice(target, 0, current);
-      return { ...area, components: nextComponents };
-    });
-    updateComposition({ areas: nextAreas });
+    updateComposition({ areas: moveComponentInAreas(composition.areas, id, direction) });
   };
 
   const removeComponent = (id: string) => {
-    const nextAreas = composition.areas.map((area) => ({ ...area, components: area.components.filter((entry) => entry !== id) }));
+    const nextAreas = removeComponentFromAreas(composition.areas, id);
     const nextMap = { ...componentMap };
     delete nextMap[id];
     updateComposition({ areas: nextAreas });
@@ -969,19 +996,11 @@ export function ContentPagesPage() {
       [duplicateId]: {
         id: duplicateId,
         type: original.type,
-        props: JSON.parse(JSON.stringify(original.props)) as Record<string, unknown>
+        props: cloneProps(original.props)
       }
     };
 
-    const nextAreas = composition.areas.map((area) => {
-      const index = area.components.findIndex((entry) => entry === id);
-      if (index < 0) {
-        return area;
-      }
-      const nextComponents = [...area.components];
-      nextComponents.splice(index + 1, 0, duplicateId);
-      return { ...area, components: nextComponents };
-    });
+    const nextAreas = duplicateComponentInAreas(composition.areas, id, duplicateId);
 
     updateComponentMap(nextMap);
     updateComposition({ areas: nextAreas });
@@ -1009,12 +1028,8 @@ export function ContentPagesPage() {
       return;
     }
     const id = `${entry.id}_${Date.now()}`;
-    const nextMap = { ...componentMap, [id]: { id, type: entry.id, props: { ...entry.defaultProps } } };
-    const areas = composition.areas.length > 0 ? composition.areas : [{ name: 'main', components: [] }];
-    const hasArea = areas.some((area) => area.name === newComponentArea);
-    const nextAreas = (hasArea ? areas : [...areas, { name: newComponentArea, components: [] }]).map((area) =>
-      area.name === newComponentArea ? { ...area, components: [...area.components, id] } : area
-    );
+    const nextMap = { ...componentMap, [id]: { id, type: entry.id, props: cloneProps(entry.defaultProps) } };
+    const nextAreas = placeComponentInArea(composition.areas, newComponentArea, id);
     updateComponentMap(nextMap);
     updateComposition({ areas: nextAreas });
     setSelectedComponentId(id);
@@ -1167,42 +1182,92 @@ export function ContentPagesPage() {
           </TabPanel>
 
           <TabPanel header="Components">
-            <div className="content-card">
-              <div className="inline-actions" style={{ justifyContent: 'space-between' }}>
-                <h4 style={{ margin: 0 }}>Composition</h4>
-                <Button label="Add Component" onClick={() => setShowAddComponent(true)} />
-              </div>
-              <ComponentList
-                areas={composition.areas}
-                componentMap={componentMap}
-                selected={selectedComponentId}
-                onSelect={(id) => {
-                  setSelectedComponentId(id);
-                  setSelectedFieldPath(`components.${id}`);
-                }}
-                onMove={moveComponent}
-                onDuplicate={duplicateComponent}
-                onDelete={removeComponent}
-              />
-            </div>
-            <div className="content-card" style={{ marginTop: '0.75rem' }}>
-              <ComponentInspector
-                component={selectedComponent}
-                siteId={siteId}
-                selectedFieldPath={selectedFieldPath}
-                onSelectFieldPath={(path) => {
-                  setSelectedFieldPath(path);
-                  const parsed = parseComponentFieldPath(path);
-                  if (parsed) {
-                    setSelectedComponentId(parsed.componentId);
-                  }
-                }}
-                onChange={(next) => {
-                  const nextMap = { ...componentMap, [next.id]: next };
-                  updateComponentMap(nextMap);
-                }}
-              />
-            </div>
+            <VisualBuilderWorkspace
+              palette={availableComponentTypeOptions.map((entry) => ({
+                id: String(entry.value),
+                label: String(entry.label)
+              }))}
+              areas={composition.areas}
+              componentMap={componentMap}
+              selectedComponentId={selectedComponentId}
+              selectedComponentSource={componentSourceResolver}
+              onSelect={(id) => {
+                setSelectedComponentId(id);
+                setSelectedFieldPath(`components.${id}`);
+              }}
+              onAdd={(componentTypeId, areaName) => {
+                setNewComponentType(componentTypeId);
+                setNewComponentArea(areaName ?? 'main');
+                const allowedByType = new Set(allowedComponentIds);
+                if (!allowedByType.has(componentTypeId)) {
+                  setStatus(`Component type \"${componentTypeId}\" is not allowed for this content type.`);
+                  return;
+                }
+                const area = areaName ?? 'main';
+                const areaAllowed =
+                  Array.isArray(areaRestrictions[area]) && areaRestrictions[area]!.length > 0
+                    ? new Set(areaRestrictions[area]!)
+                    : null;
+                if (areaAllowed && !areaAllowed.has(componentTypeId)) {
+                  setStatus(`Component type \"${componentTypeId}\" is restricted in area \"${area}\".`);
+                  return;
+                }
+                const entry = getComponentRegistryEntry(componentTypeId);
+                if (!entry) {
+                  return;
+                }
+                const id = `${entry.id}_${Date.now()}`;
+                const nextMap = { ...componentMap, [id]: { id, type: entry.id, props: cloneProps(entry.defaultProps) } };
+                const nextAreas = placeComponentInArea(composition.areas, area, id);
+                updateComponentMap(nextMap);
+                updateComposition({ areas: nextAreas });
+                setSelectedComponentId(id);
+                setSelectedFieldPath(`components.${id}`);
+              }}
+              onMove={moveComponent}
+              onDuplicate={duplicateComponent}
+              onDelete={removeComponent}
+              rightPane={(
+                <div className="form-row">
+                  <InspectorSection title="Selected Block" defaultCollapsed={!selectedComponent}>
+                    <ComponentInspector
+                      component={selectedComponent}
+                      siteId={siteId}
+                      selectedFieldPath={selectedFieldPath}
+                      onSelectFieldPath={(path) => {
+                        setSelectedFieldPath(path);
+                        const parsed = parseComponentFieldPath(path);
+                        if (parsed) {
+                          setSelectedComponentId(parsed.componentId);
+                        }
+                      }}
+                      onChange={(next) => {
+                        const nextMap = { ...componentMap, [next.id]: next };
+                        updateComponentMap(nextMap);
+                      }}
+                    />
+                  </InspectorSection>
+                  <InspectorSection title="Template Binding">
+                    <small className="muted">
+                      {selectedTemplate
+                        ? `Template ${selectedTemplate.name} is selected. Blocks marked \"template\" come from template baseline, \"override\" are page-specific.`
+                        : 'No template selected for this page.'}
+                    </small>
+                  </InspectorSection>
+                  {extensionInspectorPanels.map((panel) => (
+                    <InspectorSection key={panel.id} title={panel.label}>
+                      {panel.render({
+                        siteId,
+                        contentItemId: selectedItemId,
+                        metadataJson,
+                        compositionJson,
+                        componentsJson
+                      })}
+                    </InspectorSection>
+                  ))}
+                </div>
+              )}
+            />
           </TabPanel>
           <TabPanel header="Routes">
             <DataTable value={routes.filter((route) => route.contentItemId === selectedItemId)} size="small">
@@ -1421,6 +1486,23 @@ export function ContentPagesPage() {
               onChange={(event) => {
                 const next = templates.find((entry) => entry.id === Number(event.value)) ?? null;
                 setSelectedTemplate(next);
+                setMetadataJson((prev) => {
+                  try {
+                    const parsed = JSON.parse(prev || '{}') as Record<string, unknown>;
+                    return JSON.stringify({
+                      ...parsed,
+                      templateId: next?.id ?? null,
+                      templateName: next?.name ?? null,
+                      templateBoundAt: new Date().toISOString()
+                    });
+                  } catch {
+                    return JSON.stringify({
+                      templateId: next?.id ?? null,
+                      templateName: next?.name ?? null,
+                      templateBoundAt: new Date().toISOString()
+                    });
+                  }
+                });
               }}
               placeholder="Template"
             />

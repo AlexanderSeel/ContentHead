@@ -3,9 +3,9 @@ import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 
-import { AssetPickerDialog } from '../../../components/inputs/AssetPickerDialog';
 import { createAdminSdk } from '../../../lib/sdk';
 import { getApiBaseUrl } from '../../../lib/api';
+import { AssetPickerButton } from '../../../ui/atoms';
 
 type AssetRow = {
   id: number;
@@ -37,7 +37,6 @@ export function AssetRefEditor({
   onChange: (value: number | null) => void;
 }) {
   const sdk = useMemo(() => createAdminSdk(token), [token]);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [asset, setAsset] = useState<AssetRow | null>(null);
 
   const load = async (id: number | null) => {
@@ -52,7 +51,17 @@ export function AssetRefEditor({
   return (
     <div className="form-row">
       <div className="inline-actions">
-        <Button label="Select asset" onClick={() => setPickerOpen(true)} />
+        <AssetPickerButton
+          token={token}
+          siteId={siteId}
+          selected={value ? [value] : []}
+          onChange={(assetIds) => {
+            const next = assetIds[0] ?? null;
+            onChange(next);
+            load(next).catch(() => undefined);
+          }}
+          label="Select asset"
+        />
         <Button
           text
           label="Clear"
@@ -71,18 +80,6 @@ export function AssetRefEditor({
       ) : (
         <small className="muted">No asset selected</small>
       )}
-      <AssetPickerDialog
-        visible={pickerOpen}
-        token={token}
-        siteId={siteId}
-        selected={value ? [value] : []}
-        onHide={() => setPickerOpen(false)}
-        onApply={(assetIds) => {
-          const next = assetIds[0] ?? null;
-          onChange(next);
-          load(next).catch(() => undefined);
-        }}
-      />
     </div>
   );
 }
@@ -98,8 +95,6 @@ export function AssetListEditor({
   value: number[];
   onChange: (value: number[]) => void;
 }) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-
   const move = (index: number, direction: -1 | 1) => {
     const target = index + direction;
     if (target < 0 || target >= value.length) {
@@ -117,7 +112,14 @@ export function AssetListEditor({
   return (
     <div className="form-row">
       <div className="inline-actions">
-        <Button label="Add assets" onClick={() => setPickerOpen(true)} />
+        <AssetPickerButton
+          token={token}
+          siteId={siteId}
+          selected={value}
+          multiple
+          onChange={onChange}
+          label="Add assets"
+        />
       </div>
       <DataTable value={value.map((id) => ({ id }))} size="small">
         <Column header="Preview" body={(row: { id: number }) => <AssetPreview id={row.id} />} />
@@ -138,15 +140,6 @@ export function AssetListEditor({
           )}
         />
       </DataTable>
-      <AssetPickerDialog
-        visible={pickerOpen}
-        token={token}
-        siteId={siteId}
-        multiple
-        selected={value}
-        onHide={() => setPickerOpen(false)}
-        onApply={(assetIds) => onChange(assetIds)}
-      />
     </div>
   );
 }
