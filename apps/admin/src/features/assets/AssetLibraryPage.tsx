@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
+import { ContextMenu } from 'primereact/contextmenu';
 import { DataTable } from 'primereact/datatable';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
@@ -12,6 +14,12 @@ import { createAdminSdk } from '../../lib/sdk';
 import { getApiBaseUrl } from '../../lib/api';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
+import { useUi } from '../../app/UiContext';
+import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
+import { commandRegistry } from '../../ui/commands/registry';
+import { toTieredMenuItems } from '../../ui/commands/menuModel';
+import type { Command, CommandContext } from '../../ui/commands/types';
+import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
 
 type AssetRow = {
   id: number;
@@ -21,6 +29,71 @@ type AssetRow = {
   description?: string | null;
   tagsJson?: string | null;
 };
+
+type AssetsHeaderContext = CommandContext & {
+  assets: AssetRow[];
+  refresh: () => Promise<void>;
+};
+
+type AssetsRowContext = CommandContext & {
+  row: AssetRow;
+  editRow: (row: AssetRow) => void;
+  copyAssetUrl: (row: AssetRow) => Promise<void>;
+  deleteRow: (row: AssetRow) => Promise<void>;
+};
+
+const assetsHeaderCommands: Command<AssetsHeaderContext>[] = [
+  {
+    id: 'assets.export.json',
+    label: 'Export assets JSON',
+    icon: 'pi pi-download',
+    group: 'Export',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/assets'),
+    enabled: (ctx) => ctx.assets.length > 0,
+    run: (ctx) => {
+      downloadJson(`assets-site-${ctx.siteId ?? 'unknown'}.json`, ctx.assets);
+      ctx.toast?.({ severity: 'success', summary: 'Assets exported' });
+    }
+  },
+  {
+    id: 'assets.refresh',
+    label: 'Refresh',
+    icon: 'pi pi-refresh',
+    group: 'Advanced',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/assets'),
+    run: (ctx) => ctx.refresh()
+  }
+];
+
+const assetsRowCommands: Command<AssetsRowContext>[] = [
+  {
+    id: 'assets.row.open',
+    label: 'Open',
+    icon: 'pi pi-folder-open',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/assets'),
+    run: (ctx) => ctx.editRow(ctx.row)
+  },
+  {
+    id: 'assets.row.copy-url',
+    label: 'Copy asset URL',
+    icon: 'pi pi-link',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/assets'),
+    run: (ctx) => ctx.copyAssetUrl(ctx.row)
+  },
+  {
+    id: 'assets.row.delete',
+    label: 'Delete',
+    icon: 'pi pi-trash',
+    danger: true,
+    requiresConfirm: true,
+    confirmText: 'Delete this asset?',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/assets'),
+    run: (ctx) => ctx.deleteRow(ctx.row)
+  }
+];
+
+commandRegistry.registerCoreCommands([{ placement: 'pageHeaderOverflow', commands: assetsHeaderCommands }]);
+commandRegistry.registerCoreCommands([{ placement: 'rowOverflow', commands: assetsRowCommands }]);
 
 function parseTags(value?: string | null): string[] {
   if (!value) {
@@ -35,8 +108,10 @@ function parseTags(value?: string | null): string[] {
 }
 
 export function AssetLibraryPage() {
+  const location = useLocation();
   const { token } = useAuth();
   const { siteId } = useAdminContext();
+  const { toast, confirm } = useUi();
   const sdk = useMemo(() => createAdminSdk(token), [token]);
 
   const [search, setSearch] = useState('');
@@ -45,6 +120,8 @@ export function AssetLibraryPage() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState('');
+  const [contextAsset, setContextAsset] = useState<AssetRow | null>(null);
+  const contextMenuRef = useRef<ContextMenu>(null);
 
   const refresh = async () => {
     const res = await sdk.listAssets({ siteId, limit: 200, offset: 0, search: search || null, folderId: null, tags: null });
@@ -117,6 +194,39 @@ export function AssetLibraryPage() {
 
   const apiBase = getApiBaseUrl();
 
+  const baseContext: CommandContext = {
+    route: location.pathname,
+    siteId,
+    selectedContentItemId: null,
+    toast,
+    confirm
+  };
+  const headerContext: AssetsHeaderContext = {
+    ...baseContext,
+    assets,
+    refresh
+  };
+  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'pageHeaderOverflow');
+
+  const rowContextFor = (row: AssetRow): AssetsRowContext => ({
+    ...baseContext,
+    row,
+    editRow: setSelected,
+    copyAssetUrl: async (entry) => {
+      await navigator.clipboard.writeText(`${apiBase}/assets/${entry.id}`);
+      toast({ severity: 'success', summary: 'Asset URL copied' });
+    },
+    deleteRow: async (entry) => {
+      await sdk.deleteAsset({ id: entry.id });
+      await refresh();
+      if (selected?.id === entry.id) {
+        setSelected(null);
+      }
+      toast({ severity: 'success', summary: `Asset #${entry.id} deleted` });
+    }
+  });
+  const contextItems = contextAsset ? toTieredMenuItems(commandRegistry.getCommands(rowContextFor(contextAsset), 'rowOverflow'), rowContextFor(contextAsset)) : [];
+
   return (
     <div className="pageRoot">
       <PageHeader
@@ -130,6 +240,7 @@ export function AssetLibraryPage() {
               <span className="p-button-label p-c">Upload</span>
             </label>
             <InputText value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search assets" />
+            <CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />
           </div>
         }
       />
@@ -139,12 +250,17 @@ export function AssetLibraryPage() {
           <SplitterPanel size={62} minSize={35}>
             <div className="pane paneScroll">
               <section className="content-card">
+                <ContextMenu ref={contextMenuRef} model={contextItems} />
                 <DataTable
                   value={assets}
                   size="small"
                   selectionMode="single"
                   selection={selected}
                   onSelectionChange={(event) => setSelected((event.value as AssetRow) ?? null)}
+                  onContextMenu={(event) => {
+                    setContextAsset(event.data as AssetRow);
+                    window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
+                  }}
                 >
                   <Column
                     header="Preview"
@@ -158,6 +274,10 @@ export function AssetLibraryPage() {
                   />
                   <Column field="originalName" header="Filename" />
                   <Column field="title" header="Title" />
+                  <Column
+                    header="Actions"
+                    body={(row: AssetRow) => <CommandMenuButton commands={commandRegistry.getCommands(rowContextFor(row), 'rowOverflow')} context={rowContextFor(row)} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+                  />
                 </DataTable>
               </section>
             </div>

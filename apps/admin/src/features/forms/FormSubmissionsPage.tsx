@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
+import { ContextMenu } from 'primereact/contextmenu';
 import { DataTable, type DataTableSortEvent } from 'primereact/datatable';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
@@ -9,8 +11,14 @@ import { Calendar } from 'primereact/calendar';
 
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
+import { useUi } from '../../app/UiContext';
 import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
+import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
+import { commandRegistry } from '../../ui/commands/registry';
+import { toTieredMenuItems } from '../../ui/commands/menuModel';
+import type { Command, CommandContext } from '../../ui/commands/types';
+import { routeStartsWith } from '../../ui/commands/utils';
 
 type SubmissionRow = {
   id: number;
@@ -57,10 +65,81 @@ function severityForStatus(status: SubmissionRow['status']): 'info' | 'warning' 
   return 'info';
 }
 
+type FormSubmissionsHeaderContext = CommandContext & {
+  exportData: (format: 'CSV' | 'JSON') => Promise<void>;
+  clearFilters: () => void;
+};
+
+type FormSubmissionsRowContext = CommandContext & {
+  row: SubmissionRow;
+  markProcessed: (row: SubmissionRow) => Promise<void>;
+  markNeedsReview: (row: SubmissionRow) => Promise<void>;
+  copyPayload: (row: SubmissionRow) => Promise<void>;
+};
+
+const formSubmissionsHeaderCommands: Command<FormSubmissionsHeaderContext>[] = [
+  {
+    id: 'form-submissions.export.csv',
+    label: 'Export CSV',
+    icon: 'pi pi-file-export',
+    group: 'Export',
+    visible: (ctx) => routeStartsWith(ctx.route, '/forms/submissions'),
+    run: (ctx) => ctx.exportData('CSV')
+  },
+  {
+    id: 'form-submissions.export.json',
+    label: 'Export JSON',
+    icon: 'pi pi-download',
+    group: 'Export',
+    visible: (ctx) => routeStartsWith(ctx.route, '/forms/submissions'),
+    run: (ctx) => ctx.exportData('JSON')
+  },
+  {
+    id: 'form-submissions.clear-filters',
+    label: 'Clear filters',
+    icon: 'pi pi-filter-slash',
+    group: 'Advanced',
+    visible: (ctx) => routeStartsWith(ctx.route, '/forms/submissions'),
+    run: (ctx) => ctx.clearFilters()
+  }
+];
+
+commandRegistry.registerCoreCommands([{ placement: 'pageHeaderOverflow', commands: formSubmissionsHeaderCommands }]);
+
+const formSubmissionsRowCommands: Command<FormSubmissionsRowContext>[] = [
+  {
+    id: 'form-submissions.row.mark-processed',
+    label: 'Mark processed',
+    icon: 'pi pi-check',
+    visible: (ctx) => routeStartsWith(ctx.route, '/forms/submissions'),
+    enabled: (ctx) => ctx.row.status !== 'processed',
+    run: (ctx) => ctx.markProcessed(ctx.row)
+  },
+  {
+    id: 'form-submissions.row.mark-needs-review',
+    label: 'Mark needs review',
+    icon: 'pi pi-exclamation-circle',
+    visible: (ctx) => routeStartsWith(ctx.route, '/forms/submissions'),
+    enabled: (ctx) => ctx.row.status !== 'needs_review',
+    run: (ctx) => ctx.markNeedsReview(ctx.row)
+  },
+  {
+    id: 'form-submissions.row.copy-json',
+    label: 'Copy data JSON',
+    icon: 'pi pi-copy',
+    visible: (ctx) => routeStartsWith(ctx.route, '/forms/submissions'),
+    run: (ctx) => ctx.copyPayload(ctx.row)
+  }
+];
+
+commandRegistry.registerCoreCommands([{ placement: 'rowOverflow', commands: formSubmissionsRowCommands }]);
+
 export function FormSubmissionsPage() {
+  const location = useLocation();
   const { token } = useAuth();
   const sdk = useMemo(() => createAdminSdk(token), [token]);
   const { siteId: defaultSiteId } = useAdminContext();
+  const { toast } = useUi();
 
   const [siteOptions, setSiteOptions] = useState<SiteOption[]>([]);
   const [siteId, setSiteId] = useState(defaultSiteId);
@@ -81,6 +160,8 @@ export function FormSubmissionsPage() {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [sortField, setSortField] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
+  const [contextRow, setContextRow] = useState<SubmissionRow | null>(null);
+  const contextMenuRef = useRef<ContextMenu>(null);
 
   const loadSites = async () => {
     const res = await sdk.listSites();
@@ -161,7 +242,50 @@ export function FormSubmissionsPage() {
       payload,
       format === 'CSV' ? 'text/csv' : 'application/json'
     );
+    toast({ severity: 'success', summary: `Exported ${format}` });
   };
+
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter(null);
+    setMarketFilter('');
+    setLocaleFilter('');
+    setFromDate(null);
+    setToDate(null);
+    setFirst(0);
+  };
+
+  const headerContext: FormSubmissionsHeaderContext = {
+    route: location.pathname,
+    siteId,
+    selectedContentItemId: null,
+    toast,
+    exportData,
+    clearFilters
+  };
+  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'pageHeaderOverflow');
+  const rowContextFor = (row: SubmissionRow): FormSubmissionsRowContext => ({
+    route: location.pathname,
+    siteId,
+    selectedContentItemId: null,
+    row,
+    toast,
+    markProcessed: async (entry) => {
+      await sdk.updateSubmissionStatus({ id: entry.id, status: 'processed' });
+      await reload();
+      toast({ severity: 'success', summary: `Submission #${entry.id} updated` });
+    },
+    markNeedsReview: async (entry) => {
+      await sdk.updateSubmissionStatus({ id: entry.id, status: 'needs_review' });
+      await reload();
+      toast({ severity: 'success', summary: `Submission #${entry.id} updated` });
+    },
+    copyPayload: async (entry) => {
+      await navigator.clipboard.writeText(entry.dataJson);
+      toast({ severity: 'success', summary: 'Submission data copied' });
+    }
+  });
+  const contextItems = contextRow ? toTieredMenuItems(commandRegistry.getCommands(rowContextFor(contextRow), 'rowOverflow'), rowContextFor(contextRow)) : [];
 
   return (
     <div className="pageRoot">
@@ -169,10 +293,9 @@ export function FormSubmissionsPage() {
         title="Form Submissions"
         subtitle="Filter, group, inspect, and export captured form data."
         actions={(
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div className="inline-actions">
             <Button icon="pi pi-refresh" text onClick={() => reload().catch(() => undefined)} />
-            <Button label="Export CSV" onClick={() => exportData('CSV').catch(() => undefined)} />
-            <Button label="Export JSON" severity="secondary" onClick={() => exportData('JSON').catch(() => undefined)} />
+            <CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />
           </div>
         )}
       />
@@ -255,6 +378,7 @@ export function FormSubmissionsPage() {
             onClick={() => runBulkStatus('needs_review').catch(() => undefined)}
           />
         </div>
+        <ContextMenu ref={contextMenuRef} model={contextItems} />
         <DataTable
           value={rows}
           loading={loading}
@@ -313,6 +437,10 @@ export function FormSubmissionsPage() {
               </div>
             );
           }}
+          onContextMenu={(event) => {
+            setContextRow(event.data as SubmissionRow);
+            window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
+          }}
         >
           <Column expander style={{ width: '3rem' }} />
           <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
@@ -328,6 +456,10 @@ export function FormSubmissionsPage() {
           <Column field="marketCode" header="Market" sortable />
           <Column field="localeCode" header="Locale" sortable />
           <Column field="pageRouteSlug" header="Route" />
+          <Column
+            header="Actions"
+            body={(row: SubmissionRow) => <CommandMenuButton commands={commandRegistry.getCommands(rowContextFor(row), 'rowOverflow')} context={rowContextFor(row)} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+          />
         </DataTable>
       </section>
     </div>

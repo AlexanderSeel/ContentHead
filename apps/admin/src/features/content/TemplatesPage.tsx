@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
+import { ContextMenu } from 'primereact/contextmenu';
 
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
+import { useUi } from '../../app/UiContext';
 import { createAdminSdk } from '../../lib/sdk';
 import { PageHeader } from '../../components/common/PageHeader';
 import { ComponentInspector } from './components/ComponentInspector';
@@ -22,6 +25,11 @@ import {
 import { VisualBuilderWorkspace } from './builder/VisualBuilderWorkspace';
 import { InspectorSection } from '../../ui/molecules';
 import { TextInput } from '../../ui/atoms';
+import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
+import { commandRegistry } from '../../ui/commands/registry';
+import { toTieredMenuItems } from '../../ui/commands/menuModel';
+import type { Command, CommandContext } from '../../ui/commands/types';
+import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
 
 type Template = {
   id: number;
@@ -36,6 +44,84 @@ type ContentItemDetail = {
   item?: { id?: number | null } | null;
   currentDraftVersion?: { id?: number | null; versionNumber?: number | null; metadataJson?: string | null } | null;
 };
+
+type TemplatesHeaderContext = CommandContext & {
+  templates: Template[];
+  selectedTemplate: Template;
+  refresh: () => Promise<void>;
+};
+
+type TemplatesRowContext = CommandContext & {
+  row: Template;
+  editRow: (row: Template) => void;
+  duplicateRow: (row: Template) => Promise<void>;
+  deleteRow: (row: Template) => Promise<void>;
+};
+
+const templatesHeaderCommands: Command<TemplatesHeaderContext>[] = [
+  {
+    id: 'templates.export.all',
+    label: 'Export templates JSON',
+    icon: 'pi pi-download',
+    group: 'Export',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/templates'),
+    enabled: (ctx) => ctx.templates.length > 0,
+    run: (ctx) => {
+      downloadJson(`templates-site-${ctx.siteId ?? 'unknown'}.json`, ctx.templates);
+      ctx.toast?.({ severity: 'success', summary: 'Templates exported' });
+    }
+  },
+  {
+    id: 'templates.export.current',
+    label: 'Export selected template',
+    icon: 'pi pi-file',
+    group: 'Export',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/templates'),
+    enabled: (ctx) => Boolean(ctx.selectedTemplate.id),
+    run: (ctx) => {
+      downloadJson(`template-${ctx.selectedTemplate.id || 'draft'}.json`, ctx.selectedTemplate);
+      ctx.toast?.({ severity: 'success', summary: 'Template exported' });
+    }
+  },
+  {
+    id: 'templates.advanced.refresh',
+    label: 'Refresh',
+    icon: 'pi pi-refresh',
+    group: 'Advanced',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/templates'),
+    run: (ctx) => ctx.refresh()
+  }
+];
+
+const templatesRowCommands: Command<TemplatesRowContext>[] = [
+  {
+    id: 'templates.row.edit',
+    label: 'Edit',
+    icon: 'pi pi-pencil',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/templates'),
+    run: (ctx) => ctx.editRow(ctx.row)
+  },
+  {
+    id: 'templates.row.duplicate',
+    label: 'Duplicate',
+    icon: 'pi pi-copy',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/templates'),
+    run: (ctx) => ctx.duplicateRow(ctx.row)
+  },
+  {
+    id: 'templates.row.delete',
+    label: 'Delete',
+    icon: 'pi pi-trash',
+    danger: true,
+    requiresConfirm: true,
+    confirmText: 'Delete this template?',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/templates'),
+    run: (ctx) => ctx.deleteRow(ctx.row)
+  }
+];
+
+commandRegistry.registerCoreCommands([{ placement: 'pageHeaderOverflow', commands: templatesHeaderCommands }]);
+commandRegistry.registerCoreCommands([{ placement: 'rowOverflow', commands: templatesRowCommands }]);
 
 const DEFAULT_TEMPLATE: Template = {
   id: 0,
@@ -65,7 +151,9 @@ function parseTemplateId(metadataJson: string | null | undefined): number | null
 }
 
 export function TemplatesPage() {
+  const location = useLocation();
   const { token } = useAuth();
+  const { toast, confirm } = useUi();
   const { siteId } = useAdminContext();
   const sdk = useMemo(() => createAdminSdk(token), [token]);
 
@@ -75,6 +163,8 @@ export function TemplatesPage() {
   const [status, setStatus] = useState('');
   const [affectedDrafts, setAffectedDrafts] = useState<Array<{ itemId: number; versionId: number; versionNumber: number }>>([]);
   const [loadingImpact, setLoadingImpact] = useState(false);
+  const [contextTemplate, setContextTemplate] = useState<Template | null>(null);
+  const contextMenuRef = useRef<ContextMenu>(null);
 
   const builderState = useMemo(() => parseBuilderState(draft.compositionJson, draft.componentsJson), [draft.compositionJson, draft.componentsJson]);
 
@@ -189,14 +279,74 @@ export function TemplatesPage() {
     setStatus('Created new template version.');
   };
 
+  const baseContext: CommandContext = {
+    route: location.pathname,
+    siteId,
+    selectedContentItemId: null,
+    toast,
+    confirm
+  };
+  const headerContext: TemplatesHeaderContext = {
+    ...baseContext,
+    templates,
+    selectedTemplate: draft,
+    refresh
+  };
+  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'pageHeaderOverflow');
+
+  const rowContextFor = (row: Template): TemplatesRowContext => ({
+    ...baseContext,
+    row,
+    editRow: setDraft,
+    duplicateRow: async (entry) => {
+      await sdk.createTemplate({
+        siteId,
+        name: `${entry.name} Copy`,
+        compositionJson: entry.compositionJson,
+        componentsJson: entry.componentsJson,
+        constraintsJson: entry.constraintsJson
+      });
+      await refresh();
+      toast({ severity: 'success', summary: `Template "${entry.name}" duplicated` });
+    },
+    deleteRow: async (entry) => {
+      await sdk.deleteTemplate({ id: entry.id });
+      if (draft.id === entry.id) {
+        setDraft(DEFAULT_TEMPLATE);
+      }
+      await refresh();
+      toast({ severity: 'success', summary: `Template #${entry.id} deleted` });
+    }
+  });
+
+  const contextItems = contextTemplate ? toTieredMenuItems(commandRegistry.getCommands(rowContextFor(contextTemplate), 'rowOverflow'), rowContextFor(contextTemplate)) : [];
+
   return (
     <div>
-      <PageHeader title="Templates" subtitle="Visual template builder with palette, canvas, inspector, and update rollout." />
-      <DataTable value={templates} size="small" selectionMode="single" selection={draft.id ? draft : null} onSelectionChange={(event) => setDraft((event.value as Template) ?? DEFAULT_TEMPLATE)}>
+      <PageHeader
+        title="Templates"
+        subtitle="Visual template builder with palette, canvas, inspector, and update rollout."
+        actions={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+      />
+      <ContextMenu ref={contextMenuRef} model={contextItems} />
+      <DataTable
+        value={templates}
+        size="small"
+        selectionMode="single"
+        selection={draft.id ? draft : null}
+        onSelectionChange={(event) => setDraft((event.value as Template) ?? DEFAULT_TEMPLATE)}
+        onContextMenu={(event) => {
+          setContextTemplate(event.data as Template);
+          window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
+        }}
+      >
         <Column field="id" header="ID" />
         <Column field="name" header="Name" />
         <Column field="updatedAt" header="Updated" />
-        <Column header="Edit" body={(row: Template) => <Button text label="Edit" onClick={() => setDraft(row)} />} />
+        <Column
+          header="Actions"
+          body={(row: Template) => <CommandMenuButton commands={commandRegistry.getCommands(rowContextFor(row), 'rowOverflow')} context={rowContextFor(row)} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+        />
       </DataTable>
 
       <div style={{ marginTop: '0.75rem' }}>

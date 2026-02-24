@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { CommandRegistration } from '../../ui/commands/types';
 
 export type ExtensionMenuItem = {
   areaKey: string;
@@ -33,5 +34,6 @@ export type AdminExtension = {
   menu?: ExtensionMenuItem[];
   routes?: ExtensionRoute[];
   inspectorPanels?: ExtensionInspectorPanel[];
+  commands?: CommandRegistration[];
   permissions?: string[];
 };

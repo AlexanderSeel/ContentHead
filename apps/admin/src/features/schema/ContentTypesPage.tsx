@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
 import { Column } from 'primereact/column';
@@ -10,8 +11,13 @@ import { MultiSelect } from 'primereact/multiselect';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
+import { useUi } from '../../app/UiContext';
 import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
+import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
+import { commandRegistry } from '../../ui/commands/registry';
+import type { Command, CommandContext } from '../../ui/commands/types';
+import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
 import { resolveComponentRegistry, type ComponentTypeSetting } from '../content/components/componentRegistry';
 import { ContentTypeList, type CTypeListItem } from './ContentTypeList';
 import { FieldInspector } from './FieldInspector';
@@ -32,6 +38,56 @@ type ComponentTypeSettingRow = {
   enabled?: boolean | null;
   groupName?: string | null;
 };
+
+type ContentTypesHeaderContext = CommandContext & {
+  types: CTypeListItem[];
+  selected: CTypeListItem | null;
+  fields: ContentFieldDef[];
+  refresh: () => Promise<void>;
+};
+
+const contentTypesHeaderCommands: Command<ContentTypesHeaderContext>[] = [
+  {
+    id: 'content-types.export-all-json',
+    label: 'Export types JSON',
+    icon: 'pi pi-download',
+    group: 'Export',
+    visible: (ctx) => routeStartsWith(ctx.route, '/site/content-types'),
+    enabled: (ctx) => ctx.types.length > 0,
+    run: (ctx) => {
+      downloadJson(`content-types-site-${ctx.siteId ?? 'unknown'}.json`, ctx.types);
+      ctx.toast?.({ severity: 'success', summary: 'Content types exported' });
+    }
+  },
+  {
+    id: 'content-types.export-selected-json',
+    label: 'Export selected type',
+    icon: 'pi pi-file',
+    group: 'Export',
+    visible: (ctx) => routeStartsWith(ctx.route, '/site/content-types'),
+    enabled: (ctx) => Boolean(ctx.selected),
+    run: (ctx) => {
+      if (!ctx.selected) {
+        return;
+      }
+      downloadJson(`content-type-${ctx.selected.id ?? 'draft'}.json`, {
+        ...ctx.selected,
+        fields: ctx.fields
+      });
+      ctx.toast?.({ severity: 'success', summary: 'Selected type exported' });
+    }
+  },
+  {
+    id: 'content-types.advanced.refresh',
+    label: 'Refresh',
+    icon: 'pi pi-refresh',
+    group: 'Advanced',
+    visible: (ctx) => routeStartsWith(ctx.route, '/site/content-types'),
+    run: (ctx) => ctx.refresh()
+  }
+];
+
+commandRegistry.registerCoreCommands([{ placement: 'pageHeaderOverflow', commands: contentTypesHeaderCommands }]);
 
 function parseStringArrayJson(value: string | null | undefined): string[] {
   if (!value) {
@@ -71,7 +127,9 @@ function parseAreaRestrictionsJson(value: string | null | undefined): Record<str
 }
 
 export function ContentTypesPage() {
+  const location = useLocation();
   const { token } = useAuth();
+  const { toast } = useUi();
   const sdk = useMemo(() => createAdminSdk(token), [token]);
   const { siteId } = useAdminContext();
 
@@ -241,6 +299,18 @@ export function ContentTypesPage() {
     setNewFieldRequired(false);
   };
 
+  const headerContext: ContentTypesHeaderContext = {
+    route: location.pathname,
+    siteId,
+    selectedContentItemId: null,
+    selected,
+    types,
+    fields,
+    refresh,
+    toast
+  };
+  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'pageHeaderOverflow');
+
   return (
     <div className="pageRoot">
       <PageHeader
@@ -256,6 +326,7 @@ export function ContentTypesPage() {
           <div className="inline-actions">
             <Button label="New Type" onClick={createType} />
             <Button label="Save Type" severity="success" onClick={() => saveType().catch(() => undefined)} disabled={!selected} />
+            <CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />
           </div>
         }
       />

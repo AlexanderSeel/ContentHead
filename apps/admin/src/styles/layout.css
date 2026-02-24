@@ -295,6 +295,33 @@ body {
   flex-wrap: wrap;
 }
 
+.entity-row-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.content-tree-node-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.content-tree-node-actions {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.p-treenode-content:hover .content-tree-node-actions,
+.p-treenode-content.p-highlight .content-tree-node-actions {
+  opacity: 1;
+}
+
+.ch-command-danger .p-menuitem-text {
+  color: var(--red-500);
+}
+
 .status-panel {
   padding: 0.75rem;
   border: 1px solid var(--surface-border);

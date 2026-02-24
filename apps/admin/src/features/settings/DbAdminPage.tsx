@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Button } from 'primereact/button';
 import { Calendar } from 'primereact/calendar';
@@ -17,6 +18,10 @@ import { useAuth } from '../../app/AuthContext';
 import { useUi } from '../../app/UiContext';
 import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
+import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
+import { commandRegistry } from '../../ui/commands/registry';
+import type { Command, CommandContext } from '../../ui/commands/types';
+import { routeStartsWith } from '../../ui/commands/utils';
 
 type DbAdminColumn = {
   name: string;
@@ -56,6 +61,57 @@ type DbAdminTableListItem = {
 };
 
 type RowRecord = Record<string, unknown> & { __rowKey: string };
+
+type DbAdminHeaderContext = CommandContext & {
+  selectedCount: number;
+  refreshTables: () => Promise<void>;
+  exportSelectedJson: () => void;
+  exportSelectedCsv: () => void;
+  deleteSelected: () => Promise<void>;
+};
+
+const dbAdminHeaderCommands: Command<DbAdminHeaderContext>[] = [
+  {
+    id: 'db-admin.export.json',
+    label: 'Export selected JSON',
+    icon: 'pi pi-download',
+    group: 'Export',
+    visible: (ctx) => routeStartsWith(ctx.route, '/settings/global/db-admin'),
+    enabled: (ctx) => ctx.selectedCount > 0,
+    run: (ctx) => ctx.exportSelectedJson()
+  },
+  {
+    id: 'db-admin.export.csv',
+    label: 'Export selected CSV',
+    icon: 'pi pi-file-export',
+    group: 'Export',
+    visible: (ctx) => routeStartsWith(ctx.route, '/settings/global/db-admin'),
+    enabled: (ctx) => ctx.selectedCount > 0,
+    run: (ctx) => ctx.exportSelectedCsv()
+  },
+  {
+    id: 'db-admin.delete-selected',
+    label: 'Delete selected rows',
+    icon: 'pi pi-trash',
+    group: 'Advanced',
+    danger: true,
+    requiresConfirm: true,
+    confirmText: 'Delete selected rows? This cannot be undone.',
+    visible: (ctx) => routeStartsWith(ctx.route, '/settings/global/db-admin'),
+    enabled: (ctx) => ctx.selectedCount > 0,
+    run: (ctx) => ctx.deleteSelected()
+  },
+  {
+    id: 'db-admin.refresh-tables',
+    label: 'Refresh table list',
+    icon: 'pi pi-refresh',
+    group: 'Advanced',
+    visible: (ctx) => routeStartsWith(ctx.route, '/settings/global/db-admin'),
+    run: (ctx) => ctx.refreshTables()
+  }
+];
+
+commandRegistry.registerCoreCommands([{ placement: 'pageHeaderOverflow', commands: dbAdminHeaderCommands }]);
 
 const FILTER_OPS = [
   { label: 'Contains', value: 'contains' },
@@ -155,6 +211,7 @@ function normalizeDraftValue(column: DbAdminColumn, value: unknown): unknown {
 }
 
 export function DbAdminPage() {
+  const location = useLocation();
   const { token } = useAuth();
   const ui = useUi();
   const sdk = useMemo(() => createAdminSdk(token), [token]);
@@ -520,6 +577,19 @@ export function DbAdminPage() {
 
   const sqlRows = useMemo(() => parseRows(sqlResult?.rowsJson ?? '[]', []), [sqlResult]);
   const sqlColumns = sqlResult?.columns ?? (sqlRows[0] ? Object.keys(sqlRows[0]).filter((key) => key !== '__rowKey') : []);
+  const headerContext: DbAdminHeaderContext = {
+    route: location.pathname,
+    siteId: null,
+    selectedContentItemId: null,
+    selectedCount: selectedRows.length,
+    refreshTables: () => refreshTables(),
+    exportSelectedJson: () => exportSelected('json'),
+    exportSelectedCsv: () => exportSelected('csv'),
+    deleteSelected: () => bulkDelete(),
+    toast: ui.toast,
+    confirm: ui.confirm
+  };
+  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'pageHeaderOverflow');
 
   return (
     <div className="pageRoot">
@@ -527,6 +597,7 @@ export function DbAdminPage() {
         title="DB Admin"
         subtitle="Full database administration, with safe read mode and advanced write tooling."
         helpTopicKey="db_admin"
+        actions={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
       <div className="pageBodyFlex splitFill">
         <Splitter className="splitFill" style={{ width: '100%' }}>

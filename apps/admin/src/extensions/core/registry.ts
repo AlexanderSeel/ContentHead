@@ -15,3 +15,5 @@ export const extensionNavItems = loaded.flatMap((entry) => entry.menu ?? []);
 export const extensionRoutes = loaded.flatMap((entry) => entry.routes ?? []);
 
 export const extensionInspectorPanels: ExtensionInspectorPanel[] = loaded.flatMap((entry) => entry.inspectorPanels ?? []);
+
+export const extensionCommandRegistrations = loaded.flatMap((entry) => entry.commands ?? []);

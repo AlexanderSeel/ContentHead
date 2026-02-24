@@ -71,6 +71,16 @@ export type AuthPayload = {
   user?: Maybe<User>;
 };
 
+export type ComponentTypeSetting = {
+  __typename?: 'ComponentTypeSetting';
+  componentTypeId?: Maybe<Scalars['String']['output']>;
+  enabled?: Maybe<Scalars['Boolean']['output']>;
+  groupName?: Maybe<Scalars['String']['output']>;
+  siteId?: Maybe<Scalars['Int']['output']>;
+  updatedAt?: Maybe<Scalars['String']['output']>;
+  updatedBy?: Maybe<Scalars['String']['output']>;
+};
+
 export type Connector = {
   __typename?: 'Connector';
   configJson?: Maybe<Scalars['String']['output']>;
@@ -118,6 +128,8 @@ export type ContentRoute = {
 
 export type ContentType = {
   __typename?: 'ContentType';
+  allowedComponentsJson?: Maybe<Scalars['String']['output']>;
+  componentAreaRestrictionsJson?: Maybe<Scalars['String']['output']>;
   createdAt?: Maybe<Scalars['String']['output']>;
   createdBy?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Scalars['String']['output']>;
@@ -395,6 +407,7 @@ export type Mutation = {
   updateInternalUser?: Maybe<InternalUser>;
   updateSubmissionStatus?: Maybe<FormSubmission>;
   updateTemplate?: Maybe<Template>;
+  upsertComponentTypeSetting?: Maybe<ComponentTypeSetting>;
   upsertConnector?: Maybe<Connector>;
   upsertForm?: Maybe<Form>;
   upsertFormField?: Maybe<FormField>;
@@ -480,7 +493,9 @@ export type MutationCreateContentItemArgs = {
 
 
 export type MutationCreateContentTypeArgs = {
+  allowedComponentsJson?: InputMaybe<Scalars['String']['input']>;
   by?: InputMaybe<Scalars['String']['input']>;
+  componentAreaRestrictionsJson?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   fieldsJson: Scalars['String']['input'];
   name: Scalars['String']['input'];
@@ -727,7 +742,9 @@ export type MutationUpdateAssetMetadataArgs = {
 
 
 export type MutationUpdateContentTypeArgs = {
+  allowedComponentsJson?: InputMaybe<Scalars['String']['input']>;
   by?: InputMaybe<Scalars['String']['input']>;
+  componentAreaRestrictionsJson?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   fieldsJson: Scalars['String']['input'];
   id: Scalars['Int']['input'];
@@ -761,6 +778,15 @@ export type MutationUpdateTemplateArgs = {
   constraintsJson: Scalars['String']['input'];
   id: Scalars['Int']['input'];
   name: Scalars['String']['input'];
+};
+
+
+export type MutationUpsertComponentTypeSettingArgs = {
+  by?: InputMaybe<Scalars['String']['input']>;
+  componentTypeId: Scalars['String']['input'];
+  enabled: Scalars['Boolean']['input'];
+  groupName?: InputMaybe<Scalars['String']['input']>;
+  siteId: Scalars['Int']['input'];
 };
 
 
@@ -920,6 +946,7 @@ export type Query = {
   internalPermissions?: Maybe<Array<Scalars['String']['output']>>;
   listAssetFolders?: Maybe<Array<AssetFolder>>;
   listAssets?: Maybe<AssetList>;
+  listComponentTypeSettings?: Maybe<Array<ComponentTypeSetting>>;
   listConnectors?: Maybe<Array<Connector>>;
   listContentItems?: Maybe<Array<ContentItem>>;
   listContentTypes?: Maybe<Array<ContentType>>;
@@ -1049,6 +1076,11 @@ export type QueryListAssetsArgs = {
   search?: InputMaybe<Scalars['String']['input']>;
   siteId: Scalars['Int']['input'];
   tags?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+
+export type QueryListComponentTypeSettingsArgs = {
+  siteId: Scalars['Int']['input'];
 };
 
 

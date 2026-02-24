@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { TabPanel, TabView } from 'primereact/tabview';
 import { Column } from 'primereact/column';
+import { ContextMenu } from 'primereact/contextmenu';
 import { Tree } from 'primereact/tree';
 import type { TreeNode } from 'primereact/treenode';
 import { DataTable } from 'primereact/datatable';
@@ -47,6 +48,11 @@ import {
 import type { CmsBridgeMessage } from './previewBridge';
 import { extensionInspectorPanels } from '../../extensions/core/registry';
 import { InspectorSection } from '../../ui/molecules';
+import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
+import { commandRegistry } from '../../ui/commands/registry';
+import { toTieredMenuItems } from '../../ui/commands/menuModel';
+import type { Command, CommandContext } from '../../ui/commands/types';
+import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
 
 type CType = {
   id: number;
@@ -75,6 +81,38 @@ type TreeRow = {
   contentItemId: number;
   title: string;
   status: 'Draft' | 'Published' | 'New';
+};
+
+type ContentPageHeaderCommandContext = CommandContext & {
+  selectedContentItemId: number | null;
+  previewToken: string;
+  previewUrl: string | null;
+  routeSlug: string | null;
+  rawEditable: boolean;
+  issuePreviewToken: () => Promise<void>;
+  copyPreviewToken: () => Promise<void>;
+  openPreviewWebsite: () => void;
+  copyPreviewUrl: () => Promise<void>;
+  copyRoute: () => Promise<void>;
+  clearPreviewToken: () => void;
+  toggleRawJson: () => Promise<void>;
+  openAskAi: () => void;
+  openDiagnostics: () => void;
+};
+
+type ContentPageRowCommandContext = CommandContext & {
+  row: TreeRow;
+  openRow: (row: TreeRow) => void;
+  duplicateRow: (row: TreeRow) => Promise<void>;
+  exportRow: (row: TreeRow) => void;
+  deleteRow: (row: TreeRow) => Promise<void>;
+};
+
+type ContentPageTreeCommandContext = ContentPageRowCommandContext & {
+  treeNode: TreeRow;
+  openWebsiteFromRow: (row: TreeRow) => void;
+  issueTokenForRow: (row: TreeRow) => Promise<void>;
+  copyPreviewUrlForRow: (row: TreeRow) => Promise<void>;
 };
 
 const parseJson = <T,>(value: string, fallback: T): T => {
@@ -170,13 +208,204 @@ function parseTemplateIdFromMetadata(metadataJson: string): number | null {
   }
 }
 
+const contentPageHeaderOverflowCommands: Command<ContentPageHeaderCommandContext>[] = [
+  {
+    id: 'content-pages.preview.issue-token',
+    label: 'Issue token',
+    icon: 'pi pi-key',
+    group: 'Preview Tools',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    enabled: (ctx) => Boolean(ctx.selectedContentItemId),
+    run: (ctx) => ctx.issuePreviewToken()
+  },
+  {
+    id: 'content-pages.preview.copy-token',
+    label: 'Copy token',
+    icon: 'pi pi-copy',
+    group: 'Preview Tools',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    enabled: (ctx) => ctx.previewToken.trim().length > 0,
+    run: (ctx) => ctx.copyPreviewToken()
+  },
+  {
+    id: 'content-pages.preview.open-website',
+    label: 'Open preview in new tab',
+    icon: 'pi pi-external-link',
+    group: 'Preview Tools',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    enabled: (ctx) => Boolean(ctx.selectedContentItemId),
+    run: (ctx) => ctx.openPreviewWebsite()
+  },
+  {
+    id: 'content-pages.preview.copy-url',
+    label: 'Copy preview URL',
+    icon: 'pi pi-link',
+    group: 'Preview Tools',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    enabled: (ctx) => Boolean(ctx.previewUrl),
+    run: (ctx) => ctx.copyPreviewUrl()
+  },
+  {
+    id: 'content-pages.preview.copy-route',
+    label: 'Copy route',
+    icon: 'pi pi-directions',
+    group: 'Preview Tools',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    enabled: (ctx) => Boolean(ctx.routeSlug),
+    run: (ctx) => ctx.copyRoute()
+  },
+  {
+    id: 'content-pages.preview.clear-token',
+    label: 'Clear token',
+    icon: 'pi pi-times',
+    group: 'Preview Tools',
+    danger: true,
+    requiresConfirm: true,
+    confirmText: 'Clear the current preview token?',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    enabled: (ctx) => ctx.previewToken.trim().length > 0,
+    run: (ctx) => ctx.clearPreviewToken()
+  },
+  {
+    id: 'content-pages.advanced.toggle-raw-json',
+    label: 'Toggle raw JSON editing',
+    icon: 'pi pi-code',
+    group: 'Advanced',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.toggleRawJson()
+  },
+  {
+    id: 'content-pages.advanced.ask-ai',
+    label: 'Ask AI',
+    icon: 'pi pi-sparkles',
+    group: 'Advanced',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    enabled: (ctx) => Boolean(ctx.selectedContentItemId),
+    run: (ctx) => ctx.openAskAi()
+  },
+  {
+    id: 'content-pages.advanced.diagnostics',
+    label: 'Open diagnostics',
+    icon: 'pi pi-wrench',
+    group: 'Advanced',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.openDiagnostics()
+  }
+];
+
+const contentPageRowOverflowCommands: Command<ContentPageRowCommandContext>[] = [
+  {
+    id: 'content-pages.row.open',
+    label: 'Open',
+    icon: 'pi pi-folder-open',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.openRow(ctx.row)
+  },
+  {
+    id: 'content-pages.row.duplicate',
+    label: 'Duplicate',
+    icon: 'pi pi-copy',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.duplicateRow(ctx.row)
+  },
+  {
+    id: 'content-pages.row.export',
+    label: 'Export',
+    icon: 'pi pi-download',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.exportRow(ctx.row)
+  },
+  {
+    id: 'content-pages.row.delete',
+    label: 'Delete',
+    icon: 'pi pi-trash',
+    danger: true,
+    requiresConfirm: true,
+    confirmText: 'Archive this page and remove its current route?',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.deleteRow(ctx.row)
+  }
+];
+
+const contentPageTreeContextCommands: Command<ContentPageTreeCommandContext>[] = [
+  {
+    id: 'content-pages.tree.open',
+    label: 'Open in editor',
+    icon: 'pi pi-folder-open',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.openRow(ctx.treeNode)
+  },
+  {
+    id: 'content-pages.tree.open-website',
+    label: 'Open website',
+    icon: 'pi pi-external-link',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.openWebsiteFromRow(ctx.treeNode)
+  },
+  {
+    id: 'content-pages.tree.issue-token',
+    label: 'Issue preview token',
+    icon: 'pi pi-key',
+    group: 'Preview Tools',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.issueTokenForRow(ctx.treeNode)
+  },
+  {
+    id: 'content-pages.tree.copy-link',
+    label: 'Copy preview link',
+    icon: 'pi pi-link',
+    group: 'Preview Tools',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.copyPreviewUrlForRow(ctx.treeNode)
+  },
+  {
+    id: 'content-pages.tree.duplicate',
+    label: 'Duplicate',
+    icon: 'pi pi-copy',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.duplicateRow(ctx.treeNode)
+  },
+  {
+    id: 'content-pages.tree.delete',
+    label: 'Delete',
+    icon: 'pi pi-trash',
+    danger: true,
+    requiresConfirm: true,
+    confirmText: 'Archive this page and remove its current route?',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.deleteRow(ctx.treeNode)
+  }
+];
+
+commandRegistry.registerCoreCommands([
+  {
+    placement: 'pageHeaderOverflow',
+    commands: contentPageHeaderOverflowCommands
+  }
+]);
+
+commandRegistry.registerCoreCommands([
+  {
+    placement: 'rowOverflow',
+    commands: contentPageRowOverflowCommands
+  }
+]);
+
+commandRegistry.registerCoreCommands([
+  {
+    placement: 'treeNodeContext',
+    commands: contentPageTreeContextCommands
+  }
+]);
+
 export function ContentPagesPage() {
   const { token } = useAuth();
   const sdk = useMemo(() => createAdminSdk(token), [token]);
   const { contentItemId } = useParams<{ contentItemId?: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { toast } = useUi();
+  const { toast, confirm } = useUi();
   const { siteId, marketCode, localeCode, combos, sites } = useAdminContext();
 
   const selectedItemId = Number(contentItemId ?? 0) || null;
@@ -235,8 +464,11 @@ export function ContentPagesPage() {
   const [targetMarketCode, setTargetMarketCode] = useState(marketCode);
   const [targetLocaleCode, setTargetLocaleCode] = useState(localeCode);
   const [inlineEdit, setInlineEdit] = useState(false);
+  const [treeContextRow, setTreeContextRow] = useState<TreeRow | null>(null);
+  const [treeContextSelectionKey, setTreeContextSelectionKey] = useState<string | null>(null);
 
   const previewIframeRef = useRef<HTMLIFrameElement | null>(null);
+  const treeContextMenuRef = useRef<ContextMenu>(null);
   const saveTimerRef = useRef<number | null>(null);
   const lastSavedRef = useRef<string>('');
   const saveInFlightRef = useRef(false);
@@ -917,21 +1149,50 @@ export function ContentPagesPage() {
     }
   };
 
-  const issuePreviewToken = async () => {
-    if (!selectedItemId) {
+  const copyText = async (label: string, value: string) => {
+    if (!value.trim()) {
+      toast({ severity: 'warn', summary: `${label} is empty.` });
       return;
     }
-    const res = await sdk.issuePreviewToken({ contentItemId: selectedItemId });
+    await navigator.clipboard.writeText(value);
+    toast({ severity: 'success', summary: `${label} copied` });
+  };
+
+  const buildPreviewWebsiteUrl = (row?: TreeRow | null) => {
+    const targetItemId = row?.contentItemId ?? selectedItemId;
+    const targetRoute = row ? routes.find((entry) => String(entry.id) === row.routeId) ?? null : activeRoute;
+    if (!targetItemId || !targetRoute) {
+      return null;
+    }
+    return buildWebUrl({
+      baseUrl: webBaseUrl,
+      siteId,
+      siteUrlPattern: site?.urlPattern,
+      contentItemId: targetItemId,
+      marketCode,
+      localeCode,
+      slug: targetRoute.slug,
+      previewToken,
+      versionId: row ? undefined : draft?.id,
+      previewMode: draft && draft.state !== 'PUBLISHED' ? 'draft' : 'published',
+      cmsBridge: true
+    });
+  };
+
+  const issuePreviewToken = async (contentItemOverride?: number | null) => {
+    const targetId = contentItemOverride ?? selectedItemId;
+    if (!targetId) {
+      return;
+    }
+    const res = await sdk.issuePreviewToken({ contentItemId: targetId });
     const tokenValue = res.issuePreviewToken?.token ?? '';
     setPreviewToken(tokenValue);
     toast({ severity: 'success', summary: 'Preview token issued' });
   };
 
-  const openPreviewWebsite = () => {
-    if (!selectedItemId) {
-      return;
-    }
-    if (!activeRoute) {
+  const openPreviewWebsite = (row?: TreeRow | null) => {
+    const url = buildPreviewWebsiteUrl(row);
+    if (!url) {
       toast({
         severity: 'warn',
         summary: 'Route missing',
@@ -939,22 +1200,53 @@ export function ContentPagesPage() {
       });
       return;
     }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
-    const url = buildWebUrl({
-      baseUrl: webBaseUrl,
+  const duplicateTreeRow = async (row: TreeRow) => {
+    const sourceItem = items.find((entry) => entry.id === row.contentItemId);
+    if (!sourceItem) {
+      return;
+    }
+    const detail = await sdk.getContentItemDetail({ contentItemId: row.contentItemId });
+    const sourceVersion = detail.getContentItemDetail?.currentDraftVersion ?? detail.getContentItemDetail?.currentPublishedVersion;
+    const created = await sdk.createContentItem({
       siteId,
-      siteUrlPattern: site?.urlPattern,
-      contentItemId: selectedItemId,
+      contentTypeId: sourceItem.contentTypeId,
+      by: 'admin',
+      initialFieldsJson: sourceVersion?.fieldsJson ?? '{}',
+      initialCompositionJson: sourceVersion?.compositionJson ?? '{"areas":[{"name":"main","components":[]}]}',
+      initialComponentsJson: sourceVersion?.componentsJson ?? '{}',
+      metadataJson: sourceVersion?.metadataJson ?? '{}'
+    });
+    const createdId = created.createContentItem?.id ?? null;
+    if (!createdId) {
+      return;
+    }
+    await sdk.upsertRoute({
+      siteId,
+      contentItemId: createdId,
       marketCode,
       localeCode,
-      slug: activeRoute.slug,
-      previewToken,
-      versionId: draft?.id,
-      previewMode: draft && draft.state !== 'PUBLISHED' ? 'draft' : 'published',
-      cmsBridge: true
+      slug: `${row.slug}-copy-${String(createdId).slice(-4)}`,
+      isCanonical: true
     });
+    await refresh();
+    navigate(buildContentEditorUrl(createdId, marketCode, localeCode));
+    toast({ severity: 'success', summary: `Duplicated page #${row.contentItemId} to #${createdId}` });
+  };
 
-    window.open(url, '_blank', 'noopener,noreferrer');
+  const deleteTreeRow = async (row: TreeRow) => {
+    await sdk.archiveContentItem({ id: row.contentItemId, archived: true });
+    const routeId = Number(row.routeId);
+    if (routeId) {
+      await sdk.deleteRoute({ id: routeId }).catch(() => undefined);
+    }
+    if (selectedItemId === row.contentItemId) {
+      navigate('/content/pages');
+    }
+    await refresh();
+    toast({ severity: 'success', summary: `Archived page #${row.contentItemId}` });
   };
 
   const updateComponentMap = (next: Record<string, ComponentRecord>) => {
@@ -1129,6 +1421,95 @@ export function ContentPagesPage() {
       });
     }
   };
+
+  const openRow = (row: TreeRow) => {
+    navigate(buildContentEditorUrl(row.contentItemId, marketCode, localeCode));
+  };
+
+  const exportRow = (row: TreeRow) => {
+    const relatedRoute = routes.find((entry) => String(entry.id) === row.routeId) ?? null;
+    const payload = {
+      row,
+      route: relatedRoute,
+      exportedAt: new Date().toISOString()
+    };
+    downloadJson(`content-page-${row.contentItemId}.json`, payload);
+    toast({ severity: 'success', summary: `Exported page #${row.contentItemId}` });
+  };
+
+  const previewWebsiteUrl = buildPreviewWebsiteUrl(null);
+
+  const baseCommandContext: CommandContext = {
+    route: location.pathname,
+    siteId,
+    selectedSite: site ? { id: site.id, name: site.name } : null,
+    marketCode,
+    localeCode,
+    selectedContentItemId: selectedItemId,
+    selectedVersionId: draft?.id ?? null,
+    selectionIds: selectedItemId ? [selectedItemId] : [],
+    userRoles: [],
+    userPermissions: [],
+    toast,
+    confirm,
+    downloadJson
+  };
+
+  const headerCommandContext: ContentPageHeaderCommandContext = {
+    ...baseCommandContext,
+    selectedContentItemId: selectedItemId,
+    previewToken,
+    previewUrl: previewWebsiteUrl,
+    routeSlug: activeRoute?.slug ?? null,
+    rawEditable,
+    issuePreviewToken: () => issuePreviewToken(),
+    copyPreviewToken: () => copyText('Preview token', previewToken),
+    openPreviewWebsite: () => openPreviewWebsite(),
+    copyPreviewUrl: () => (previewWebsiteUrl ? copyText('Preview URL', previewWebsiteUrl) : Promise.resolve()),
+    copyRoute: () => copyText('Route', activeRoute?.slug ?? ''),
+    clearPreviewToken: () => setPreviewToken(''),
+    toggleRawJson: async () => {
+      if (!rawEditable) {
+        const confirmEdit = await baseCommandContext.confirm?.({
+          header: 'Enable Raw JSON Editing',
+          message: 'Enable raw JSON editing? This bypasses visual editors.',
+          acceptLabel: 'Enable',
+          rejectLabel: 'Cancel'
+        });
+        if (!confirmEdit) {
+          return;
+        }
+      }
+      setRawEditable((prev) => !prev);
+    },
+    openAskAi: () => setAiDialogOpen(true),
+    openDiagnostics: () => navigate('/dev/diagnostics')
+  };
+
+  const headerOverflowCommands = commandRegistry.getCommands(headerCommandContext, 'pageHeaderOverflow');
+
+  const treeContextMenuItems = (() => {
+    if (!treeContextRow) {
+      return [];
+    }
+    const context: ContentPageTreeCommandContext = {
+      ...baseCommandContext,
+      row: treeContextRow,
+      treeNode: treeContextRow,
+      selectionIds: [treeContextRow.contentItemId],
+      openRow,
+      duplicateRow: duplicateTreeRow,
+      exportRow,
+      deleteRow: deleteTreeRow,
+      openWebsiteFromRow: (row) => openPreviewWebsite(row),
+      issueTokenForRow: (row) => issuePreviewToken(row.contentItemId),
+      copyPreviewUrlForRow: (row) => {
+        const url = buildPreviewWebsiteUrl(row);
+        return url ? copyText('Preview URL', url) : Promise.resolve();
+      }
+    };
+    return toTieredMenuItems(commandRegistry.getCommands(context, 'treeNodeContext'), context);
+  })();
 
   const renderEditorPane = () => {
     if (!selectedItemId) {
@@ -1509,8 +1890,14 @@ export function ContentPagesPage() {
             <Button label="Create Page" onClick={() => createPage().catch((e: unknown) => setStatus(String(e)))} />
             <Button label="Save Draft" severity="secondary" onClick={() => saveDraft().catch((e: unknown) => setStatus(String(e)))} disabled={!draft || savingDraft} loading={savingDraft} />
             <Button label="Publish" severity="success" onClick={() => publish().catch((e: unknown) => setStatus(String(e)))} disabled={!draft} />
-            <Button label="Preview website" icon="pi pi-external-link" severity="info" onClick={openPreviewWebsite} disabled={!selectedItemId} />
-            <Button label="Ask AI" text icon="pi pi-sparkles" onClick={() => setAiDialogOpen(true)} disabled={!selectedItemId} />
+            <Button label="Preview website" icon="pi pi-external-link" severity="info" onClick={() => openPreviewWebsite()} disabled={!selectedItemId} />
+            <CommandMenuButton
+              commands={headerOverflowCommands}
+              context={headerCommandContext}
+              buttonLabel=""
+              buttonIcon="pi pi-ellipsis-h"
+              text
+            />
           </div>
         }
       />
@@ -1521,9 +1908,7 @@ export function ContentPagesPage() {
           <Button label="On-page" size="small" text={workspaceMode !== 'onpage'} onClick={() => setWorkspaceMode('onpage')} />
         </div>
         <div className="inline-actions">
-          <InputText value={previewToken} onChange={(event) => setPreviewToken(event.target.value)} placeholder="preview token" style={{ width: 180 }} />
-          <Button label="Issue token" size="small" text onClick={() => issuePreviewToken().catch((e: unknown) => setStatus(String(e)))} disabled={!selectedItemId} />
-          {selectedStatus ? <Tag value={selectedStatus} severity={selectedStatus === 'Published' ? 'success' : selectedStatus === 'Draft' ? 'warning' : 'secondary'} /> : null}
+          {selectedStatus ? <Tag value={`Status: ${selectedStatus}`} severity={selectedStatus === 'Published' ? 'success' : selectedStatus === 'Draft' ? 'warning' : 'secondary'} /> : null}
           {draft ? <Tag value={`v${draft.versionNumber}`} /> : null}
         </div>
       </section>
@@ -1534,6 +1919,7 @@ export function ContentPagesPage() {
             <div className="pane paneScroll cms-pane cms-left-pane">
               <TabView activeIndex={leftTabIndex} onTabChange={(event) => setLeftTabIndex(event.index)}>
                 <TabPanel header="Tree">
+                  <ContextMenu ref={treeContextMenuRef} model={treeContextMenuItems} />
                   <div className="form-row" style={{ marginBottom: '0.75rem' }}>
                     <label>Filter tree</label>
                     <InputText value={treeFilter} onChange={(event) => setTreeFilter(event.target.value)} placeholder="Slug, title, status" />
@@ -1545,6 +1931,24 @@ export function ContentPagesPage() {
                     onToggle={(event) => setTreeExpandedKeys((event.value as Record<string, boolean>) ?? {})}
                     selectionMode="single"
                     selectionKeys={selectedRouteKey ?? null}
+                    contextMenuSelectionKey={treeContextSelectionKey ?? undefined}
+                    onContextMenuSelectionChange={(event) => setTreeContextSelectionKey(typeof event.value === 'string' ? event.value : null)}
+                    onContextMenu={(event) => {
+                      const row = event.node.data as Partial<TreeRow> | undefined;
+                      if (!row || typeof row.contentItemId !== 'number') {
+                        return;
+                      }
+                      const normalizedRow: TreeRow = {
+                        routeId: String(row.routeId ?? ''),
+                        slug: String(row.slug ?? ''),
+                        contentItemId: row.contentItemId,
+                        title: String(row.title ?? `Item #${row.contentItemId}`),
+                        status: (row.status as TreeRow['status']) ?? 'New'
+                      };
+                      setTreeContextRow(normalizedRow);
+                      setTreeContextSelectionKey(String(event.node.key ?? ''));
+                      treeContextMenuRef.current?.show(event.originalEvent);
+                    }}
                     onSelectionChange={(event) => {
                       const key = String(event.value ?? '');
                       const route = routes.find((entry) => String(entry.id) === key);
@@ -1557,10 +1961,32 @@ export function ContentPagesPage() {
                       if (!row || typeof row.contentItemId !== 'number') {
                         return <span>{String(node.label ?? '')}</span>;
                       }
+                      const normalizedRow: TreeRow = {
+                        routeId: String(row.routeId ?? ''),
+                        slug: String(row.slug ?? ''),
+                        contentItemId: row.contentItemId,
+                        title: String(row.title ?? `Item #${row.contentItemId}`),
+                        status: (row.status as TreeRow['status']) ?? 'New'
+                      };
+                      const rowCommandContext: ContentPageRowCommandContext = {
+                        ...baseCommandContext,
+                        row: normalizedRow,
+                        selectionIds: [normalizedRow.contentItemId],
+                        openRow,
+                        duplicateRow: duplicateTreeRow,
+                        exportRow,
+                        deleteRow: deleteTreeRow
+                      };
+                      const rowCommands = commandRegistry.getCommands(rowCommandContext, 'rowOverflow');
                       return (
-                        <div className="inline-actions" style={{ justifyContent: 'space-between', width: '100%' }}>
+                        <div className="content-tree-node-row">
                           <span>{row.slug}</span>
-                          <Tag value={row.status} severity={row.status === 'Published' ? 'success' : row.status === 'Draft' ? 'warning' : 'secondary'} />
+                          <div className="inline-actions">
+                            <Tag value={row.status} severity={row.status === 'Published' ? 'success' : row.status === 'Draft' ? 'warning' : 'secondary'} />
+                            <span className="content-tree-node-actions">
+                              <CommandMenuButton commands={rowCommands} context={rowCommandContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />
+                            </span>
+                          </div>
                         </div>
                       );
                     }}
@@ -1575,7 +2001,22 @@ export function ContentPagesPage() {
                     <Column field="slug" header="Slug" />
                     <Column field="title" header="Title" />
                     <Column field="status" header="Status" />
-                    <Column header="Open" body={(row: TreeRow) => <Button text label="Open" onClick={() => navigate(buildContentEditorUrl(row.contentItemId, marketCode, localeCode))} />} />
+                    <Column
+                      header="Actions"
+                      body={(row: TreeRow) => {
+                        const rowCommandContext: ContentPageRowCommandContext = {
+                          ...baseCommandContext,
+                          row,
+                          selectionIds: [row.contentItemId],
+                          openRow,
+                          duplicateRow: duplicateTreeRow,
+                          exportRow,
+                          deleteRow: deleteTreeRow
+                        };
+                        const rowCommands = commandRegistry.getCommands(rowCommandContext, 'rowOverflow');
+                        return <CommandMenuButton commands={rowCommands} context={rowCommandContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />;
+                      }}
+                    />
                   </DataTable>
                 </TabPanel>
               </TabView>
