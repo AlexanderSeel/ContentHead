@@ -487,7 +487,7 @@ export function ContentPagesPage() {
     return getItemStatus(item);
   }, [items, selectedItemId]);
 
-  const canInlineEdit = Boolean(previewToken?.trim()) && Boolean(draft) && draft?.state !== 'PUBLISHED';
+  const canInlineEdit = Boolean(draft) && draft?.state !== 'PUBLISHED';
 
   const previewIframeUrl = useMemo(() => {
     if (!selectedItemId || !activeRoute) {

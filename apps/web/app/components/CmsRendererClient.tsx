@@ -135,6 +135,19 @@ function findDatasetValue(target: HTMLElement, key: string): string | undefined 
   return undefined;
 }
 
+function focusEditableTarget(target: HTMLElement): void {
+  target.focus();
+  const selection = window.getSelection();
+  if (!selection) {
+    return;
+  }
+  const range = document.createRange();
+  range.selectNodeContents(target);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
 function emitSelect(target: HTMLElement) {
   const contentItemId = Number(findDatasetValue(target, 'cmsContentItemId') ?? '0');
   const versionId = Number(findDatasetValue(target, 'cmsVersionId') ?? '0');
@@ -987,13 +1000,19 @@ export function CmsRendererClient({
       if (!target) {
         return;
       }
-      event.preventDefault();
-      event.stopPropagation();
+      const isInlineRichText = inlineModeRef.current && target.dataset.cmsFieldType === 'richtext';
+      if (!isInlineRichText) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       selectedRef.current = target;
       syncOverlays();
       emitSelect(target);
       if (inlineModeRef.current) {
         enableInlineTarget(target);
+        if (isInlineRichText) {
+          window.requestAnimationFrame(() => focusEditableTarget(target));
+        }
       }
     };
 
