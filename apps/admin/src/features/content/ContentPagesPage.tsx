@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { TabPanel, TabView } from 'primereact/tabview';
 import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
-import { Tree } from 'primereact/tree';
+import { TreeTable } from 'primereact/treetable';
 import type { TreeNode } from 'primereact/treenode';
 import { DataTable } from 'primereact/datatable';
 import { InputText } from 'primereact/inputtext';
@@ -62,9 +62,26 @@ type CType = {
   componentAreaRestrictionsJson?: string | null;
 };
 type Template = { id: number; name: string; compositionJson: string; componentsJson: string };
-type CItem = { id: number; contentTypeId: number; currentDraftVersionId?: number | null; currentPublishedVersionId?: number | null };
+type CItem = {
+  id: number;
+  contentTypeId: number;
+  parentId?: number | null;
+  sortOrder?: number | null;
+  currentDraftVersionId?: number | null;
+  currentPublishedVersionId?: number | null;
+};
 type CVersion = { id: number; versionNumber: number; fieldsJson: string; compositionJson: string; componentsJson: string; metadataJson: string; state: string; comment?: string | null };
 type CRoute = { id: number; contentItemId: number; marketCode: string; localeCode: string; slug: string; isCanonical: boolean };
+type PageTreeNodeDto = {
+  id: number;
+  title: string;
+  slug: string;
+  status: 'Draft' | 'Published' | 'New';
+  parentId?: number | null;
+  sortOrder: number;
+  route?: CRoute | null;
+  children: PageTreeNodeDto[];
+};
 type VariantSet = { id: number; contentItemId: number; marketCode: string; localeCode: string; fallbackVariantSetId?: number | null; active: boolean };
 type Variant = { id: number; variantSetId: number; key: string; priority: number; ruleJson: string; state: string; trafficAllocation?: number | null; contentVersionId: number };
 type CompositionArea = { name: string; components: string[] };
@@ -81,6 +98,8 @@ type TreeRow = {
   contentItemId: number;
   title: string;
   status: 'Draft' | 'Published' | 'New';
+  parentId: number | null;
+  sortOrder: number;
 };
 
 type ContentPageHeaderCommandContext = CommandContext & {
@@ -103,6 +122,11 @@ type ContentPageHeaderCommandContext = CommandContext & {
 type ContentPageRowCommandContext = CommandContext & {
   row: TreeRow;
   openRow: (row: TreeRow) => void;
+  addChildRow: (row: TreeRow) => Promise<void>;
+  renameRow: (row: TreeRow) => void;
+  openPermissions: (row: TreeRow) => void;
+  moveRowUp: (row: TreeRow) => Promise<void>;
+  moveRowDown: (row: TreeRow) => Promise<void>;
   duplicateRow: (row: TreeRow) => Promise<void>;
   exportRow: (row: TreeRow) => void;
   deleteRow: (row: TreeRow) => Promise<void>;
@@ -295,11 +319,39 @@ const contentPageHeaderOverflowCommands: Command<ContentPageHeaderCommandContext
 
 const contentPageRowOverflowCommands: Command<ContentPageRowCommandContext>[] = [
   {
+    id: 'content-pages.row.add-child',
+    label: 'Add child',
+    icon: 'pi pi-plus',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.addChildRow(ctx.row)
+  },
+  {
+    id: 'content-pages.row.rename',
+    label: 'Rename',
+    icon: 'pi pi-pencil',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.renameRow(ctx.row)
+  },
+  {
     id: 'content-pages.row.open',
     label: 'Open',
     icon: 'pi pi-folder-open',
     visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
     run: (ctx) => ctx.openRow(ctx.row)
+  },
+  {
+    id: 'content-pages.row.move-up',
+    label: 'Move up',
+    icon: 'pi pi-arrow-up',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.moveRowUp(ctx.row)
+  },
+  {
+    id: 'content-pages.row.move-down',
+    label: 'Move down',
+    icon: 'pi pi-arrow-down',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.moveRowDown(ctx.row)
   },
   {
     id: 'content-pages.row.duplicate',
@@ -316,6 +368,13 @@ const contentPageRowOverflowCommands: Command<ContentPageRowCommandContext>[] = 
     run: (ctx) => ctx.exportRow(ctx.row)
   },
   {
+    id: 'content-pages.row.permissions',
+    label: 'Permissions',
+    icon: 'pi pi-shield',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.openPermissions(ctx.row)
+  },
+  {
     id: 'content-pages.row.delete',
     label: 'Delete',
     icon: 'pi pi-trash',
@@ -328,6 +387,20 @@ const contentPageRowOverflowCommands: Command<ContentPageRowCommandContext>[] = 
 ];
 
 const contentPageTreeContextCommands: Command<ContentPageTreeCommandContext>[] = [
+  {
+    id: 'content-pages.tree.add-child',
+    label: 'Add child',
+    icon: 'pi pi-plus',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.addChildRow(ctx.treeNode)
+  },
+  {
+    id: 'content-pages.tree.rename',
+    label: 'Rename',
+    icon: 'pi pi-pencil',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.renameRow(ctx.treeNode)
+  },
   {
     id: 'content-pages.tree.open',
     label: 'Open in editor',
@@ -359,11 +432,32 @@ const contentPageTreeContextCommands: Command<ContentPageTreeCommandContext>[] =
     run: (ctx) => ctx.copyPreviewUrlForRow(ctx.treeNode)
   },
   {
+    id: 'content-pages.tree.move-up',
+    label: 'Move up',
+    icon: 'pi pi-arrow-up',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.moveRowUp(ctx.treeNode)
+  },
+  {
+    id: 'content-pages.tree.move-down',
+    label: 'Move down',
+    icon: 'pi pi-arrow-down',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.moveRowDown(ctx.treeNode)
+  },
+  {
     id: 'content-pages.tree.duplicate',
     label: 'Duplicate',
     icon: 'pi pi-copy',
     visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
     run: (ctx) => ctx.duplicateRow(ctx.treeNode)
+  },
+  {
+    id: 'content-pages.tree.permissions',
+    label: 'Permissions',
+    icon: 'pi pi-shield',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
+    run: (ctx) => ctx.openPermissions(ctx.treeNode)
   },
   {
     id: 'content-pages.tree.delete',
@@ -414,6 +508,7 @@ export function ContentPagesPage() {
   const [items, setItems] = useState<CItem[]>([]);
   const [componentSettings, setComponentSettings] = useState<ComponentTypeSetting[]>([]);
   const [routes, setRoutes] = useState<CRoute[]>([]);
+  const [pageTree, setPageTree] = useState<PageTreeNodeDto[]>([]);
   const [versions, setVersions] = useState<CVersion[]>([]);
   const [draft, setDraft] = useState<CVersion | null>(null);
   const [fields, setFields] = useState<Record<string, unknown>>({});
@@ -455,7 +550,6 @@ export function ContentPagesPage() {
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>('web');
   const [treeFilter, setTreeFilter] = useState('');
   const [treeExpandedKeys, setTreeExpandedKeys] = useState<Record<string, boolean>>({});
-  const [itemTitles, setItemTitles] = useState<Record<number, string>>({});
   const [previewReloadKey, setPreviewReloadKey] = useState(0);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [aiMode, setAiMode] = useState<AiMode>('copy');
@@ -490,20 +584,24 @@ export function ContentPagesPage() {
   );
 
   const treeRows = useMemo<TreeRow[]>(() => {
-    return routes
-      .filter((entry) => entry.marketCode === marketCode && entry.localeCode === localeCode)
-      .map((route) => {
-        const item = items.find((entry) => entry.id === route.contentItemId);
-        return {
-          routeId: String(route.id),
-          slug: route.slug,
-          contentItemId: route.contentItemId,
-          title: itemTitles[route.contentItemId] ?? `Item #${route.contentItemId}`,
-          status: getItemStatus(item)
-        };
-      })
-      .sort((a, b) => a.slug.localeCompare(b.slug));
-  }, [routes, marketCode, localeCode, items, itemTitles]);
+    const rows: TreeRow[] = [];
+    const walk = (nodes: PageTreeNodeDto[]) => {
+      for (const node of nodes) {
+        rows.push({
+          routeId: String(node.route?.id ?? ''),
+          slug: node.slug ?? '',
+          contentItemId: node.id,
+          title: node.title,
+          status: node.status,
+          parentId: node.parentId ?? null,
+          sortOrder: node.sortOrder
+        });
+        walk(node.children ?? []);
+      }
+    };
+    walk(pageTree);
+    return rows;
+  }, [pageTree]);
 
   const filteredTreeRows = useMemo(() => {
     const query = treeFilter.trim().toLowerCase();
@@ -520,73 +618,58 @@ export function ContentPagesPage() {
     });
   }, [treeRows, treeFilter]);
 
-  const treeNodes = useMemo<TreeNode[]>(() => {
-    const roots: TreeNode[] = [];
-    const folderMap = new Map<string, TreeNode>();
-
-    const ensureFolder = (parentKey: string, segment: string, pathLabel: string): TreeNode => {
-      const key = `${parentKey}/${segment}`;
-      const existing = folderMap.get(key);
-      if (existing) {
-        return existing;
-      }
-      const folderNode: TreeNode = {
-        key,
-        label: segment,
-        data: { folder: true, pathLabel },
-        selectable: false,
-        children: []
-      };
-      folderMap.set(key, folderNode);
-      if (parentKey === 'root') {
-        roots.push(folderNode);
-      } else {
-        const parent = folderMap.get(parentKey);
-        if (parent) {
-          parent.children = [...(parent.children ?? []), folderNode];
-        }
-      }
-      return folderNode;
-    };
-
-    for (const entry of filteredTreeRows) {
-      const normalized = entry.slug.replace(/^\/+|\/+$/g, '');
-      const segments = normalized ? normalized.split('/') : ['(root)'];
-      const leafLabel = segments[segments.length - 1] ?? entry.slug;
-      let parentKey = 'root';
-      let pathLabel = '';
-      for (let i = 0; i < segments.length - 1; i += 1) {
-        const segment = segments[i] ?? '';
-        pathLabel = pathLabel ? `${pathLabel}/${segment}` : segment;
-        const parentNode = ensureFolder(parentKey, segment, pathLabel);
-        parentKey = String(parentNode.key);
-      }
-      const leafNode: TreeNode = {
-        key: entry.routeId,
-        label: leafLabel,
-        data: entry
-      };
-      if (parentKey === 'root') {
-        roots.push(leafNode);
-      } else {
-        const parent = folderMap.get(parentKey);
-        if (parent) {
-          parent.children = [...(parent.children ?? []), leafNode];
-        }
-      }
+  const filteredPageTree = useMemo(() => {
+    const query = treeFilter.trim().toLowerCase();
+    if (!query) {
+      return pageTree;
     }
 
-    return roots;
-  }, [filteredTreeRows]);
+    const walk = (nodes: PageTreeNodeDto[]): PageTreeNodeDto[] => {
+      const next: PageTreeNodeDto[] = [];
+      for (const node of nodes) {
+        const childMatches = walk(node.children ?? []);
+        const selfMatches =
+          node.title.toLowerCase().includes(query) ||
+          node.slug.toLowerCase().includes(query) ||
+          String(node.id).includes(query) ||
+          node.status.toLowerCase().includes(query);
+        if (selfMatches || childMatches.length > 0) {
+          next.push({
+            ...node,
+            children: childMatches
+          });
+        }
+      }
+      return next;
+    };
+
+    return walk(pageTree);
+  }, [pageTree, treeFilter]);
+
+  const treeNodes = useMemo<TreeNode[]>(() => {
+    const toNode = (entry: PageTreeNodeDto): TreeNode => ({
+      key: String(entry.id),
+      data: {
+        routeId: String(entry.route?.id ?? ''),
+        slug: entry.slug ?? '',
+        contentItemId: entry.id,
+        title: entry.title,
+        status: entry.status,
+        parentId: entry.parentId ?? null,
+        sortOrder: entry.sortOrder
+      } satisfies TreeRow,
+      children: (entry.children ?? []).map(toNode)
+    });
+
+    return filteredPageTree.map(toNode);
+  }, [filteredPageTree]);
 
   const selectedRouteKey = useMemo(() => {
     if (!selectedItemId) {
       return null;
     }
-    return String(
-      routes.find((entry) => entry.contentItemId === selectedItemId && entry.marketCode === marketCode && entry.localeCode === localeCode)?.id ?? ''
-    );
-  }, [routes, selectedItemId, marketCode, localeCode]);
+    return String(selectedItemId);
+  }, [selectedItemId]);
 
   useEffect(() => {
     if (!selectedRouteKey) {
@@ -761,11 +844,12 @@ export function ContentPagesPage() {
   };
 
   const refresh = async () => {
-    const [typesRes, itemsRes, routesRes, templatesRes] = await Promise.all([
+    const [typesRes, itemsRes, routesRes, templatesRes, pageTreeRes] = await Promise.all([
       sdk.listContentTypes({ siteId }),
       sdk.listContentItems({ siteId }),
       sdk.listRoutes({ siteId, marketCode: null, localeCode: null }),
-      sdk.listTemplates({ siteId })
+      sdk.listTemplates({ siteId }),
+      sdk.getPageTree({ siteId, marketCode, localeCode })
     ]);
     const componentSettingsRes = await sdk
       .listComponentTypeSettings({ siteId })
@@ -775,6 +859,7 @@ export function ContentPagesPage() {
     setSelectedContentTypeId((prev) => prev ?? nextTypes[0]?.id ?? null);
     setItems((itemsRes.listContentItems ?? []) as CItem[]);
     setRoutes((routesRes.listRoutes ?? []) as CRoute[]);
+    setPageTree((pageTreeRes.getPageTree ?? []) as PageTreeNodeDto[]);
     setTemplates((templatesRes.listTemplates ?? []) as Template[]);
     setComponentSettings(
       ((componentSettingsRes.listComponentTypeSettings ?? []) as ComponentTypeSettingRow[])
@@ -835,37 +920,6 @@ export function ContentPagesPage() {
     }
   };
 
-  const loadTitles = async () => {
-    const relevantItemIds = Array.from(
-      new Set(routes.filter((entry) => entry.marketCode === marketCode && entry.localeCode === localeCode).map((entry) => entry.contentItemId))
-    );
-
-    const uncached = relevantItemIds.filter((id) => !itemTitles[id]);
-    if (uncached.length === 0) {
-      return;
-    }
-
-    const results = await Promise.all(
-      uncached.map(async (id) => {
-        try {
-          const detail = await sdk.getContentItemDetail({ contentItemId: id });
-          const version = detail.getContentItemDetail?.currentDraftVersion ?? detail.getContentItemDetail?.currentPublishedVersion;
-          const parsedFields = parseJson<Record<string, unknown>>(version?.fieldsJson ?? '{}', {});
-          const title =
-            (typeof parsedFields.title === 'string' && parsedFields.title.trim()) ||
-            (typeof parsedFields.name === 'string' && parsedFields.name.trim()) ||
-            (typeof parsedFields.headline === 'string' && parsedFields.headline.trim()) ||
-            `Item #${id}`;
-          return [id, title] as const;
-        } catch {
-          return [id, `Item #${id}`] as const;
-        }
-      })
-    );
-
-    setItemTitles((prev) => ({ ...prev, ...Object.fromEntries(results) }));
-  };
-
   const focusEditorByPath = (path: string | null) => {
     if (!path) {
       return;
@@ -882,11 +936,7 @@ export function ContentPagesPage() {
 
   useEffect(() => {
     refresh().catch((error: unknown) => setStatus(String(error)));
-  }, [siteId]);
-
-  useEffect(() => {
-    loadTitles().catch(() => undefined);
-  }, [routes, marketCode, localeCode]);
+  }, [siteId, marketCode, localeCode]);
 
   useEffect(() => {
     setRouteDraft((prev) => ({ ...prev, marketCode, localeCode }));
@@ -1213,6 +1263,7 @@ export function ContentPagesPage() {
     const created = await sdk.createContentItem({
       siteId,
       contentTypeId: sourceItem.contentTypeId,
+      parentId: row.parentId,
       by: 'admin',
       initialFieldsJson: sourceVersion?.fieldsJson ?? '{}',
       initialCompositionJson: sourceVersion?.compositionJson ?? '{"areas":[{"name":"main","components":[]}]}',
@@ -1223,6 +1274,11 @@ export function ContentPagesPage() {
     if (!createdId) {
       return;
     }
+    await sdk.movePage({
+      pageId: createdId,
+      newParentId: row.parentId,
+      newSortOrder: row.sortOrder + 1
+    });
     await sdk.upsertRoute({
       siteId,
       contentItemId: createdId,
@@ -1236,12 +1292,62 @@ export function ContentPagesPage() {
     toast({ severity: 'success', summary: `Duplicated page #${row.contentItemId} to #${createdId}` });
   };
 
-  const deleteTreeRow = async (row: TreeRow) => {
-    await sdk.archiveContentItem({ id: row.contentItemId, archived: true });
-    const routeId = Number(row.routeId);
-    if (routeId) {
-      await sdk.deleteRoute({ id: routeId }).catch(() => undefined);
+  const createChildFromRow = async (row: TreeRow) => {
+    const sourceItem = items.find((entry) => entry.id === row.contentItemId);
+    if (!sourceItem) {
+      return;
     }
+    const created = await sdk.createChildPage({
+      parentId: row.contentItemId,
+      siteId,
+      contentTypeId: sourceItem.contentTypeId,
+      by: 'admin',
+      initialFieldsJson: '{}',
+      initialCompositionJson: '{"areas":[{"name":"main","components":[]}]}',
+      initialComponentsJson: '{}',
+      metadataJson: '{}'
+    });
+    const id = created.createChildPage?.id ?? null;
+    await refresh();
+    if (id) {
+      navigate(buildContentEditorUrl(id, marketCode, localeCode));
+      toast({ severity: 'success', summary: `Created child page #${id}` });
+    }
+  };
+
+  const moveRowUp = async (row: TreeRow) => {
+    if (row.sortOrder <= 0) {
+      return;
+    }
+    await sdk.movePage({
+      pageId: row.contentItemId,
+      newParentId: row.parentId,
+      newSortOrder: row.sortOrder - 1
+    });
+    await refresh();
+  };
+
+  const moveRowDown = async (row: TreeRow) => {
+    await sdk.movePage({
+      pageId: row.contentItemId,
+      newParentId: row.parentId,
+      newSortOrder: row.sortOrder + 1
+    });
+    await refresh();
+  };
+
+  const renameRow = (row: TreeRow) => {
+    navigate(buildContentEditorUrl(row.contentItemId, marketCode, localeCode));
+    setCenterTabIndex(0);
+    toast({ severity: 'info', summary: 'Rename in fields', detail: 'Edit title/name field in the editor.' });
+  };
+
+  const openPermissions = (_row: TreeRow) => {
+    navigate('/security/roles');
+  };
+
+  const deleteTreeRow = async (row: TreeRow) => {
+    await sdk.deletePage({ pageId: row.contentItemId });
     if (selectedItemId === row.contentItemId) {
       navigate('/content/pages');
     }
@@ -1498,6 +1604,11 @@ export function ContentPagesPage() {
       treeNode: treeContextRow,
       selectionIds: [treeContextRow.contentItemId],
       openRow,
+      addChildRow: createChildFromRow,
+      renameRow,
+      openPermissions,
+      moveRowUp,
+      moveRowDown,
       duplicateRow: duplicateTreeRow,
       exportRow,
       deleteRow: deleteTreeRow,
@@ -1932,17 +2043,19 @@ export function ContentPagesPage() {
                     <label>Filter tree</label>
                     <InputText value={treeFilter} onChange={(event) => setTreeFilter(event.target.value)} placeholder="Slug, title, status" />
                   </div>
-                  <Tree
+                  <TreeTable
                     className="content-pages-tree"
                     value={treeNodes}
                     expandedKeys={treeExpandedKeys}
                     onToggle={(event) => setTreeExpandedKeys((event.value as Record<string, boolean>) ?? {})}
                     selectionMode="single"
-                    selectionKeys={selectedRouteKey ?? null}
+                    selectionKeys={selectedRouteKey ?? undefined}
                     contextMenuSelectionKey={treeContextSelectionKey ?? undefined}
-                    onContextMenuSelectionChange={(event) => setTreeContextSelectionKey(typeof event.value === 'string' ? event.value : null)}
+                    onContextMenuSelectionChange={(event) =>
+                      setTreeContextSelectionKey(typeof event.value === 'string' ? event.value : null)
+                    }
                     onContextMenu={(event) => {
-                      const row = event.node.data as Partial<TreeRow> | undefined;
+                      const row = event.node?.data as Partial<TreeRow> | undefined;
                       if (!row || typeof row.contentItemId !== 'number') {
                         return;
                       }
@@ -1951,54 +2064,80 @@ export function ContentPagesPage() {
                         slug: String(row.slug ?? ''),
                         contentItemId: row.contentItemId,
                         title: String(row.title ?? `Item #${row.contentItemId}`),
-                        status: (row.status as TreeRow['status']) ?? 'New'
+                        status: (row.status as TreeRow['status']) ?? 'New',
+                        parentId: typeof row.parentId === 'number' ? row.parentId : null,
+                        sortOrder: typeof row.sortOrder === 'number' ? row.sortOrder : 0
                       };
                       setTreeContextRow(normalizedRow);
-                      setTreeContextSelectionKey(String(event.node.key ?? ''));
+                      setTreeContextSelectionKey(String(event.node?.key ?? ''));
                       treeContextMenuRef.current?.show(event.originalEvent);
                     }}
                     onSelectionChange={(event) => {
                       const key = String(event.value ?? '');
-                      const route = routes.find((entry) => String(entry.id) === key);
-                      if (route) {
-                        navigate(buildContentEditorUrl(route.contentItemId, route.marketCode, route.localeCode));
+                      const itemId = Number(key);
+                      if (itemId > 0) {
+                        navigate(buildContentEditorUrl(itemId, marketCode, localeCode));
                       }
                     }}
-                    nodeTemplate={(node) => {
-                      const row = node.data as Partial<TreeRow> | undefined;
-                      if (!row || typeof row.contentItemId !== 'number') {
-                        return <span>{String(node.label ?? '')}</span>;
-                      }
-                      const normalizedRow: TreeRow = {
-                        routeId: String(row.routeId ?? ''),
-                        slug: String(row.slug ?? ''),
-                        contentItemId: row.contentItemId,
-                        title: String(row.title ?? `Item #${row.contentItemId}`),
-                        status: (row.status as TreeRow['status']) ?? 'New'
-                      };
-                      const rowCommandContext: ContentPageRowCommandContext = {
-                        ...baseCommandContext,
-                        row: normalizedRow,
-                        selectionIds: [normalizedRow.contentItemId],
-                        openRow,
-                        duplicateRow: duplicateTreeRow,
-                        exportRow,
-                        deleteRow: deleteTreeRow
-                      };
-                      const rowCommands = commandRegistry.getCommands(rowCommandContext, 'rowOverflow');
-                      return (
-                        <div className="content-tree-node-row">
-                          <span>{row.slug}</span>
-                          <div className="inline-actions">
-                            <Tag value={row.status} severity={row.status === 'Published' ? 'success' : row.status === 'Draft' ? 'warning' : 'secondary'} />
-                            <span className="content-tree-node-actions">
-                              <CommandMenuButton commands={rowCommands} context={rowCommandContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />
-                            </span>
+                  >
+                    <Column
+                      field="title"
+                      header="Page"
+                      expander
+                      body={(node: TreeNode) => {
+                        const row = node.data as TreeRow;
+                        return (
+                          <div className="content-tree-node-row">
+                            <span>{row.title}</span>
+                            {row.slug ? <small className="muted">/{row.slug}</small> : null}
                           </div>
-                        </div>
-                      );
-                    }}
-                  />
+                        );
+                      }}
+                    />
+                    <Column
+                      field="status"
+                      header="Status"
+                      body={(node: TreeNode) => {
+                        const row = node.data as TreeRow;
+                        return (
+                          <Tag
+                            value={row.status}
+                            severity={row.status === 'Published' ? 'success' : row.status === 'Draft' ? 'warning' : 'secondary'}
+                          />
+                        );
+                      }}
+                      style={{ width: '7rem' }}
+                    />
+                    <Column
+                      header="Actions"
+                      body={(node: TreeNode) => {
+                        const row = node.data as TreeRow;
+                        const rowCommandContext: ContentPageRowCommandContext = {
+                          ...baseCommandContext,
+                          row,
+                          selectionIds: [row.contentItemId],
+                          openRow,
+                          addChildRow: createChildFromRow,
+                          renameRow,
+                          openPermissions,
+                          moveRowUp,
+                          moveRowDown,
+                          duplicateRow: duplicateTreeRow,
+                          exportRow,
+                          deleteRow: deleteTreeRow
+                        };
+                        const rowCommands = commandRegistry.getCommands(rowCommandContext, 'rowOverflow');
+                        return (
+                          <div className="inline-actions">
+                            <Button icon="pi pi-arrow-up" text rounded size="small" onClick={() => moveRowUp(row).catch((e: unknown) => setStatus(String(e)))} />
+                            <Button icon="pi pi-arrow-down" text rounded size="small" onClick={() => moveRowDown(row).catch((e: unknown) => setStatus(String(e)))} />
+                            <CommandMenuButton commands={rowCommands} context={rowCommandContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />
+                          </div>
+                        );
+                      }}
+                      style={{ width: '12rem' }}
+                    />
+                  </TreeTable>
                 </TabPanel>
                 <TabPanel header="Search">
                   <div className="form-row">
@@ -2017,6 +2156,11 @@ export function ContentPagesPage() {
                           row,
                           selectionIds: [row.contentItemId],
                           openRow,
+                          addChildRow: createChildFromRow,
+                          renameRow,
+                          openPermissions,
+                          moveRowUp,
+                          moveRowDown,
                           duplicateRow: duplicateTreeRow,
                           exportRow,
                           deleteRow: deleteTreeRow

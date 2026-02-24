@@ -30,6 +30,8 @@ query ListContentItems($siteId: Int!) {
     id
     siteId
     contentTypeId
+    parentId
+    sortOrder
     archived
     createdAt
     createdBy
@@ -44,6 +46,8 @@ query GetContentItemDetail($contentItemId: Int!) {
       id
       siteId
       contentTypeId
+      parentId
+      sortOrder
       archived
       currentDraftVersionId
       currentPublishedVersionId
@@ -128,6 +132,63 @@ query ListRoutes($siteId: Int!, $marketCode: String, $localeCode: String) {
     slug
     isCanonical
     createdAt
+  }
+}
+
+query GetPageTree($siteId: Int!, $marketCode: String!, $localeCode: String!) {
+  getPageTree(siteId: $siteId, marketCode: $marketCode, localeCode: $localeCode) {
+    id
+    title
+    slug
+    status
+    parentId
+    sortOrder
+    route {
+      id
+      siteId
+      contentItemId
+      marketCode
+      localeCode
+      slug
+      isCanonical
+      createdAt
+    }
+    children {
+      id
+      title
+      slug
+      status
+      parentId
+      sortOrder
+      route {
+        id
+        siteId
+        contentItemId
+        marketCode
+        localeCode
+        slug
+        isCanonical
+        createdAt
+      }
+      children {
+        id
+        title
+        slug
+        status
+        parentId
+        sortOrder
+        route {
+          id
+          siteId
+          contentItemId
+          marketCode
+          localeCode
+          slug
+          isCanonical
+          createdAt
+        }
+      }
+    }
   }
 }
 
@@ -268,6 +329,8 @@ mutation DeleteContentType($id: Int!) {
 mutation CreateContentItem(
   $siteId: Int!
   $contentTypeId: Int!
+  $parentId: Int
+  $sortOrder: Int
   $initialFieldsJson: String
   $initialCompositionJson: String
   $initialComponentsJson: String
@@ -276,6 +339,41 @@ mutation CreateContentItem(
   $by: String
 ) {
   createContentItem(
+    siteId: $siteId
+    contentTypeId: $contentTypeId
+    parentId: $parentId
+    sortOrder: $sortOrder
+    initialFieldsJson: $initialFieldsJson
+    initialCompositionJson: $initialCompositionJson
+    initialComponentsJson: $initialComponentsJson
+    metadataJson: $metadataJson
+    comment: $comment
+    by: $by
+  ) {
+    id
+    siteId
+    contentTypeId
+    parentId
+    sortOrder
+    archived
+    currentDraftVersionId
+    currentPublishedVersionId
+  }
+}
+
+mutation CreateChildPage(
+  $parentId: Int!
+  $siteId: Int!
+  $contentTypeId: Int!
+  $initialFieldsJson: String
+  $initialCompositionJson: String
+  $initialComponentsJson: String
+  $metadataJson: String
+  $comment: String
+  $by: String
+) {
+  createChildPage(
+    parentId: $parentId
     siteId: $siteId
     contentTypeId: $contentTypeId
     initialFieldsJson: $initialFieldsJson
@@ -288,10 +386,28 @@ mutation CreateContentItem(
     id
     siteId
     contentTypeId
+    parentId
+    sortOrder
     archived
     currentDraftVersionId
     currentPublishedVersionId
   }
+}
+
+mutation MovePage($pageId: Int!, $newParentId: Int, $newSortOrder: Int) {
+  movePage(pageId: $pageId, newParentId: $newParentId, newSortOrder: $newSortOrder) {
+    id
+    parentId
+    sortOrder
+  }
+}
+
+mutation ReorderSiblings($parentId: Int, $orderedIds: [Int!]!) {
+  reorderSiblings(parentId: $parentId, orderedIds: $orderedIds)
+}
+
+mutation DeletePage($pageId: Int!) {
+  deletePage(pageId: $pageId)
 }
 
 mutation ArchiveContentItem($id: Int!, $archived: Boolean!) {

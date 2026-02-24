@@ -80,6 +80,14 @@ export function createSdk(options: CreateSdkOptions) {
       execute<G.CreateContentItemMutation>(G.CreateContentItemDocument, variables, requestOptions),
     archiveContentItem: (variables: G.ArchiveContentItemMutationVariables, requestOptions?: RequestOptions) =>
       execute<G.ArchiveContentItemMutation>(G.ArchiveContentItemDocument, variables, requestOptions),
+    createChildPage: (variables: G.CreateChildPageMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.CreateChildPageMutation>(G.CreateChildPageDocument, variables, requestOptions),
+    movePage: (variables: G.MovePageMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.MovePageMutation>(G.MovePageDocument, variables, requestOptions),
+    reorderSiblings: (variables: G.ReorderSiblingsMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.ReorderSiblingsMutation>(G.ReorderSiblingsDocument, variables, requestOptions),
+    deletePage: (variables: G.DeletePageMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.DeletePageMutation>(G.DeletePageDocument, variables, requestOptions),
     listContentItems: (variables: G.ListContentItemsQueryVariables, requestOptions?: RequestOptions) =>
       execute<G.ListContentItemsQuery>(G.ListContentItemsDocument, variables, requestOptions),
     getContentItemDetail: (variables: G.GetContentItemDetailQueryVariables, requestOptions?: RequestOptions) =>
@@ -115,6 +123,8 @@ export function createSdk(options: CreateSdkOptions) {
       execute<G.DeleteRouteMutation>(G.DeleteRouteDocument, variables, requestOptions),
     listRoutes: (variables: G.ListRoutesQueryVariables, requestOptions?: RequestOptions) =>
       execute<G.ListRoutesQuery>(G.ListRoutesDocument, variables, requestOptions),
+    getPageTree: (variables: G.GetPageTreeQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.GetPageTreeQuery>(G.GetPageTreeDocument, variables, requestOptions),
     resolveRoute: (variables: G.ResolveRouteQueryVariables, requestOptions?: RequestOptions) =>
       execute<G.ResolveRouteQuery>(G.ResolveRouteDocument, variables, requestOptions),
     getPageByRoute: (variables: G.GetPageByRouteQueryVariables, requestOptions?: RequestOptions) =>

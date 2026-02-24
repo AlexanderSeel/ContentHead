@@ -10,17 +10,20 @@ import {
   type ContentTypeRecord,
   type ContentVersionRecord,
   type DiffResult,
+  type PageTreeNode,
   type ResolvedRoute,
   type TemplateRecord,
   archiveContentItem,
   createContentItem,
   createContentType,
+  deletePage,
   createDraftVersion,
   createTemplate,
   deleteContentType,
   deleteRoute,
   deleteTemplate,
   diffVersions,
+  getPageTree,
   getContentItemDetail,
   issuePreviewTokenPayload,
   listComponentTypeSettings,
@@ -31,8 +34,10 @@ import {
   listVersions,
   publishVersion,
   reconcileTemplate,
+  reorderSiblings,
   resolveRoute,
   rollbackToVersion,
+  movePage,
   updateContentType,
   updateDraftVersion,
   updateTemplate,
@@ -459,6 +464,8 @@ ContentItemRef.implement({
     id: t.exposeInt('id'),
     siteId: t.exposeInt('siteId'),
     contentTypeId: t.exposeInt('contentTypeId'),
+    parentId: t.exposeInt('parentId', { nullable: true }),
+    sortOrder: t.exposeInt('sortOrder'),
     archived: t.exposeBoolean('archived'),
     createdAt: t.exposeString('createdAt'),
     createdBy: t.exposeString('createdBy'),
@@ -788,6 +795,27 @@ DbAdminTableRef.implement({
   })
 });
 
+const PageTreeNodeRef = builder.objectRef<PageTreeNode>('PageTreeNode');
+PageTreeNodeRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    title: t.exposeString('title'),
+    slug: t.exposeString('slug'),
+    status: t.exposeString('status'),
+    parentId: t.exposeInt('parentId', { nullable: true }),
+    sortOrder: t.exposeInt('sortOrder'),
+    route: t.field({
+      type: ContentRouteRef,
+      nullable: true,
+      resolve: (parent) => parent.route
+    }),
+    children: t.field({
+      type: [PageTreeNodeRef],
+      resolve: (parent) => parent.children
+    })
+  })
+});
+
 const DbAdminTableListItemRef = builder.objectRef<DbAdminTableListItem>('DbAdminTableListItem');
 DbAdminTableListItemRef.implement({
   fields: (t) => ({
@@ -1072,6 +1100,16 @@ builder.queryType({
         args: { siteId: number; marketCode?: string | null | undefined; localeCode?: string | null | undefined },
         ctx
       ) => listRoutes(ctx.db, args)
+    }),
+    getPageTree: t.field({
+      type: [PageTreeNodeRef],
+      args: {
+        siteId: t.arg.int({ required: true }),
+        marketCode: t.arg.string({ required: true }),
+        localeCode: t.arg.string({ required: true })
+      },
+      resolve: async (_root, args: { siteId: number; marketCode: string; localeCode: string }, ctx) =>
+        getPageTree(ctx.db, args)
     }),
     listVariantSets: t.field({
       type: [VariantSetRef],
@@ -1626,6 +1664,8 @@ builder.mutationType({
       args: {
         siteId: t.arg.int({ required: true }),
         contentTypeId: t.arg.int({ required: true }),
+        parentId: t.arg.int({ required: false }),
+        sortOrder: t.arg.int({ required: false }),
         initialFieldsJson: t.arg.string({ required: false }),
         initialCompositionJson: t.arg.string({ required: false }),
         initialComponentsJson: t.arg.string({ required: false }),
@@ -1638,6 +1678,8 @@ builder.mutationType({
         args: {
           siteId: number;
           contentTypeId: number;
+          parentId?: number | null | undefined;
+          sortOrder?: number | null | undefined;
           initialFieldsJson?: string | null | undefined;
           initialCompositionJson?: string | null | undefined;
           initialComponentsJson?: string | null | undefined;
@@ -1650,6 +1692,8 @@ builder.mutationType({
         createContentItem(ctx.db, {
           siteId: args.siteId,
           contentTypeId: args.contentTypeId,
+          parentId: args.parentId,
+          sortOrder: args.sortOrder,
           initialFieldsJson: args.initialFieldsJson,
           initialCompositionJson: args.initialCompositionJson,
           initialComponentsJson: args.initialComponentsJson,
@@ -1666,6 +1710,83 @@ builder.mutationType({
       },
       resolve: async (_root, args: { id: number; archived: boolean }, ctx) =>
         archiveContentItem(ctx.db, args.id, args.archived)
+    }),
+    createChildPage: t.field({
+      type: ContentItemRef,
+      args: {
+        parentId: t.arg.int({ required: true }),
+        siteId: t.arg.int({ required: true }),
+        contentTypeId: t.arg.int({ required: true }),
+        initialFieldsJson: t.arg.string({ required: false }),
+        initialCompositionJson: t.arg.string({ required: false }),
+        initialComponentsJson: t.arg.string({ required: false }),
+        metadataJson: t.arg.string({ required: false }),
+        comment: t.arg.string({ required: false }),
+        by: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          parentId: number;
+          siteId: number;
+          contentTypeId: number;
+          initialFieldsJson?: string | null | undefined;
+          initialCompositionJson?: string | null | undefined;
+          initialComponentsJson?: string | null | undefined;
+          metadataJson?: string | null | undefined;
+          comment?: string | null | undefined;
+          by?: string | null | undefined;
+        },
+        ctx
+      ) =>
+        createContentItem(ctx.db, {
+          siteId: args.siteId,
+          contentTypeId: args.contentTypeId,
+          parentId: args.parentId,
+          initialFieldsJson: args.initialFieldsJson,
+          initialCompositionJson: args.initialCompositionJson,
+          initialComponentsJson: args.initialComponentsJson,
+          metadataJson: args.metadataJson,
+          comment: args.comment,
+          by: args.by ?? ctx.currentUser?.username ?? 'system'
+        })
+    }),
+    movePage: t.field({
+      type: ContentItemRef,
+      args: {
+        pageId: t.arg.int({ required: true }),
+        newParentId: t.arg.int({ required: false }),
+        newSortOrder: t.arg.int({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          pageId: number;
+          newParentId?: number | null | undefined;
+          newSortOrder?: number | null | undefined;
+        },
+        ctx
+      ) => movePage(ctx.db, args)
+    }),
+    reorderSiblings: t.boolean({
+      args: {
+        parentId: t.arg.int({ required: false }),
+        orderedIds: t.arg.intList({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: { parentId?: number | null | undefined; orderedIds: number[] },
+        ctx
+      ) => reorderSiblings(ctx.db, args)
+    }),
+    deletePage: t.boolean({
+      args: {
+        pageId: t.arg.int({ required: true })
+      },
+      resolve: async (_root, args: { pageId: number }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return deletePage(ctx.db, args.pageId);
+      }
     }),
     createDraftVersion: t.field({
       type: ContentVersionRef,

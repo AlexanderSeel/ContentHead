@@ -32,6 +32,8 @@ export type ContentItemRecord = {
   id: number;
   siteId: number;
   contentTypeId: number;
+  parentId: number | null;
+  sortOrder: number;
   archived: boolean;
   createdAt: string;
   createdBy: string;
@@ -88,6 +90,17 @@ export type ResolvedRoute = {
   contentType: ContentTypeRecord;
   version: ContentVersionRecord | null;
   mode: 'PUBLISHED' | 'PREVIEW_DRAFT';
+};
+
+export type PageTreeNode = {
+  id: number;
+  title: string;
+  slug: string;
+  status: 'Draft' | 'Published' | 'New';
+  children: PageTreeNode[];
+  parentId: number | null;
+  sortOrder: number;
+  route: ContentRouteRecord | null;
 };
 
 export type UpdateDraftPatch = {
@@ -171,6 +184,80 @@ async function nowTimestamp(db: DbClient): Promise<string> {
   return row?.ts ?? new Date().toISOString();
 }
 
+function readTitleFromVersion(version: ContentVersionRecord | null): string {
+  if (!version) {
+    return '';
+  }
+  try {
+    const parsed = JSON.parse(version.fieldsJson) as Record<string, unknown>;
+    if (typeof parsed.title === 'string' && parsed.title.trim()) {
+      return parsed.title.trim();
+    }
+    if (typeof parsed.name === 'string' && parsed.name.trim()) {
+      return parsed.name.trim();
+    }
+    if (typeof parsed.headline === 'string' && parsed.headline.trim()) {
+      return parsed.headline.trim();
+    }
+    return '';
+  } catch {
+    return '';
+  }
+}
+
+function contentStatusOf(item: ContentItemRecord): 'Draft' | 'Published' | 'New' {
+  if (item.currentDraftVersionId) {
+    return 'Draft';
+  }
+  if (item.currentPublishedVersionId) {
+    return 'Published';
+  }
+  return 'New';
+}
+
+async function getNextSiblingSortOrder(db: DbClient, siteId: number, parentId: number | null): Promise<number> {
+  const row = await db.get<{ nextSort: number }>(
+    `
+SELECT COALESCE(MAX(sort_order), -1) + 1 as nextSort
+FROM content_items
+WHERE site_id = ?
+  AND (
+    (parent_id IS NULL AND ? IS NULL)
+    OR parent_id = ?
+  )
+`,
+    [siteId, parentId, parentId]
+  );
+  return row?.nextSort ?? 0;
+}
+
+async function ensureValidParent(
+  db: DbClient,
+  siteId: number,
+  pageId: number,
+  candidateParentId: number | null
+): Promise<void> {
+  if (candidateParentId == null) {
+    return;
+  }
+  if (candidateParentId === pageId) {
+    invalidInput('A page cannot be its own parent', 'INVALID_PARENT');
+  }
+
+  const parent = await getContentItem(db, candidateParentId);
+  if (parent.siteId !== siteId) {
+    invalidInput('newParentId does not belong to the same site', 'CONTENT_ITEM_SITE_MISMATCH');
+  }
+
+  let cursor: ContentItemRecord | null = parent;
+  while (cursor) {
+    if (cursor.parentId === pageId) {
+      invalidInput('Cannot move a page into its own descendant', 'INVALID_PARENT');
+    }
+    cursor = cursor.parentId ? await getContentItem(db, cursor.parentId) : null;
+  }
+}
+
 async function getContentItem(db: DbClient, contentItemId: number): Promise<ContentItemRecord> {
   const row = await db.get<ContentItemRecord>(
     `
@@ -178,6 +265,8 @@ SELECT
   id,
   site_id as siteId,
   content_type_id as contentTypeId,
+  parent_id as parentId,
+  COALESCE(sort_order, 0) as sortOrder,
   archived,
   created_at as createdAt,
   created_by as createdBy,
@@ -678,6 +767,8 @@ export async function deleteContentType(db: DbClient, id: number): Promise<boole
 export async function createContentItem(db: DbClient, input: {
   siteId: number;
   contentTypeId: number;
+  parentId?: number | null | undefined;
+  sortOrder?: number | null | undefined;
   by: string;
   initialFieldsJson?: string | null | undefined;
   initialCompositionJson?: string | null | undefined;
@@ -690,16 +781,23 @@ export async function createContentItem(db: DbClient, input: {
     invalidInput('contentTypeId does not belong to siteId', 'CONTENT_TYPE_SITE_MISMATCH');
   }
 
+  const parentId = input.parentId ?? null;
+  await ensureValidParent(db, input.siteId, -1, parentId);
+  const sortOrder =
+    input.sortOrder != null
+      ? Math.max(0, Math.trunc(input.sortOrder))
+      : await getNextSiblingSortOrder(db, input.siteId, parentId);
+
   const id = await nextId(db, 'content_items');
 
   await db.run('BEGIN TRANSACTION');
   try {
     await db.run(
       `
-INSERT INTO content_items(id, site_id, content_type_id, archived, created_by)
-VALUES (?, ?, ?, FALSE, ?)
+INSERT INTO content_items(id, site_id, content_type_id, parent_id, sort_order, archived, created_by)
+VALUES (?, ?, ?, ?, ?, FALSE, ?)
 `,
-      [id, input.siteId, input.contentTypeId, input.by]
+      [id, input.siteId, input.contentTypeId, parentId, sortOrder, input.by]
     );
 
     const draft = await createVersion(db, {
@@ -732,6 +830,8 @@ SELECT
   id,
   site_id as siteId,
   content_type_id as contentTypeId,
+  parent_id as parentId,
+  COALESCE(sort_order, 0) as sortOrder,
   archived,
   created_at as createdAt,
   created_by as createdBy,
@@ -739,7 +839,7 @@ SELECT
   current_published_version_id as currentPublishedVersionId
 FROM content_items
 WHERE site_id = ?
-ORDER BY id DESC
+ORDER BY COALESCE(sort_order, 0), id
 `,
     [siteId]
   );
@@ -749,6 +849,287 @@ export async function archiveContentItem(db: DbClient, id: number, archived: boo
   await getContentItem(db, id);
   await db.run('UPDATE content_items SET archived = ? WHERE id = ?', [archived, id]);
   return getContentItem(db, id);
+}
+
+export async function getPageTree(db: DbClient, input: {
+  siteId: number;
+  marketCode: string;
+  localeCode: string;
+}): Promise<PageTreeNode[]> {
+  await validateMarketLocale(db, input.siteId, input.marketCode, input.localeCode);
+
+  const items = await db.all<ContentItemRecord>(
+    `
+SELECT
+  id,
+  site_id as siteId,
+  content_type_id as contentTypeId,
+  parent_id as parentId,
+  COALESCE(sort_order, 0) as sortOrder,
+  archived,
+  created_at as createdAt,
+  created_by as createdBy,
+  current_draft_version_id as currentDraftVersionId,
+  current_published_version_id as currentPublishedVersionId
+FROM content_items
+WHERE site_id = ?
+ORDER BY COALESCE(sort_order, 0), id
+`,
+    [input.siteId]
+  );
+
+  const routes = await listRoutes(db, {
+    siteId: input.siteId,
+    marketCode: input.marketCode,
+    localeCode: input.localeCode
+  });
+  const routeByItemId = new Map<number, ContentRouteRecord>();
+  for (const route of routes) {
+    if (!routeByItemId.has(route.contentItemId)) {
+      routeByItemId.set(route.contentItemId, route);
+    }
+  }
+
+  const versionIds = Array.from(
+    new Set(
+      items
+        .flatMap((item) => [item.currentDraftVersionId, item.currentPublishedVersionId])
+        .filter((id): id is number => typeof id === 'number' && id > 0)
+    )
+  );
+
+  const versionById = new Map<number, ContentVersionRecord>();
+  if (versionIds.length > 0) {
+    const versions = await db.all<ContentVersionRecord>(
+      `
+SELECT
+  id,
+  content_item_id as contentItemId,
+  version_number as versionNumber,
+  state,
+  source_version_id as sourceVersionId,
+  fields_json as fieldsJson,
+  composition_json as compositionJson,
+  components_json as componentsJson,
+  metadata_json as metadataJson,
+  comment,
+  created_at as createdAt,
+  created_by as createdBy
+FROM content_versions
+WHERE id IN (${versionIds.map(() => '?').join(',')})
+`,
+      versionIds
+    );
+    for (const version of versions) {
+      versionById.set(version.id, version);
+    }
+  }
+
+  const byId = new Map<number, PageTreeNode>();
+  for (const item of items) {
+    const route = routeByItemId.get(item.id) ?? null;
+    const titleVersion =
+      (item.currentDraftVersionId ? versionById.get(item.currentDraftVersionId) : null) ??
+      (item.currentPublishedVersionId ? versionById.get(item.currentPublishedVersionId) : null) ??
+      null;
+    const title = readTitleFromVersion(titleVersion) || (route?.slug ? route.slug : `Item #${item.id}`);
+    byId.set(item.id, {
+      id: item.id,
+      title,
+      slug: route?.slug ?? '',
+      status: contentStatusOf(item),
+      children: [],
+      parentId: item.parentId ?? null,
+      sortOrder: item.sortOrder,
+      route
+    });
+  }
+
+  const roots: PageTreeNode[] = [];
+  const allNodes = Array.from(byId.values()).sort((a, b) => (a.sortOrder - b.sortOrder) || (a.id - b.id));
+  for (const node of allNodes) {
+    if (node.parentId == null) {
+      roots.push(node);
+      continue;
+    }
+    const parent = byId.get(node.parentId);
+    if (!parent) {
+      roots.push(node);
+      continue;
+    }
+    parent.children.push(node);
+  }
+
+  const sortRecursively = (nodes: PageTreeNode[]) => {
+    nodes.sort((a, b) => (a.sortOrder - b.sortOrder) || (a.id - b.id));
+    for (const node of nodes) {
+      if (node.children.length > 0) {
+        sortRecursively(node.children);
+      }
+    }
+  };
+
+  sortRecursively(roots);
+  return roots;
+}
+
+export async function movePage(db: DbClient, input: {
+  pageId: number;
+  newParentId?: number | null | undefined;
+  newSortOrder?: number | null | undefined;
+}): Promise<ContentItemRecord> {
+  const item = await getContentItem(db, input.pageId);
+  const newParentId = input.newParentId ?? null;
+
+  await ensureValidParent(db, item.siteId, item.id, newParentId);
+
+  const siblings = await db.all<{ id: number }>(
+    `
+SELECT id
+FROM content_items
+WHERE site_id = ?
+  AND id <> ?
+  AND (
+    (parent_id IS NULL AND ? IS NULL)
+    OR parent_id = ?
+  )
+ORDER BY COALESCE(sort_order, 0), id
+`,
+    [item.siteId, item.id, newParentId, newParentId]
+  );
+
+  const insertIndexRaw = input.newSortOrder == null ? siblings.length : Math.trunc(input.newSortOrder);
+  const insertIndex = Math.max(0, Math.min(siblings.length, insertIndexRaw));
+  const orderedIds = siblings.map((entry) => entry.id);
+  orderedIds.splice(insertIndex, 0, item.id);
+
+  await db.run('BEGIN TRANSACTION');
+  try {
+    await db.run('UPDATE content_items SET parent_id = ? WHERE id = ?', [newParentId, item.id]);
+    for (let index = 0; index < orderedIds.length; index += 1) {
+      await db.run('UPDATE content_items SET sort_order = ? WHERE id = ?', [index, orderedIds[index]]);
+    }
+
+    if ((item.parentId ?? null) !== newParentId) {
+      const previousSiblings = await db.all<{ id: number }>(
+        `
+SELECT id
+FROM content_items
+WHERE site_id = ?
+  AND (
+    (parent_id IS NULL AND ? IS NULL)
+    OR parent_id = ?
+  )
+ORDER BY COALESCE(sort_order, 0), id
+`,
+        [item.siteId, item.parentId ?? null, item.parentId ?? null]
+      );
+      for (let index = 0; index < previousSiblings.length; index += 1) {
+        await db.run('UPDATE content_items SET sort_order = ? WHERE id = ?', [index, previousSiblings[index]!.id]);
+      }
+    }
+
+    await db.run('COMMIT');
+  } catch (error) {
+    await db.run('ROLLBACK');
+    throw error;
+  }
+
+  return getContentItem(db, item.id);
+}
+
+export async function reorderSiblings(db: DbClient, input: {
+  parentId?: number | null | undefined;
+  orderedIds: number[];
+}): Promise<boolean> {
+  const uniqueIds = Array.from(new Set(input.orderedIds.map((id) => Math.trunc(id)).filter((id) => id > 0)));
+  if (uniqueIds.length === 0) {
+    return true;
+  }
+
+  const rows = await db.all<ContentItemRecord>(
+    `
+SELECT
+  id,
+  site_id as siteId,
+  content_type_id as contentTypeId,
+  parent_id as parentId,
+  COALESCE(sort_order, 0) as sortOrder,
+  archived,
+  created_at as createdAt,
+  created_by as createdBy,
+  current_draft_version_id as currentDraftVersionId,
+  current_published_version_id as currentPublishedVersionId
+FROM content_items
+WHERE id IN (${uniqueIds.map(() => '?').join(',')})
+`,
+    uniqueIds
+  );
+
+  if (rows.length !== uniqueIds.length) {
+    invalidInput('orderedIds contains unknown page ids', 'CONTENT_ITEM_NOT_FOUND');
+  }
+
+  const siteId = rows[0]!.siteId;
+  const expectedParentId = input.parentId ?? null;
+  for (const row of rows) {
+    if (row.siteId !== siteId) {
+      invalidInput('orderedIds must belong to the same site', 'CONTENT_ITEM_SITE_MISMATCH');
+    }
+    if ((row.parentId ?? null) !== expectedParentId) {
+      invalidInput('orderedIds must all belong to the provided parentId', 'INVALID_PARENT');
+    }
+  }
+
+  const existing = await db.all<{ id: number }>(
+    `
+SELECT id
+FROM content_items
+WHERE site_id = ?
+  AND (
+    (parent_id IS NULL AND ? IS NULL)
+    OR parent_id = ?
+  )
+ORDER BY COALESCE(sort_order, 0), id
+`,
+    [siteId, expectedParentId, expectedParentId]
+  );
+
+  const remaining = existing.map((entry) => entry.id).filter((id) => !uniqueIds.includes(id));
+  const finalOrder = [...uniqueIds, ...remaining];
+
+  await db.run('BEGIN TRANSACTION');
+  try {
+    for (let index = 0; index < finalOrder.length; index += 1) {
+      await db.run('UPDATE content_items SET sort_order = ? WHERE id = ?', [index, finalOrder[index]]);
+    }
+    await db.run('COMMIT');
+  } catch (error) {
+    await db.run('ROLLBACK');
+    throw error;
+  }
+
+  return true;
+}
+
+export async function deletePage(db: DbClient, pageId: number): Promise<boolean> {
+  const page = await getContentItem(db, pageId);
+  const child = await db.get<{ id: number }>('SELECT id FROM content_items WHERE parent_id = ? LIMIT 1', [page.id]);
+  if (child) {
+    invalidInput('Cannot delete a page that still has child pages', 'PAGE_HAS_CHILDREN');
+  }
+
+  await db.run('BEGIN TRANSACTION');
+  try {
+    await db.run('UPDATE content_items SET archived = TRUE WHERE id = ?', [page.id]);
+    await db.run('DELETE FROM content_routes WHERE content_item_id = ?', [page.id]);
+    await db.run('COMMIT');
+  } catch (error) {
+    await db.run('ROLLBACK');
+    throw error;
+  }
+
+  return true;
 }
 
 export async function listVersions(db: DbClient, contentItemId: number): Promise<ContentVersionRecord[]> {
