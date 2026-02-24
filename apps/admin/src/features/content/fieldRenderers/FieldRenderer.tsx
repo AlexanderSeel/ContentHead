@@ -61,7 +61,7 @@ export function FieldRenderer({ field, value, onChange, siteId, token, readOnly 
   }
 
   if (field.type === 'assetRef') {
-    return <AssetRefEditor token={token} siteId={siteId} value={typeof value === 'number' ? value : null} onChange={onChange as (value: number | null) => void} />;
+    return <AssetRefEditor token={token} siteId={siteId} value={(value as any) ?? null} onChange={onChange as any} />;
   }
 
   if (field.type === 'assetList') {

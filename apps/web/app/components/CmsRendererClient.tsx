@@ -371,6 +371,8 @@ function CmsImage({
   assetId,
   asset,
   kind,
+  fitMode,
+  customWidth,
   altOverride,
   apiBaseUrl,
   fieldPath,
@@ -379,6 +381,8 @@ function CmsImage({
   assetId?: number | null;
   asset?: AssetPayload | null;
   kind?: 'thumb' | 'small' | 'medium' | 'large';
+  fitMode?: 'cover' | 'contain';
+  customWidth?: number;
   altOverride?: string;
   apiBaseUrl: string;
   fieldPath?: string;
@@ -387,7 +391,18 @@ function CmsImage({
   if (!assetId) {
     return null;
   }
-  const url = kind ? `${apiBaseUrl}/assets/${assetId}/rendition/${kind}` : `${apiBaseUrl}/assets/${assetId}`;
+  const renditionKind = kind ?? 'original';
+  const params = new URLSearchParams();
+  if (fitMode) {
+    params.set('fit', fitMode);
+  }
+  if (customWidth && customWidth > 0) {
+    params.set('width', String(customWidth));
+  }
+  const suffix = params.toString() ? `?${params.toString()}` : '';
+  const url = renditionKind === 'original'
+    ? `${apiBaseUrl}/assets/${assetId}`
+    : `${apiBaseUrl}/assets/${assetId}/rendition/${renditionKind}${suffix}`;
   const alt = altOverride ?? asset?.altText ?? asset?.title ?? `Asset ${assetId}`;
   return (
     <img
@@ -398,6 +413,27 @@ function CmsImage({
       {...(fieldPath ? { 'data-cms-field-path': fieldPath } : {})}
     />
   );
+}
+
+function parseAssetRef(value: unknown): { assetId: number | null; kind?: 'thumb' | 'small' | 'medium' | 'large'; fitMode?: 'cover' | 'contain'; customWidth?: number } {
+  if (typeof value === 'number') {
+    return { assetId: value };
+  }
+  if (!value || typeof value !== 'object') {
+    return { assetId: null };
+  }
+  const rec = value as Record<string, unknown>;
+  const kind = rec.renditionKind === 'thumb' || rec.renditionKind === 'small' || rec.renditionKind === 'medium' || rec.renditionKind === 'large'
+    ? rec.renditionKind
+    : null;
+  const fitMode = rec.fitMode === 'contain' ? 'contain' : rec.fitMode === 'cover' ? 'cover' : null;
+  const customWidth = typeof rec.customWidth === 'number' ? rec.customWidth : null;
+  return {
+    assetId: typeof rec.assetId === 'number' ? rec.assetId : null,
+    ...(kind ? { kind } : {}),
+    ...(fitMode ? { fitMode } : {}),
+    ...(customWidth ? { customWidth } : {})
+  };
 }
 
 function NewsletterForm({
@@ -797,18 +833,20 @@ function renderComponent(
   });
 
   if (componentType === 'hero' || componentType === 'hero_component') {
-    const backgroundAssetRef = typeof props.backgroundAssetRef === 'number' ? props.backgroundAssetRef : null;
+    const backgroundAssetSelection = parseAssetRef(props.backgroundAssetRef);
     const primaryCta = (props.primaryCta as ContentLink | undefined) ?? null;
     const secondaryCta = (props.secondaryCta as ContentLink | undefined) ?? null;
 
     return (
       <section key={id} {...wrapperProps} className="cms-section cms-hero">
-        {backgroundAssetRef ? (
+        {backgroundAssetSelection.assetId ? (
           <div style={{ position: 'absolute', inset: 0, opacity: 0.2 }}>
             <CmsImage
-              assetId={backgroundAssetRef}
-              asset={assets[String(backgroundAssetRef)] ?? null}
-              kind="large"
+              assetId={backgroundAssetSelection.assetId}
+              asset={assets[String(backgroundAssetSelection.assetId)] ?? null}
+              kind={backgroundAssetSelection.kind ?? 'large'}
+              {...(backgroundAssetSelection.fitMode ? { fitMode: backgroundAssetSelection.fitMode } : {})}
+              {...(backgroundAssetSelection.customWidth ? { customWidth: backgroundAssetSelection.customWidth } : {})}
               apiBaseUrl={apiBaseUrl}
               fieldPath={`components.${id}.props.backgroundAssetRef`}
               bridgeAttrs={bridgeAttrs}
@@ -845,16 +883,18 @@ function renderComponent(
   }
 
   if (componentType === 'image_text') {
-    const imageAssetRef = typeof props.imageAssetRef === 'number' ? props.imageAssetRef : null;
+    const imageAssetSelection = parseAssetRef(props.imageAssetRef);
     const invert = Boolean(props.invert);
     const cta = (props.cta as ContentLink | undefined) ?? null;
     return (
       <section key={id} {...wrapperProps} className={`cms-section cms-image-row${invert ? ' invert' : ''}`}>
         <div className="cms-image-wrap">
           <CmsImage
-            assetId={imageAssetRef}
-            asset={imageAssetRef ? assets[String(imageAssetRef)] ?? null : null}
-            kind="medium"
+            assetId={imageAssetSelection.assetId}
+            asset={imageAssetSelection.assetId ? assets[String(imageAssetSelection.assetId)] ?? null : null}
+            kind={imageAssetSelection.kind ?? 'medium'}
+            {...(imageAssetSelection.fitMode ? { fitMode: imageAssetSelection.fitMode } : {})}
+            {...(imageAssetSelection.customWidth ? { customWidth: imageAssetSelection.customWidth } : {})}
             apiBaseUrl={apiBaseUrl}
             fieldPath={`components.${id}.props.imageAssetRef`}
             bridgeAttrs={bridgeAttrs}

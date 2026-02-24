@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import { mkdir } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 
 import Busboy from 'busboy';
 import { createYoga } from 'graphql-yoga';
@@ -147,28 +148,56 @@ async function bootstrap(): Promise<void> {
 
       const storage = await resolveAssetStorage();
       const file = await storage.read(asset.storagePath);
+      const etag = `"${createHash('sha1').update(`${asset.id}:${asset.updatedAt}:${asset.bytes}`).digest('hex')}"`;
+      if (req.headers['if-none-match'] === etag) {
+        res.statusCode = 304;
+        res.end();
+        return;
+      }
       res.statusCode = 200;
       res.setHeader('content-type', asset.mimeType || 'application/octet-stream');
+      res.setHeader('etag', etag);
+      res.setHeader('last-modified', new Date(asset.updatedAt).toUTCString());
       res.setHeader('cache-control', 'public, max-age=3600');
       res.end(file);
       return;
     }
 
-    const renditionMatch = /^\/assets\/(\d+)\/rendition\/(thumb|small|medium|large)$/.exec(url.pathname);
+    const renditionMatch = /^\/assets\/(\d+)\/rendition\/(thumb|small|medium|large|original)$/.exec(url.pathname);
     if (req.method === 'GET' && renditionMatch) {
       const assetId = Number(renditionMatch[1]);
-      const kind = renditionMatch[2] as 'thumb' | 'small' | 'medium' | 'large';
+      const kind = renditionMatch[2] as 'thumb' | 'small' | 'medium' | 'large' | 'original';
+      const fit = url.searchParams.get('fit') === 'contain' ? 'contain' : 'cover';
+      const widthParam = Number(url.searchParams.get('width') ?? '0');
       const widths: Record<typeof kind, number> = {
         thumb: 320,
         small: 640,
         medium: 1024,
-        large: 1600
+        large: 1600,
+        original: 0
       };
+      const width = Math.max(1, Math.min(2400, widthParam || widths[kind] || 1024));
+
+      if (kind === 'original') {
+        const asset = await getAsset(db, assetId);
+        if (!asset) {
+          res.statusCode = 404;
+          res.end('Not found');
+          return;
+        }
+        const storage = await resolveAssetStorage();
+        const file = await storage.read(asset.storagePath);
+        res.statusCode = 200;
+        res.setHeader('content-type', asset.mimeType || 'application/octet-stream');
+        res.setHeader('cache-control', 'public, max-age=3600');
+        res.end(file);
+        return;
+      }
 
       const storage = await resolveAssetStorage();
-      let rendition = await getAssetRendition(db, assetId, kind);
+      let rendition = await getAssetRendition(db, assetId, kind, fit, width);
       if (!rendition) {
-        rendition = await ensureImageRendition(db, storage, assetId, kind, widths[kind]);
+        rendition = await ensureImageRendition(db, storage, assetId, kind, width, fit);
       }
 
       if (!rendition) {
@@ -180,7 +209,7 @@ async function bootstrap(): Promise<void> {
       const file = await storage.read(rendition.storagePath);
       res.statusCode = 200;
       res.setHeader('content-type', 'image/webp');
-      res.setHeader('cache-control', 'public, max-age=3600');
+      res.setHeader('cache-control', 'public, max-age=86400, immutable');
       res.end(file);
       return;
     }
@@ -191,6 +220,15 @@ async function bootstrap(): Promise<void> {
   server.listen(config.apiPort, config.apiHost, () => {
     console.log(`GraphQL API running at http://${config.apiHost}:${config.apiPort}/graphql`);
   });
+
+  const shutdown = async () => {
+    await new Promise<void>((resolveShutdown) => server.close(() => resolveShutdown()));
+    await db.close();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 bootstrap().catch((error) => {
