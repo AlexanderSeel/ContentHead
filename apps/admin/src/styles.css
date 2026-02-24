@@ -75,6 +75,9 @@
   --color-error: var(--red-500);
   --color-border: var(--surface-border);
   width: 100%;
+  background: var(--surface-card);
+  color: var(--text-color);
+  border-color: var(--surface-border);
 }
 
 .graphiql-host .graphiql-explorer-root {
@@ -119,6 +122,105 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.ch-graphiql-page-root,
+.ch-graphiql-page {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ch-graphiql-ide {
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-card);
+}
+
+.ch-graphiql-ide > .p-splitter-panel {
+  min-width: 0;
+  min-height: 0;
+}
+
+.ch-graphiql-pane {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  background: var(--surface-card);
+  color: var(--text-color);
+}
+
+.ch-graphiql-pane-left,
+.ch-graphiql-pane-center,
+.ch-graphiql-pane-right {
+  padding: 0.5rem;
+}
+
+.ch-graphiql-tabs,
+.ch-graphiql-tabs .p-tabview-panels,
+.ch-graphiql-tabs .p-tabview-panel {
+  height: 100%;
+  min-height: 0;
+}
+
+.ch-graphiql-tabs .p-tabview-panels {
+  overflow: hidden;
+}
+
+.ch-graphiql-tabs .p-tabview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ch-graphiql-center-accordion {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 0.35rem;
+}
+
+.ch-graphiql-center-accordion .p-accordion-tab {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ch-graphiql-center-accordion .p-accordion-tab-active:first-child {
+  flex: 1;
+}
+
+.ch-graphiql-center-accordion .p-accordion-tab-active:first-child .p-toggleable-content,
+.ch-graphiql-center-accordion .p-accordion-tab-active:first-child .p-accordion-content {
+  height: 100%;
+  min-height: 0;
+}
+
+.ch-graphiql-editor-host {
+  height: 100%;
+}
+
+.ch-graphiql-explorer-tree {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+}
+
+.ch-graphiql-response-pre {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  margin-top: 0.5rem;
+}
+
+.ch-graphiql-pane-right {
+  overflow: hidden;
+}
+
+.ch-graphiql-pane-right .inline-actions {
   flex-wrap: nowrap;
 }
 

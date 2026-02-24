@@ -2,19 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { GraphiQL } from 'graphiql';
 import type { Fetcher } from '@graphiql/toolkit';
 import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
+import { TabPanel, TabView } from 'primereact/tabview';
 import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Tree } from 'primereact/tree';
 import type { TreeNode } from 'primereact/treenode';
 
 import { PageHeader } from '../../components/common/PageHeader';
 import { useAuth } from '../../app/AuthContext';
-import { HelpDialog } from '../../help/HelpDialog';
-import { HelpIcon } from '../../help/HelpIcon';
-import { helpContent } from '../../help/helpContent';
 
 import 'graphiql/style.css';
 
@@ -26,13 +23,25 @@ const INTROSPECTION_QUERY = `
       types {
         kind
         name
+        description
         fields {
           name
+          description
           args {
             name
+            description
             type { kind name ofType { kind name ofType { kind name } } }
           }
           type { kind name ofType { kind name ofType { kind name } } }
+        }
+        inputFields {
+          name
+          description
+          type { kind name ofType { kind name ofType { kind name } } }
+        }
+        enumValues {
+          name
+          description
         }
       }
     }
@@ -47,6 +56,7 @@ type IntrospectionTypeRef = {
 
 type IntrospectionField = {
   name: string;
+  description?: string | null;
   args?: Array<{ name: string; type: IntrospectionTypeRef }> | null;
   type: IntrospectionTypeRef;
 };
@@ -54,7 +64,10 @@ type IntrospectionField = {
 type IntrospectionType = {
   kind: string;
   name: string;
+  description?: string | null;
   fields?: IntrospectionField[] | null;
+  inputFields?: Array<{ name: string; description?: string | null; type: IntrospectionTypeRef }> | null;
+  enumValues?: Array<{ name: string; description?: string | null }> | null;
 };
 
 type IntrospectionSchemaPayload = {
@@ -87,15 +100,16 @@ export function GraphiQLPage() {
   const [variables, setVariables] = useState('{}');
   const [headersEditor, setHeadersEditor] = useState('{}');
   const [headersError, setHeadersError] = useState('');
-  const [headersDialogOpen, setHeadersDialogOpen] = useState(false);
-  const [headersHelpOpen, setHeadersHelpOpen] = useState(false);
   const [editorSeed, setEditorSeed] = useState(0);
   const [activeQuery, setActiveQuery] = useState('');
   const [lastResponse, setLastResponse] = useState('');
   const [schemaNodes, setSchemaNodes] = useState<TreeNode[]>([]);
+  const [docsNodes, setDocsNodes] = useState<TreeNode[]>([]);
   const [schemaError, setSchemaError] = useState('');
   const [schemaLoading, setSchemaLoading] = useState(false);
   const [explorerSelectionKeys, setExplorerSelectionKeys] = useState<string | null>(null);
+  const [docsSelectionKeys, setDocsSelectionKeys] = useState<string | null>(null);
+  const [centerPanels, setCenterPanels] = useState<number[]>([0, 1, 2]);
 
   const buildPayload = () => {
     let parsedVariables: unknown = {};
@@ -241,10 +255,41 @@ export function GraphiQLPage() {
           }))
         });
       }
+      const docTree: TreeNode[] = __schema.types
+        .filter((type) => type.name && !type.name.startsWith('__'))
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((type) => ({
+          key: `type-${type.name}`,
+          label: `${type.name} (${type.kind})`,
+          children: [
+            ...(type.description ? [{ key: `type-${type.name}-description`, label: type.description }] : []),
+            ...((type.fields ?? []).map((field) => ({
+              key: `type-${type.name}-field-${field.name}`,
+              label: `${field.name}: ${formatType(field.type)}`,
+              children: [
+                ...(field.description ? [{ key: `type-${type.name}-field-${field.name}-description`, label: field.description }] : []),
+                ...((field.args ?? []).map((arg) => ({
+                  key: `type-${type.name}-field-${field.name}-arg-${arg.name}`,
+                  label: `arg ${arg.name}: ${formatType(arg.type)}`
+                })))
+              ]
+            }))),
+            ...((type.inputFields ?? []).map((field) => ({
+              key: `type-${type.name}-input-${field.name}`,
+              label: `input ${field.name}: ${formatType(field.type)}`
+            }))),
+            ...((type.enumValues ?? []).map((entry) => ({
+              key: `type-${type.name}-enum-${entry.name}`,
+              label: `enum ${entry.name}`
+            })))
+          ]
+        }));
       setSchemaNodes(nextNodes);
+      setDocsNodes(docTree);
     } catch (error) {
       setSchemaError(error instanceof Error ? error.message : 'Failed to load schema.');
       setSchemaNodes([]);
+      setDocsNodes([]);
     } finally {
       setSchemaLoading(false);
     }
@@ -256,7 +301,7 @@ export function GraphiQLPage() {
   }, [endpoint, parsedHeaders]);
 
   return (
-    <div className="pageRoot">
+    <div className="pageRoot ch-graphiql-page-root">
       <PageHeader
         title="GraphiQL Dev Tool"
         subtitle="GraphQL playground with docs, explorer, variables, headers, and response inspector."
@@ -270,37 +315,20 @@ export function GraphiQLPage() {
         }}
         actions={(
           <div className="graphiql-header-actions">
-            <Button text size="small" icon="pi pi-sliders-h" label="Headers & Variables" onClick={() => setHeadersDialogOpen(true)} />
+            <Button text size="small" icon="pi pi-refresh" label="Reload Schema" onClick={() => void loadSchemaExplorer()} loading={schemaLoading} />
           </div>
         )}
       />
-      <div className="pageBodyFlex splitFill">
-        <Splitter layout="vertical" className="splitFill" style={{ width: '100%' }}>
-          <SplitterPanel size={74} minSize={45}>
-            <div className="devtools-editor splitFill graphiql-host">
-              <GraphiQL
-                className="ch-graphiql"
-                key={`${editorSeed}-${useSessionToken ? 'session' : 'manual'}`}
-                fetcher={fetcher}
-                defaultQuery={query}
-                defaultHeaders={headersEditor}
-                defaultEditorToolsVisibility={false}
-                onEditQuery={(value) => setActiveQuery(value)}
-                onEditVariables={(value) => setVariables(value)}
-              />
-            </div>
-          </SplitterPanel>
-          <SplitterPanel size={26} minSize={12}>
-            <div className="pane splitPane">
-              <Accordion multiple>
-                <AccordionTab
-                  header={(
-                    <div className="inline-actions" style={{ justifyContent: 'space-between', width: '100%' }}>
-                      <span>Explorer</span>
-                      <Button text size="small" label="Reload" icon="pi pi-refresh" onClick={() => void loadSchemaExplorer()} loading={schemaLoading} />
-                    </div>
-                  )}
-                >
+      <div className="pageBodyFlex splitFill ch-graphiql-page">
+        <Splitter className="splitFill ch-graphiql-ide" style={{ width: '100%' }}>
+          <SplitterPanel size={22} minSize={16}>
+            <div className="pane ch-graphiql-pane ch-graphiql-pane-left">
+              <TabView className="ch-graphiql-tabs" renderActiveOnly={false}>
+                <TabPanel header="Explorer">
+                  <div className="inline-actions" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span>Operations</span>
+                    <Button text size="small" label="Reload" icon="pi pi-refresh" onClick={() => void loadSchemaExplorer()} loading={schemaLoading} />
+                  </div>
                   {schemaError ? <small className="editor-error">{schemaError}</small> : null}
                   <Tree
                     value={schemaNodes}
@@ -318,85 +346,112 @@ export function GraphiQLPage() {
                       insertOperationFromExplorer(nodeData);
                     }}
                   />
-                </AccordionTab>
+                </TabPanel>
+                <TabPanel header="Docs">
+                  {schemaError ? <small className="editor-error">{schemaError}</small> : null}
+                  <Tree
+                    value={docsNodes}
+                    className="ch-graphiql-explorer-tree"
+                    filter
+                    selectionMode="single"
+                    selectionKeys={docsSelectionKeys}
+                    filterPlaceholder="Filter schema docs"
+                    onSelectionChange={(event) => setDocsSelectionKeys((event.value as string | null) ?? null)}
+                  />
+                </TabPanel>
+              </TabView>
+            </div>
+          </SplitterPanel>
+          <SplitterPanel size={48} minSize={34}>
+            <div className="pane ch-graphiql-pane ch-graphiql-pane-center">
+              <Accordion
+                className="ch-graphiql-center-accordion"
+                multiple
+                activeIndex={centerPanels}
+                onTabChange={(event) => setCenterPanels(Array.isArray(event.index) ? event.index : [])}
+              >
                 <AccordionTab
-                  header={(
-                    <div className="inline-actions" style={{ justifyContent: 'space-between', width: '100%' }}>
-                      <span>Response Inspector</span>
-                      <div className="inline-actions">
-                        <Button text size="small" label="Clear" onClick={() => setLastResponse('')} />
-                        <Button text size="small" label="Copy" onClick={() => navigator.clipboard.writeText(lastResponse)} disabled={!lastResponse} />
-                        <Button
-                          text
-                          size="small"
-                          label="Copy cURL"
-                          onClick={() => {
-                            const curl = `curl -X POST '${endpoint}' -H 'content-type: application/json' -d '${JSON.stringify(buildPayload()).replace(/'/g, "\\'")}'`;
-                            navigator.clipboard.writeText(curl);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
+                  header="Query Editor"
                 >
-                  <pre className="devtools-response-pre">{lastResponse || 'Run an operation to inspect raw response JSON.'}</pre>
+                  <div className="devtools-editor splitFill graphiql-host ch-graphiql-editor-host">
+                    <GraphiQL
+                      className="ch-graphiql"
+                      key={`${editorSeed}-${useSessionToken ? 'session' : 'manual'}`}
+                      fetcher={fetcher}
+                      defaultQuery={query}
+                      initialQuery={query}
+                      initialVariables={variables}
+                      initialHeaders={headersEditor}
+                      defaultHeaders={headersEditor}
+                      defaultEditorToolsVisibility={false}
+                      onEditQuery={(value) => setActiveQuery(value)}
+                      onEditVariables={(value) => setVariables(value)}
+                    />
+                  </div>
+                </AccordionTab>
+                <AccordionTab header="Variables">
+                  <div className="form-row">
+                    <div className="inline-actions">
+                      <Button size="small" label="Apply Variables" onClick={() => setEditorSeed((prev) => prev + 1)} />
+                    </div>
+                    <InputTextarea rows={8} value={variables} onChange={(event) => setVariables(event.target.value)} />
+                  </div>
+                </AccordionTab>
+                <AccordionTab header="Headers">
+                  <div className="form-row">
+                    <div className="inline-actions">
+                      <Button
+                        size="small"
+                        label={useSessionToken ? 'Use Session Token: On' : 'Use Session Token: Off'}
+                        onClick={() => setUseSessionToken((prev) => !prev)}
+                      />
+                      <Button size="small" label="Copy Auth" onClick={() => navigator.clipboard.writeText(token ? `Bearer ${token}` : '')} disabled={!token} />
+                      <Button
+                        size="small"
+                        label="Prettify Query"
+                        onClick={() => {
+                          const text = (activeQuery || query).replace(/\s+/g, ' ').replace(/\s*\{\s*/g, ' {\n  ').replace(/\s*\}\s*/g, '\n}\n');
+                          setQuery(text.trim());
+                          setActiveQuery(text.trim());
+                          setEditorSeed((prev) => prev + 1);
+                        }}
+                      />
+                      <Button
+                        size="small"
+                        label="Copy fetch()"
+                        onClick={() => {
+                          const fetchCode = `fetch('${endpoint}', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(${JSON.stringify(buildPayload())}) });`;
+                          navigator.clipboard.writeText(fetchCode);
+                        }}
+                      />
+                    </div>
+                    <label htmlFor="preview-token">x-preview-token</label>
+                    <InputText id="preview-token" value={previewToken} onChange={(event) => setPreviewToken(event.target.value)} />
+                    <label htmlFor="headers-editor">Headers JSON</label>
+                    <InputTextarea id="headers-editor" rows={8} value={headersEditor} onChange={(event) => setHeadersEditor(event.target.value)} />
+                    {headersError ? <small className="editor-error">{headersError}</small> : null}
+                    <div className="inline-actions">
+                      <Button size="small" label="Apply Headers" onClick={() => setEditorSeed((prev) => prev + 1)} />
+                    </div>
+                  </div>
                 </AccordionTab>
               </Accordion>
             </div>
           </SplitterPanel>
+          <SplitterPanel size={30} minSize={20}>
+            <div className="pane ch-graphiql-pane ch-graphiql-pane-right">
+              <div className="inline-actions" style={{ justifyContent: 'space-between' }}>
+                <span>Result</span>
+                <div className="inline-actions">
+                  <Button text size="small" label="Clear" onClick={() => setLastResponse('')} />
+                  <Button text size="small" label="Copy" onClick={() => navigator.clipboard.writeText(lastResponse)} disabled={!lastResponse} />
+                </div>
+              </div>
+              <pre className="devtools-response-pre ch-graphiql-response-pre">{lastResponse || 'Run an operation to inspect raw response JSON.'}</pre>
+            </div>
+          </SplitterPanel>
         </Splitter>
       </div>
-      <Dialog
-        header={(
-          <div className="inline-actions" style={{ justifyContent: 'space-between', width: '100%' }}>
-            <span>Headers & Variables</span>
-            <HelpIcon
-              tooltip={helpContent.graphiql_headers?.tooltip ?? 'Headers and variables help'}
-              onClick={() => setHeadersHelpOpen(true)}
-            />
-          </div>
-        )}
-        visible={headersDialogOpen}
-        onHide={() => setHeadersDialogOpen(false)}
-        style={{ width: 'min(52rem, 96vw)' }}
-      >
-        <div className="form-row">
-          <div className="inline-actions">
-            <Button
-              size="small"
-              label={useSessionToken ? 'Session Auth: On' : 'Session Auth: Off'}
-              onClick={() => setUseSessionToken((prev) => !prev)}
-            />
-            <Button size="small" label="Copy Auth" onClick={() => navigator.clipboard.writeText(token ? `Bearer ${token}` : '')} disabled={!token} />
-            <Button
-              size="small"
-              label="Prettify Query"
-              onClick={() => {
-                const text = (activeQuery || query).replace(/\s+/g, ' ').replace(/\s*\{\s*/g, ' {\n  ').replace(/\s*\}\s*/g, '\n}\n');
-                setQuery(text.trim());
-                setActiveQuery(text.trim());
-                setEditorSeed((prev) => prev + 1);
-              }}
-            />
-            <Button
-              size="small"
-              label="Copy fetch()"
-              onClick={() => {
-                const fetchCode = `fetch('${endpoint}', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(${JSON.stringify(buildPayload())}) });`;
-                navigator.clipboard.writeText(fetchCode);
-              }}
-            />
-          </div>
-          <label htmlFor="preview-token">x-preview-token</label>
-          <InputText id="preview-token" value={previewToken} onChange={(event) => setPreviewToken(event.target.value)} />
-          <label>Header JSON override</label>
-          <InputTextarea rows={8} value={headersEditor} onChange={(event) => setHeadersEditor(event.target.value)} />
-          {headersError ? <small className="editor-error">{headersError}</small> : null}
-          <label>Variables JSON</label>
-          <InputTextarea rows={8} value={variables} onChange={(event) => setVariables(event.target.value)} />
-        </div>
-      </Dialog>
-      <HelpDialog topicKey="graphiql_headers" visible={headersHelpOpen} onHide={() => setHeadersHelpOpen(false)} />
     </div>
   );
 }
