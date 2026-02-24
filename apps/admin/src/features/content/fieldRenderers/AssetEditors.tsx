@@ -50,36 +50,38 @@ export function AssetRefEditor({
 
   return (
     <div className="form-row">
-      <div className="inline-actions">
-        <AssetPickerButton
-          token={token}
-          siteId={siteId}
-          selected={value ? [value] : []}
-          onChange={(assetIds) => {
-            const next = assetIds[0] ?? null;
-            onChange(next);
-            load(next).catch(() => undefined);
-          }}
-          label="Select asset"
-        />
-        <Button
-          text
-          label="Clear"
-          onClick={() => {
-            onChange(null);
-            setAsset(null);
-          }}
-          disabled={!value}
-        />
-      </div>
-      {value ? (
-        <div className="inline-actions">
-          <AssetPreview id={value} />
-          <small>{asset?.title ?? asset?.originalName ?? `Asset #${value}`}</small>
+      <div className="inline-actions asset-ref-row">
+        <div className="inline-actions asset-ref-actions">
+          <AssetPickerButton
+            token={token}
+            siteId={siteId}
+            selected={value ? [value] : []}
+            onChange={(assetIds) => {
+              const next = assetIds[0] ?? null;
+              onChange(next);
+              load(next).catch(() => undefined);
+            }}
+            label="Select asset"
+          />
+          <Button
+            text
+            label="Clear"
+            onClick={() => {
+              onChange(null);
+              setAsset(null);
+            }}
+            disabled={!value}
+          />
         </div>
-      ) : (
-        <small className="muted">No asset selected</small>
-      )}
+        {value ? (
+          <div className="inline-actions asset-ref-selected">
+            <AssetPreview id={value} />
+            <small>{asset?.title ?? asset?.originalName ?? `Asset #${value}`}</small>
+          </div>
+        ) : (
+          <small className="muted">No asset selected</small>
+        )}
+      </div>
     </div>
   );
 }

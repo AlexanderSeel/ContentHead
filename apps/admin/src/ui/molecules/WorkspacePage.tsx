@@ -14,8 +14,9 @@ type BreadcrumbItem = {
   command?: () => void;
 };
 
-export function WorkspacePage({ children }: { children: ReactNode }) {
-  return <div className="pageRoot workspace-page">{children}</div>;
+export function WorkspacePage({ children, className }: { children: ReactNode; className?: string }) {
+  const classNames = ['pageRoot', 'workspace-page', className].filter(Boolean).join(' ');
+  return <div className={classNames}>{children}</div>;
 }
 
 export function WorkspaceHeader({

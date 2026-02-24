@@ -295,6 +295,8 @@ export function ComponentInspector({
         <RichTextEditor
           value={String(value ?? '')}
           onChange={(next) => onChangeValue(next)}
+          token={token}
+          siteId={siteId}
         />
       );
     }

@@ -506,8 +506,9 @@ export async function listComponentTypeSettings(
   siteId: number
 ): Promise<ComponentTypeSettingRecord[]> {
   await ensureComponentTypeSettingsTable(db);
-  return db.all<ComponentTypeSettingRecord>(
-    `
+  try {
+    return await db.all<ComponentTypeSettingRecord>(
+      `
 SELECT
   site_id as siteId,
   component_type_id as componentTypeId,
@@ -519,8 +520,47 @@ FROM component_type_settings
 WHERE site_id = ?
 ORDER BY component_type_id
 `,
-    [siteId]
-  );
+      [siteId]
+    );
+  } catch {
+    try {
+      return await db.all<ComponentTypeSettingRecord>(
+        `
+SELECT
+  site_id as siteId,
+  component_type_id as componentTypeId,
+  enabled,
+  NULL as groupName,
+  CAST(current_timestamp AS VARCHAR) as updatedAt,
+  'system' as updatedBy
+FROM component_type_settings
+WHERE site_id = ?
+ORDER BY component_type_id
+`,
+        [siteId]
+      );
+    } catch {
+      try {
+        return await db.all<ComponentTypeSettingRecord>(
+          `
+SELECT
+  site_id as siteId,
+  component_type as componentTypeId,
+  enabled,
+  NULL as groupName,
+  CAST(current_timestamp AS VARCHAR) as updatedAt,
+  'system' as updatedBy
+FROM component_type_settings
+WHERE site_id = ?
+ORDER BY component_type
+`,
+          [siteId]
+        );
+      } catch {
+        return [];
+      }
+    }
+  }
 }
 
 export async function upsertComponentTypeSetting(
@@ -590,7 +630,8 @@ WHERE site_id = ? AND component_type_id = ?
 }
 
 async function ensureComponentTypeSettingsTable(db: DbClient): Promise<void> {
-  await db.run(`
+  try {
+    await db.run(`
 CREATE TABLE IF NOT EXISTS component_type_settings (
   site_id INTEGER,
   component_type_id VARCHAR,
@@ -600,12 +641,25 @@ CREATE TABLE IF NOT EXISTS component_type_settings (
   updated_by VARCHAR
 );
 `);
+  } catch {
+    // Some managed/legacy DB setups reject CREATE TABLE IF NOT EXISTS here.
+    // The list/read paths below degrade gracefully.
+  }
 
-  await db.run('ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS component_type_id VARCHAR');
-  await db.run('ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT TRUE');
-  await db.run('ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS group_name VARCHAR');
-  await db.run('ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP');
-  await db.run('ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS updated_by VARCHAR');
+  const alters = [
+    'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS component_type_id VARCHAR',
+    'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT TRUE',
+    'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS group_name VARCHAR',
+    'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP',
+    'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS updated_by VARCHAR'
+  ];
+  for (const statement of alters) {
+    try {
+      await db.run(statement);
+    } catch {
+      // Legacy/managed DBs can reject ALTER variants; reads/writes handle fallback.
+    }
+  }
 }
 
 export async function deleteContentType(db: DbClient, id: number): Promise<boolean> {
@@ -906,8 +960,10 @@ export async function rollbackToVersion(db: DbClient, input: {
 }
 
 export async function listTemplates(db: DbClient, siteId: number): Promise<TemplateRecord[]> {
-  return db.all<TemplateRecord>(
-    `
+  await ensureTemplatesTable(db);
+  try {
+    return await db.all<TemplateRecord>(
+      `
 SELECT
   id,
   site_id as siteId,
@@ -920,8 +976,32 @@ FROM templates
 WHERE site_id = ?
 ORDER BY name
 `,
-    [siteId]
-  );
+      [siteId]
+    );
+  } catch {
+    const legacyRows = await db.all<
+      Omit<TemplateRecord, 'compositionJson' | 'componentsJson' | 'constraintsJson' | 'updatedAt'>
+    >(
+      `
+SELECT
+  id,
+  site_id as siteId,
+  name
+FROM templates
+WHERE site_id = ?
+ORDER BY name
+`,
+      [siteId]
+    );
+    const updatedAt = await nowTimestamp(db);
+    return legacyRows.map((entry) => ({
+      ...entry,
+      compositionJson: stringify({ areas: [{ name: 'main', components: [] }] }),
+      componentsJson: '{}',
+      constraintsJson: '{}',
+      updatedAt
+    }));
+  }
 }
 
 export async function createTemplate(db: DbClient, input: {
@@ -931,6 +1011,7 @@ export async function createTemplate(db: DbClient, input: {
   componentsJson: string;
   constraintsJson: string;
 }): Promise<TemplateRecord> {
+  await ensureTemplatesTable(db);
   parseJsonAny(input.compositionJson, 'compositionJson');
   parseJsonAny(input.componentsJson, 'componentsJson');
   parseJsonAny(input.constraintsJson, 'constraintsJson');
@@ -975,6 +1056,7 @@ export async function updateTemplate(db: DbClient, input: {
   componentsJson: string;
   constraintsJson: string;
 }): Promise<TemplateRecord> {
+  await ensureTemplatesTable(db);
   parseJsonAny(input.compositionJson, 'compositionJson');
   parseJsonAny(input.componentsJson, 'componentsJson');
   parseJsonAny(input.constraintsJson, 'constraintsJson');
@@ -1017,11 +1099,13 @@ WHERE id = ?
 }
 
 export async function deleteTemplate(db: DbClient, id: number): Promise<boolean> {
+  await ensureTemplatesTable(db);
   await db.run('DELETE FROM templates WHERE id = ?', [id]);
   return true;
 }
 
 export async function reconcileTemplate(db: DbClient, templateId: number): Promise<DiffResult> {
+  await ensureTemplatesTable(db);
   const template = await db.get<TemplateRecord>(
     `
 SELECT
@@ -1058,6 +1142,25 @@ WHERE id = ?
     leftVersionId: templateId,
     rightVersionId: templateId
   };
+}
+
+async function ensureTemplatesTable(db: DbClient): Promise<void> {
+  await db.run(`
+CREATE TABLE IF NOT EXISTS templates (
+  id INTEGER PRIMARY KEY,
+  site_id INTEGER NOT NULL,
+  name VARCHAR NOT NULL,
+  composition_json VARCHAR NOT NULL,
+  components_json VARCHAR NOT NULL,
+  constraints_json VARCHAR NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT current_timestamp
+);
+`);
+
+  await db.run('ALTER TABLE templates ADD COLUMN IF NOT EXISTS composition_json VARCHAR');
+  await db.run('ALTER TABLE templates ADD COLUMN IF NOT EXISTS components_json VARCHAR');
+  await db.run('ALTER TABLE templates ADD COLUMN IF NOT EXISTS constraints_json VARCHAR');
+  await db.run('ALTER TABLE templates ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP');
 }
 
 export async function listRoutes(db: DbClient, input: {

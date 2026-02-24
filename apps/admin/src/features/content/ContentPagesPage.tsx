@@ -1514,7 +1514,7 @@ export function ContentPagesPage() {
   const renderEditorPane = () => {
     if (!selectedItemId) {
       return (
-        <div className="pane paneScroll cms-pane">
+        <div className="pane cms-pane">
           <EmptyState
             title="No page selected"
             description="Pick a page from the tree or search results."
@@ -1525,8 +1525,10 @@ export function ContentPagesPage() {
       );
     }
 
+    const editorPaneClassName = centerTabIndex === 1 ? 'pane cms-pane cms-pane-components-active' : 'pane cms-pane';
+
     return (
-      <div className="pane paneScroll cms-pane">
+      <div className={editorPaneClassName}>
         {loadingItem ? <div className="status-panel">Loading content item #{selectedItemId}...</div> : null}
         <TabView activeIndex={centerTabIndex} onTabChange={(event) => setCenterTabIndex(event.index)}>
           <TabPanel header="Fields">
@@ -1538,7 +1540,7 @@ export function ContentPagesPage() {
                 const isSelected = selectedFieldPath === editorPath;
                 return (
                   <div
-                    className={`form-row ${isSelected ? 'cms-selected-editor-row' : ''}`}
+                    className={`form-row cms-field-row ${isSelected ? 'cms-selected-editor-row' : ''}`}
                     key={def.key}
                     data-editor-path={editorPath}
                     onClick={() => {
@@ -1563,92 +1565,94 @@ export function ContentPagesPage() {
           </TabPanel>
 
           <TabPanel header="Components">
-            <VisualBuilderWorkspace
-              palette={availableComponentTypeOptions.map((entry) => ({
-                id: String(entry.value),
-                label: String(entry.label)
-              }))}
-              areas={composition.areas}
-              componentMap={componentMap}
-              selectedComponentId={selectedComponentId}
-              selectedComponentSource={componentSourceResolver}
-              onSelect={(id) => {
-                setSelectedComponentId(id);
-                setSelectedFieldPath(`components.${id}`);
-              }}
-              onAdd={(componentTypeId, areaName) => {
-                setNewComponentType(componentTypeId);
-                setNewComponentArea(areaName ?? 'main');
-                const allowedByType = new Set(allowedComponentIds);
-                if (!allowedByType.has(componentTypeId)) {
-                  setStatus(`Component type \"${componentTypeId}\" is not allowed for this content type.`);
-                  return;
-                }
-                const area = areaName ?? 'main';
-                const areaAllowed =
-                  Array.isArray(areaRestrictions[area]) && areaRestrictions[area]!.length > 0
-                    ? new Set(areaRestrictions[area]!)
-                    : null;
-                if (areaAllowed && !areaAllowed.has(componentTypeId)) {
-                  setStatus(`Component type \"${componentTypeId}\" is restricted in area \"${area}\".`);
-                  return;
-                }
-                const entry = getComponentRegistryEntry(componentTypeId);
-                if (!entry) {
-                  return;
-                }
-                const id = `${entry.id}_${Date.now()}`;
-                const nextMap = { ...componentMap, [id]: { id, type: entry.id, props: cloneProps(entry.defaultProps) } };
-                const nextAreas = placeComponentInArea(composition.areas, area, id);
-                updateComponentMap(nextMap);
-                updateComposition({ areas: nextAreas });
-                setSelectedComponentId(id);
-                setSelectedFieldPath(`components.${id}`);
-              }}
-              onMove={moveComponent}
-              onDuplicate={duplicateComponent}
-              onDelete={removeComponent}
-              rightPane={(
-                <div className="form-row">
-                  <InspectorSection title="Selected Block" defaultCollapsed={!selectedComponent}>
-                    <ComponentInspector
-                      component={selectedComponent}
-                      siteId={siteId}
-                      selectedFieldPath={selectedFieldPath}
-                      onSelectFieldPath={(path) => {
-                        setSelectedFieldPath(path);
-                        const parsed = parseComponentFieldPath(path);
-                        if (parsed) {
-                          setSelectedComponentId(parsed.componentId);
-                        }
-                      }}
-                      onChange={(next) => {
-                        const nextMap = { ...componentMap, [next.id]: next };
-                        updateComponentMap(nextMap);
-                      }}
-                    />
-                  </InspectorSection>
-                  <InspectorSection title="Template Binding">
-                    <small className="muted">
-                      {selectedTemplate
-                        ? `Template ${selectedTemplate.name} is selected. Blocks marked \"template\" come from template baseline, \"override\" are page-specific.`
-                        : 'No template selected for this page.'}
-                    </small>
-                  </InspectorSection>
-                  {extensionInspectorPanels.map((panel) => (
-                    <InspectorSection key={panel.id} title={panel.label}>
-                      {panel.render({
-                        siteId,
-                        contentItemId: selectedItemId,
-                        metadataJson,
-                        compositionJson,
-                        componentsJson
-                      })}
+            <div className="components-tab-shell splitFill">
+              <VisualBuilderWorkspace
+                palette={availableComponentTypeOptions.map((entry) => ({
+                  id: String(entry.value),
+                  label: String(entry.label)
+                }))}
+                areas={composition.areas}
+                componentMap={componentMap}
+                selectedComponentId={selectedComponentId}
+                selectedComponentSource={componentSourceResolver}
+                onSelect={(id) => {
+                  setSelectedComponentId(id);
+                  setSelectedFieldPath(`components.${id}`);
+                }}
+                onAdd={(componentTypeId, areaName) => {
+                  setNewComponentType(componentTypeId);
+                  setNewComponentArea(areaName ?? 'main');
+                  const allowedByType = new Set(allowedComponentIds);
+                  if (!allowedByType.has(componentTypeId)) {
+                    setStatus(`Component type \"${componentTypeId}\" is not allowed for this content type.`);
+                    return;
+                  }
+                  const area = areaName ?? 'main';
+                  const areaAllowed =
+                    Array.isArray(areaRestrictions[area]) && areaRestrictions[area]!.length > 0
+                      ? new Set(areaRestrictions[area]!)
+                      : null;
+                  if (areaAllowed && !areaAllowed.has(componentTypeId)) {
+                    setStatus(`Component type \"${componentTypeId}\" is restricted in area \"${area}\".`);
+                    return;
+                  }
+                  const entry = getComponentRegistryEntry(componentTypeId);
+                  if (!entry) {
+                    return;
+                  }
+                  const id = `${entry.id}_${Date.now()}`;
+                  const nextMap = { ...componentMap, [id]: { id, type: entry.id, props: cloneProps(entry.defaultProps) } };
+                  const nextAreas = placeComponentInArea(composition.areas, area, id);
+                  updateComponentMap(nextMap);
+                  updateComposition({ areas: nextAreas });
+                  setSelectedComponentId(id);
+                  setSelectedFieldPath(`components.${id}`);
+                }}
+                onMove={moveComponent}
+                onDuplicate={duplicateComponent}
+                onDelete={removeComponent}
+                rightPane={(
+                  <div className="form-row builder-inspector">
+                    <InspectorSection title="Selected Block" defaultCollapsed={!selectedComponent}>
+                      <ComponentInspector
+                        component={selectedComponent}
+                        siteId={siteId}
+                        selectedFieldPath={selectedFieldPath}
+                        onSelectFieldPath={(path) => {
+                          setSelectedFieldPath(path);
+                          const parsed = parseComponentFieldPath(path);
+                          if (parsed) {
+                            setSelectedComponentId(parsed.componentId);
+                          }
+                        }}
+                        onChange={(next) => {
+                          const nextMap = { ...componentMap, [next.id]: next };
+                          updateComponentMap(nextMap);
+                        }}
+                      />
                     </InspectorSection>
-                  ))}
-                </div>
-              )}
-            />
+                    <InspectorSection title="Template Binding">
+                      <small className="muted">
+                        {selectedTemplate
+                          ? `Template ${selectedTemplate.name} is selected. Blocks marked \"template\" come from template baseline, \"override\" are page-specific.`
+                          : 'No template selected for this page.'}
+                      </small>
+                    </InspectorSection>
+                    {extensionInspectorPanels.map((panel) => (
+                      <InspectorSection key={panel.id} title={panel.label}>
+                        {panel.render({
+                          siteId,
+                          contentItemId: selectedItemId,
+                          metadataJson,
+                          compositionJson,
+                          componentsJson
+                        })}
+                      </InspectorSection>
+                    ))}
+                  </div>
+                )}
+              />
+            </div>
           </TabPanel>
           <TabPanel header="Routes">
             <DataTable value={routes.filter((route) => route.contentItemId === selectedItemId)} size="small">
@@ -1851,7 +1855,7 @@ export function ContentPagesPage() {
   );
 
   return (
-    <WorkspacePage>
+    <WorkspacePage className="content-pages-workspace">
       <WorkspaceHeader
         title="Content Pages"
         subtitle="Professional CMS workspace with on-page editing bridge."

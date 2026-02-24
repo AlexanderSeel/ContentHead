@@ -1,7 +1,8 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Editor } from 'primereact/editor';
 
 import { DEFAULT_RICH_TEXT_FEATURES, type RichTextFeature } from '../../schema/fieldValidationUi';
+import { LinkSelectorDialog, type ContentLinkValue } from './LinkSelectorDialog';
 
 const has = (features: Set<RichTextFeature>, feature: RichTextFeature) => features.has(feature);
 const TABLE_HTML =
@@ -79,40 +80,93 @@ export function RichTextEditor({
   value,
   onChange,
   features,
-  readOnly
+  readOnly,
+  token,
+  siteId
 }: {
   value: string;
   onChange: (value: string) => void;
   features?: RichTextFeature[] | null;
   readOnly?: boolean;
+  token?: string | null;
+  siteId?: number;
 }) {
   const enabled = features && features.length > 0 ? features : DEFAULT_RICH_TEXT_FEATURES;
   const headerTemplate = useMemo(() => buildHeader(enabled), [enabled]);
   const formats = useMemo(() => buildFormats(enabled), [enabled]);
   const quillRef = useRef<any>(null);
+  const [linkDialogVisible, setLinkDialogVisible] = useState(false);
+  const [linkRange, setLinkRange] = useState<{ index: number; length: number } | null>(null);
+
+  const applyCmsLink = (nextLink: ContentLinkValue) => {
+    const quill = quillRef.current;
+    if (!quill) {
+      return;
+    }
+    const href = nextLink.url ?? (typeof nextLink.contentItemId === 'number' ? `#${nextLink.contentItemId}` : '');
+    if (!href) {
+      return;
+    }
+    const range = linkRange ?? quill.getSelection(true);
+    const index = typeof range?.index === 'number' ? range.index : quill.getLength();
+    const length = typeof range?.length === 'number' ? range.length : 0;
+    if (length > 0) {
+      quill.formatText(index, length, 'link', href, 'user');
+      return;
+    }
+    const label = nextLink.text?.trim() || href;
+    quill.insertText(index, label, 'link', href, 'user');
+    quill.setSelection(index + label.length, 0, 'user');
+  };
 
   return (
-    <Editor
-      value={value}
-      onTextChange={(event) => onChange(event.htmlValue ?? '')}
-      headerTemplate={readOnly ? null : headerTemplate}
-      formats={formats}
-      onLoad={(quill) => {
-        quillRef.current = quill;
-        const toolbar = quill?.getModule?.('toolbar');
-        if (!toolbar) {
-          return;
-        }
-        if (enabled.includes('table')) {
-          toolbar.addHandler('table', () => {
-            const range = quill.getSelection(true);
-            const insertAt = typeof range?.index === 'number' ? range.index : quill.getLength();
-            quill.clipboard.dangerouslyPasteHTML(insertAt, TABLE_HTML, 'user');
-          });
-        }
-      }}
-      readOnly={readOnly}
-      style={{ minHeight: '10rem' }}
-    />
+    <>
+      <Editor
+        className="ch-richtext-editor"
+        value={value}
+        onTextChange={(event) => onChange(event.htmlValue ?? '')}
+        headerTemplate={readOnly ? null : headerTemplate}
+        formats={formats}
+        onLoad={(quill) => {
+          quillRef.current = quill;
+          const toolbar = quill?.getModule?.('toolbar');
+          if (!toolbar) {
+            return;
+          }
+          if (enabled.includes('table')) {
+            toolbar.addHandler('table', () => {
+              const range = quill.getSelection(true);
+              const insertAt = typeof range?.index === 'number' ? range.index : quill.getLength();
+              quill.clipboard.dangerouslyPasteHTML(insertAt, TABLE_HTML, 'user');
+            });
+          }
+          if (enabled.includes('link') && token && siteId) {
+            toolbar.addHandler('link', () => {
+              const range = quill.getSelection(true);
+              if (range && typeof range.index === 'number' && typeof range.length === 'number') {
+                setLinkRange({ index: range.index, length: range.length });
+              } else {
+                setLinkRange(null);
+              }
+              setLinkDialogVisible(true);
+            });
+          }
+        }}
+        readOnly={readOnly}
+      />
+      {token && siteId ? (
+        <LinkSelectorDialog
+          visible={linkDialogVisible}
+          token={token}
+          siteId={siteId}
+          value={null}
+          onHide={() => setLinkDialogVisible(false)}
+          onApply={(nextLink) => {
+            applyCmsLink(nextLink);
+            setLinkDialogVisible(false);
+          }}
+        />
+      ) : null}
+    </>
   );
 }

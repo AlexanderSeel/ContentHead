@@ -45,12 +45,18 @@ export class DuckDbClient implements DbClient {
   }
 
   run(sql: string, params: unknown[] = []): Promise<void> {
-    return this.connection.run(sql, params as never[]).then(() => undefined);
+    return this.connection.run(sql, params as never[]).then(() => undefined).catch((error) => {
+      throw enrichDbError(error, sql, params);
+    });
   }
 
   async all<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-    const result = await this.connection.runAndReadAll(sql, params as never[]);
-    return result.getRowObjectsJS() as T[];
+    try {
+      const result = await this.connection.runAndReadAll(sql, params as never[]);
+      return result.getRowObjectsJS() as T[];
+    } catch (error) {
+      throw enrichDbError(error, sql, params);
+    }
   }
 
   async get<T>(sql: string, params: unknown[] = []): Promise<T | undefined> {
@@ -62,4 +68,15 @@ export class DuckDbClient implements DbClient {
     this.connection.closeSync();
     this.instance.closeSync();
   }
+}
+
+function enrichDbError(error: unknown, sql: string, params: unknown[]): Error {
+  const normalized = sql.replace(/\s+/g, ' ').trim();
+  const preview = normalized.length > 220 ? `${normalized.slice(0, 220)}...` : normalized;
+  const paramsPreview = JSON.stringify(params).slice(0, 300);
+  const baseMessage = error instanceof Error ? error.message : String(error);
+  return new Error(
+    `DuckDB query failed: ${baseMessage}; sql="${preview}"; params=${paramsPreview}`,
+    { cause: error instanceof Error ? error : undefined }
+  );
 }

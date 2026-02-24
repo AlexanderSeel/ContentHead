@@ -79,6 +79,8 @@ export function FieldRenderer({ field, value, onChange, siteId, token, readOnly 
         onChange={(next) => onChange(next)}
         features={ui.richTextFeatures ?? null}
         readOnly={Boolean(readOnly)}
+        token={token}
+        siteId={siteId}
       />
     );
   }
