@@ -5,7 +5,20 @@ export type ThemeOption = {
   mode: 'light' | 'dark';
 };
 
-const CDN_THEME_BASE = 'https://unpkg.com/primereact@10.9.7/resources/themes';
+const CDN_THEME_BASE = 'https://primereact.org/themes/';
+const LOCAL_THEME_BASE = '/themes';
+
+// Hybrid model: full catalog from CDN, local fallback for a compact reliability set.
+const LOCAL_FALLBACK_THEME_VALUES = new Set<string>([
+  'lara-light-blue',
+  'lara-dark-blue',
+  'saga-blue',
+  'soho-light',
+  'soho-dark',
+  'viva-light',
+  'viva-dark',
+  'arya-blue'
+]);
 
 const THEME_VALUES = [
   'arya-blue',
@@ -89,5 +102,8 @@ export const PRIME_THEMES: ThemeOption[] = THEME_VALUES.map((value) => ({
   label: toThemeLabel(value),
   value,
   mode: resolveThemeMode(value),
-  href: [`/themes/${value}/theme.css`, `${CDN_THEME_BASE}/${value}/theme.css`]
+  href: [
+    `${CDN_THEME_BASE}/${value}/theme.css`,
+    ...(LOCAL_FALLBACK_THEME_VALUES.has(value) ? [`${LOCAL_THEME_BASE}/${value}/theme.css`] : [])
+  ]
 }));

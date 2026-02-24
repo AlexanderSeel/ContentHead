@@ -225,8 +225,19 @@ function sanitizeRichTextHtml(
   input: string,
   options: { marketCode: string; localeCode: string; urlPattern: string; apiBaseUrl: string }
 ): string {
+  const html = input || '';
+  // Next.js can evaluate client modules during server rendering where DOMParser is not available.
+  // Use a conservative string-based fallback to avoid runtime crashes.
+  if (typeof DOMParser === 'undefined') {
+    return html
+      .replace(/<\s*script[\s\S]*?>[\s\S]*?<\s*\/\s*script\s*>/gi, '')
+      .replace(/<\s*style[\s\S]*?>[\s\S]*?<\s*\/\s*style\s*>/gi, '')
+      .replace(/\son[a-z]+\s*=\s*(['"]).*?\1/gi, '')
+      .replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, '')
+      .replace(/\s(href|src)\s*=\s*(['"])\s*javascript:[\s\S]*?\2/gi, ' $1="#"');
+  }
   const parser = new DOMParser();
-  const doc = parser.parseFromString(`<div>${input || ''}</div>`, 'text/html');
+  const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
   const root = doc.body.firstElementChild;
   if (!root) {
     return '';

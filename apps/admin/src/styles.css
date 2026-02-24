@@ -80,6 +80,39 @@
   border-color: var(--surface-border);
 }
 
+.graphiql-host .graphiql-container,
+.graphiql-host .graphiql-sessions,
+.graphiql-host .graphiql-session,
+.graphiql-host .graphiql-main,
+.graphiql-host .graphiql-doc-explorer,
+.graphiql-host .graphiql-editor,
+.graphiql-host .graphiql-response,
+.graphiql-host .graphiql-toolbar,
+.graphiql-host .graphiql-sidebar,
+.graphiql-host .graphiql-query-editor,
+.graphiql-host .graphiql-variable-editor {
+  background: var(--surface-card) !important;
+  color: var(--text-color) !important;
+  border-color: var(--surface-border) !important;
+}
+
+.graphiql-host .graphiql-toolbar button,
+.graphiql-host .graphiql-tab,
+.graphiql-host .graphiql-tab button {
+  color: var(--text-color) !important;
+}
+
+.graphiql-host .graphiql-tab.graphiql-tab-active,
+.graphiql-host .graphiql-tab:hover {
+  background: color-mix(in srgb, var(--primary-color), transparent 84%) !important;
+}
+
+.graphiql-host .graphiql-doc-explorer-search {
+  background: var(--surface-ground) !important;
+  color: var(--text-color) !important;
+  border: 1px solid var(--surface-border) !important;
+}
+
 .graphiql-host .graphiql-explorer-root {
   min-width: 260px;
 }
@@ -250,8 +283,9 @@ pre {
   margin: 0;
   padding: 0.75rem;
   border-radius: 8px;
-  background: var(--surface-900);
-  color: var(--surface-0);
+  background: var(--surface-ground);
+  color: var(--text-color);
+  border: 1px solid var(--surface-border);
   overflow: auto;
 }
 

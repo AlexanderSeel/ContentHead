@@ -1,5 +1,11 @@
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+
+const require = createRequire(import.meta.url);
+const graphqlEsmEntry = require.resolve('graphql/index.mjs');
+const nullthrowsShimEntry = fileURLToPath(new URL('./src/vendor/nullthrows.ts', import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
@@ -7,7 +13,7 @@ export default defineConfig({
     format: 'es'
   },
   optimizeDeps: {
-    include: ['react-compiler-runtime', 'nullthrows', 'graphql-language-service'],
+    include: ['graphql'],
     exclude: ['monaco-editor', 'monaco-graphql'],
     esbuildOptions: {
       // monaco-graphql publishes sourcemap references that are not shipped.
@@ -18,6 +24,12 @@ export default defineConfig({
     }
   },
   resolve: {
+    alias: [
+      { find: /^graphql$/, replacement: graphqlEsmEntry },
+      { find: /^graphql\/index\.mjs$/, replacement: graphqlEsmEntry },
+      { find: /^nullthrows$/, replacement: nullthrowsShimEntry }
+    ],
+    dedupe: ['graphql'],
     // Prefer TypeScript sources when .ts/.tsx and .js siblings both exist.
     extensions: ['.ts', '.tsx', '.mjs', '.js', '.jsx', '.json']
   },
