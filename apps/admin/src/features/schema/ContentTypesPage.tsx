@@ -12,8 +12,8 @@ import { MultiSelect } from 'primereact/multiselect';
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
 import { useUi } from '../../app/UiContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
+import { WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import type { Command, CommandContext } from '../../ui/commands/types';
@@ -312,8 +312,8 @@ export function ContentTypesPage() {
   const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'pageHeaderOverflow');
 
   return (
-    <div className="pageRoot">
-      <PageHeader
+    <WorkspacePage>
+      <WorkspaceHeader
         title="Content Types"
         subtitle="Visual schema builder with field inspector and preview"
         helpTopicKey="content_types"
@@ -463,6 +463,6 @@ export function ContentTypesPage() {
           <Button label="Add" onClick={addField} disabled={!newFieldLabel.trim() || fields.some((entry) => entry.key === newFieldKey)} />
         </div>
       </Dialog>
-    </div>
+    </WorkspacePage>
   );
 }

@@ -4,6 +4,7 @@ import { Menubar } from 'primereact/menubar';
 import { OverlayPanel } from 'primereact/overlaypanel';
 import type { MenuItem } from 'primereact/menuitem';
 import { Button } from 'primereact/button';
+import { InputText } from 'primereact/inputtext';
 import { useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -16,11 +17,13 @@ export function Topbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { username, logout } = useAuth();
-  const { theme, themes, setTheme } = useUi();
+  const { theme, themes, setTheme, layoutPreferences, setLayoutPreferences } = useUi();
   const { sites, siteId, setSiteId, combos, marketCode, localeCode, setMarketCode, setLocaleCode } =
     useAdminContext();
-  const userMenuRef = useRef<Menu>(null);
+  const accountMenuRef = useRef<Menu>(null);
+  const preferencesMenuRef = useRef<Menu>(null);
   const contextMenuRef = useRef<OverlayPanel>(null);
+  const quickSearchRef = useRef<OverlayPanel>(null);
 
   const areas = useMemo(() => buildNavAreas(import.meta.env.DEV), []);
   const marketOptions = useMemo(
@@ -70,6 +73,32 @@ export function Topbar() {
     [logout, username]
   );
 
+  const preferenceMenuModel = useMemo<MenuItem[]>(
+    () => [
+      {
+        label: 'Density',
+        items: [
+          {
+            label: 'Comfortable',
+            icon: layoutPreferences.density === 'comfortable' ? 'pi pi-check' : undefined,
+            command: () => setLayoutPreferences({ density: 'comfortable' })
+          },
+          {
+            label: 'Compact',
+            icon: layoutPreferences.density === 'compact' ? 'pi pi-check' : undefined,
+            command: () => setLayoutPreferences({ density: 'compact' })
+          }
+        ]
+      },
+      {
+        label: layoutPreferences.showWorkspacePanel ? 'Hide workspace panel' : 'Show workspace panel',
+        icon: 'pi pi-columns',
+        command: () => setLayoutPreferences({ showWorkspacePanel: !layoutPreferences.showWorkspacePanel })
+      }
+    ],
+    [layoutPreferences.density, layoutPreferences.showWorkspacePanel, setLayoutPreferences]
+  );
+
   const start = (
     <Button
       className="topbar-brand"
@@ -85,6 +114,20 @@ export function Topbar() {
 
   const end = (
     <div className="topbar-end-controls">
+      <Button
+        className="topbar-search-toggle"
+        icon="pi pi-search"
+        rounded
+        text
+        aria-label="Search"
+        onClick={(event) => quickSearchRef.current?.toggle(event)}
+      />
+      <OverlayPanel ref={quickSearchRef} className="topbar-search-panel" dismissable>
+        <span className="p-input-icon-left" style={{ width: '100%' }}>
+          <i className="pi pi-search" />
+          <InputText className="w-full" placeholder="Quick search pages, routes, assets..." />
+        </span>
+      </OverlayPanel>
       <Button
         className="topbar-context-trigger"
         icon="pi pi-sliders-h"
@@ -142,11 +185,19 @@ export function Topbar() {
           </label>
         </div>
       </OverlayPanel>
-      <Menu popup ref={userMenuRef} model={userMenuModel} />
+      <Menu popup model={preferenceMenuModel} ref={preferencesMenuRef} />
+      <Button
+        className="topbar-layout-preferences"
+        icon="pi pi-cog"
+        text
+        aria-label="Layout preferences"
+        onClick={(event) => preferencesMenuRef.current?.toggle(event)}
+      />
+      <Menu popup ref={accountMenuRef} model={userMenuModel} />
       <Button
         label={username ?? 'Account'}
         icon="pi pi-user"
-        onClick={(event) => userMenuRef.current?.toggle(event)}
+        onClick={(event) => accountMenuRef.current?.toggle(event)}
       />
     </div>
   );

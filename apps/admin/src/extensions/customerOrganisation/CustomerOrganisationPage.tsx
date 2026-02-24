@@ -4,9 +4,8 @@ import { TabPanel, TabView } from 'primereact/tabview';
 
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { TextInput, NumberInput } from '../../ui/atoms';
-import { EntityEditor, EntityTable, ToolbarActions } from '../../ui/molecules';
+import { EntityEditor, EntityTable, ToolbarActions, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { deleteEntity, insertEntity, listEntities, updateEntity } from '../core/dbEntityApi';
 
 type Organisation = {
@@ -69,8 +68,8 @@ export function CustomerOrganisationPage() {
   const orgLookup = useMemo(() => new Map(organisations.map((entry) => [entry.id, entry.name])), [organisations]);
 
   return (
-    <div>
-      <PageHeader title="Customers & Organisations" subtitle="Demo extension addon with CRUD pages and content references." />
+    <WorkspacePage>
+      <WorkspaceHeader title="Customers & Organisations" subtitle="Demo extension addon with CRUD pages and content references." />
       <ToolbarActions
         left={<small className="muted">Site {siteId}</small>}
         right={<Button label="Reload" text onClick={() => load().catch((error) => setStatus(String(error)))} />}
@@ -274,6 +273,6 @@ export function CustomerOrganisationPage() {
         ) : null}
       </EntityEditor>
       {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
-    </div>
+    </WorkspacePage>
   );
 }

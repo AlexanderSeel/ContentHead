@@ -9,6 +9,12 @@ import { setGraphqlErrorNotifier } from '../lib/graphqlReliability';
 
 const THEME_STORAGE_KEY = 'contenthead.admin.theme';
 const SCALE_STORAGE_KEY = 'contenthead.admin.scale';
+const LAYOUT_PREFS_STORAGE_KEY = 'contenthead.admin.layout.preferences';
+
+export type LayoutPreferences = {
+  density: 'comfortable' | 'compact';
+  showWorkspacePanel: boolean;
+};
 
 
 type UiContextValue = {
@@ -19,6 +25,8 @@ type UiContextValue = {
   themeBridge: ThemeBridgeSnapshot;
   setTheme: (value: string) => void;
   setScale: (value: number) => void;
+  layoutPreferences: LayoutPreferences;
+  setLayoutPreferences: (value: Partial<LayoutPreferences>) => void;
   toast: (message: ToastMessage) => void;
   confirm: (options: { header: string; message: string; acceptLabel?: string; rejectLabel?: string }) => Promise<boolean>;
 };
@@ -29,6 +37,21 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<string>(() => localStorage.getItem(THEME_STORAGE_KEY) ?? PRIME_THEMES[0]!.value);
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>(() => createThemeBridgeSnapshot(theme).mode);
   const [scale, setScaleState] = useState<number>(() => Number(localStorage.getItem(SCALE_STORAGE_KEY) ?? '14'));
+  const [layoutPreferences, setLayoutPreferencesState] = useState<LayoutPreferences>(() => {
+    const raw = localStorage.getItem(LAYOUT_PREFS_STORAGE_KEY);
+    if (!raw) {
+      return { density: 'comfortable', showWorkspacePanel: true };
+    }
+    try {
+      const parsed = JSON.parse(raw) as Partial<LayoutPreferences>;
+      return {
+        density: parsed.density === 'compact' ? 'compact' : 'comfortable',
+        showWorkspacePanel: parsed.showWorkspacePanel !== false
+      };
+    } catch {
+      return { density: 'comfortable', showWorkspacePanel: true };
+    }
+  });
   const toastRef = useRef<Toast>(null);
 
   useEffect(() => {
@@ -42,6 +65,11 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
     applyScale(normalized);
     localStorage.setItem(SCALE_STORAGE_KEY, String(normalized));
   }, [scale]);
+
+  useEffect(() => {
+    document.body.dataset.chDensity = layoutPreferences.density;
+    localStorage.setItem(LAYOUT_PREFS_STORAGE_KEY, JSON.stringify(layoutPreferences));
+  }, [layoutPreferences]);
 
   useEffect(() => {
     setGraphqlErrorNotifier((failure) => {
@@ -64,6 +92,12 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
       themeBridge: createThemeBridgeSnapshot(theme),
       setTheme: setThemeState,
       setScale: setScaleState,
+      layoutPreferences,
+      setLayoutPreferences: (next) =>
+        setLayoutPreferencesState((current) => ({
+          ...current,
+          ...next
+        })),
       toast: (message) => toastRef.current?.show(message),
       confirm: (options) =>
         new Promise((resolve) => {
@@ -78,7 +112,7 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
           });
         })
     }),
-    [theme, themeMode, scale]
+    [theme, themeMode, scale, layoutPreferences]
   );
 
   return (

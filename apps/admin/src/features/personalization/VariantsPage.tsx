@@ -8,9 +8,9 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import type { Rule } from '@contenthead/shared';
 
 import { createAdminSdk } from '../../lib/sdk';
+import { WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { RuleEditorDialog } from '../../components/rules/RuleEditorDialog';
 
 type Item = { id: number };
@@ -57,8 +57,8 @@ export function VariantsPage() {
   };
 
   return (
-    <div className="pageRoot">
-      <PageHeader
+    <WorkspacePage>
+      <WorkspaceHeader
         title="Variants (Advanced)"
         subtitle="Power-user table editor for personalization and A/B configurations"
         helpTopicKey="variants"
@@ -115,6 +115,6 @@ export function VariantsPage() {
           setRuleEditorOpen(false);
         }}
       />
-    </div>
+    </WorkspacePage>
   );
 }

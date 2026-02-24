@@ -41,3 +41,11 @@ This inventory tracks GraphQL operations used by admin panels via `@contenthead/
   - `ListSites`, `GetSite`, `LocaleCatalog`, `GetSiteDefaults`, `GetSiteMarketLocaleMatrix`
   - `UpsertMarket`, `UpsertLocale`, `UpsertSiteLocaleOverride`
   - `SetSiteName`, `SetSiteUrlPattern`, `SetSiteMarkets`, `SetSiteLocales`, `SetSiteMarketLocaleMatrix`
+
+
+## Reliability smoke coverage
+
+- `src/lib/graphqlReliability.test.ts` validates GraphQL error normalization for panel-critical conditions:
+  - permission failures (`FORBIDDEN`)
+  - schema/nullability mismatches (`Cannot return null for non-null field`)
+  - variable redaction for sensitive keys

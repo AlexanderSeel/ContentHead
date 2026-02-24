@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
+import { useUi } from '../../app/UiContext';
+
 export function SplitWorkspace({
   left,
   center,
@@ -18,10 +20,12 @@ export function SplitWorkspace({
   rightSize?: number;
   className?: string;
 }) {
+  const { layoutPreferences } = useUi();
+  const showLeftPanel = layoutPreferences.showWorkspacePanel;
   return (
     <Splitter className={className ?? 'splitFill'} style={{ width: '100%' }}>
-      <SplitterPanel size={leftSize} minSize={15}>
-        <div className="pane paneScroll">{left}</div>
+      <SplitterPanel size={showLeftPanel ? leftSize : 0} minSize={showLeftPanel ? 15 : 0}>
+        <div className="pane paneScroll">{showLeftPanel ? left : null}</div>
       </SplitterPanel>
       <SplitterPanel size={centerSize} minSize={30}>
         <div className="pane paneScroll">{center}</div>

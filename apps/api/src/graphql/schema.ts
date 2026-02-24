@@ -2896,7 +2896,13 @@ builder.mutationType({
         _root,
         args: { id?: number | null | undefined; name: string; description?: string | null | undefined; permissions: string[] },
         ctx
-      ) => upsertInternalRole(ctx.db, args)
+      ) =>
+        upsertInternalRole(ctx.db, {
+          id: args.id ?? null,
+          name: args.name,
+          description: args.description ?? null,
+          permissions: args.permissions
+        })
     }),
     deleteInternalRole: t.boolean({
       args: { id: t.arg.int({ required: true }) },
@@ -2929,7 +2935,12 @@ builder.mutationType({
         _root,
         args: { id?: number | null | undefined; name: string; description?: string | null | undefined },
         ctx
-      ) => upsertPrincipalGroup(ctx.db, args)
+      ) =>
+        upsertPrincipalGroup(ctx.db, {
+          id: args.id ?? null,
+          name: args.name,
+          description: args.description ?? null
+        })
     }),
     deletePrincipalGroup: t.boolean({
       args: { id: t.arg.int({ required: true }) },
@@ -2991,7 +3002,13 @@ builder.mutationType({
         _root,
         args: { id?: number | null | undefined; siteId: number; name: string; ruleJson: string },
         ctx
-      ) => upsertVisitorGroup(ctx.db, args)
+      ) =>
+        upsertVisitorGroup(ctx.db, {
+          id: args.id ?? null,
+          siteId: args.siteId,
+          name: args.name,
+          ruleJson: args.ruleJson
+        })
     }),
     deleteVisitorGroup: t.boolean({
       args: { id: t.arg.int({ required: true }) },

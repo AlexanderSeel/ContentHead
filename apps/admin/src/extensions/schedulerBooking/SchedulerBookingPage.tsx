@@ -3,9 +3,8 @@ import { Button } from 'primereact/button';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { DatePicker, NumberInput, Select, TextInput } from '../../ui/atoms';
-import { EntityEditor, EntityTable, ToolbarActions } from '../../ui/molecules';
+import { EntityEditor, EntityTable, ToolbarActions, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { deleteEntity, insertEntity, listEntities, updateEntity } from '../core/dbEntityApi';
 
 type Booking = {
@@ -69,8 +68,8 @@ export function SchedulerBookingPage() {
   }, [bookings, filterDate]);
 
   return (
-    <div>
-      <PageHeader title="Scheduler & Booking" subtitle="Bookings table with date filtering and extension inspector hooks." />
+    <WorkspacePage>
+      <WorkspaceHeader title="Scheduler & Booking" subtitle="Bookings table with date filtering and extension inspector hooks." />
       <ToolbarActions
         left={(
           <>
@@ -184,6 +183,6 @@ export function SchedulerBookingPage() {
         ) : null}
       </EntityEditor>
       {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
-    </div>
+    </WorkspacePage>
   );
 }

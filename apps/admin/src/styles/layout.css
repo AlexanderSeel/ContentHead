@@ -3,6 +3,17 @@
   --ch-card-gap: 1rem;
 }
 
+:root {
+  --ch-shell-surface: var(--surface-overlay);
+  --ch-shell-border: var(--surface-border);
+  --ch-shell-muted-text: var(--text-color-secondary);
+}
+
+body[data-ch-density='compact'] {
+  --ch-content-padding: 0.75rem;
+  --ch-card-gap: 0.75rem;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -77,8 +88,8 @@ body {
   top: 0;
   z-index: 10;
   padding: 0.45rem 0.65rem;
-  border-bottom: 1px solid var(--surface-border);
-  background: color-mix(in srgb, var(--surface-card), var(--surface-ground) 14%);
+  border-bottom: 1px solid var(--ch-shell-border);
+  background: color-mix(in srgb, var(--ch-shell-surface), var(--surface-ground) 14%);
 }
 
 .admin-topbar .p-menubar {
@@ -794,5 +805,37 @@ body {
     flex-basis: auto;
     border-bottom: 1px solid var(--surface-border);
     border-right: none;
+  }
+}
+
+.p-splitter,
+.p-splitter .p-splitter-panel {
+  min-height: 0;
+}
+
+.p-splitter .p-splitter-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.workspace-density-compact .workspace-header,
+.workspace-density-compact .workspace-actionbar,
+.workspace-density-compact .workspace-toolbar {
+  padding: 0.55rem 0.75rem;
+}
+
+
+.topbar-search-panel {
+  width: min(92vw, 26rem);
+}
+
+.topbar-end-controls .p-button {
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .topbar-context-trigger .p-button-label {
+    display: none;
   }
 }
