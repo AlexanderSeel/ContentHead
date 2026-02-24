@@ -30,10 +30,21 @@ import { validationMessage } from './fieldRenderers/rendererRegistry';
 import { buildWebUrl } from './buildWebUrl';
 import { ComponentList } from './components/ComponentList';
 import { ComponentInspector } from './components/ComponentInspector';
-import { componentRegistry, getComponentRegistryEntry } from './components/componentRegistry';
+import {
+  componentRegistry,
+  getComponentRegistryEntry,
+  resolveComponentRegistry,
+  type ComponentTypeSetting
+} from './components/componentRegistry';
 import type { CmsBridgeMessage } from './previewBridge';
 
-type CType = { id: number; name: string; fieldsJson: string };
+type CType = {
+  id: number;
+  name: string;
+  fieldsJson: string;
+  allowedComponentsJson?: string | null;
+  componentAreaRestrictionsJson?: string | null;
+};
 type Template = { id: number; name: string; compositionJson: string; componentsJson: string };
 type CItem = { id: number; contentTypeId: number; currentDraftVersionId?: number | null; currentPublishedVersionId?: number | null };
 type CVersion = { id: number; versionNumber: number; fieldsJson: string; compositionJson: string; componentsJson: string; metadataJson: string; state: string; comment?: string | null };
@@ -42,6 +53,7 @@ type VariantSet = { id: number; contentItemId: number; marketCode: string; local
 type Variant = { id: number; variantSetId: number; key: string; priority: number; ruleJson: string; state: string; trafficAllocation?: number | null; contentVersionId: number };
 type CompositionArea = { name: string; components: string[] };
 type ComponentRecord = { id: string; type: string; props: Record<string, unknown> };
+type ComponentTypeSettingRow = { componentTypeId?: string | null; enabled?: boolean | null; groupName?: string | null };
 
 type AiMode = 'copy' | 'props' | 'translate';
 type WorkspaceMode = 'split' | 'properties' | 'onpage';
@@ -152,6 +164,7 @@ export function ContentPagesPage() {
   const [types, setTypes] = useState<CType[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [items, setItems] = useState<CItem[]>([]);
+  const [componentSettings, setComponentSettings] = useState<ComponentTypeSetting[]>([]);
   const [routes, setRoutes] = useState<CRoute[]>([]);
   const [versions, setVersions] = useState<CVersion[]>([]);
   const [draft, setDraft] = useState<CVersion | null>(null);
@@ -372,6 +385,36 @@ export function ContentPagesPage() {
   }, [componentsJson]);
 
   const selectedComponent = selectedComponentId ? componentMap[selectedComponentId] ?? null : null;
+  const resolvedComponentRegistry = useMemo(() => resolveComponentRegistry(componentSettings), [componentSettings]);
+  const enabledComponentRegistry = useMemo(
+    () => resolvedComponentRegistry.filter((entry) => entry.enabled),
+    [resolvedComponentRegistry]
+  );
+  const allowedComponentIds = useMemo(() => {
+    const configured = parseJson<string[]>(selectedType?.allowedComponentsJson ?? '[]', []);
+    if (configured.length === 0) {
+      return enabledComponentRegistry.map((entry) => entry.id);
+    }
+    const enabled = new Set(enabledComponentRegistry.map((entry) => entry.id));
+    return configured.filter((entry) => enabled.has(entry));
+  }, [selectedType?.allowedComponentsJson, enabledComponentRegistry]);
+  const areaRestrictions = useMemo(() => {
+    return parseJson<Record<string, string[]>>(selectedType?.componentAreaRestrictionsJson ?? '{}', {});
+  }, [selectedType?.componentAreaRestrictionsJson]);
+  const availableComponentTypeOptions = useMemo(() => {
+    return enabledComponentRegistry
+      .filter((entry) => {
+        if (!allowedComponentIds.includes(entry.id)) {
+          return false;
+        }
+        const restricted = areaRestrictions[newComponentArea];
+        if (!Array.isArray(restricted) || restricted.length === 0) {
+          return true;
+        }
+        return restricted.includes(entry.id);
+      })
+      .map((entry) => ({ label: `${entry.label} (${entry.groupName})`, value: entry.id }));
+  }, [enabledComponentRegistry, allowedComponentIds, areaRestrictions, newComponentArea]);
 
   const resolveRichTextFeatures = (path: string | null): RichTextFeature[] | undefined => {
     if (!path) {
@@ -460,12 +503,24 @@ export function ContentPagesPage() {
       sdk.listRoutes({ siteId, marketCode: null, localeCode: null }),
       sdk.listTemplates({ siteId })
     ]);
+    const componentSettingsRes = await sdk
+      .listComponentTypeSettings({ siteId })
+      .catch(() => ({ listComponentTypeSettings: [] as ComponentTypeSettingRow[] }));
     const nextTypes = (typesRes.listContentTypes ?? []) as CType[];
     setTypes(nextTypes);
     setSelectedContentTypeId((prev) => prev ?? nextTypes[0]?.id ?? null);
     setItems((itemsRes.listContentItems ?? []) as CItem[]);
     setRoutes((routesRes.listRoutes ?? []) as CRoute[]);
     setTemplates((templatesRes.listTemplates ?? []) as Template[]);
+    setComponentSettings(
+      ((componentSettingsRes.listComponentTypeSettings ?? []) as ComponentTypeSettingRow[])
+        .filter((entry) => typeof entry.componentTypeId === 'string')
+        .map((entry) => ({
+          componentTypeId: entry.componentTypeId as string,
+          enabled: Boolean(entry.enabled ?? true),
+          groupName: entry.groupName ?? null
+        }))
+    );
   };
 
   const loadItem = async (id: number) => {
@@ -719,6 +774,15 @@ export function ContentPagesPage() {
     });
   }, [inlineEdit, canInlineEdit, previewIframeUrl, previewReloadKey]);
 
+  useEffect(() => {
+    if (availableComponentTypeOptions.length === 0) {
+      return;
+    }
+    if (!availableComponentTypeOptions.some((entry) => entry.value === newComponentType)) {
+      setNewComponentType(String(availableComponentTypeOptions[0]?.value ?? ''));
+    }
+  }, [availableComponentTypeOptions, newComponentType]);
+
   const createPage = async () => {
     const contentTypeId = selectedContentTypeId ?? types[0]?.id;
     if (!contentTypeId) {
@@ -926,6 +990,20 @@ export function ContentPagesPage() {
   };
 
   const addComponent = () => {
+    const allowedByType = new Set(allowedComponentIds);
+    if (!allowedByType.has(newComponentType)) {
+      setStatus(`Component type "${newComponentType}" is not allowed for this content type.`);
+      return;
+    }
+    const areaAllowed =
+      Array.isArray(areaRestrictions[newComponentArea]) && areaRestrictions[newComponentArea]!.length > 0
+        ? new Set(areaRestrictions[newComponentArea]!)
+        : null;
+    if (areaAllowed && !areaAllowed.has(newComponentType)) {
+      setStatus(`Component type "${newComponentType}" is restricted in area "${newComponentArea}".`);
+      return;
+    }
+
     const entry = getComponentRegistryEntry(newComponentType);
     if (!entry) {
       return;
@@ -1440,7 +1518,7 @@ export function ContentPagesPage() {
           <label>Component Type</label>
           <Dropdown
             value={newComponentType}
-            options={componentRegistry.map((entry) => ({ label: entry.label, value: entry.id }))}
+            options={availableComponentTypeOptions}
             onChange={(event) => setNewComponentType(String(event.value))}
             filter
           />
@@ -1456,7 +1534,7 @@ export function ContentPagesPage() {
         </div>
         <div className="inline-actions" style={{ marginTop: '0.75rem' }}>
           <Button label="Cancel" text onClick={() => setShowAddComponent(false)} />
-          <Button label="Add" onClick={addComponent} />
+          <Button label="Add" onClick={addComponent} disabled={!newComponentType || availableComponentTypeOptions.length === 0} />
         </div>
       </Dialog>
       <Dialog header="Ask AI" visible={aiDialogOpen} onHide={() => setAiDialogOpen(false)} style={{ width: '42rem' }}>

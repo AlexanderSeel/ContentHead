@@ -6,11 +6,13 @@ import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
+import { MultiSelect } from 'primereact/multiselect';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
 import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
+import { resolveComponentRegistry, type ComponentTypeSetting } from '../content/components/componentRegistry';
 import { ContentTypeList, type CTypeListItem } from './ContentTypeList';
 import { FieldInspector } from './FieldInspector';
 import { FieldList } from './FieldList';
@@ -24,6 +26,49 @@ import {
   type ContentFieldDef,
   type ContentFieldType
 } from './fieldValidationUi';
+
+type ComponentTypeSettingRow = {
+  componentTypeId?: string | null;
+  enabled?: boolean | null;
+  groupName?: string | null;
+};
+
+function parseStringArrayJson(value: string | null | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter((entry): entry is string => typeof entry === 'string');
+  } catch {
+    return [];
+  }
+}
+
+function parseAreaRestrictionsJson(value: string | null | undefined): Record<string, string[]> {
+  if (!value) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+    const out: Record<string, string[]> = {};
+    for (const [key, entry] of Object.entries(parsed)) {
+      if (!Array.isArray(entry)) {
+        continue;
+      }
+      out[key] = entry.filter((item): item is string => typeof item === 'string');
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
 
 export function ContentTypesPage() {
   const { token } = useAuth();
@@ -39,17 +84,36 @@ export function ContentTypesPage() {
   const [newFieldKey, setNewFieldKey] = useState('');
   const [newFieldType, setNewFieldType] = useState<ContentFieldType>('text');
   const [newFieldRequired, setNewFieldRequired] = useState(false);
+  const [allowedComponents, setAllowedComponents] = useState<string[]>([]);
+  const [areaRestrictions, setAreaRestrictions] = useState<Record<string, string[]>>({});
+  const [componentSettings, setComponentSettings] = useState<ComponentTypeSetting[]>([]);
   const [allItems, setAllItems] = useState<Array<{ id?: number | null; contentTypeId?: number | null }>>([]);
   const [allRoutes, setAllRoutes] = useState<Array<{ contentItemId?: number | null; slug?: string | null; marketCode?: string | null; localeCode?: string | null }>>([]);
 
   const refresh = async () => {
-    const result = await sdk.listContentTypes({ siteId });
-    const all = (result.listContentTypes ?? []) as CTypeListItem[];
+    const contentTypesResult = await sdk.listContentTypes({ siteId });
+    const componentSettingsResult = await sdk
+      .listComponentTypeSettings({ siteId })
+      .catch(() => ({ listComponentTypeSettings: [] as ComponentTypeSettingRow[] }));
+    const settingsRows = (componentSettingsResult.listComponentTypeSettings ?? []) as ComponentTypeSettingRow[];
+    setComponentSettings(
+      settingsRows
+        .filter((entry) => typeof entry.componentTypeId === 'string')
+        .map((entry) => ({
+          componentTypeId: entry.componentTypeId as string,
+          enabled: Boolean(entry.enabled ?? true),
+          groupName: entry.groupName ?? null
+        }))
+    );
+
+    const all = (contentTypesResult.listContentTypes ?? []) as CTypeListItem[];
     setTypes(all);
     if (selected) {
       const nextSelected = all.find((entry) => entry.id === selected.id) ?? null;
       setSelected(nextSelected);
       setFields(parseFieldsJson(nextSelected?.fieldsJson ?? '[]'));
+      setAllowedComponents(parseStringArrayJson(nextSelected?.allowedComponentsJson));
+      setAreaRestrictions(parseAreaRestrictionsJson(nextSelected?.componentAreaRestrictionsJson));
     }
   };
 
@@ -66,7 +130,28 @@ export function ContentTypesPage() {
       .catch(() => undefined);
   }, [sdk, siteId]);
 
+  useEffect(() => {
+    setAreaRestrictions((prev) => {
+      const allowed = new Set(allowedComponents);
+      const next: Record<string, string[]> = {};
+      for (const [area, entries] of Object.entries(prev)) {
+        next[area] = entries.filter((entry) => allowed.has(entry));
+      }
+      return next;
+    });
+  }, [allowedComponents]);
+
   const selectedField = fields.find((entry) => entry.key === selectedFieldKey) ?? null;
+  const registryOptions = useMemo(() => {
+    return resolveComponentRegistry(componentSettings)
+      .filter((entry) => entry.enabled)
+      .map((entry) => ({
+        label: `${entry.label} (${entry.groupName})`,
+        value: entry.id
+      }));
+  }, [componentSettings]);
+  const areaNames = ['main', 'sidebar'];
+
   const selectedTypeUsage = useMemo(() => {
     if (!selected?.id) {
       return [];
@@ -92,6 +177,8 @@ export function ContentTypesPage() {
     setSelected(draft);
     setFields([]);
     setSelectedFieldKey(null);
+    setAllowedComponents([]);
+    setAreaRestrictions({});
   };
 
   const duplicateField = (key: string) => {
@@ -121,6 +208,8 @@ export function ContentTypesPage() {
       name: selected.name,
       description: selected.description || null,
       fieldsJson: stringifyFieldsJson(fields),
+      allowedComponentsJson: JSON.stringify(allowedComponents),
+      componentAreaRestrictionsJson: JSON.stringify(areaRestrictions),
       by: 'admin'
     };
 
@@ -182,6 +271,8 @@ export function ContentTypesPage() {
               const parsed = parseFieldsJson(item.fieldsJson);
               setFields(parsed);
               setSelectedFieldKey(parsed[0]?.key ?? null);
+              setAllowedComponents(parseStringArrayJson(item.allowedComponentsJson));
+              setAreaRestrictions(parseAreaRestrictionsJson(item.componentAreaRestrictionsJson));
             }}
           />
         </section>
@@ -201,6 +292,38 @@ export function ContentTypesPage() {
                 <div className="inline-actions" style={{ alignSelf: 'end' }}>
                   <Button label="Add Field" onClick={() => setShowAddField(true)} />
                 </div>
+              </div>
+              <div className="form-grid" style={{ marginTop: '0.75rem' }}>
+                <div className="form-row">
+                  <label>Allowed Components</label>
+                  <MultiSelect
+                    value={allowedComponents}
+                    options={registryOptions}
+                    onChange={(event) => setAllowedComponents((event.value as string[]) ?? [])}
+                    placeholder="Select allowed component types"
+                    display="chip"
+                    filter
+                  />
+                  <small className="muted">Content editors can only add these component types.</small>
+                </div>
+                {areaNames.map((areaName) => (
+                  <div className="form-row" key={areaName}>
+                    <label>{`Allowed (${areaName})`}</label>
+                    <MultiSelect
+                      value={areaRestrictions[areaName] ?? []}
+                      options={registryOptions.filter((option) => allowedComponents.includes(option.value))}
+                      onChange={(event) =>
+                        setAreaRestrictions((prev) => ({
+                          ...prev,
+                          [areaName]: (event.value as string[]) ?? []
+                        }))
+                      }
+                      placeholder={`Restrict ${areaName} area (optional)`}
+                      display="chip"
+                      filter
+                    />
+                  </div>
+                ))}
               </div>
 
               <FieldList

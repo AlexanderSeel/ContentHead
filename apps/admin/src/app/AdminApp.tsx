@@ -15,6 +15,7 @@ import { ContentPagesPage } from '../features/content/ContentPagesPage';
 import { TemplatesPage } from '../features/content/TemplatesPage';
 import { RoutesPage } from '../features/content/RoutesPage';
 import { ContentTypesPage } from '../features/schema/ContentTypesPage';
+import { ComponentRegistryPage } from '../features/schema/ComponentRegistryPage';
 import { AssetLibraryPage } from '../features/assets/AssetLibraryPage';
 import { VariantsPage } from '../features/personalization/VariantsPage';
 import { FormBuilderPage } from '../features/forms/FormBuilderPage';
@@ -54,6 +55,7 @@ export function AdminApp() {
               <Route path="/site/overview" element={<SiteOverviewPage />} />
               <Route path="/site/markets-locales" element={<MarketsLocalesPage />} />
               <Route path="/site/content-types" element={<ContentTypesPage />} />
+              <Route path="/build/components" element={<ComponentRegistryPage />} />
               <Route path="/site" element={<Navigate to="/site/overview" replace />} />
 
               <Route path="/content/pages/:contentItemId" element={<ContentPagesPage />} />

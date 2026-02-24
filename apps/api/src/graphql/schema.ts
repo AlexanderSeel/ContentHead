@@ -4,6 +4,7 @@ import { GraphQLError } from 'graphql';
 import type { InternalAuthProvider } from '../auth/InternalAuthProvider.js';
 import type { DbClient } from '../db/DbClient.js';
 import {
+  type ComponentTypeSettingRecord,
   type ContentItemRecord,
   type ContentRouteRecord,
   type ContentTypeRecord,
@@ -22,6 +23,7 @@ import {
   diffVersions,
   getContentItemDetail,
   issuePreviewTokenPayload,
+  listComponentTypeSettings,
   listContentItems,
   listContentTypes,
   listRoutes,
@@ -34,6 +36,7 @@ import {
   updateContentType,
   updateDraftVersion,
   updateTemplate,
+  upsertComponentTypeSetting,
   upsertRoute
 } from '../content/service.js';
 import {
@@ -411,8 +414,22 @@ ContentTypeRef.implement({
     name: t.exposeString('name'),
     description: t.exposeString('description', { nullable: true }),
     fieldsJson: t.exposeString('fieldsJson'),
+    allowedComponentsJson: t.exposeString('allowedComponentsJson'),
+    componentAreaRestrictionsJson: t.exposeString('componentAreaRestrictionsJson'),
     createdAt: t.exposeString('createdAt'),
     createdBy: t.exposeString('createdBy'),
+    updatedAt: t.exposeString('updatedAt'),
+    updatedBy: t.exposeString('updatedBy')
+  })
+});
+
+const ComponentTypeSettingRef = builder.objectRef<ComponentTypeSettingRecord>('ComponentTypeSetting');
+ComponentTypeSettingRef.implement({
+  fields: (t) => ({
+    siteId: t.exposeInt('siteId'),
+    componentTypeId: t.exposeString('componentTypeId'),
+    enabled: t.exposeBoolean('enabled'),
+    groupName: t.exposeString('groupName', { nullable: true }),
     updatedAt: t.exposeString('updatedAt'),
     updatedBy: t.exposeString('updatedBy')
   })
@@ -1009,6 +1026,11 @@ builder.queryType({
       args: { siteId: t.arg.int({ required: true }) },
       resolve: async (_root, args: { siteId: number }, ctx) => listContentTypes(ctx.db, args.siteId)
     }),
+    listComponentTypeSettings: t.field({
+      type: [ComponentTypeSettingRef],
+      args: { siteId: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { siteId: number }, ctx) => listComponentTypeSettings(ctx.db, args.siteId)
+    }),
     listContentItems: t.field({
       type: [ContentItemRef],
       args: { siteId: t.arg.int({ required: true }) },
@@ -1506,6 +1528,8 @@ builder.mutationType({
         name: t.arg.string({ required: true }),
         description: t.arg.string({ required: false }),
         fieldsJson: t.arg.string({ required: true }),
+        allowedComponentsJson: t.arg.string({ required: false }),
+        componentAreaRestrictionsJson: t.arg.string({ required: false }),
         by: t.arg.string({ required: false })
       },
       resolve: async (
@@ -1515,6 +1539,8 @@ builder.mutationType({
           name: string;
           description?: string | null | undefined;
           fieldsJson: string;
+          allowedComponentsJson?: string | null | undefined;
+          componentAreaRestrictionsJson?: string | null | undefined;
           by?: string | null | undefined;
         },
         ctx
@@ -1524,6 +1550,8 @@ builder.mutationType({
           name: args.name,
           description: args.description,
           fieldsJson: args.fieldsJson,
+          allowedComponentsJson: args.allowedComponentsJson,
+          componentAreaRestrictionsJson: args.componentAreaRestrictionsJson,
           by: args.by ?? ctx.currentUser?.username ?? 'system'
         })
     }),
@@ -1534,6 +1562,8 @@ builder.mutationType({
         name: t.arg.string({ required: true }),
         description: t.arg.string({ required: false }),
         fieldsJson: t.arg.string({ required: true }),
+        allowedComponentsJson: t.arg.string({ required: false }),
+        componentAreaRestrictionsJson: t.arg.string({ required: false }),
         by: t.arg.string({ required: false })
       },
       resolve: async (
@@ -1543,6 +1573,8 @@ builder.mutationType({
           name: string;
           description?: string | null | undefined;
           fieldsJson: string;
+          allowedComponentsJson?: string | null | undefined;
+          componentAreaRestrictionsJson?: string | null | undefined;
           by?: string | null | undefined;
         },
         ctx
@@ -1552,6 +1584,36 @@ builder.mutationType({
           name: args.name,
           description: args.description,
           fieldsJson: args.fieldsJson,
+          allowedComponentsJson: args.allowedComponentsJson,
+          componentAreaRestrictionsJson: args.componentAreaRestrictionsJson,
+          by: args.by ?? ctx.currentUser?.username ?? 'system'
+        })
+    }),
+    upsertComponentTypeSetting: t.field({
+      type: ComponentTypeSettingRef,
+      args: {
+        siteId: t.arg.int({ required: true }),
+        componentTypeId: t.arg.string({ required: true }),
+        enabled: t.arg.boolean({ required: true }),
+        groupName: t.arg.string({ required: false }),
+        by: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          siteId: number;
+          componentTypeId: string;
+          enabled: boolean;
+          groupName?: string | null | undefined;
+          by?: string | null | undefined;
+        },
+        ctx
+      ) =>
+        upsertComponentTypeSetting(ctx.db, {
+          siteId: args.siteId,
+          componentTypeId: args.componentTypeId,
+          enabled: args.enabled,
+          groupName: args.groupName,
           by: args.by ?? ctx.currentUser?.username ?? 'system'
         })
     }),

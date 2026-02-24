@@ -3,6 +3,7 @@ export const routeLabels: Record<string, string> = {
   '/site/overview': 'Site Overview',
   '/site/markets-locales': 'Markets & Locales',
   '/site/content-types': 'Content Types',
+  '/build/components': 'Component Registry',
   '/content/pages': 'Pages',
   '/content/templates': 'Templates',
   '/content/routes': 'Routes',

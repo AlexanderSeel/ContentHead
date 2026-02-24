@@ -58,10 +58,23 @@ export function createSdk(options: CreateSdkOptions) {
       execute<G.CreateContentTypeMutation>(G.CreateContentTypeDocument, variables, requestOptions),
     updateContentType: (variables: G.UpdateContentTypeMutationVariables, requestOptions?: RequestOptions) =>
       execute<G.UpdateContentTypeMutation>(G.UpdateContentTypeDocument, variables, requestOptions),
+    upsertComponentTypeSetting: (
+      variables: G.UpsertComponentTypeSettingMutationVariables,
+      requestOptions?: RequestOptions
+    ) =>
+      execute<G.UpsertComponentTypeSettingMutation>(
+        G.UpsertComponentTypeSettingDocument,
+        variables,
+        requestOptions
+      ),
     deleteContentType: (variables: G.DeleteContentTypeMutationVariables, requestOptions?: RequestOptions) =>
       execute<G.DeleteContentTypeMutation>(G.DeleteContentTypeDocument, variables, requestOptions),
     listContentTypes: (variables: G.ListContentTypesQueryVariables, requestOptions?: RequestOptions) =>
       execute<G.ListContentTypesQuery>(G.ListContentTypesDocument, variables, requestOptions),
+    listComponentTypeSettings: (
+      variables: G.ListComponentTypeSettingsQueryVariables,
+      requestOptions?: RequestOptions
+    ) => execute<G.ListComponentTypeSettingsQuery>(G.ListComponentTypeSettingsDocument, variables, requestOptions),
 
     createContentItem: (variables: G.CreateContentItemMutationVariables, requestOptions?: RequestOptions) =>
       execute<G.CreateContentItemMutation>(G.CreateContentItemDocument, variables, requestOptions),

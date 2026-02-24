@@ -26,10 +26,23 @@ export type ComponentUiField = {
 export type ComponentRegistryEntry = {
   id: string;
   label: string;
+  description?: string;
   icon: string;
   schema: z.ZodTypeAny;
   defaultProps: Record<string, unknown>;
   fields: ComponentUiField[];
+};
+
+export type ComponentTypeSetting = {
+  componentTypeId: string;
+  enabled: boolean;
+  groupName?: string | null;
+};
+
+export type ResolvedComponentRegistryEntry = ComponentRegistryEntry & {
+  enabled: boolean;
+  groupName: string;
+  propsSchemaJson: string;
 };
 
 const contentLinkSchema = z.object({
@@ -295,6 +308,28 @@ export const componentRegistry: ComponentRegistryEntry[] = [
 
 export function getComponentRegistryEntry(id: string): ComponentRegistryEntry | null {
   return componentRegistry.find((entry) => entry.id === id) ?? null;
+}
+
+export function resolveComponentRegistry(settings: ComponentTypeSetting[]): ResolvedComponentRegistryEntry[] {
+  const settingsMap = new Map(settings.map((entry) => [entry.componentTypeId, entry]));
+  return componentRegistry.map((entry) => {
+    const setting = settingsMap.get(entry.id);
+    const enabled = setting?.enabled ?? true;
+    const groupName = setting?.groupName?.trim() || 'General';
+    const propsSchema = entry.fields.map((field) => ({
+      key: field.key,
+      label: field.label,
+      type: field.type
+    }));
+
+    return {
+      ...entry,
+      description: entry.description ?? `${entry.label} component`,
+      enabled,
+      groupName,
+      propsSchemaJson: JSON.stringify(propsSchema, null, 2)
+    };
+  });
 }
 
 export function validateComponentProps(type: string, props: Record<string, unknown>): string[] {

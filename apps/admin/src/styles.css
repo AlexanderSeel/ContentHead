@@ -218,6 +218,7 @@
 
 .ch-graphiql-pane-right {
   overflow: hidden;
+  width: 100%;
 }
 
 .ch-graphiql-pane-right .inline-actions {

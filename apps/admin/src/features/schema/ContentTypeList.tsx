@@ -9,6 +9,8 @@ export type CTypeListItem = {
   name: string;
   description?: string | null;
   fieldsJson: string;
+  allowedComponentsJson?: string | null;
+  componentAreaRestrictionsJson?: string | null;
 };
 
 export function ContentTypeList({

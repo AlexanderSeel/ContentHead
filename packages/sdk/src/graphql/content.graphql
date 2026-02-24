@@ -5,8 +5,21 @@ query ListContentTypes($siteId: Int!) {
     name
     description
     fieldsJson
+    allowedComponentsJson
+    componentAreaRestrictionsJson
     createdAt
     createdBy
+    updatedAt
+    updatedBy
+  }
+}
+
+query ListComponentTypeSettings($siteId: Int!) {
+  listComponentTypeSettings(siteId: $siteId) {
+    siteId
+    componentTypeId
+    enabled
+    groupName
     updatedAt
     updatedBy
   }
@@ -41,6 +54,8 @@ query GetContentItemDetail($contentItemId: Int!) {
       id
       name
       fieldsJson
+      allowedComponentsJson
+      componentAreaRestrictionsJson
     }
     currentDraftVersion {
       id
@@ -151,6 +166,8 @@ query ResolveRoute(
       id
       name
       fieldsJson
+      allowedComponentsJson
+      componentAreaRestrictionsJson
     }
     version {
       id
@@ -170,6 +187,8 @@ mutation CreateContentType(
   $name: String!
   $description: String
   $fieldsJson: String!
+  $allowedComponentsJson: String
+  $componentAreaRestrictionsJson: String
   $by: String
 ) {
   createContentType(
@@ -177,6 +196,8 @@ mutation CreateContentType(
     name: $name
     description: $description
     fieldsJson: $fieldsJson
+    allowedComponentsJson: $allowedComponentsJson
+    componentAreaRestrictionsJson: $componentAreaRestrictionsJson
     by: $by
   ) {
     id
@@ -184,6 +205,8 @@ mutation CreateContentType(
     name
     description
     fieldsJson
+    allowedComponentsJson
+    componentAreaRestrictionsJson
   }
 }
 
@@ -192,14 +215,49 @@ mutation UpdateContentType(
   $name: String!
   $description: String
   $fieldsJson: String!
+  $allowedComponentsJson: String
+  $componentAreaRestrictionsJson: String
   $by: String
 ) {
-  updateContentType(id: $id, name: $name, description: $description, fieldsJson: $fieldsJson, by: $by) {
+  updateContentType(
+    id: $id
+    name: $name
+    description: $description
+    fieldsJson: $fieldsJson
+    allowedComponentsJson: $allowedComponentsJson
+    componentAreaRestrictionsJson: $componentAreaRestrictionsJson
+    by: $by
+  ) {
     id
     siteId
     name
     description
     fieldsJson
+    allowedComponentsJson
+    componentAreaRestrictionsJson
+  }
+}
+
+mutation UpsertComponentTypeSetting(
+  $siteId: Int!
+  $componentTypeId: String!
+  $enabled: Boolean!
+  $groupName: String
+  $by: String
+) {
+  upsertComponentTypeSetting(
+    siteId: $siteId
+    componentTypeId: $componentTypeId
+    enabled: $enabled
+    groupName: $groupName
+    by: $by
+  ) {
+    siteId
+    componentTypeId
+    enabled
+    groupName
+    updatedAt
+    updatedBy
   }
 }
 

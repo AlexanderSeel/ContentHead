@@ -26,7 +26,7 @@ export function buildNavAreas(showDevTools: boolean): NavArea[] {
       items: [
         { label: 'Content Types', to: '/site/content-types' },
         { label: 'Templates', to: '/content/templates' },
-        { label: 'Components (Registry)', to: '/content/pages', matchPrefix: '/content/pages' }
+        { label: 'Components', to: '/build/components' }
       ]
     },
     {

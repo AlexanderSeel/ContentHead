@@ -11,8 +11,19 @@ export type ContentTypeRecord = {
   name: string;
   description: string | null;
   fieldsJson: string;
+  allowedComponentsJson: string;
+  componentAreaRestrictionsJson: string;
   createdAt: string;
   createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+};
+
+export type ComponentTypeSettingRecord = {
+  siteId: number;
+  componentTypeId: string;
+  enabled: boolean;
+  groupName: string | null;
   updatedAt: string;
   updatedBy: string;
 };
@@ -215,8 +226,37 @@ WHERE id = ?
 }
 
 async function getContentType(db: DbClient, contentTypeId: number): Promise<ContentTypeRecord> {
-  const row = await db.get<ContentTypeRecord>(
-    `
+  try {
+    const row = await db.get<ContentTypeRecord>(
+      `
+SELECT
+  id,
+  site_id as siteId,
+  name,
+  description,
+  fields_json as fieldsJson,
+  allowed_components_json as allowedComponentsJson,
+  component_area_restrictions_json as componentAreaRestrictionsJson,
+  created_at as createdAt,
+  created_by as createdBy,
+  updated_at as updatedAt,
+  updated_by as updatedBy
+FROM content_types
+WHERE id = ?
+`,
+      [contentTypeId]
+    );
+
+    if (!row) {
+      notFound(`Content type ${contentTypeId} not found`, 'CONTENT_TYPE_NOT_FOUND');
+    }
+
+    return row;
+  } catch {
+    const legacyRow = await db.get<
+      Omit<ContentTypeRecord, 'allowedComponentsJson' | 'componentAreaRestrictionsJson'>
+    >(
+      `
 SELECT
   id,
   site_id as siteId,
@@ -230,14 +270,19 @@ SELECT
 FROM content_types
 WHERE id = ?
 `,
-    [contentTypeId]
-  );
+      [contentTypeId]
+    );
 
-  if (!row) {
-    notFound(`Content type ${contentTypeId} not found`, 'CONTENT_TYPE_NOT_FOUND');
+    if (!legacyRow) {
+      notFound(`Content type ${contentTypeId} not found`, 'CONTENT_TYPE_NOT_FOUND');
+    }
+
+    return {
+      ...legacyRow,
+      allowedComponentsJson: '[]',
+      componentAreaRestrictionsJson: '{}'
+    };
   }
-
-  return row;
 }
 
 async function nextVersionNumber(db: DbClient, contentItemId: number): Promise<number> {
@@ -298,8 +343,32 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 }
 
 export async function listContentTypes(db: DbClient, siteId: number): Promise<ContentTypeRecord[]> {
-  return db.all<ContentTypeRecord>(
-    `
+  try {
+    return await db.all<ContentTypeRecord>(
+      `
+SELECT
+  id,
+  site_id as siteId,
+  name,
+  description,
+  fields_json as fieldsJson,
+  allowed_components_json as allowedComponentsJson,
+  component_area_restrictions_json as componentAreaRestrictionsJson,
+  created_at as createdAt,
+  created_by as createdBy,
+  updated_at as updatedAt,
+  updated_by as updatedBy
+FROM content_types
+WHERE site_id = ?
+ORDER BY name
+`,
+      [siteId]
+    );
+  } catch {
+    const legacyRows = await db.all<
+      Omit<ContentTypeRecord, 'allowedComponentsJson' | 'componentAreaRestrictionsJson'>
+    >(
+      `
 SELECT
   id,
   site_id as siteId,
@@ -314,8 +383,14 @@ FROM content_types
 WHERE site_id = ?
 ORDER BY name
 `,
-    [siteId]
-  );
+      [siteId]
+    );
+    return legacyRows.map((entry) => ({
+      ...entry,
+      allowedComponentsJson: '[]',
+      componentAreaRestrictionsJson: '{}'
+    }));
+  }
 }
 
 export async function createContentType(db: DbClient, input: {
@@ -323,18 +398,50 @@ export async function createContentType(db: DbClient, input: {
   name: string;
   description?: string | null | undefined;
   fieldsJson: string;
+  allowedComponentsJson?: string | null | undefined;
+  componentAreaRestrictionsJson?: string | null | undefined;
   by: string;
 }): Promise<ContentTypeRecord> {
   parseJsonAny(input.fieldsJson, 'fieldsJson');
+  parseJsonAny(input.allowedComponentsJson ?? '[]', 'allowedComponentsJson');
+  parseJsonAny(input.componentAreaRestrictionsJson ?? '{}', 'componentAreaRestrictionsJson');
   const id = await nextId(db, 'content_types');
 
   await db.run(
     `
+INSERT INTO content_types(
+  id,
+  site_id,
+  name,
+  description,
+  fields_json,
+  allowed_components_json,
+  component_area_restrictions_json,
+  created_by,
+  updated_by
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+`,
+    [
+      id,
+      input.siteId,
+      input.name,
+      input.description ?? null,
+      input.fieldsJson,
+      input.allowedComponentsJson ?? '[]',
+      input.componentAreaRestrictionsJson ?? '{}',
+      input.by,
+      input.by
+    ]
+  ).catch(async () => {
+    await db.run(
+      `
 INSERT INTO content_types(id, site_id, name, description, fields_json, created_by, updated_by)
 VALUES (?, ?, ?, ?, ?, ?, ?)
 `,
-    [id, input.siteId, input.name, input.description ?? null, input.fieldsJson, input.by, input.by]
-  );
+      [id, input.siteId, input.name, input.description ?? null, input.fieldsJson, input.by, input.by]
+    );
+  });
 
   return getContentType(db, id);
 }
@@ -344,9 +451,13 @@ export async function updateContentType(db: DbClient, input: {
   name: string;
   description?: string | null | undefined;
   fieldsJson: string;
+  allowedComponentsJson?: string | null | undefined;
+  componentAreaRestrictionsJson?: string | null | undefined;
   by: string;
 }): Promise<ContentTypeRecord> {
   parseJsonAny(input.fieldsJson, 'fieldsJson');
+  parseJsonAny(input.allowedComponentsJson ?? '[]', 'allowedComponentsJson');
+  parseJsonAny(input.componentAreaRestrictionsJson ?? '{}', 'componentAreaRestrictionsJson');
   await getContentType(db, input.id);
 
   await db.run(
@@ -356,14 +467,145 @@ SET
   name = ?,
   description = ?,
   fields_json = ?,
+  allowed_components_json = ?,
+  component_area_restrictions_json = ?,
   updated_at = current_timestamp,
   updated_by = ?
 WHERE id = ?
 `,
-    [input.name, input.description ?? null, input.fieldsJson, input.by, input.id]
-  );
+    [
+      input.name,
+      input.description ?? null,
+      input.fieldsJson,
+      input.allowedComponentsJson ?? '[]',
+      input.componentAreaRestrictionsJson ?? '{}',
+      input.by,
+      input.id
+    ]
+  ).catch(async () => {
+    await db.run(
+      `
+UPDATE content_types
+SET
+  name = ?,
+  description = ?,
+  fields_json = ?,
+  updated_at = current_timestamp,
+  updated_by = ?
+WHERE id = ?
+`,
+      [input.name, input.description ?? null, input.fieldsJson, input.by, input.id]
+    );
+  });
 
   return getContentType(db, input.id);
+}
+
+export async function listComponentTypeSettings(
+  db: DbClient,
+  siteId: number
+): Promise<ComponentTypeSettingRecord[]> {
+  await ensureComponentTypeSettingsTable(db);
+  return db.all<ComponentTypeSettingRecord>(
+    `
+SELECT
+  site_id as siteId,
+  component_type_id as componentTypeId,
+  enabled,
+  group_name as groupName,
+  updated_at as updatedAt,
+  updated_by as updatedBy
+FROM component_type_settings
+WHERE site_id = ?
+ORDER BY component_type_id
+`,
+    [siteId]
+  );
+}
+
+export async function upsertComponentTypeSetting(
+  db: DbClient,
+  input: {
+    siteId: number;
+    componentTypeId: string;
+    enabled: boolean;
+    groupName?: string | null | undefined;
+    by: string;
+  }
+): Promise<ComponentTypeSettingRecord> {
+  const normalizedTypeId = input.componentTypeId.trim();
+  if (!normalizedTypeId) {
+    invalidInput('componentTypeId is required');
+  }
+
+  await ensureComponentTypeSettingsTable(db);
+  const updatedAt = new Date().toISOString();
+
+  await db.run(
+    `
+DELETE FROM component_type_settings
+WHERE site_id = ? AND component_type_id = ?
+`,
+    [input.siteId, normalizedTypeId]
+  );
+
+  await db.run(
+    `
+INSERT INTO component_type_settings(
+  site_id,
+  component_type_id,
+  enabled,
+  group_name,
+  updated_at,
+  updated_by
+)
+VALUES (?, ?, ?, ?, ?, ?)
+`,
+    [input.siteId, normalizedTypeId, input.enabled, input.groupName ?? null, updatedAt, input.by]
+  );
+
+  const row = await db.get<ComponentTypeSettingRecord>(
+    `
+SELECT
+  site_id as siteId,
+  component_type_id as componentTypeId,
+  enabled,
+  group_name as groupName,
+  updated_at as updatedAt,
+  updated_by as updatedBy
+FROM component_type_settings
+WHERE site_id = ? AND component_type_id = ?
+`,
+    [input.siteId, normalizedTypeId]
+  );
+
+  if (!row) {
+    notFound(
+      `Component type setting not found for site ${input.siteId} and type ${normalizedTypeId}`,
+      'COMPONENT_TYPE_SETTING_NOT_FOUND'
+    );
+  }
+
+  return row;
+}
+
+async function ensureComponentTypeSettingsTable(db: DbClient): Promise<void> {
+  await db.run(`
+CREATE TABLE IF NOT EXISTS component_type_settings (
+  site_id INTEGER,
+  component_type_id VARCHAR,
+  enabled BOOLEAN DEFAULT TRUE,
+  group_name VARCHAR,
+  updated_at TIMESTAMP,
+  updated_by VARCHAR
+);
+`);
+
+  await db.run('ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS component_type_id VARCHAR');
+  await db.run('ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT TRUE');
+  await db.run('ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS group_name VARCHAR');
+  await db.run('ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP');
+  await db.run('ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS updated_by VARCHAR');
 }
 
 export async function deleteContentType(db: DbClient, id: number): Promise<boolean> {
