@@ -20,6 +20,7 @@ export function VisualBuilderWorkspace({
   onSelect,
   onAdd,
   onMove,
+  onMoveToArea,
   onDuplicate,
   onDelete,
   rightPane
@@ -32,6 +33,7 @@ export function VisualBuilderWorkspace({
   onSelect: (id: string) => void;
   onAdd: (componentTypeId: string, areaName?: string) => void;
   onMove: (id: string, direction: -1 | 1) => void;
+  onMoveToArea: (id: string, areaName: string) => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
   rightPane: ReactNode;
@@ -73,6 +75,7 @@ export function VisualBuilderWorkspace({
             selected={selectedComponentId}
             onSelect={onSelect}
             onMove={onMove}
+            onMoveToArea={onMoveToArea}
             onDuplicate={onDuplicate}
             onDelete={onDelete}
             {...(selectedComponentSource ? { sourceResolver: selectedComponentSource } : {})}

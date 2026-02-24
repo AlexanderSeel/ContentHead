@@ -8,7 +8,14 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react-compiler-runtime', 'nullthrows', 'graphql-language-service'],
-    exclude: ['monaco-editor', 'monaco-graphql']
+    exclude: ['monaco-editor', 'monaco-graphql'],
+    esbuildOptions: {
+      // monaco-graphql publishes sourcemap references that are not shipped.
+      // Suppress the noisy warning from dependency scanning/prebundling.
+      logOverride: {
+        'invalid-source-mappings': 'silent'
+      }
+    }
   },
   resolve: {
     // Prefer TypeScript sources when .ts/.tsx and .js siblings both exist.

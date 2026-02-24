@@ -41,7 +41,8 @@ export function buildNavAreas(showDevTools: boolean): NavArea[] {
       icon: 'pi pi-sliders-h',
       items: [
         { label: 'Workflows', to: '/personalization/workflows', matchPrefix: '/personalization/workflows', icon: 'pi pi-share-alt' },
-        { label: 'Variants', to: '/personalization/variants', matchPrefix: '/personalization/variants', icon: 'pi pi-percentage' }
+        { label: 'Variants', to: '/personalization/variants', matchPrefix: '/personalization/variants', icon: 'pi pi-percentage' },
+        { label: 'Visitor Groups', to: '/personalization/visitor-groups', matchPrefix: '/personalization/visitor-groups', icon: 'pi pi-users' }
       ]
     },
     {
@@ -88,7 +89,8 @@ export function buildNavAreas(showDevTools: boolean): NavArea[] {
       icon: 'pi pi-shield',
       items: [
         { label: 'Users', to: '/security/users', icon: 'pi pi-users' },
-        { label: 'Roles', to: '/security/roles', icon: 'pi pi-lock' }
+        { label: 'Roles', to: '/security/roles', icon: 'pi pi-lock' },
+        { label: 'Groups', to: '/security/groups', icon: 'pi pi-sitemap' }
       ]
     },
     {

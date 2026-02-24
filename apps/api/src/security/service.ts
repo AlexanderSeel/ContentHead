@@ -136,14 +136,22 @@ export async function resetInternalUserPassword(db: DbClient, userId: number, pa
 }
 
 export async function listInternalRoles(db: DbClient): Promise<InternalRoleRecord[]> {
-  const roles = await db.all<{
+  let roles: Array<{
     id: number;
     name: string;
     description: string | null;
     createdAt: string;
     updatedAt: string;
-  }>(
-    `
+  }>;
+  try {
+    roles = await db.all<{
+      id: number;
+      name: string;
+      description: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>(
+      `
 SELECT
   id,
   name,
@@ -153,7 +161,28 @@ SELECT
 FROM roles
 ORDER BY name
 `
-  );
+    );
+  } catch {
+    // Legacy DBs can miss roles.updated_at.
+    roles = await db.all<{
+      id: number;
+      name: string;
+      description: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>(
+      `
+SELECT
+  id,
+  name,
+  description,
+  CAST(created_at AS VARCHAR) as createdAt,
+  CAST(current_timestamp AS VARCHAR) as updatedAt
+FROM roles
+ORDER BY name
+`
+    );
+  }
 
   const permissions = await db.all<{ roleId: number; permissionKey: string }>(
     'SELECT role_id as roleId, permission_key as permissionKey FROM role_permissions'
@@ -179,17 +208,30 @@ export async function upsertInternalRole(
 
   await db.run('BEGIN TRANSACTION');
   try {
-    await db.run(
-      `
-INSERT INTO roles(id, name, description)
-VALUES (?, ?, ?)
-ON CONFLICT(id) DO UPDATE SET
-  name = excluded.name,
-  description = excluded.description,
-  updated_at = now()
-`,
-      [id, input.name, input.description ?? null]
-    );
+    const existing = await db.get<{ id: number }>('SELECT id FROM roles WHERE id = ?', [id]);
+    if (!existing) {
+      await db.run('INSERT INTO roles(id, name, description) VALUES (?, ?, ?)', [
+        id,
+        input.name,
+        input.description ?? null
+      ]);
+    } else {
+      const userRoleLinks = await db.all<{ userId: number }>(
+        'SELECT user_id as userId FROM user_roles WHERE role_id = ?',
+        [id]
+      );
+      await db.run('DELETE FROM user_roles WHERE role_id = ?', [id]);
+      await db.run('DELETE FROM role_permissions WHERE role_id = ?', [id]);
+      await db.run('DELETE FROM roles WHERE id = ?', [id]);
+      await db.run('INSERT INTO roles(id, name, description) VALUES (?, ?, ?)', [
+        id,
+        input.name,
+        input.description ?? null
+      ]);
+      for (const link of userRoleLinks) {
+        await db.run('INSERT INTO user_roles(user_id, role_id) VALUES (?, ?)', [link.userId, id]);
+      }
+    }
 
     await db.run('DELETE FROM role_permissions WHERE role_id = ?', [id]);
     for (const permission of permissions) {

@@ -445,6 +445,72 @@ mutation UpdateDraftVersion($versionId: Int!, $patch: UpdateDraftPatchInput!, $e
   }
 }
 
+mutation AddComponent(
+  $contentVersionId: Int!
+  $componentTypeId: String!
+  $area: String!
+  $initialProps: String
+) {
+  addComponent(
+    contentVersionId: $contentVersionId
+    componentTypeId: $componentTypeId
+    area: $area
+    initialProps: $initialProps
+  ) {
+    id
+    contentItemId
+    versionNumber
+    state
+    fieldsJson
+    compositionJson
+    componentsJson
+    metadataJson
+    comment
+  }
+}
+
+mutation UpdateComponentProps($instanceId: String!, $patch: String!) {
+  updateComponentProps(instanceId: $instanceId, patch: $patch) {
+    id
+    contentItemId
+    versionNumber
+    state
+    fieldsJson
+    compositionJson
+    componentsJson
+    metadataJson
+    comment
+  }
+}
+
+mutation RemoveComponent($instanceId: String!) {
+  removeComponent(instanceId: $instanceId) {
+    id
+    contentItemId
+    versionNumber
+    state
+    fieldsJson
+    compositionJson
+    componentsJson
+    metadataJson
+    comment
+  }
+}
+
+mutation MoveComponent($instanceId: String!, $newArea: String!, $newSortOrder: Int!) {
+  moveComponent(instanceId: $instanceId, newArea: $newArea, newSortOrder: $newSortOrder) {
+    id
+    contentItemId
+    versionNumber
+    state
+    fieldsJson
+    compositionJson
+    componentsJson
+    metadataJson
+    comment
+  }
+}
+
 mutation PublishVersion($versionId: Int!, $expectedVersionNumber: Int!, $comment: String, $by: String) {
   publishVersion(
     versionId: $versionId

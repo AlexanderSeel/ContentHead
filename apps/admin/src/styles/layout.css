@@ -320,7 +320,6 @@ body {
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  height: 100%;
 }
 
 .paneHeader {
@@ -724,6 +723,45 @@ body {
 .content-pages-workspace .components-tab-shell .builder-inspector {
   min-height: 0;
   overflow: auto;
+}
+
+.cms-collapsible {
+  border: 1px solid color-mix(in srgb, var(--surface-border), transparent 35%);
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  margin-bottom: 0.75rem;
+  background: color-mix(in srgb, var(--surface-card), var(--surface-ground) 12%);
+}
+
+.cms-collapsible > summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.acl-matrix-wrap {
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--surface-border), transparent 35%);
+  border-radius: 8px;
+}
+
+.acl-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+}
+
+.acl-matrix-table th,
+.acl-matrix-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--surface-border), transparent 55%);
+  white-space: nowrap;
+  text-align: left;
+}
+
+.acl-matrix-table td:not(:first-child),
+.acl-matrix-table th:not(:first-child) {
+  text-align: center;
 }
 
 .diagnostics-grid {

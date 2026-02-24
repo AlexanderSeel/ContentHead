@@ -14,6 +14,7 @@ import { useAuth } from '../../app/AuthContext';
 import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 import 'graphiql/style.css';
+import { ScrollPanel } from 'primereact/scrollpanel';
 
 const INTROSPECTION_QUERY = `
   query IntrospectionQuery {
@@ -315,9 +316,9 @@ export function GraphiQLPage() {
       <WorkspaceBody>
         <Splitter className="splitFill ch-graphiql-ide" style={{ width: '100%' }}>
           <SplitterPanel size={22} minSize={16}>
+            <ScrollPanel style={{ width: '100%', height: '100%' }}>
             <div className="paneRoot ch-graphiql-pane ch-graphiql-pane-left">
-              <TabView className="ch-graphiql-tabs" renderActiveOnly={false}>
-                <TabPanel header="Explorer">
+              
                   <div className="inline-actions" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span>Operations</span>
                     <Button text size="small" label="Reload" icon="pi pi-refresh" onClick={() => void loadSchemaExplorer()} loading={schemaLoading} />
@@ -338,22 +339,10 @@ export function GraphiQLPage() {
                       }
                       insertOperationFromExplorer(nodeData);
                     }}
-                  />
-                </TabPanel>
-                <TabPanel header="Docs">
-                  {schemaError ? <small className="editor-error">{schemaError}</small> : null}
-                  <Tree
-                    value={docsNodes}
-                    className="ch-graphiql-explorer-tree"
-                    filter
-                    selectionMode="single"
-                    selectionKeys={docsSelectionKeys}
-                    filterPlaceholder="Filter schema docs"
-                    onSelectionChange={(event) => setDocsSelectionKeys((event.value as string | null) ?? null)}
-                  />
-                </TabPanel>
-              </TabView>
+                  />              
             </div>
+            
+              </ScrollPanel>
           </SplitterPanel>
           <SplitterPanel size={48} minSize={34}>
             <div className="paneRoot ch-graphiql-pane ch-graphiql-pane-center">

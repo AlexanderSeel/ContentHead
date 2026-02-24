@@ -16,6 +16,52 @@ type ComponentPayload = {
   [key: string]: unknown;
 };
 
+type ComponentInstancePayload = {
+  instanceId: string;
+  componentTypeId: string;
+  area: string;
+  sortOrder: number;
+  props?: Record<string, unknown>;
+};
+
+function parseComponentData(
+  compositionJson: string,
+  componentsJson: string
+): { composition: { areas?: AreaPayload[] }; components: Record<string, ComponentPayload> } {
+  const composition = JSON.parse(compositionJson ?? '{}') as { areas?: AreaPayload[] };
+  const parsedComponents = JSON.parse(componentsJson ?? '{}') as unknown;
+  if (!Array.isArray(parsedComponents)) {
+    return { composition, components: parsedComponents as Record<string, ComponentPayload> };
+  }
+
+  const instances = parsedComponents as ComponentInstancePayload[];
+  const components = Object.fromEntries(
+    instances
+      .filter((entry) => entry && typeof entry.instanceId === 'string')
+      .map((entry) => [entry.instanceId, { type: entry.componentTypeId, props: entry.props ?? {} }])
+  );
+  const areasByName = new Map<string, Array<{ id: string; sortOrder: number }>>();
+  for (const instance of instances) {
+    const area = typeof instance.area === 'string' && instance.area.trim() ? instance.area : 'main';
+    const bucket = areasByName.get(area) ?? [];
+    bucket.push({
+      id: instance.instanceId,
+      sortOrder: Number.isFinite(instance.sortOrder) ? instance.sortOrder : 0
+    });
+    areasByName.set(area, bucket);
+  }
+
+  return {
+    components,
+    composition: {
+      areas: Array.from(areasByName.entries()).map(([name, entries]) => ({
+        name,
+        components: entries.sort((a, b) => a.sortOrder - b.sortOrder).map((entry) => entry.id)
+      }))
+    }
+  };
+}
+
 export default async function DemoPage({
   searchParams
 }: {
@@ -61,8 +107,9 @@ export default async function DemoPage({
     notFound();
   }
 
-  const composition = JSON.parse(version.compositionJson ?? '{}') as { areas?: AreaPayload[] };
-  const components = JSON.parse(version.componentsJson ?? '{}') as Record<string, ComponentPayload>;
+  const parsedComponentData = parseComponentData(version.compositionJson ?? '{}', version.componentsJson ?? '{}');
+  const composition = parsedComponentData.composition;
+  const components = parsedComponentData.components;
   const fields = JSON.parse(version.fieldsJson ?? '{}') as Record<string, unknown>;
   const apiBaseUrl = (process.env.API_URL ?? 'http://localhost:4000/graphql').replace('/graphql', '');
 

@@ -112,7 +112,16 @@ export type UpdateDraftPatch = {
   createdBy?: string | null | undefined;
 };
 
+export type ComponentInstanceRecord = {
+  instanceId: string;
+  componentTypeId: string;
+  area: string;
+  sortOrder: number;
+  props: Record<string, unknown>;
+};
+
 const emptyObjectJson = '{}';
+const emptyArrayJson = '[]';
 
 function notFound(message: string, code = 'NOT_FOUND'): never {
   throw new GraphQLError(message, { extensions: { code } });
@@ -144,6 +153,197 @@ function parseJsonAny(value: string, name: string): unknown {
 
 function stringify(value: unknown): string {
   return JSON.stringify(value ?? {});
+}
+
+function parseCompositionAreas(value: string): Array<{ name: string; components: string[] }> {
+  const parsed = parseJsonAny(value, 'compositionJson');
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return [];
+  }
+  const areasRaw = (parsed as { areas?: unknown }).areas;
+  if (!Array.isArray(areasRaw)) {
+    return [];
+  }
+  return areasRaw
+    .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
+    .map((entry) => {
+      const typed = entry as { name?: unknown; components?: unknown };
+      return {
+        name: typeof typed.name === 'string' && typed.name.trim() ? typed.name.trim() : 'main',
+        components: Array.isArray(typed.components)
+          ? typed.components.filter((componentId): componentId is string => typeof componentId === 'string')
+          : []
+      };
+    });
+}
+
+function normalizeComponentInstances(
+  componentsJson: string,
+  compositionJson: string
+): ComponentInstanceRecord[] {
+  const parsed = parseJsonAny(componentsJson, 'componentsJson');
+  if (Array.isArray(parsed)) {
+    return parsed
+      .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
+      .map((entry) => {
+        const typed = entry as Record<string, unknown>;
+        const props = typed.props;
+        return {
+          instanceId:
+            typeof typed.instanceId === 'string' && typed.instanceId.trim()
+              ? typed.instanceId.trim()
+              : '',
+          componentTypeId:
+            typeof typed.componentTypeId === 'string' && typed.componentTypeId.trim()
+              ? typed.componentTypeId.trim()
+              : 'text_block',
+          area: typeof typed.area === 'string' && typed.area.trim() ? typed.area.trim() : 'main',
+          sortOrder:
+            typeof typed.sortOrder === 'number' && Number.isFinite(typed.sortOrder)
+              ? Math.max(0, Math.floor(typed.sortOrder))
+              : 0,
+          props:
+            props && typeof props === 'object' && !Array.isArray(props)
+              ? (props as Record<string, unknown>)
+              : {}
+        };
+      })
+      .filter((entry) => entry.instanceId.length > 0);
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    return [];
+  }
+
+  const map = parsed as Record<string, { type?: unknown; props?: unknown }>;
+  const areas = parseCompositionAreas(compositionJson);
+  const areaLookup = new Map<string, { area: string; sortOrder: number }>();
+  for (const area of areas) {
+    area.components.forEach((instanceId, index) => {
+      areaLookup.set(instanceId, { area: area.name, sortOrder: index });
+    });
+  }
+
+  return Object.entries(map).map(([instanceId, value], fallbackIndex) => ({
+    instanceId,
+    componentTypeId:
+      typeof value?.type === 'string' && value.type.trim() ? value.type.trim() : 'text_block',
+    area: areaLookup.get(instanceId)?.area ?? 'main',
+    sortOrder: areaLookup.get(instanceId)?.sortOrder ?? fallbackIndex,
+    props:
+      value?.props && typeof value.props === 'object' && !Array.isArray(value.props)
+        ? (value.props as Record<string, unknown>)
+        : {}
+  }));
+}
+
+function sortAndNormalizeInstances(instances: ComponentInstanceRecord[]): ComponentInstanceRecord[] {
+  const grouped = new Map<string, ComponentInstanceRecord[]>();
+  for (const instance of instances) {
+    const bucket = grouped.get(instance.area) ?? [];
+    bucket.push(instance);
+    grouped.set(instance.area, bucket);
+  }
+
+  const normalized: ComponentInstanceRecord[] = [];
+  for (const [area, entries] of grouped.entries()) {
+    entries
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .forEach((entry, index) => {
+        normalized.push({ ...entry, area, sortOrder: index });
+      });
+  }
+  return normalized;
+}
+
+function compositionFromInstances(instances: ComponentInstanceRecord[]): string {
+  const grouped = new Map<string, string[]>();
+  for (const instance of sortAndNormalizeInstances(instances)) {
+    const bucket = grouped.get(instance.area) ?? [];
+    bucket.push(instance.instanceId);
+    grouped.set(instance.area, bucket);
+  }
+  return stringify({
+    areas: Array.from(grouped.entries()).map(([name, components]) => ({ name, components }))
+  });
+}
+
+async function writeDraftWithComponentInstances(db: DbClient, input: {
+  base: ContentVersionRecord;
+  instances: ComponentInstanceRecord[];
+  comment: string;
+  createdBy: string;
+}): Promise<ContentVersionRecord> {
+  const normalized = sortAndNormalizeInstances(input.instances);
+  const next = await createVersion(db, {
+    contentItemId: input.base.contentItemId,
+    state: 'DRAFT',
+    sourceVersionId: input.base.id,
+    fieldsJson: input.base.fieldsJson,
+    compositionJson: compositionFromInstances(normalized),
+    componentsJson: stringify(normalized),
+    metadataJson: input.base.metadataJson,
+    comment: input.comment,
+    createdBy: input.createdBy
+  });
+  await db.run('UPDATE content_items SET current_draft_version_id = ? WHERE id = ?', [
+    next.id,
+    input.base.contentItemId
+  ]);
+  return next;
+}
+
+function generateInstanceId(componentTypeId: string): string {
+  const salt = Math.random().toString(36).slice(2, 8);
+  return `${componentTypeId}_${Date.now()}_${salt}`;
+}
+
+async function findDraftVersionByInstanceId(
+  db: DbClient,
+  instanceId: string
+): Promise<{ version: ContentVersionRecord; instances: ComponentInstanceRecord[] } | null> {
+  const draftRows = await db.all<{
+    id: number;
+    contentItemId: number;
+    versionNumber: number;
+    state: VersionState;
+    sourceVersionId: number | null;
+    fieldsJson: string;
+    compositionJson: string;
+    componentsJson: string;
+    metadataJson: string;
+    comment: string | null;
+    createdAt: string;
+    createdBy: string;
+  }>(
+    `
+SELECT
+  cv.id,
+  cv.content_item_id as contentItemId,
+  cv.version_number as versionNumber,
+  cv.state,
+  cv.source_version_id as sourceVersionId,
+  cv.fields_json as fieldsJson,
+  cv.composition_json as compositionJson,
+  cv.components_json as componentsJson,
+  cv.metadata_json as metadataJson,
+  cv.comment,
+  cv.created_at as createdAt,
+  cv.created_by as createdBy
+FROM content_versions cv
+INNER JOIN content_items ci ON ci.current_draft_version_id = cv.id
+WHERE cv.state = 'DRAFT'
+ORDER BY cv.id DESC
+`
+  );
+
+  for (const row of draftRows) {
+    const instances = normalizeComponentInstances(row.componentsJson, row.compositionJson);
+    if (instances.some((entry) => entry.instanceId === instanceId)) {
+      return { version: row, instances };
+    }
+  }
+  return null;
 }
 
 function normalizeSlug(slug: string): string {
@@ -806,7 +1006,7 @@ VALUES (?, ?, ?, ?, ?, FALSE, ?)
       sourceVersionId: null,
       fieldsJson: input.initialFieldsJson ?? emptyObjectJson,
       compositionJson: input.initialCompositionJson ?? stringify({ areas: [{ name: 'main', components: [] }] }),
-      componentsJson: input.initialComponentsJson ?? emptyObjectJson,
+      componentsJson: input.initialComponentsJson ?? emptyArrayJson,
       metadataJson: input.metadataJson ?? emptyObjectJson,
       comment: input.comment ?? 'Initial draft',
       createdBy: input.by
@@ -1170,7 +1370,7 @@ export async function createDraftVersion(db: DbClient, input: {
 
   let fieldsJson = emptyObjectJson;
   let compositionJson = stringify({ areas: [{ name: 'main', components: [] }] });
-  let componentsJson = emptyObjectJson;
+  let componentsJson = emptyArrayJson;
   let metadataJson = emptyObjectJson;
 
   if (baseVersionId) {
@@ -1216,7 +1416,7 @@ export async function updateDraftVersion(db: DbClient, input: {
 
   const fields = parseJsonObject(base.fieldsJson, 'fieldsJson');
   const composition = parseJsonObject(base.compositionJson, 'compositionJson');
-  const components = parseJsonObject(base.componentsJson, 'componentsJson');
+  const components = parseJsonAny(base.componentsJson, 'componentsJson');
   const metadata = parseJsonObject(base.metadataJson, 'metadataJson');
 
   const fieldsPatch = input.patch.fieldsJson ? parseJsonObject(input.patch.fieldsJson, 'patch.fieldsJson') : {};
@@ -1224,8 +1424,8 @@ export async function updateDraftVersion(db: DbClient, input: {
     ? parseJsonObject(input.patch.compositionJson, 'patch.compositionJson')
     : {};
   const componentsPatch = input.patch.componentsJson
-    ? parseJsonObject(input.patch.componentsJson, 'patch.componentsJson')
-    : {};
+    ? parseJsonAny(input.patch.componentsJson, 'patch.componentsJson')
+    : null;
   const metadataPatch = input.patch.metadataJson
     ? parseJsonObject(input.patch.metadataJson, 'patch.metadataJson')
     : {};
@@ -1246,6 +1446,124 @@ export async function updateDraftVersion(db: DbClient, input: {
 
   await db.run('UPDATE content_items SET current_draft_version_id = ? WHERE id = ?', [next.id, base.contentItemId]);
   return next;
+}
+
+export async function addComponent(db: DbClient, input: {
+  contentVersionId: number;
+  componentTypeId: string;
+  area: string;
+  initialProps?: Record<string, unknown> | null | undefined;
+  by: string;
+}): Promise<ContentVersionRecord> {
+  const base = await getVersion(db, input.contentVersionId);
+  if (base.state !== 'DRAFT') {
+    invalidInput('Components can only be added to DRAFT versions', 'INVALID_VERSION_STATE');
+  }
+
+  const area = input.area.trim() || 'main';
+  const instances = normalizeComponentInstances(base.componentsJson, base.compositionJson);
+  const maxSort = instances
+    .filter((entry) => entry.area === area)
+    .reduce((acc, entry) => Math.max(acc, entry.sortOrder), -1);
+
+  instances.push({
+    instanceId: generateInstanceId(input.componentTypeId),
+    componentTypeId: input.componentTypeId,
+    area,
+    sortOrder: maxSort + 1,
+    props: input.initialProps ?? {}
+  });
+
+  return writeDraftWithComponentInstances(db, {
+    base,
+    instances,
+    comment: 'Add component',
+    createdBy: input.by
+  });
+}
+
+export async function updateComponentProps(db: DbClient, input: {
+  instanceId: string;
+  patch: Record<string, unknown>;
+  by: string;
+}): Promise<ContentVersionRecord> {
+  const located = await findDraftVersionByInstanceId(db, input.instanceId);
+  if (!located) {
+    notFound(`Component instance ${input.instanceId} not found in active drafts`, 'COMPONENT_INSTANCE_NOT_FOUND');
+  }
+
+  const nextInstances = located.instances.map((entry) =>
+    entry.instanceId === input.instanceId
+      ? {
+          ...entry,
+          props: {
+            ...entry.props,
+            ...input.patch
+          }
+        }
+      : entry
+  );
+
+  return writeDraftWithComponentInstances(db, {
+    base: located.version,
+    instances: nextInstances,
+    comment: 'Update component props',
+    createdBy: input.by
+  });
+}
+
+export async function removeComponent(db: DbClient, input: {
+  instanceId: string;
+  by: string;
+}): Promise<ContentVersionRecord> {
+  const located = await findDraftVersionByInstanceId(db, input.instanceId);
+  if (!located) {
+    notFound(`Component instance ${input.instanceId} not found in active drafts`, 'COMPONENT_INSTANCE_NOT_FOUND');
+  }
+
+  const nextInstances = located.instances.filter((entry) => entry.instanceId !== input.instanceId);
+  return writeDraftWithComponentInstances(db, {
+    base: located.version,
+    instances: nextInstances,
+    comment: 'Remove component',
+    createdBy: input.by
+  });
+}
+
+export async function moveComponent(db: DbClient, input: {
+  instanceId: string;
+  newArea: string;
+  newSortOrder: number;
+  by: string;
+}): Promise<ContentVersionRecord> {
+  const located = await findDraftVersionByInstanceId(db, input.instanceId);
+  if (!located) {
+    notFound(`Component instance ${input.instanceId} not found in active drafts`, 'COMPONENT_INSTANCE_NOT_FOUND');
+  }
+
+  const targetArea = input.newArea.trim() || 'main';
+  const targetSortOrder = Math.max(0, Math.floor(input.newSortOrder));
+  const withoutTarget = located.instances.filter((entry) => entry.instanceId !== input.instanceId);
+  const target = located.instances.find((entry) => entry.instanceId === input.instanceId);
+  if (!target) {
+    notFound(`Component instance ${input.instanceId} not found`, 'COMPONENT_INSTANCE_NOT_FOUND');
+  }
+
+  const inTargetArea = withoutTarget
+    .filter((entry) => entry.area === targetArea)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const insertAt = Math.min(targetSortOrder, inTargetArea.length);
+  inTargetArea.splice(insertAt, 0, { ...target, area: targetArea, sortOrder: insertAt });
+
+  const others = withoutTarget.filter((entry) => entry.area !== targetArea);
+  const nextInstances = [...others, ...inTargetArea];
+
+  return writeDraftWithComponentInstances(db, {
+    base: located.version,
+    instances: nextInstances,
+    comment: 'Move component',
+    createdBy: input.by
+  });
 }
 
 export async function publishVersion(db: DbClient, input: {
@@ -1378,7 +1696,7 @@ ORDER BY name
     return legacyRows.map((entry) => ({
       ...entry,
       compositionJson: stringify({ areas: [{ name: 'main', components: [] }] }),
-      componentsJson: '{}',
+      componentsJson: '[]',
       constraintsJson: '{}',
       updatedAt
     }));

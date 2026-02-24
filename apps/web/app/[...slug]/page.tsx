@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 import { createSdk } from '@contenthead/sdk';
 import { parseLocalizedPath } from '@contenthead/shared';
@@ -16,6 +16,60 @@ type ComponentPayload = {
   props?: Record<string, unknown>;
   [key: string]: unknown;
 };
+
+type ComponentInstancePayload = {
+  instanceId: string;
+  componentTypeId: string;
+  area: string;
+  sortOrder: number;
+  props?: Record<string, unknown>;
+};
+
+function parseComponentData(
+  compositionJson: string,
+  componentsJson: string
+): { composition: { areas?: AreaPayload[] }; components: Record<string, ComponentPayload> } {
+  const composition = JSON.parse(compositionJson ?? '{}') as { areas?: AreaPayload[] };
+  const parsedComponents = JSON.parse(componentsJson ?? '{}') as unknown;
+  if (!Array.isArray(parsedComponents)) {
+    return {
+      composition,
+      components: parsedComponents as Record<string, ComponentPayload>
+    };
+  }
+
+  const instances = parsedComponents as ComponentInstancePayload[];
+  const components = Object.fromEntries(
+    instances
+      .filter((entry) => entry && typeof entry.instanceId === 'string')
+      .map((entry) => [
+        entry.instanceId,
+        {
+          type: entry.componentTypeId,
+          props: entry.props ?? {}
+        }
+      ])
+  );
+  const areasByName = new Map<string, Array<{ id: string; sortOrder: number }>>();
+  for (const instance of instances) {
+    const area = typeof instance.area === 'string' && instance.area.trim() ? instance.area : 'main';
+    const bucket = areasByName.get(area) ?? [];
+    bucket.push({
+      id: instance.instanceId,
+      sortOrder: Number.isFinite(instance.sortOrder) ? instance.sortOrder : 0
+    });
+    areasByName.set(area, bucket);
+  }
+  return {
+    components,
+    composition: {
+      areas: Array.from(areasByName.entries()).map(([name, entries]) => ({
+        name,
+        components: entries.sort((a, b) => a.sortOrder - b.sortOrder).map((entry) => entry.id)
+      }))
+    }
+  };
+}
 
 export default async function CatchAllPage({
   params,
@@ -37,11 +91,21 @@ export default async function CatchAllPage({
     .map((entry) => entry.trim())
     .filter(Boolean);
   const cookieStore = await cookies();
+  const requestHeaders = await headers();
   const userId = cookieStore.get('userId')?.value ?? null;
+  const userAgent = requestHeaders.get('user-agent') ?? '';
+  const resolvedDevice = (resolvedSearch.device as string | undefined) ?? (userAgent.includes('Mobile') ? 'mobile' : 'desktop');
+  const country = (resolvedSearch.country as string | undefined) ?? requestHeaders.get('x-vercel-ip-country') ?? null;
+  const query = Object.fromEntries(
+    Object.entries(resolvedSearch).map(([key, value]) => [key, Array.isArray(value) ? value[0] : (value ?? null)])
+  );
   const contextJson = JSON.stringify({
     userId,
     sessionId: cookieStore.get('sessionId')?.value ?? null,
-    segments
+    segments,
+    country,
+    device: resolvedDevice,
+    query
   });
 
   const sdk = createSdk({ endpoint: process.env.API_URL ?? 'http://localhost:4000/graphql' });
@@ -72,8 +136,9 @@ export default async function CatchAllPage({
     notFound();
   }
 
-  const composition = JSON.parse(version.compositionJson ?? '{}') as { areas?: AreaPayload[] };
-  const components = JSON.parse(version.componentsJson ?? '{}') as Record<string, ComponentPayload>;
+  const parsedComponentData = parseComponentData(version.compositionJson ?? '{}', version.componentsJson ?? '{}');
+  const composition = parsedComponentData.composition;
+  const components = parsedComponentData.components;
   const fields = JSON.parse(version.fieldsJson ?? '{}') as Record<string, unknown>;
   const apiBaseUrl = (process.env.API_URL ?? 'http://localhost:4000/graphql').replace('/graphql', '');
 

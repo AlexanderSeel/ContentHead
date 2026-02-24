@@ -15,6 +15,7 @@ import { Dialog } from 'primereact/dialog';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { Tag } from 'primereact/tag';
 import { InputSwitch } from 'primereact/inputswitch';
+import { MultiSelect } from 'primereact/multiselect';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
@@ -28,9 +29,11 @@ import { parseFieldsJson } from '../schema/fieldValidationUi';
 import { FieldRenderer } from './fieldRenderers/FieldRenderer';
 import { validationMessage } from './fieldRenderers/rendererRegistry';
 import { buildWebUrl } from './buildWebUrl';
+import { AssetPickerDialog } from '../../components/inputs/AssetPickerDialog';
 import { ComponentList } from './components/ComponentList';
 import { ComponentInspector } from './components/ComponentInspector';
 import { VisualBuilderWorkspace } from './builder/VisualBuilderWorkspace';
+import { LinkSelectorDialog, type ContentLinkValue } from './fieldRenderers/LinkSelectorDialog';
 import {
   cloneProps,
   duplicateComponentInAreas,
@@ -44,7 +47,7 @@ import {
   resolveComponentRegistry,
   type ComponentTypeSetting
 } from './components/componentRegistry';
-import type { CmsBridgeMessage } from './previewBridge';
+import type { CmsActionId, CmsBridgeMessage, CmsActionsMessage, CmsActionRequestMessage } from './previewBridge';
 import { extensionInspectorPanels } from '../../extensions/core/registry';
 import { InspectorSection } from '../../ui/molecules';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
@@ -86,7 +89,29 @@ type VariantSet = { id: number; contentItemId: number; marketCode: string; local
 type Variant = { id: number; variantSetId: number; key: string; priority: number; ruleJson: string; state: string; trafficAllocation?: number | null; contentVersionId: number };
 type CompositionArea = { name: string; components: string[] };
 type ComponentRecord = { id: string; type: string; props: Record<string, unknown> };
+type ComponentInstance = { instanceId: string; componentTypeId: string; area: string; sortOrder: number; props: Record<string, unknown> };
 type ComponentTypeSettingRow = { componentTypeId?: string | null; enabled?: boolean | null; groupName?: string | null };
+type AclEntry = {
+  principalType: 'ROLE' | 'USER' | 'GROUP';
+  principalId: string;
+  permissionKey: string;
+  effect: 'ALLOW' | 'DENY';
+};
+type PrincipalGroup = { id: number; name: string; description?: string | null };
+type VisitorGroup = { id: number; siteId: number; name: string; ruleJson: string };
+type InternalRole = { id: number; name: string };
+type InternalUser = { id: number; username: string; displayName?: string | null };
+type FormListRow = { id: number; name: string };
+
+type OnPageTargetType = 'text' | 'richtext' | 'asset' | 'link' | 'form' | 'component' | 'unknown';
+type OnPageActionItem = { id: CmsActionId; label: string; primary?: boolean };
+type OnPageTarget = {
+  contentItemId: number;
+  versionId: number;
+  componentId: string | null;
+  fieldPath: string | null;
+  targetType: OnPageTargetType;
+};
 
 type AiMode = 'copy' | 'props' | 'translate';
 type WorkspaceMode = 'split' | 'properties' | 'onpage';
@@ -146,6 +171,99 @@ const parseJson = <T,>(value: string, fallback: T): T => {
     return fallback;
   }
 };
+
+function parseComponentInstances(componentsJson: string): ComponentInstance[] {
+  const parsed = parseJson<unknown>(componentsJson, []);
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+  return parsed
+    .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
+    .map((entry) => {
+      const typed = entry as Record<string, unknown>;
+      const props = typed.props;
+      return {
+        instanceId: typeof typed.instanceId === 'string' ? typed.instanceId : '',
+        componentTypeId: typeof typed.componentTypeId === 'string' ? typed.componentTypeId : 'text_block',
+        area: typeof typed.area === 'string' && typed.area.trim() ? typed.area : 'main',
+        sortOrder: typeof typed.sortOrder === 'number' && Number.isFinite(typed.sortOrder) ? typed.sortOrder : 0,
+        props: props && typeof props === 'object' && !Array.isArray(props) ? (props as Record<string, unknown>) : {}
+      };
+    })
+    .filter((entry) => entry.instanceId.length > 0);
+}
+
+function parseLegacyComponentMap(componentsJson: string): Record<string, ComponentRecord> {
+  const parsed = parseJson<Record<string, { type?: string; props?: Record<string, unknown> }>>(componentsJson, {});
+  const mapped: Record<string, ComponentRecord> = {};
+  for (const [id, value] of Object.entries(parsed)) {
+    mapped[id] = {
+      id,
+      type: typeof value?.type === 'string' ? value.type : 'text_block',
+      props: value?.props && typeof value.props === 'object' ? value.props : {}
+    };
+  }
+  return mapped;
+}
+
+function componentMapFromInstances(instances: ComponentInstance[]): Record<string, ComponentRecord> {
+  const mapped: Record<string, ComponentRecord> = {};
+  for (const instance of instances) {
+    mapped[instance.instanceId] = {
+      id: instance.instanceId,
+      type: instance.componentTypeId,
+      props: instance.props
+    };
+  }
+  return mapped;
+}
+
+function compositionFromInstances(instances: ComponentInstance[]): { areas: CompositionArea[] } {
+  const grouped = new Map<string, Array<{ id: string; sortOrder: number }>>();
+  for (const instance of instances) {
+    const bucket = grouped.get(instance.area) ?? [];
+    bucket.push({ id: instance.instanceId, sortOrder: instance.sortOrder });
+    grouped.set(instance.area, bucket);
+  }
+  return {
+    areas: Array.from(grouped.entries()).map(([name, rows]) => ({
+      name,
+      components: rows.sort((a, b) => a.sortOrder - b.sortOrder).map((entry) => entry.id)
+    }))
+  };
+}
+
+function serializeComponentInstances(areas: CompositionArea[], componentMap: Record<string, ComponentRecord>): string {
+  const instances: ComponentInstance[] = [];
+  areas.forEach((area) => {
+    area.components.forEach((id, index) => {
+      const component = componentMap[id];
+      if (!component) {
+        return;
+      }
+      instances.push({
+        instanceId: id,
+        componentTypeId: component.type,
+        area: area.name,
+        sortOrder: index,
+        props: component.props
+      });
+    });
+  });
+  return JSON.stringify(instances);
+}
+
+const PAGE_ACL_ACTIONS = [
+  'page.view',
+  'page.create',
+  'page.update',
+  'page.delete',
+  'page.publish',
+  'page.admin',
+  'component.update',
+  'component.delete',
+  'component.admin'
+] as const;
 
 function buildContentEditorUrl(contentItemId: number, marketCode: string, localeCode: string): string {
   return `/content/pages/${contentItemId}?market=${encodeURIComponent(marketCode)}&locale=${encodeURIComponent(localeCode)}`;
@@ -221,6 +339,27 @@ function setNestedValue<T>(input: T, path: string, value: unknown): T {
 
 function sanitizeForAttribute(value: string): string {
   return value.replace(/"/g, '\\"');
+}
+
+function getNestedValue(input: unknown, path: string): unknown {
+  const parts = path.split('.').filter(Boolean);
+  let cursor: unknown = input;
+  for (const part of parts) {
+    if (Array.isArray(cursor)) {
+      const index = Number(part);
+      if (!Number.isFinite(index)) {
+        return undefined;
+      }
+      cursor = cursor[index];
+      continue;
+    }
+    if (cursor && typeof cursor === 'object') {
+      cursor = (cursor as Record<string, unknown>)[part];
+      continue;
+    }
+    return undefined;
+  }
+  return cursor;
 }
 
 function parseTemplateIdFromMetadata(metadataJson: string): number | null {
@@ -538,14 +677,33 @@ export function ContentPagesPage() {
     trafficAllocation: 100,
     contentVersionId: 0
   });
+  const [internalUsers, setInternalUsers] = useState<InternalUser[]>([]);
+  const [internalRoles, setInternalRoles] = useState<InternalRole[]>([]);
+  const [principalGroups, setPrincipalGroups] = useState<PrincipalGroup[]>([]);
+  const [aclInheritFromParent, setAclInheritFromParent] = useState(true);
+  const [aclEntries, setAclEntries] = useState<AclEntry[]>([]);
+  const [visitorGroups, setVisitorGroups] = useState<VisitorGroup[]>([]);
+  const [targetingInheritFromParent, setTargetingInheritFromParent] = useState(true);
+  const [targetingAllowGroupIds, setTargetingAllowGroupIds] = useState<number[]>([]);
+  const [targetingDenyGroupIds, setTargetingDenyGroupIds] = useState<number[]>([]);
+  const [targetingDenyBehavior, setTargetingDenyBehavior] = useState<'NOT_FOUND' | 'FALLBACK'>('NOT_FOUND');
+  const [targetingFallbackContentItemId, setTargetingFallbackContentItemId] = useState<number | null>(null);
+  const [targetingPreviewContextJson, setTargetingPreviewContextJson] = useState('{"segments":[],"query":{}}');
+  const [targetingPreviewResult, setTargetingPreviewResult] = useState<{
+    allowed: boolean;
+    reason: string;
+    matchedAllowGroupIds: number[];
+    matchedDenyGroupIds: number[];
+    fallbackContentItemId?: number | null;
+  } | null>(null);
   const [rawEditable, setRawEditable] = useState(false);
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
   const [selectedFieldPath, setSelectedFieldPath] = useState<string | null>(null);
   const [showAddComponent, setShowAddComponent] = useState(false);
   const [newComponentType, setNewComponentType] = useState(componentRegistry[0]?.id ?? 'hero');
   const [newComponentArea, setNewComponentArea] = useState('main');
-  const [leftTabIndex, setLeftTabIndex] = useState(0);
   const [centerTabIndex, setCenterTabIndex] = useState(0);
+  const [leftPaneCollapsed, setLeftPaneCollapsed] = useState(false);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('split');
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>('web');
   const [treeFilter, setTreeFilter] = useState('');
@@ -560,6 +718,10 @@ export function ContentPagesPage() {
   const [inlineEdit, setInlineEdit] = useState(false);
   const [treeContextRow, setTreeContextRow] = useState<TreeRow | null>(null);
   const [treeContextSelectionKey, setTreeContextSelectionKey] = useState<string | null>(null);
+  const [onPageAssetPicker, setOnPageAssetPicker] = useState<{ visible: boolean; path: string; multiple: boolean; selected: number[] } | null>(null);
+  const [onPageLinkPicker, setOnPageLinkPicker] = useState<{ visible: boolean; path: string; value: ContentLinkValue | null } | null>(null);
+  const [onPageFormPicker, setOnPageFormPicker] = useState<{ visible: boolean; path: string; value: number | null } | null>(null);
+  const [formOptions, setFormOptions] = useState<FormListRow[]>([]);
 
   const previewIframeRef = useRef<HTMLIFrameElement | null>(null);
   const treeContextMenuRef = useRef<ContextMenu>(null);
@@ -583,40 +745,29 @@ export function ContentPagesPage() {
     [routes, selectedItemId, marketCode, localeCode]
   );
 
-  const treeRows = useMemo<TreeRow[]>(() => {
-    const rows: TreeRow[] = [];
-    const walk = (nodes: PageTreeNodeDto[]) => {
-      for (const node of nodes) {
-        rows.push({
-          routeId: String(node.route?.id ?? ''),
-          slug: node.slug ?? '',
-          contentItemId: node.id,
-          title: node.title,
-          status: node.status,
-          parentId: node.parentId ?? null,
-          sortOrder: node.sortOrder
-        });
-        walk(node.children ?? []);
-      }
-    };
-    walk(pageTree);
-    return rows;
-  }, [pageTree]);
-
-  const filteredTreeRows = useMemo(() => {
-    const query = treeFilter.trim().toLowerCase();
-    if (!query) {
-      return treeRows;
-    }
-    return treeRows.filter((entry) => {
-      return (
-        entry.slug.toLowerCase().includes(query) ||
-        entry.title.toLowerCase().includes(query) ||
-        String(entry.contentItemId).includes(query) ||
-        entry.status.toLowerCase().includes(query)
-      );
-    });
-  }, [treeRows, treeFilter]);
+  const permissionPrincipalRows = useMemo(
+    () => [
+      ...internalRoles.map((role) => ({
+        key: `ROLE:${role.id}`,
+        label: `Role: ${role.name}`,
+        principalType: 'ROLE' as const,
+        principalId: String(role.id)
+      })),
+      ...internalUsers.map((user) => ({
+        key: `USER:${user.id}`,
+        label: `User: ${user.displayName?.trim() || user.username} (@${user.username})`,
+        principalType: 'USER' as const,
+        principalId: String(user.id)
+      })),
+      ...principalGroups.map((group) => ({
+        key: `GROUP:${group.id}`,
+        label: `Group: ${group.name}`,
+        principalType: 'GROUP' as const,
+        principalId: String(group.id)
+      }))
+    ],
+    [internalRoles, internalUsers, principalGroups]
+  );
 
   const filteredPageTree = useMemo(() => {
     const query = treeFilter.trim().toLowerCase();
@@ -699,29 +850,32 @@ export function ContentPagesPage() {
     }
   }, [selectedRouteKey, treeNodes]);
 
+  const componentInstances = useMemo(() => parseComponentInstances(componentsJson), [componentsJson]);
+
   const composition = useMemo<{ areas: CompositionArea[] }>(() => {
+    if (componentInstances.length > 0) {
+      return compositionFromInstances(componentInstances);
+    }
     const parsed = parseJson<{ areas?: CompositionArea[] }>(compositionJson, { areas: [] });
     const areas = Array.isArray(parsed.areas) ? parsed.areas : [];
     return { areas };
-  }, [compositionJson]);
+  }, [compositionJson, componentInstances]);
 
   const componentMap = useMemo<Record<string, ComponentRecord>>(() => {
-    const parsed = parseJson<Record<string, { type?: string; props?: Record<string, unknown> }>>(componentsJson, {});
-    const mapped: Record<string, ComponentRecord> = {};
-    for (const [id, value] of Object.entries(parsed)) {
-      mapped[id] = {
-        id,
-        type: typeof value?.type === 'string' ? value.type : 'text_block',
-        props: value?.props && typeof value.props === 'object' ? value.props : {}
-      };
+    if (componentInstances.length > 0) {
+      return componentMapFromInstances(componentInstances);
     }
-    return mapped;
-  }, [componentsJson]);
+    return parseLegacyComponentMap(componentsJson);
+  }, [componentsJson, componentInstances]);
 
   const selectedComponent = selectedComponentId ? componentMap[selectedComponentId] ?? null : null;
   const templateComponentIds = useMemo(() => {
     if (!selectedTemplate) {
       return new Set<string>();
+    }
+    const templateInstances = parseComponentInstances(selectedTemplate.componentsJson);
+    if (templateInstances.length > 0) {
+      return new Set(templateInstances.map((entry) => entry.instanceId));
     }
     const parsed = parseJson<Record<string, unknown>>(selectedTemplate.componentsJson, {});
     return new Set(Object.keys(parsed));
@@ -794,6 +948,85 @@ export function ContentPagesPage() {
     return undefined;
   };
 
+  const resolvePathFieldType = (path: string | null): string | null => {
+    if (!path) {
+      return null;
+    }
+    if (path.startsWith('fields.')) {
+      const key = fieldPathToKey(path);
+      if (!key) {
+        return null;
+      }
+      const def = fieldDefs.find((entry) => entry.key === key);
+      return def?.type ?? null;
+    }
+    const parsed = parseComponentFieldPath(path);
+    if (!parsed) {
+      return null;
+    }
+    const component = componentMap[parsed.componentId];
+    const entry = component ? getComponentRegistryEntry(component.type) : null;
+    const fieldKey = parsed.key.split('.')[0] ?? '';
+    const fieldDef = entry?.fields.find((field) => field.key === fieldKey);
+    return fieldDef?.type ?? null;
+  };
+
+  const resolveOnPageTargetType = (fieldPath: string | null, componentId: string | null): OnPageTargetType => {
+    if (!fieldPath && componentId) {
+      return 'component';
+    }
+    const fieldType = resolvePathFieldType(fieldPath);
+    if (!fieldType) {
+      return componentId ? 'component' : 'unknown';
+    }
+    if (fieldType === 'richtext') {
+      return 'richtext';
+    }
+    if (fieldType === 'text' || fieldType === 'multiline') {
+      return 'text';
+    }
+    if (fieldType === 'assetRef' || fieldType === 'assetList') {
+      return 'asset';
+    }
+    if (fieldType === 'contentLink' || fieldType === 'contentLinkList') {
+      return 'link';
+    }
+    if (fieldType === 'formRef') {
+      return 'form';
+    }
+    return componentId && !fieldPath ? 'component' : 'unknown';
+  };
+
+  const resolveOnPageActions = (target: OnPageTarget): OnPageActionItem[] => {
+    const actions: OnPageActionItem[] = [];
+    const isComponentRoot = Boolean(target.componentId) && (!target.fieldPath || target.fieldPath === `components.${target.componentId}`);
+    const canMutate = draft != null && draft.state !== 'PUBLISHED';
+    const push = (id: CmsActionId, label: string, primary = false) => {
+      if (!actions.some((entry) => entry.id === id)) {
+        actions.push({ id, label, primary });
+      }
+    };
+
+    push('edit', 'Edit', true);
+    if (!canMutate) {
+      return actions;
+    }
+    if (target.targetType === 'text' || target.targetType === 'richtext') {
+      push('inline_edit', 'Inline Edit', true);
+      push('clear', 'Clear');
+    }
+    if (target.targetType === 'asset' || target.targetType === 'link' || target.targetType === 'form') {
+      push('replace', 'Replace', true);
+    }
+    if (isComponentRoot) {
+      push('duplicate', 'Duplicate');
+      push('move_up', 'Move Up');
+      push('move_down', 'Move Down');
+      push('delete', 'Delete');
+    }
+    return actions;
+  };
+
   const selectedStatus = useMemo(() => {
     if (!selectedItemId) {
       return null;
@@ -843,14 +1076,266 @@ export function ContentPagesPage() {
     }, delay);
   };
 
+  const hasAclAllow = (principalType: AclEntry['principalType'], principalId: string, permissionKey: string) =>
+    aclEntries.some(
+      (entry) =>
+        entry.principalType === principalType &&
+        entry.principalId === principalId &&
+        entry.permissionKey === permissionKey &&
+        entry.effect === 'ALLOW'
+    );
+
+  const toggleAclAllow = (
+    principalType: AclEntry['principalType'],
+    principalId: string,
+    permissionKey: string,
+    checked: boolean
+  ) => {
+    setAclEntries((prev) => {
+      const filtered = prev.filter(
+        (entry) =>
+          !(
+            entry.principalType === principalType &&
+            entry.principalId === principalId &&
+            entry.permissionKey === permissionKey
+          )
+      );
+      if (!checked) {
+        return filtered;
+      }
+      return [
+        ...filtered,
+        {
+          principalType,
+          principalId,
+          permissionKey,
+          effect: 'ALLOW'
+        }
+      ];
+    });
+  };
+
+  const updateBuilder = (nextAreas: CompositionArea[], nextMap: Record<string, ComponentRecord>) => {
+    setCompositionJson(JSON.stringify({ areas: nextAreas }));
+    setComponentsJson(serializeComponentInstances(nextAreas, nextMap));
+  };
+
+  const setValueByPath = (fieldPath: string, nextValue: unknown) => {
+    if (fieldPath.startsWith('fields.')) {
+      const key = fieldPathToKey(fieldPath);
+      if (!key) {
+        return false;
+      }
+      setFields((prev) => ({ ...prev, [key]: nextValue }));
+      setSelectedComponentId(null);
+      setSelectedFieldPath(fieldPath);
+      scheduleDraftSave(true, 50);
+      return true;
+    }
+
+    const parsed = parseComponentFieldPath(fieldPath);
+    if (!parsed) {
+      return false;
+    }
+    const component = componentMap[parsed.componentId];
+    if (!component) {
+      return false;
+    }
+    const nextProps = setNestedValue(component.props ?? {}, parsed.key, nextValue);
+    const nextMap = {
+      ...componentMap,
+      [parsed.componentId]: {
+        ...component,
+        props: nextProps
+      }
+    };
+    updateBuilder(composition.areas, nextMap);
+    setSelectedComponentId(parsed.componentId);
+    setSelectedFieldPath(fieldPath);
+    scheduleDraftSave(true, 50);
+    return true;
+  };
+
+  const resolveOnPageTarget = (message: Pick<CmsActionRequestMessage, 'contentItemId' | 'versionId' | 'componentId' | 'fieldPath'>): OnPageTarget | null => {
+    if (!selectedItemId || Number(message.contentItemId) !== selectedItemId) {
+      return null;
+    }
+    const componentId = typeof message.componentId === 'string' ? message.componentId : null;
+    const fieldPath = typeof message.fieldPath === 'string' ? message.fieldPath : null;
+    const targetType = resolveOnPageTargetType(fieldPath, componentId);
+    return {
+      contentItemId: Number(message.contentItemId),
+      versionId: Number(message.versionId),
+      componentId,
+      fieldPath,
+      targetType
+    };
+  };
+
+  const sendOnPageActions = (target: OnPageTarget | null) => {
+    const message: CmsActionsMessage = {
+      type: 'CMS_ACTIONS',
+      contentItemId: target?.contentItemId ?? selectedItemId ?? 0,
+      versionId: target?.versionId ?? (draft?.id ?? 0),
+      componentId: target?.componentId ?? undefined,
+      fieldPath: target?.fieldPath ?? undefined,
+      targetType: target?.targetType ?? 'unknown',
+      actions: target ? resolveOnPageActions(target) : []
+    };
+    sendPreviewMessage(message);
+  };
+
+  const executeOnPageAction = (request: CmsActionRequestMessage) => {
+    const target = resolveOnPageTarget(request);
+    if (!target || !request.action) {
+      return;
+    }
+
+    if (request.action === 'edit') {
+      if (target.componentId) {
+        setSelectedComponentId(target.componentId);
+        setCenterTabIndex(1);
+      }
+      if (target.fieldPath) {
+        setSelectedFieldPath(target.fieldPath);
+        if (target.fieldPath.startsWith('fields.')) {
+          setSelectedComponentId(null);
+          setCenterTabIndex(0);
+        }
+        focusEditorByPath(target.fieldPath);
+      }
+      return;
+    }
+
+    if (!draft || draft.state === 'PUBLISHED') {
+      return;
+    }
+
+    if (request.action === 'replace' && target.fieldPath) {
+      setSelectedFieldPath(target.fieldPath);
+      if (target.componentId) {
+        setSelectedComponentId(target.componentId);
+      }
+      if (target.targetType === 'asset') {
+        const current = target.fieldPath.startsWith('fields.')
+          ? fields[fieldPathToKey(target.fieldPath) ?? '']
+          : (() => {
+              const parsed = parseComponentFieldPath(target.fieldPath);
+              if (!parsed) {
+                return null;
+              }
+              const component = componentMap[parsed.componentId];
+              return getNestedValue(component?.props ?? {}, parsed.key);
+            })();
+        const selected =
+          typeof current === 'number'
+            ? [current]
+            : Array.isArray(current)
+              ? current.filter((entry): entry is number => typeof entry === 'number')
+              : [];
+        const multiple = Array.isArray(current);
+        setOnPageAssetPicker({ visible: true, path: target.fieldPath, multiple, selected });
+        return;
+      }
+      if (target.targetType === 'link') {
+        const current = target.fieldPath.startsWith('fields.')
+          ? fields[fieldPathToKey(target.fieldPath) ?? '']
+          : (() => {
+              const parsed = parseComponentFieldPath(target.fieldPath);
+              if (!parsed) {
+                return null;
+              }
+              const component = componentMap[parsed.componentId];
+              return getNestedValue(component?.props ?? {}, parsed.key);
+            })();
+        const value = current && typeof current === 'object' && !Array.isArray(current) ? (current as ContentLinkValue) : null;
+        setOnPageLinkPicker({ visible: true, path: target.fieldPath, value });
+        return;
+      }
+      if (target.targetType === 'form') {
+        const current = target.fieldPath.startsWith('fields.')
+          ? fields[fieldPathToKey(target.fieldPath) ?? '']
+          : (() => {
+              const parsed = parseComponentFieldPath(target.fieldPath);
+              if (!parsed) {
+                return null;
+              }
+              const component = componentMap[parsed.componentId];
+              return getNestedValue(component?.props ?? {}, parsed.key);
+            })();
+        setOnPageFormPicker({
+          visible: true,
+          path: target.fieldPath,
+          value: typeof current === 'number' ? current : null
+        });
+      }
+      return;
+    }
+
+    if (request.action === 'clear' && target.fieldPath) {
+      setValueByPath(target.fieldPath, '');
+      return;
+    }
+
+    if (!target.componentId) {
+      return;
+    }
+
+    if (request.action === 'delete') {
+      const nextAreas = removeComponentFromAreas(composition.areas, target.componentId);
+      const nextMap = { ...componentMap };
+      delete nextMap[target.componentId];
+      updateBuilder(nextAreas, nextMap);
+      setSelectedComponentId(null);
+      setSelectedFieldPath(null);
+      scheduleDraftSave(true, 50);
+      return;
+    }
+
+    if (request.action === 'duplicate') {
+      const original = componentMap[target.componentId];
+      if (!original) {
+        return;
+      }
+      const duplicateId = `${original.type}_${Date.now()}`;
+      const nextMap = {
+        ...componentMap,
+        [duplicateId]: {
+          id: duplicateId,
+          type: original.type,
+          props: cloneProps(original.props)
+        }
+      };
+      const nextAreas = duplicateComponentInAreas(composition.areas, target.componentId, duplicateId);
+      updateBuilder(nextAreas, nextMap);
+      setSelectedComponentId(duplicateId);
+      setSelectedFieldPath(`components.${duplicateId}`);
+      scheduleDraftSave(true, 50);
+      return;
+    }
+
+    if (request.action === 'move_up' || request.action === 'move_down') {
+      const nextAreas = moveComponentInAreas(composition.areas, target.componentId, request.action === 'move_up' ? -1 : 1);
+      updateBuilder(nextAreas, componentMap);
+      setSelectedComponentId(target.componentId);
+      setSelectedFieldPath(`components.${target.componentId}`);
+      scheduleDraftSave(true, 50);
+    }
+  };
+
   const refresh = async () => {
-    const [typesRes, itemsRes, routesRes, templatesRes, pageTreeRes] = await Promise.all([
+    const [typesRes, itemsRes, routesRes, templatesRes, pageTreeRes, usersRes, rolesRes, groupsRes, visitorGroupsRes] =
+      await Promise.all([
       sdk.listContentTypes({ siteId }),
       sdk.listContentItems({ siteId }),
       sdk.listRoutes({ siteId, marketCode: null, localeCode: null }),
       sdk.listTemplates({ siteId }),
-      sdk.getPageTree({ siteId, marketCode, localeCode })
-    ]);
+      sdk.getPageTree({ siteId, marketCode, localeCode }),
+      sdk.listInternalUsers(),
+      sdk.listInternalRoles(),
+      sdk.listPrincipalGroups(),
+      sdk.listVisitorGroups({ siteId })
+      ]);
     const componentSettingsRes = await sdk
       .listComponentTypeSettings({ siteId })
       .catch(() => ({ listComponentTypeSettings: [] as ComponentTypeSettingRow[] }));
@@ -861,6 +1346,10 @@ export function ContentPagesPage() {
     setRoutes((routesRes.listRoutes ?? []) as CRoute[]);
     setPageTree((pageTreeRes.getPageTree ?? []) as PageTreeNodeDto[]);
     setTemplates((templatesRes.listTemplates ?? []) as Template[]);
+    setInternalUsers((usersRes.listInternalUsers ?? []) as InternalUser[]);
+    setInternalRoles((rolesRes.listInternalRoles ?? []) as InternalRole[]);
+    setPrincipalGroups((groupsRes.listPrincipalGroups ?? []) as PrincipalGroup[]);
+    setVisitorGroups((visitorGroupsRes.listVisitorGroups ?? []) as VisitorGroup[]);
     setComponentSettings(
       ((componentSettingsRes.listComponentTypeSettings ?? []) as ComponentTypeSettingRow[])
         .filter((entry) => typeof entry.componentTypeId === 'string')
@@ -880,8 +1369,13 @@ export function ContentPagesPage() {
       setDraft(activeVersion);
       if (activeVersion) {
         const parsedFields = parseJson(activeVersion.fieldsJson, {});
+        const instances = parseComponentInstances(activeVersion.componentsJson);
+        const normalizedCompositionJson =
+          instances.length > 0
+            ? JSON.stringify(compositionFromInstances(instances))
+            : activeVersion.compositionJson;
         setFields(parsedFields);
-        setCompositionJson(activeVersion.compositionJson);
+        setCompositionJson(normalizedCompositionJson);
         setComponentsJson(activeVersion.componentsJson);
         setMetadataJson(activeVersion.metadataJson);
         const linkedTemplateId = parseTemplateIdFromMetadata(activeVersion.metadataJson);
@@ -894,7 +1388,7 @@ export function ContentPagesPage() {
         setVariantDraft((prev) => ({ ...prev, contentVersionId: activeVersion.id }));
         lastSavedRef.current = JSON.stringify({
           fields: parsedFields,
-          compositionJson: activeVersion.compositionJson,
+          compositionJson: normalizedCompositionJson,
           componentsJson: activeVersion.componentsJson,
           metadataJson: activeVersion.metadataJson
         });
@@ -915,6 +1409,30 @@ export function ContentPagesPage() {
       } else {
         setVariants([]);
       }
+
+      const [aclSettingsRes, aclEntriesRes, targetingRes] = await Promise.all([
+        sdk.getPageAclSettings({ contentItemId: id }),
+        sdk.listEntityAcls({ entityType: 'PAGE', entityId: String(id) }),
+        sdk.getPageTargeting({ contentItemId: id })
+      ]);
+      setAclInheritFromParent(Boolean(aclSettingsRes.getPageAclSettings?.inheritFromParent ?? true));
+      setAclEntries(((aclEntriesRes.listEntityAcls ?? []) as AclEntry[]).filter((entry) => entry.effect === 'ALLOW'));
+
+      const targeting = targetingRes.getPageTargeting;
+      const allowIds = targeting?.allowVisitorGroupIdsJson
+        ? (parseJson(targeting.allowVisitorGroupIdsJson, []) as number[])
+        : [];
+      const denyIds = targeting?.denyVisitorGroupIdsJson
+        ? (parseJson(targeting.denyVisitorGroupIdsJson, []) as number[])
+        : [];
+      setTargetingInheritFromParent(Boolean(targeting?.inheritFromParent ?? true));
+      setTargetingAllowGroupIds(allowIds.filter((entry) => Number.isFinite(Number(entry))).map((entry) => Number(entry)));
+      setTargetingDenyGroupIds(denyIds.filter((entry) => Number.isFinite(Number(entry))).map((entry) => Number(entry)));
+      setTargetingDenyBehavior(targeting?.denyBehavior === 'FALLBACK' ? 'FALLBACK' : 'NOT_FOUND');
+      setTargetingFallbackContentItemId(
+        typeof targeting?.fallbackContentItemId === 'number' ? targeting.fallbackContentItemId : null
+      );
+      setTargetingPreviewResult(null);
     } finally {
       setLoadingItem(false);
     }
@@ -976,14 +1494,39 @@ export function ContentPagesPage() {
   }, [canInlineEdit]);
 
   useEffect(() => {
+    sdk
+      .listForms({ siteId })
+      .then((res) =>
+        setFormOptions(
+          (res.listForms ?? [])
+            .filter((entry) => typeof entry.id === 'number' && typeof entry.name === 'string')
+            .map((entry) => ({ id: entry.id as number, name: entry.name as string }))
+        )
+      )
+      .catch(() => setFormOptions([]));
+  }, [sdk, siteId]);
+
+  useEffect(() => {
     const handler = (event: MessageEvent<unknown>) => {
       const payload = event.data as Partial<CmsBridgeMessage> | undefined;
       if (!payload?.type) {
         return;
       }
 
+      if (payload.type === 'CMS_ACTION_REQUEST') {
+        const request = payload as CmsActionRequestMessage;
+        const target = resolveOnPageTarget(request);
+        if (request.mode === 'list') {
+          sendOnPageActions(target);
+          return;
+        }
+        executeOnPageAction(request);
+        sendOnPageActions(target);
+        return;
+      }
+
       if (payload.type === 'CMS_INLINE_EDIT') {
-        if (!inlineEdit || !draft) {
+        if (!draft) {
           return;
         }
         const fieldPath = typeof payload.fieldPath === 'string' ? payload.fieldPath : null;
@@ -1012,7 +1555,7 @@ export function ContentPagesPage() {
         }
         const nextProps = setNestedValue(component.props ?? {}, parsed.key, html);
         const nextMap = { ...componentMap, [parsed.componentId]: { ...component, props: nextProps } };
-        updateComponentMap(nextMap);
+        updateBuilder(composition.areas, nextMap);
         setSelectedComponentId(parsed.componentId);
         setSelectedFieldPath(fieldPath);
         scheduleDraftSave(true, 50);
@@ -1028,7 +1571,7 @@ export function ContentPagesPage() {
       }
 
       const fieldPath = typeof payload.fieldPath === 'string' ? payload.fieldPath : null;
-      const componentId = typeof payload.componentId === 'string' ? payload.componentId : null;
+        const componentId = typeof payload.componentId === 'string' ? payload.componentId : null;
 
       if (componentId) {
         setSelectedComponentId(componentId);
@@ -1046,11 +1589,33 @@ export function ContentPagesPage() {
         }
         focusEditorByPath(fieldPath);
       }
+
+      const targetType = resolveOnPageTargetType(fieldPath, componentId);
+      const target: OnPageTarget = {
+        contentItemId: selectedItemId,
+        versionId: draft?.id ?? 0,
+        componentId,
+        fieldPath,
+        targetType
+      };
+      sendOnPageActions(target);
     };
 
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [selectedItemId, componentMap, inlineEdit, draft, scheduleDraftSave]);
+  }, [
+    selectedItemId,
+    componentMap,
+    composition,
+    fields,
+    inlineEdit,
+    draft,
+    resolveOnPageTarget,
+    resolveOnPageTargetType,
+    sendOnPageActions,
+    executeOnPageAction,
+    scheduleDraftSave
+  ]);
 
   useEffect(() => {
     if (!draft || loadingItem) {
@@ -1315,6 +1880,65 @@ export function ContentPagesPage() {
     }
   };
 
+  const savePagePermissions = async () => {
+    if (!selectedItemId) {
+      return;
+    }
+    await sdk.upsertPageAclSettings({
+      contentItemId: selectedItemId,
+      inheritFromParent: aclInheritFromParent
+    });
+    await sdk.replaceEntityAcls({
+      entityType: 'PAGE',
+      entityId: String(selectedItemId),
+      entries: aclEntries.map((entry) => ({
+        principalType: entry.principalType,
+        principalId: entry.principalId,
+        permissionKey: entry.permissionKey,
+        effect: entry.effect
+      }))
+    });
+    toast({ severity: 'success', summary: 'Permissions saved' });
+  };
+
+  const savePageTargeting = async () => {
+    if (!selectedItemId) {
+      return;
+    }
+    await sdk.upsertPageTargeting({
+      contentItemId: selectedItemId,
+      inheritFromParent: targetingInheritFromParent,
+      allowVisitorGroupIdsJson: JSON.stringify(targetingAllowGroupIds),
+      denyVisitorGroupIdsJson: JSON.stringify(targetingDenyGroupIds),
+      denyBehavior: targetingDenyBehavior,
+      fallbackContentItemId: targetingFallbackContentItemId
+    });
+    toast({ severity: 'success', summary: 'Targeting saved' });
+  };
+
+  const previewPageTargeting = async () => {
+    if (!selectedItemId) {
+      return;
+    }
+    const result = await sdk.evaluatePageTargeting({
+      contentItemId: selectedItemId,
+      contextJson: targetingPreviewContextJson
+    });
+    const evaluation = result.evaluatePageTargeting;
+    if (!evaluation) {
+      setTargetingPreviewResult(null);
+      return;
+    }
+    setTargetingPreviewResult({
+      allowed: Boolean(evaluation.allowed),
+      reason: String(evaluation.reason ?? ''),
+      matchedAllowGroupIds: (evaluation.matchedAllowGroupIds ?? []) as number[],
+      matchedDenyGroupIds: (evaluation.matchedDenyGroupIds ?? []) as number[],
+      fallbackContentItemId:
+        typeof evaluation.fallbackContentItemId === 'number' ? evaluation.fallbackContentItemId : null
+    });
+  };
+
   const moveRowUp = async (row: TreeRow) => {
     if (row.sortOrder <= 0) {
       return;
@@ -1342,8 +1966,9 @@ export function ContentPagesPage() {
     toast({ severity: 'info', summary: 'Rename in fields', detail: 'Edit title/name field in the editor.' });
   };
 
-  const openPermissions = (_row: TreeRow) => {
-    navigate('/security/roles');
+  const openPermissions = (row: TreeRow) => {
+    navigate(buildContentEditorUrl(row.contentItemId, marketCode, localeCode));
+    setCenterTabIndex(5);
   };
 
   const deleteTreeRow = async (row: TreeRow) => {
@@ -1355,27 +1980,22 @@ export function ContentPagesPage() {
     toast({ severity: 'success', summary: `Archived page #${row.contentItemId}` });
   };
 
-  const updateComponentMap = (next: Record<string, ComponentRecord>) => {
-    const normalized = Object.fromEntries(
-      Object.entries(next).map(([id, value]) => [id, { type: value.type, props: value.props }])
-    );
-    setComponentsJson(JSON.stringify(normalized));
-  };
-
-  const updateComposition = (next: { areas: CompositionArea[] }) => {
-    setCompositionJson(JSON.stringify(next));
-  };
-
   const moveComponent = (id: string, direction: -1 | 1) => {
-    updateComposition({ areas: moveComponentInAreas(composition.areas, id, direction) });
+    const nextAreas = moveComponentInAreas(composition.areas, id, direction);
+    updateBuilder(nextAreas, componentMap);
+  };
+
+  const moveComponentToArea = (id: string, areaName: string) => {
+    const without = removeComponentFromAreas(composition.areas, id);
+    const nextAreas = placeComponentInArea(without, areaName, id);
+    updateBuilder(nextAreas, componentMap);
   };
 
   const removeComponent = (id: string) => {
     const nextAreas = removeComponentFromAreas(composition.areas, id);
     const nextMap = { ...componentMap };
     delete nextMap[id];
-    updateComposition({ areas: nextAreas });
-    updateComponentMap(nextMap);
+    updateBuilder(nextAreas, nextMap);
     if (selectedComponentId === id) {
       setSelectedComponentId(null);
       setSelectedFieldPath(null);
@@ -1400,8 +2020,7 @@ export function ContentPagesPage() {
 
     const nextAreas = duplicateComponentInAreas(composition.areas, id, duplicateId);
 
-    updateComponentMap(nextMap);
-    updateComposition({ areas: nextAreas });
+    updateBuilder(nextAreas, nextMap);
     setSelectedComponentId(duplicateId);
     setSelectedFieldPath(`components.${duplicateId}`);
   };
@@ -1428,11 +2047,36 @@ export function ContentPagesPage() {
     const id = `${entry.id}_${Date.now()}`;
     const nextMap = { ...componentMap, [id]: { id, type: entry.id, props: cloneProps(entry.defaultProps) } };
     const nextAreas = placeComponentInArea(composition.areas, newComponentArea, id);
-    updateComponentMap(nextMap);
-    updateComposition({ areas: nextAreas });
+    updateBuilder(nextAreas, nextMap);
     setSelectedComponentId(id);
     setSelectedFieldPath(`components.${id}`);
     setShowAddComponent(false);
+  };
+
+  const applyOnPageAssetSelection = (assetIds: number[]) => {
+    if (!onPageAssetPicker) {
+      return;
+    }
+    const value = onPageAssetPicker.multiple ? assetIds : (assetIds[0] ?? null);
+    setValueByPath(onPageAssetPicker.path, value);
+    setOnPageAssetPicker(null);
+  };
+
+  const applyOnPageLinkSelection = (value: ContentLinkValue) => {
+    if (!onPageLinkPicker) {
+      return;
+    }
+    const fieldType = resolvePathFieldType(onPageLinkPicker.path);
+    setValueByPath(onPageLinkPicker.path, fieldType === 'contentLinkList' ? [value] : value);
+    setOnPageLinkPicker(null);
+  };
+
+  const applyOnPageFormSelection = (formId: number | null) => {
+    if (!onPageFormPicker) {
+      return;
+    }
+    setValueByPath(onPageFormPicker.path, formId);
+    setOnPageFormPicker(null);
   };
 
   const applyAiSuggestion = () => {
@@ -1454,7 +2098,7 @@ export function ContentPagesPage() {
             [componentField.key]: aiSuggestion
           }
         };
-        updateComponentMap(next);
+        updateBuilder(composition.areas, next);
       }
       return;
     }
@@ -1714,12 +2358,12 @@ export function ContentPagesPage() {
                   const id = `${entry.id}_${Date.now()}`;
                   const nextMap = { ...componentMap, [id]: { id, type: entry.id, props: cloneProps(entry.defaultProps) } };
                   const nextAreas = placeComponentInArea(composition.areas, area, id);
-                  updateComponentMap(nextMap);
-                  updateComposition({ areas: nextAreas });
+                  updateBuilder(nextAreas, nextMap);
                   setSelectedComponentId(id);
                   setSelectedFieldPath(`components.${id}`);
                 }}
                 onMove={moveComponent}
+                onMoveToArea={moveComponentToArea}
                 onDuplicate={duplicateComponent}
                 onDelete={removeComponent}
                 rightPane={(
@@ -1738,7 +2382,7 @@ export function ContentPagesPage() {
                         }}
                         onChange={(next) => {
                           const nextMap = { ...componentMap, [next.id]: next };
-                          updateComponentMap(nextMap);
+                          updateBuilder(composition.areas, nextMap);
                         }}
                       />
                     </InspectorSection>
@@ -1883,6 +2527,145 @@ export function ContentPagesPage() {
                   : Promise.resolve())
               }
             />
+          </TabPanel>
+          <TabPanel header="Permissions">
+            <details className="cms-collapsible" open>
+              <summary>ACL Matrix</summary>
+              <div className="form-row">
+                <label>
+                  <Checkbox
+                    checked={aclInheritFromParent}
+                    onChange={(event) => setAclInheritFromParent(Boolean(event.checked))}
+                  />{' '}
+                  Inherit permissions from parent page
+                </label>
+                <small className="muted">Disable inheritance to override with local ACL entries.</small>
+              </div>
+              <div className="form-row">
+                <label>Page ACL matrix (allow grants)</label>
+                <div className="acl-matrix-wrap">
+                  <table className="acl-matrix-table">
+                    <thead>
+                      <tr>
+                        <th>Principal</th>
+                        {PAGE_ACL_ACTIONS.map((action) => (
+                          <th key={action}>{action}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {permissionPrincipalRows.map((principal) => (
+                        <tr key={principal.key}>
+                          <td>{principal.label}</td>
+                          {PAGE_ACL_ACTIONS.map((action) => (
+                            <td key={`${principal.key}-${action}`}>
+                              <Checkbox
+                                checked={hasAclAllow(principal.principalType, principal.principalId, action)}
+                                onChange={(event) =>
+                                  toggleAclAllow(
+                                    principal.principalType,
+                                    principal.principalId,
+                                    action,
+                                    Boolean(event.checked)
+                                  )
+                                }
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="inline-actions" style={{ marginTop: '0.5rem' }}>
+                  <Button label="Save Permissions" onClick={() => savePagePermissions().catch((e: unknown) => setStatus(String(e)))} />
+                </div>
+              </div>
+            </details>
+            <details className="cms-collapsible" open>
+              <summary>Visitor Targeting</summary>
+              <div className="form-row">
+                <label>
+                  <Checkbox
+                    checked={targetingInheritFromParent}
+                    onChange={(event) => setTargetingInheritFromParent(Boolean(event.checked))}
+                  />{' '}
+                  Inherit targeting from parent page
+                </label>
+                <small className="muted">Disable inheritance to override allow/deny visitor groups locally.</small>
+              </div>
+              <div className="form-grid">
+                <div className="form-row">
+                  <label>Allow visitor groups</label>
+                  <MultiSelect
+                    value={targetingAllowGroupIds}
+                    options={visitorGroups.map((entry) => ({ label: entry.name, value: entry.id }))}
+                    onChange={(event) => setTargetingAllowGroupIds((event.value as number[]) ?? [])}
+                    display="chip"
+                    filter
+                  />
+                </div>
+                <div className="form-row">
+                  <label>Deny visitor groups</label>
+                  <MultiSelect
+                    value={targetingDenyGroupIds}
+                    options={visitorGroups.map((entry) => ({ label: entry.name, value: entry.id }))}
+                    onChange={(event) => setTargetingDenyGroupIds((event.value as number[]) ?? [])}
+                    display="chip"
+                    filter
+                  />
+                </div>
+                <div className="form-row">
+                  <label>When denied</label>
+                  <Dropdown
+                    value={targetingDenyBehavior}
+                    options={[
+                      { label: 'Return 404', value: 'NOT_FOUND' },
+                      { label: 'Fallback page', value: 'FALLBACK' }
+                    ]}
+                    onChange={(event) =>
+                      setTargetingDenyBehavior((event.value as 'NOT_FOUND' | 'FALLBACK') ?? 'NOT_FOUND')
+                    }
+                  />
+                </div>
+                <div className="form-row">
+                  <label>Fallback page (content item id)</label>
+                  <InputText
+                    value={targetingFallbackContentItemId == null ? '' : String(targetingFallbackContentItemId)}
+                    onChange={(event) => {
+                      const value = event.target.value.trim();
+                      setTargetingFallbackContentItemId(value ? Number(value) : null);
+                    }}
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+              <div className="inline-actions" style={{ marginBottom: '0.75rem' }}>
+                <Button label="Save Targeting" onClick={() => savePageTargeting().catch((e: unknown) => setStatus(String(e)))} />
+              </div>
+              <div className="form-row">
+                <label>Preview targeting with sample context JSON</label>
+                <InputTextarea
+                  rows={4}
+                  value={targetingPreviewContextJson}
+                  onChange={(event) => setTargetingPreviewContextJson(event.target.value)}
+                />
+                <div className="inline-actions">
+                  <Button
+                    label="Evaluate Targeting"
+                    severity="secondary"
+                    onClick={() => previewPageTargeting().catch((e: unknown) => setStatus(String(e)))}
+                  />
+                </div>
+                {targetingPreviewResult ? (
+                  <small className="muted">
+                    Allowed: {targetingPreviewResult.allowed ? 'yes' : 'no'} | Reason: {targetingPreviewResult.reason} |
+                    Allow matches: {targetingPreviewResult.matchedAllowGroupIds.join(', ') || 'none'} | Deny matches:{' '}
+                    {targetingPreviewResult.matchedDenyGroupIds.join(', ') || 'none'}
+                  </small>
+                ) : null}
+              </div>
+            </details>
           </TabPanel>
           <TabPanel header="Advanced">
             <div className="inline-actions">
@@ -2036,9 +2819,19 @@ export function ContentPagesPage() {
         <Splitter className="splitFill cms-editor-workspace" style={{ width: '100%' }}>
           <SplitterPanel size={28} minSize={20}>
             <div className="paneRoot paneScroll cms-pane cms-left-pane">
-              <TabView activeIndex={leftTabIndex} onTabChange={(event) => setLeftTabIndex(event.index)}>
-                <TabPanel header="Tree">
-                  <ContextMenu ref={treeContextMenuRef} model={treeContextMenuItems} />
+              <ContextMenu ref={treeContextMenuRef} model={treeContextMenuItems} />
+              <div className="inline-actions" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <strong>Page Tree</strong>
+                <Button
+                  label={leftPaneCollapsed ? 'Expand' : 'Collapse'}
+                  text
+                  size="small"
+                  icon={leftPaneCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'}
+                  onClick={() => setLeftPaneCollapsed((prev) => !prev)}
+                />
+              </div>
+              {!leftPaneCollapsed ? (
+                <>
                   <div className="form-row" style={{ marginBottom: '0.75rem' }}>
                     <label>Filter tree</label>
                     <InputText value={treeFilter} onChange={(event) => setTreeFilter(event.target.value)} placeholder="Slug, title, status" />
@@ -2138,40 +2931,10 @@ export function ContentPagesPage() {
                       style={{ width: '12rem' }}
                     />
                   </TreeTable>
-                </TabPanel>
-                <TabPanel header="Search">
-                  <div className="form-row">
-                    <label>Find by slug, title, item id, status</label>
-                    <InputText value={treeFilter} onChange={(event) => setTreeFilter(event.target.value)} placeholder="Search pages" />
-                  </div>
-                  <DataTable value={filteredTreeRows} size="small">
-                    <Column field="slug" header="Slug" />
-                    <Column field="title" header="Title" />
-                    <Column field="status" header="Status" />
-                    <Column
-                      header="Actions"
-                      body={(row: TreeRow) => {
-                        const rowCommandContext: ContentPageRowCommandContext = {
-                          ...baseCommandContext,
-                          row,
-                          selectionIds: [row.contentItemId],
-                          openRow,
-                          addChildRow: createChildFromRow,
-                          renameRow,
-                          openPermissions,
-                          moveRowUp,
-                          moveRowDown,
-                          duplicateRow: duplicateTreeRow,
-                          exportRow,
-                          deleteRow: deleteTreeRow
-                        };
-                        const rowCommands = commandRegistry.getCommands(rowCommandContext, 'rowOverflow');
-                        return <CommandMenuButton commands={rowCommands} context={rowCommandContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />;
-                      }}
-                    />
-                  </DataTable>
-                </TabPanel>
-              </TabView>
+                </>
+              ) : (
+                <small className="muted">Tree panel collapsed.</small>
+              )}
             </div>
           </SplitterPanel>
           <SplitterPanel size={72} minSize={35}>
@@ -2210,6 +2973,52 @@ export function ContentPagesPage() {
         <div className="inline-actions" style={{ marginTop: '0.75rem' }}>
           <Button label="Cancel" text onClick={() => setShowAddComponent(false)} />
           <Button label="Add" onClick={addComponent} disabled={!newComponentType || availableComponentTypeOptions.length === 0} />
+        </div>
+      </Dialog>
+      {onPageAssetPicker ? (
+        <AssetPickerDialog
+          visible={onPageAssetPicker.visible}
+          token={token}
+          siteId={siteId}
+          selected={onPageAssetPicker.selected}
+          multiple={onPageAssetPicker.multiple}
+          onHide={() => setOnPageAssetPicker(null)}
+          onApply={applyOnPageAssetSelection}
+        />
+      ) : null}
+      {onPageLinkPicker ? (
+        <LinkSelectorDialog
+          visible={onPageLinkPicker.visible}
+          token={token}
+          siteId={siteId}
+          value={onPageLinkPicker.value}
+          onHide={() => setOnPageLinkPicker(null)}
+          onApply={applyOnPageLinkSelection}
+        />
+      ) : null}
+      <Dialog
+        header="Select Form"
+        visible={Boolean(onPageFormPicker?.visible)}
+        onHide={() => setOnPageFormPicker(null)}
+        style={{ width: '34rem' }}
+      >
+        <div className="form-row">
+          <label>Form</label>
+          <Dropdown
+            value={onPageFormPicker?.value ?? null}
+            options={formOptions.map((entry) => ({ label: entry.name, value: entry.id }))}
+            onChange={(event) => setOnPageFormPicker((prev) => (prev ? { ...prev, value: typeof event.value === 'number' ? event.value : null } : prev))}
+            showClear
+            placeholder="Select form"
+          />
+        </div>
+        <div className="inline-actions" style={{ justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+          <Button label="Cancel" text onClick={() => setOnPageFormPicker(null)} />
+          <Button
+            label="Apply"
+            onClick={() => applyOnPageFormSelection(onPageFormPicker?.value ?? null)}
+            disabled={!onPageFormPicker}
+          />
         </div>
       </Dialog>
       <Dialog header="Ask AI" visible={aiDialogOpen} onHide={() => setAiDialogOpen(false)} style={{ width: '42rem' }}>

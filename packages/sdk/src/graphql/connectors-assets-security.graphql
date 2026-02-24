@@ -173,6 +173,7 @@ query ListInternalUsers {
     active
     createdAt
     roleIds
+    groupIds
   }
 }
 
@@ -191,6 +192,10 @@ query InternalPermissions {
   internalPermissions
 }
 
+query AclPermissionKeys {
+  aclPermissionKeys
+}
+
 mutation CreateInternalUser($username: String!, $displayName: String!, $password: String!, $active: Boolean!) {
   createInternalUser(username: $username, displayName: $displayName, password: $password, active: $active) {
     id
@@ -199,6 +204,7 @@ mutation CreateInternalUser($username: String!, $displayName: String!, $password
     active
     createdAt
     roleIds
+    groupIds
   }
 }
 
@@ -210,6 +216,7 @@ mutation UpdateInternalUser($id: Int!, $displayName: String!, $active: Boolean!)
     active
     createdAt
     roleIds
+    groupIds
   }
 }
 
@@ -234,6 +241,144 @@ mutation DeleteInternalRole($id: Int!) {
 
 mutation SetUserRoles($userId: Int!, $roleIds: [Int!]!) {
   setUserRoles(userId: $userId, roleIds: $roleIds)
+}
+
+mutation SetUserGroups($userId: Int!, $groupIds: [Int!]!) {
+  setUserGroups(userId: $userId, groupIds: $groupIds)
+}
+
+query ListPrincipalGroups {
+  listPrincipalGroups {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpsertPrincipalGroup($id: Int, $name: String!, $description: String) {
+  upsertPrincipalGroup(id: $id, name: $name, description: $description) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeletePrincipalGroup($id: Int!) {
+  deletePrincipalGroup(id: $id)
+}
+
+query ListEntityAcls($entityType: String!, $entityId: String!) {
+  listEntityAcls(entityType: $entityType, entityId: $entityId) {
+    id
+    entityType
+    entityId
+    principalType
+    principalId
+    permissionKey
+    effect
+  }
+}
+
+mutation ReplaceEntityAcls($entityType: String!, $entityId: String!, $entries: [EntityAclEntryInput!]!) {
+  replaceEntityAcls(entityType: $entityType, entityId: $entityId, entries: $entries) {
+    id
+    entityType
+    entityId
+    principalType
+    principalId
+    permissionKey
+    effect
+  }
+}
+
+query GetPageAclSettings($contentItemId: Int!) {
+  getPageAclSettings(contentItemId: $contentItemId) {
+    contentItemId
+    inheritFromParent
+  }
+}
+
+mutation UpsertPageAclSettings($contentItemId: Int!, $inheritFromParent: Boolean!) {
+  upsertPageAclSettings(contentItemId: $contentItemId, inheritFromParent: $inheritFromParent) {
+    contentItemId
+    inheritFromParent
+  }
+}
+
+query ListVisitorGroups($siteId: Int!) {
+  listVisitorGroups(siteId: $siteId) {
+    id
+    siteId
+    name
+    ruleJson
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpsertVisitorGroup($id: Int, $siteId: Int!, $name: String!, $ruleJson: String!) {
+  upsertVisitorGroup(id: $id, siteId: $siteId, name: $name, ruleJson: $ruleJson) {
+    id
+    siteId
+    name
+    ruleJson
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeleteVisitorGroup($id: Int!) {
+  deleteVisitorGroup(id: $id)
+}
+
+query GetPageTargeting($contentItemId: Int!) {
+  getPageTargeting(contentItemId: $contentItemId) {
+    contentItemId
+    inheritFromParent
+    allowVisitorGroupIdsJson
+    denyVisitorGroupIdsJson
+    denyBehavior
+    fallbackContentItemId
+  }
+}
+
+query EvaluatePageTargeting($contentItemId: Int!, $contextJson: String) {
+  evaluatePageTargeting(contentItemId: $contentItemId, contextJson: $contextJson) {
+    allowed
+    reason
+    matchedAllowGroupIds
+    matchedDenyGroupIds
+    fallbackContentItemId
+  }
+}
+
+mutation UpsertPageTargeting(
+  $contentItemId: Int!
+  $inheritFromParent: Boolean!
+  $allowVisitorGroupIdsJson: String!
+  $denyVisitorGroupIdsJson: String!
+  $denyBehavior: String!
+  $fallbackContentItemId: Int
+) {
+  upsertPageTargeting(
+    contentItemId: $contentItemId
+    inheritFromParent: $inheritFromParent
+    allowVisitorGroupIdsJson: $allowVisitorGroupIdsJson
+    denyVisitorGroupIdsJson: $denyVisitorGroupIdsJson
+    denyBehavior: $denyBehavior
+    fallbackContentItemId: $fallbackContentItemId
+  ) {
+    contentItemId
+    inheritFromParent
+    allowVisitorGroupIdsJson
+    denyVisitorGroupIdsJson
+    denyBehavior
+    fallbackContentItemId
+  }
 }
 
 query DbAdminTables($dangerMode: Boolean) {

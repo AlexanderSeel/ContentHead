@@ -72,6 +72,17 @@ type CmsRendererClientProps = {
 };
 
 type CmsRect = { top: number; left: number; width: number; height: number };
+type CmsActionId = 'edit' | 'inline_edit' | 'replace' | 'clear' | 'delete' | 'duplicate' | 'move_up' | 'move_down';
+type CmsActionItem = { id: CmsActionId; label: string; primary?: boolean };
+type CmsActionsPayload = {
+  type: 'CMS_ACTIONS';
+  contentItemId: number;
+  versionId: number;
+  componentId?: string;
+  fieldPath?: string;
+  targetType?: 'text' | 'richtext' | 'asset' | 'link' | 'form' | 'component' | 'unknown';
+  actions?: CmsActionItem[];
+};
 
 function getAnnotatedTarget(element: Element | null): HTMLElement | null {
   if (!element) {
@@ -164,6 +175,31 @@ function emitSelect(target: HTMLElement) {
   if (window.parent && window.parent !== window) {
     window.parent.postMessage(payload, '*');
   }
+}
+
+function emitActionRequest(
+  mode: 'list' | 'run',
+  target: HTMLElement,
+  action?: CmsActionId
+) {
+  const contentItemId = Number(findDatasetValue(target, 'cmsContentItemId') ?? '0');
+  const versionId = Number(findDatasetValue(target, 'cmsVersionId') ?? '0');
+  if (!window.parent || window.parent === window) {
+    return;
+  }
+  window.parent.postMessage(
+    {
+      type: 'CMS_ACTION_REQUEST',
+      mode,
+      ...(action ? { action } : {}),
+      contentItemId,
+      versionId,
+      componentId: target.dataset.cmsComponentId ?? findDatasetValue(target, 'cmsComponentId'),
+      componentType: target.dataset.cmsComponentType ?? findDatasetValue(target, 'cmsComponentType'),
+      fieldPath: target.dataset.cmsFieldPath ?? findDatasetValue(target, 'cmsFieldPath')
+    },
+    '*'
+  );
 }
 
 function linkHref(link?: ContentLink | null): string {
@@ -874,6 +910,8 @@ export function CmsRendererClient({
   const inlineTargetRef = useRef<HTMLElement | null>(null);
   const inlineHandlersRef = useRef<{ blur: () => void; keydown: (event: KeyboardEvent) => void } | null>(null);
   const inlineFeaturesRef = useRef<string[]>([]);
+  const actionItemsRef = useRef<CmsActionItem[]>([]);
+  const selectedTargetTypeRef = useRef<CmsActionsPayload['targetType']>('unknown');
   const fieldEntries = useMemo(() => Object.entries(fields), [fields]);
   const fieldDefMap = useMemo(() => new Map(fieldDefs.map((def) => [def.key, def])), [fieldDefs]);
   const areas = composition.areas ?? [{ name: 'main', components: Object.keys(components) }];
@@ -950,6 +988,44 @@ export function CmsRendererClient({
     inlineHandlersRef.current = { blur, keydown };
   };
 
+  const runInlineEditAction = (target: HTMLElement | null) => {
+    if (!target) {
+      return;
+    }
+    const fieldPath = target.dataset.cmsFieldPath ?? findDatasetValue(target, 'cmsFieldPath');
+    if (!fieldPath) {
+      return;
+    }
+    const targetType = selectedTargetTypeRef.current;
+    if (targetType === 'richtext') {
+      const previous = inlineModeRef.current;
+      inlineModeRef.current = true;
+      enableInlineTarget(target);
+      window.requestAnimationFrame(() => focusEditableTarget(target));
+      if (!previous) {
+        window.parent?.postMessage({ type: 'CMS_INLINE_MODE', enabled: true }, '*');
+      }
+      return;
+    }
+    if (targetType === 'text') {
+      const current = target.textContent ?? '';
+      const next = window.prompt('Edit text', current);
+      if (next == null) {
+        return;
+      }
+      target.textContent = next;
+      window.parent?.postMessage({ type: 'CMS_INLINE_EDIT', fieldPath, html: next }, '*');
+      return;
+    }
+    const currentHtml = target.innerHTML;
+    const next = window.prompt('Edit value', currentHtml);
+    if (next == null) {
+      return;
+    }
+    target.innerHTML = next;
+    window.parent?.postMessage({ type: 'CMS_INLINE_EDIT', fieldPath, html: next }, '*');
+  };
+
   useEffect(() => {
     inlineModeRef.current = Boolean(cmsBridge && inlineEdit);
     if (!inlineModeRef.current) {
@@ -984,9 +1060,184 @@ export function CmsRendererClient({
     selected.style.display = 'none';
     document.body.appendChild(selected);
 
+    const toolbar = document.createElement('div');
+    toolbar.style.position = 'fixed';
+    toolbar.style.zIndex = '2147483647';
+    toolbar.style.display = 'none';
+    toolbar.style.pointerEvents = 'auto';
+    toolbar.style.background = 'rgba(15, 23, 42, 0.94)';
+    toolbar.style.border = '1px solid rgba(148, 163, 184, 0.45)';
+    toolbar.style.borderRadius = '10px';
+    toolbar.style.padding = '6px';
+    toolbar.style.maxWidth = 'calc(100vw - 16px)';
+    toolbar.style.boxShadow = '0 10px 28px rgba(2, 6, 23, 0.4)';
+    document.body.appendChild(toolbar);
+
+    const overflowMenu = document.createElement('div');
+    overflowMenu.style.position = 'fixed';
+    overflowMenu.style.zIndex = '2147483647';
+    overflowMenu.style.display = 'none';
+    overflowMenu.style.pointerEvents = 'auto';
+    overflowMenu.style.background = 'rgba(15, 23, 42, 0.98)';
+    overflowMenu.style.border = '1px solid rgba(148, 163, 184, 0.45)';
+    overflowMenu.style.borderRadius = '10px';
+    overflowMenu.style.padding = '4px';
+    overflowMenu.style.minWidth = '160px';
+    overflowMenu.style.boxShadow = '0 10px 28px rgba(2, 6, 23, 0.45)';
+    document.body.appendChild(overflowMenu);
+
+    const contextMenu = document.createElement('div');
+    contextMenu.style.position = 'fixed';
+    contextMenu.style.zIndex = '2147483647';
+    contextMenu.style.display = 'none';
+    contextMenu.style.pointerEvents = 'auto';
+    contextMenu.style.background = 'rgba(15, 23, 42, 0.98)';
+    contextMenu.style.border = '1px solid rgba(148, 163, 184, 0.45)';
+    contextMenu.style.borderRadius = '10px';
+    contextMenu.style.padding = '4px';
+    contextMenu.style.minWidth = '180px';
+    contextMenu.style.boxShadow = '0 10px 28px rgba(2, 6, 23, 0.45)';
+    document.body.appendChild(contextMenu);
+
+    const hideMenus = () => {
+      overflowMenu.style.display = 'none';
+      contextMenu.style.display = 'none';
+    };
+
+    const createActionButton = (action: CmsActionItem, compact = false) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = action.label;
+      button.style.background = action.id === 'delete' ? 'rgba(185, 28, 28, 0.2)' : 'transparent';
+      button.style.border = compact ? 'none' : '1px solid rgba(148, 163, 184, 0.4)';
+      button.style.borderRadius = '8px';
+      button.style.color = '#f8fafc';
+      button.style.cursor = 'pointer';
+      button.style.fontSize = '12px';
+      button.style.lineHeight = '1.2';
+      button.style.padding = compact ? '7px 9px' : '6px 10px';
+      button.style.whiteSpace = 'nowrap';
+      button.onmouseenter = () => {
+        button.style.background = action.id === 'delete' ? 'rgba(185, 28, 28, 0.35)' : 'rgba(148, 163, 184, 0.2)';
+      };
+      button.onmouseleave = () => {
+        button.style.background = action.id === 'delete' ? 'rgba(185, 28, 28, 0.2)' : 'transparent';
+      };
+      return button;
+    };
+
+    const positionFloating = (node: HTMLElement, anchorRect: DOMRect, mode: 'toolbar' | 'menu', x?: number, y?: number) => {
+      if (mode === 'menu' && x != null && y != null) {
+        const maxLeft = Math.max(8, window.innerWidth - node.offsetWidth - 8);
+        const maxTop = Math.max(8, window.innerHeight - node.offsetHeight - 8);
+        node.style.left = `${Math.max(8, Math.min(x, maxLeft))}px`;
+        node.style.top = `${Math.max(8, Math.min(y, maxTop))}px`;
+        return;
+      }
+      const topSpace = anchorRect.top;
+      const belowTop = anchorRect.bottom + 10;
+      const aboveTop = anchorRect.top - node.offsetHeight - 10;
+      const preferredTop = topSpace > node.offsetHeight + 20 ? aboveTop : belowTop;
+      const maxLeft = Math.max(8, window.innerWidth - node.offsetWidth - 8);
+      const centered = anchorRect.left + anchorRect.width / 2 - node.offsetWidth / 2;
+      node.style.left = `${Math.max(8, Math.min(centered, maxLeft))}px`;
+      node.style.top = `${Math.max(8, Math.min(preferredTop, window.innerHeight - node.offsetHeight - 8))}px`;
+    };
+
+    const runAction = (actionId: CmsActionId) => {
+      const target = selectedRef.current;
+      if (!target) {
+        return;
+      }
+      if (actionId === 'inline_edit') {
+        runInlineEditAction(target);
+      } else {
+        emitActionRequest('run', target, actionId);
+      }
+      hideMenus();
+    };
+
+    const fillMenu = (node: HTMLElement, actions: CmsActionItem[], compact = false) => {
+      node.innerHTML = '';
+      node.style.display = 'none';
+      if (!selectedRef.current || actions.length === 0) {
+        return;
+      }
+      node.style.display = 'grid';
+      node.style.gap = compact ? '2px' : '6px';
+      for (const action of actions) {
+        const button = createActionButton(action, compact);
+        button.onclick = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          runAction(action.id);
+        };
+        node.appendChild(button);
+      }
+    };
+
+    const renderToolbar = () => {
+      const target = selectedRef.current;
+      if (!target) {
+        toolbar.style.display = 'none';
+        hideMenus();
+        return;
+      }
+      const actions = actionItemsRef.current;
+      if (actions.length === 0) {
+        toolbar.style.display = 'none';
+        return;
+      }
+
+      const preferred = actions.filter((entry) => entry.primary);
+      const primaryActions = (preferred.length > 0 ? preferred : actions).slice(0, 4);
+      const overflowActions = actions.filter((entry) => !primaryActions.some((primary) => primary.id === entry.id));
+      toolbar.innerHTML = '';
+      toolbar.style.display = 'flex';
+      toolbar.style.gap = '6px';
+      toolbar.style.alignItems = 'center';
+
+      for (const action of primaryActions) {
+        const button = createActionButton(action);
+        button.onclick = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          runAction(action.id);
+        };
+        toolbar.appendChild(button);
+      }
+
+      if (overflowActions.length > 0) {
+        const overflow = document.createElement('button');
+        overflow.type = 'button';
+        overflow.textContent = '...';
+        overflow.style.border = '1px solid rgba(148, 163, 184, 0.4)';
+        overflow.style.borderRadius = '8px';
+        overflow.style.background = 'transparent';
+        overflow.style.color = '#f8fafc';
+        overflow.style.cursor = 'pointer';
+        overflow.style.padding = '6px 10px';
+        overflow.style.fontSize = '12px';
+        overflow.onclick = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          fillMenu(overflowMenu, overflowActions, true);
+          if (overflowMenu.style.display === 'none') {
+            return;
+          }
+          const rect = overflow.getBoundingClientRect();
+          positionFloating(overflowMenu, rect, 'menu', rect.left, rect.bottom + 6);
+        };
+        toolbar.appendChild(overflow);
+      }
+
+      positionFloating(toolbar, target.getBoundingClientRect(), 'toolbar');
+    };
+
     const syncOverlays = () => {
       drawOverlay(hover, hoverRef.current, '#2563eb', 'rgba(37, 99, 235, 0.08)');
       drawOverlay(selected, selectedRef.current, '#f97316', 'rgba(249, 115, 22, 0.08)');
+      renderToolbar();
     };
 
     const onPointerMove = (event: PointerEvent) => {
@@ -1006,8 +1257,10 @@ export function CmsRendererClient({
         event.stopPropagation();
       }
       selectedRef.current = target;
+      hideMenus();
       syncOverlays();
       emitSelect(target);
+      emitActionRequest('list', target);
       if (inlineModeRef.current) {
         enableInlineTarget(target);
         if (isInlineRichText) {
@@ -1016,9 +1269,43 @@ export function CmsRendererClient({
       }
     };
 
+    const onContextMenu = (event: MouseEvent) => {
+      if (event.target instanceof Node && (toolbar.contains(event.target) || overflowMenu.contains(event.target) || contextMenu.contains(event.target))) {
+        return;
+      }
+      const target = getAnnotatedTarget(event.target as Element | null);
+      if (!target) {
+        contextMenu.style.display = 'none';
+        return;
+      }
+      event.preventDefault();
+      selectedRef.current = target;
+      emitSelect(target);
+      emitActionRequest('list', target);
+      syncOverlays();
+      fillMenu(contextMenu, actionItemsRef.current, true);
+      if (contextMenu.style.display !== 'none') {
+        positionFloating(contextMenu, target.getBoundingClientRect(), 'menu', event.clientX, event.clientY);
+      }
+    };
+
+    const onWindowClick = (event: MouseEvent) => {
+      if (event.target instanceof Node && (toolbar.contains(event.target) || overflowMenu.contains(event.target) || contextMenu.contains(event.target))) {
+        return;
+      }
+      hideMenus();
+    };
+
     const onMessage = (event: MessageEvent<unknown>) => {
       const payload = event.data as { type?: string; componentId?: string; fieldPath?: string } | undefined;
       if (!payload?.type) {
+        return;
+      }
+      if (payload.type === 'CMS_ACTIONS') {
+        const actionsPayload = payload as CmsActionsPayload;
+        actionItemsRef.current = Array.isArray(actionsPayload.actions) ? actionsPayload.actions : [];
+        selectedTargetTypeRef.current = actionsPayload.targetType ?? 'unknown';
+        renderToolbar();
         return;
       }
       if (payload.type === 'CMS_HIGHLIGHT') {
@@ -1027,6 +1314,12 @@ export function CmsRendererClient({
           : [];
         selectedRef.current = findByBridgeSelector(payload.componentId, payload.fieldPath);
         syncOverlays();
+        if (selectedRef.current) {
+          emitActionRequest('list', selectedRef.current);
+        } else {
+          actionItemsRef.current = [];
+          selectedTargetTypeRef.current = 'unknown';
+        }
         if (inlineModeRef.current) {
           enableInlineTarget(selectedRef.current);
         }
@@ -1052,6 +1345,8 @@ export function CmsRendererClient({
 
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('click', onClick, true);
+    window.addEventListener('contextmenu', onContextMenu, true);
+    window.addEventListener('click', onWindowClick);
     window.addEventListener('resize', syncOverlays);
     window.addEventListener('scroll', syncOverlays, true);
     window.addEventListener('message', onMessage);
@@ -1059,14 +1354,21 @@ export function CmsRendererClient({
     return () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('click', onClick, true);
+      window.removeEventListener('contextmenu', onContextMenu, true);
+      window.removeEventListener('click', onWindowClick);
       window.removeEventListener('resize', syncOverlays);
       window.removeEventListener('scroll', syncOverlays, true);
       window.removeEventListener('message', onMessage);
       clearInlineTarget();
       hover.remove();
       selected.remove();
+      toolbar.remove();
+      overflowMenu.remove();
+      contextMenu.remove();
       hoverRef.current = null;
       selectedRef.current = null;
+      actionItemsRef.current = [];
+      selectedTargetTypeRef.current = 'unknown';
     };
   }, [cmsBridge]);
 

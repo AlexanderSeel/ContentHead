@@ -159,6 +159,61 @@ export function createSdk(options: CreateSdkOptions) {
       execute<G.ListInternalRolesQuery>(G.ListInternalRolesDocument, {}, requestOptions),
     internalPermissions: (requestOptions?: RequestOptions) =>
       execute<G.InternalPermissionsQuery>(G.InternalPermissionsDocument, {}, requestOptions),
+    aclPermissionKeys: (requestOptions?: RequestOptions) =>
+      execute<G.AclPermissionKeysQuery>(G.AclPermissionKeysDocument, {}, requestOptions),
+    listEntityAcls: (variables: G.ListEntityAclsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListEntityAclsQuery>(G.ListEntityAclsDocument, variables, requestOptions),
+    replaceEntityAcls: (variables: G.ReplaceEntityAclsMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.ReplaceEntityAclsMutation>(G.ReplaceEntityAclsDocument, variables, requestOptions),
+    getPageAclSettings: (variables: G.GetPageAclSettingsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.GetPageAclSettingsQuery>(G.GetPageAclSettingsDocument, variables, requestOptions),
+    upsertPageAclSettings: (
+      variables: G.UpsertPageAclSettingsMutationVariables,
+      requestOptions?: RequestOptions
+    ) =>
+      execute<G.UpsertPageAclSettingsMutation>(
+        G.UpsertPageAclSettingsDocument,
+        variables,
+        requestOptions
+      ),
+    listPrincipalGroups: (requestOptions?: RequestOptions) =>
+      execute<G.ListPrincipalGroupsQuery>(G.ListPrincipalGroupsDocument, {}, requestOptions),
+    upsertPrincipalGroup: (
+      variables: G.UpsertPrincipalGroupMutationVariables,
+      requestOptions?: RequestOptions
+    ) =>
+      execute<G.UpsertPrincipalGroupMutation>(G.UpsertPrincipalGroupDocument, variables, requestOptions),
+    deletePrincipalGroup: (
+      variables: G.DeletePrincipalGroupMutationVariables,
+      requestOptions?: RequestOptions
+    ) =>
+      execute<G.DeletePrincipalGroupMutation>(G.DeletePrincipalGroupDocument, variables, requestOptions),
+    setUserGroups: (variables: G.SetUserGroupsMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.SetUserGroupsMutation>(G.SetUserGroupsDocument, variables, requestOptions),
+    listVisitorGroups: (variables: G.ListVisitorGroupsQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.ListVisitorGroupsQuery>(G.ListVisitorGroupsDocument, variables, requestOptions),
+    upsertVisitorGroup: (
+      variables: G.UpsertVisitorGroupMutationVariables,
+      requestOptions?: RequestOptions
+    ) =>
+      execute<G.UpsertVisitorGroupMutation>(G.UpsertVisitorGroupDocument, variables, requestOptions),
+    deleteVisitorGroup: (
+      variables: G.DeleteVisitorGroupMutationVariables,
+      requestOptions?: RequestOptions
+    ) =>
+      execute<G.DeleteVisitorGroupMutation>(G.DeleteVisitorGroupDocument, variables, requestOptions),
+    getPageTargeting: (variables: G.GetPageTargetingQueryVariables, requestOptions?: RequestOptions) =>
+      execute<G.GetPageTargetingQuery>(G.GetPageTargetingDocument, variables, requestOptions),
+    evaluatePageTargeting: (
+      variables: G.EvaluatePageTargetingQueryVariables,
+      requestOptions?: RequestOptions
+    ) =>
+      execute<G.EvaluatePageTargetingQuery>(G.EvaluatePageTargetingDocument, variables, requestOptions),
+    upsertPageTargeting: (
+      variables: G.UpsertPageTargetingMutationVariables,
+      requestOptions?: RequestOptions
+    ) =>
+      execute<G.UpsertPageTargetingMutation>(G.UpsertPageTargetingDocument, variables, requestOptions),
     createInternalUser: (variables: G.CreateInternalUserMutationVariables, requestOptions?: RequestOptions) =>
       execute<G.CreateInternalUserMutation>(G.CreateInternalUserDocument, variables, requestOptions),
     updateInternalUser: (variables: G.UpdateInternalUserMutationVariables, requestOptions?: RequestOptions) =>

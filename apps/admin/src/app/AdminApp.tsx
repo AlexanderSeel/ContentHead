@@ -19,12 +19,14 @@ import { ComponentRegistryPage } from '../features/schema/ComponentRegistryPage'
 import { AssetLibraryPage } from '../features/assets/AssetLibraryPage';
 import { PersonalizationWorkflowsPage } from '../features/personalization/PersonalizationWorkflowsPage';
 import { VariantsPage } from '../features/personalization/VariantsPage';
+import { VisitorGroupsPage } from '../features/personalization/VisitorGroupsPage';
 import { FormBuilderPage } from '../features/forms/FormBuilderPage';
 import { FormSubmissionsPage } from '../features/forms/FormSubmissionsPage';
 import { WorkflowDesignerPage } from '../features/workflows/WorkflowDesignerPage';
 import { WorkflowRunsPage } from '../features/workflows/WorkflowRunsPage';
 import { UsersPage } from '../features/security/UsersPage';
 import { RolesPage } from '../features/security/RolesPage';
+import { GroupsPage } from '../features/security/GroupsPage';
 import { AuthConnectorsPage } from '../features/settings/AuthConnectorsPage';
 import { DbConnectorsPage } from '../features/settings/DbConnectorsPage';
 import { DamConnectorsPage } from '../features/settings/DamConnectorsPage';
@@ -82,6 +84,7 @@ export function AdminApp() {
 
               <Route path="/personalization/workflows" element={<PersonalizationWorkflowsPage />} />
               <Route path="/personalization/variants" element={<VariantsPage />} />
+              <Route path="/personalization/visitor-groups" element={<VisitorGroupsPage />} />
               <Route path="/personalization" element={<Navigate to="/personalization/workflows" replace />} />
 
               <Route path="/forms/builder/:formId" element={<FormBuilderPage />} />
@@ -95,6 +98,7 @@ export function AdminApp() {
 
               <Route path="/security/users" element={<UsersPage />} />
               <Route path="/security/roles" element={<RolesPage />} />
+              <Route path="/security/groups" element={<GroupsPage />} />
               <Route path="/security" element={<Navigate to="/security/users" replace />} />
 
               {extensionRoutes.map((route) => (

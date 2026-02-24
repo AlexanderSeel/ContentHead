@@ -35,10 +35,47 @@ export type CmsInlineEditMessage = {
   html: string;
 };
 
+export type CmsActionId =
+  | 'edit'
+  | 'inline_edit'
+  | 'replace'
+  | 'clear'
+  | 'delete'
+  | 'duplicate'
+  | 'move_up'
+  | 'move_down';
+
+export type CmsActionRequestMessage = {
+  type: 'CMS_ACTION_REQUEST';
+  mode: 'list' | 'run';
+  action?: CmsActionId;
+  contentItemId: number;
+  versionId: number;
+  componentId?: string | undefined;
+  componentType?: string | undefined;
+  fieldPath?: string | undefined;
+};
+
+export type CmsActionsMessage = {
+  type: 'CMS_ACTIONS';
+  contentItemId: number;
+  versionId: number;
+  componentId?: string | undefined;
+  fieldPath?: string | undefined;
+  targetType?: 'text' | 'richtext' | 'asset' | 'link' | 'form' | 'component' | 'unknown';
+  actions: Array<{
+    id: CmsActionId;
+    label: string;
+    primary?: boolean;
+  }>;
+};
+
 export type CmsBridgeMessage =
   | CmsSelectMessage
   | CmsHighlightMessage
   | CmsScrollToMessage
   | CmsRefreshMessage
   | CmsInlineModeMessage
-  | CmsInlineEditMessage;
+  | CmsInlineEditMessage
+  | CmsActionRequestMessage
+  | CmsActionsMessage;

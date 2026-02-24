@@ -4,6 +4,7 @@ import { chooseTrafficBucket, evaluateRule, type Rule, type RuleContext } from '
 
 import type { DbClient } from '../db/DbClient.js';
 import { validateMarketLocale } from '../marketLocale/service.js';
+import { evaluatePageView } from '../security/aclService.js';
 import type { ContentVersionRecord, ResolvedRoute } from './service.js';
 import { resolveRoute } from './service.js';
 
@@ -433,16 +434,21 @@ LIMIT 1
   return row ?? null;
 }
 
-export async function getPageByRoute(db: DbClient, input: {
-  siteId: number;
-  marketCode: string;
-  localeCode: string;
-  slug: string;
-  contextJson?: string | null | undefined;
-  previewAllowed: boolean;
-  variantKeyOverride?: string | null | undefined;
-  versionIdOverride?: number | null | undefined;
-}): Promise<PageByRouteResult | null> {
+async function getPageByRouteInternal(
+  db: DbClient,
+  input: {
+    siteId: number;
+    marketCode: string;
+    localeCode: string;
+    slug: string;
+    contextJson?: string | null | undefined;
+    previewAllowed: boolean;
+    variantKeyOverride?: string | null | undefined;
+    versionIdOverride?: number | null | undefined;
+    userId?: number | null | undefined;
+  },
+  visitedContentIds: Set<number>
+): Promise<PageByRouteResult | null> {
   const base = await resolveRoute(db, {
     siteId: input.siteId,
     marketCode: input.marketCode,
@@ -453,6 +459,49 @@ export async function getPageByRoute(db: DbClient, input: {
 
   if (!base) {
     return null;
+  }
+
+  if (visitedContentIds.has(base.contentItem.id)) {
+    return null;
+  }
+  visitedContentIds.add(base.contentItem.id);
+
+  const pageView = await evaluatePageView(db, {
+    contentItemId: base.contentItem.id,
+    userId: input.userId,
+    contextJson: input.contextJson,
+    previewAllowed: input.previewAllowed
+  });
+  if (!pageView.allowed) {
+    const fallbackId = pageView.fallbackContentItemId ?? null;
+    if (!fallbackId) {
+      return null;
+    }
+    const fallbackRoute = await db.get<{ slug: string }>(
+      `
+SELECT slug
+FROM content_routes
+WHERE site_id = ?
+  AND content_item_id = ?
+  AND market_code = ?
+  AND locale_code = ?
+LIMIT 1
+`,
+      [input.siteId, fallbackId, input.marketCode, input.localeCode]
+    );
+    if (!fallbackRoute?.slug) {
+      return null;
+    }
+    return getPageByRouteInternal(
+      db,
+      {
+        ...input,
+        slug: fallbackRoute.slug,
+        variantKeyOverride: null,
+        versionIdOverride: null
+      },
+      visitedContentIds
+    );
   }
 
   if (input.versionIdOverride) {
@@ -535,4 +584,18 @@ LIMIT 1
     selectedVersion: await getVersion(db, selected.variant.contentVersionId),
     selectionReason: selected.reason
   };
+}
+
+export async function getPageByRoute(db: DbClient, input: {
+  siteId: number;
+  marketCode: string;
+  localeCode: string;
+  slug: string;
+  contextJson?: string | null | undefined;
+  previewAllowed: boolean;
+  variantKeyOverride?: string | null | undefined;
+  versionIdOverride?: number | null | undefined;
+  userId?: number | null | undefined;
+}): Promise<PageByRouteResult | null> {
+  return getPageByRouteInternal(db, input, new Set<number>());
 }

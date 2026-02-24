@@ -19,9 +19,15 @@ type UserRow = {
   displayName: string;
   active: boolean;
   roleIds: number[];
+  groupIds?: number[];
 };
 
 type RoleRow = {
+  id: number;
+  name: string;
+};
+
+type GroupRow = {
   id: number;
   name: string;
 };
@@ -32,16 +38,22 @@ export function UsersPage() {
 
   const [users, setUsers] = useState<UserRow[]>([]);
   const [roles, setRoles] = useState<RoleRow[]>([]);
+  const [groups, setGroups] = useState<GroupRow[]>([]);
   const [selected, setSelected] = useState<UserRow | null>(null);
   const [newUser, setNewUser] = useState({ username: '', displayName: '', password: '', active: true });
   const [resetPassword, setResetPassword] = useState('');
   const [status, setStatus] = useState('');
 
   const refresh = async () => {
-    const [usersRes, rolesRes] = await Promise.all([sdk.listInternalUsers(), sdk.listInternalRoles()]);
+    const [usersRes, rolesRes, groupsRes] = await Promise.all([
+      sdk.listInternalUsers(),
+      sdk.listInternalRoles(),
+      sdk.listPrincipalGroups()
+    ]);
     const nextUsers = (usersRes.listInternalUsers ?? []) as UserRow[];
     setUsers(nextUsers);
     setRoles((rolesRes.listInternalRoles ?? []) as RoleRow[]);
+    setGroups((groupsRes.listPrincipalGroups ?? []) as GroupRow[]);
     setSelected((prev) => nextUsers.find((entry) => entry.id === prev?.id) ?? nextUsers[0] ?? null);
   };
 
@@ -62,6 +74,10 @@ export function UsersPage() {
     }
     await sdk.updateInternalUser({ id: selected.id, displayName: selected.displayName, active: selected.active });
     await sdk.setUserRoles({ userId: selected.id, roleIds: selected.roleIds });
+    await sdk.setUserGroups({
+      userId: selected.id,
+      groupIds: selected.groupIds ?? []
+    });
     await refresh();
   };
 
@@ -148,6 +164,17 @@ export function UsersPage() {
                     />
                     <label>Reset password</label>
                     <Password value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} feedback={false} toggleMask />
+                    <label>Groups</label>
+                    <MultiSelect
+                      value={selected.groupIds ?? []}
+                      options={groups.map((entry) => ({ label: entry.name, value: entry.id }))}
+                      onChange={(event) =>
+                        setSelected({
+                          ...selected,
+                          groupIds: event.value as number[]
+                        })
+                      }
+                    />
                   </div>
                 )}
               </div>

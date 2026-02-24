@@ -375,6 +375,10 @@ export function TemplatesPage() {
             setSelectedComponentId(id);
           }}
           onMove={(id, direction) => updateBuilder(moveComponentInAreas(builderState.areas, id, direction), builderState.componentMap)}
+          onMoveToArea={(id, areaName) => {
+            const nextAreas = placeComponentInArea(removeComponentFromAreas(builderState.areas, id), areaName, id);
+            updateBuilder(nextAreas, builderState.componentMap);
+          }}
           onDuplicate={(id) => {
             const source = builderState.componentMap[id];
             if (!source) {

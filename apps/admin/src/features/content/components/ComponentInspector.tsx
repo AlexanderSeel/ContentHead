@@ -340,6 +340,7 @@ export function ComponentInspector({
   }
 
   const errors = validateComponentProps(component.type, component.props);
+  const propsJson = JSON.stringify(component.props, null, 2);
 
   return (
     <div className="p-fluid">
@@ -367,6 +368,23 @@ export function ComponentInspector({
           {errors.map((entryError) => <div key={entryError} className="error-text">{entryError}</div>)}
         </div>
       ) : null}
+      <div className="form-row">
+        <label>Advanced Props JSON (fallback)</label>
+        <InputTextarea
+          rows={8}
+          value={propsJson}
+          onChange={(event) => {
+            try {
+              const parsed = JSON.parse(event.target.value);
+              if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                onChange({ ...component, props: parsed as Record<string, unknown> });
+              }
+            } catch {
+              // Keep editor permissive while typing invalid JSON.
+            }
+          }}
+        />
+      </div>
     </div>
   );
 }

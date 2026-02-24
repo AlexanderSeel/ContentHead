@@ -14,6 +14,7 @@ import {
   type ResolvedRoute,
   type TemplateRecord,
   archiveContentItem,
+  addComponent,
   createContentItem,
   createContentType,
   deletePage,
@@ -37,8 +38,11 @@ import {
   reorderSiblings,
   resolveRoute,
   rollbackToVersion,
+  removeComponent,
   movePage,
+  moveComponent,
   updateContentType,
+  updateComponentProps,
   updateDraftVersion,
   updateTemplate,
   upsertComponentTypeSetting,
@@ -167,6 +171,35 @@ import {
 } from '../workflow/service.js';
 import type { SafeUser } from '../types/user.js';
 import {
+  ACL_PERMISSION_KEYS,
+  type AclEffect,
+  type AclEntityType,
+  type AclPermissionKey,
+  type AclPrincipalType,
+  type EntityAclRecord,
+  type PageAclSettingsRecord,
+  type PageTargetingRecord,
+  type PrincipalGroupRecord,
+  type VisitorGroupRecord,
+  deletePrincipalGroup,
+  deleteVisitorGroup,
+  evaluatePageAclPermission,
+  evaluatePageTargeting,
+  evaluatePageView,
+  getPageAclSettings,
+  getPageTargeting,
+  listEntityAcls,
+  listPrincipalGroups,
+  listUserGroupIds,
+  listVisitorGroups,
+  replaceEntityAcls,
+  setUserGroups,
+  upsertPageAclSettings,
+  upsertPageTargeting,
+  upsertPrincipalGroup,
+  upsertVisitorGroup
+} from '../security/aclService.js';
+import {
   INTERNAL_PERMISSIONS,
   type InternalRoleRecord,
   type InternalUserRecord,
@@ -260,6 +293,43 @@ async function requirePermission(ctx: GraphqlContext, permission: string): Promi
   if (!permissions.includes(permission)) {
     throw new GraphQLError('Forbidden', { extensions: { code: 'FORBIDDEN' } });
   }
+}
+
+async function requirePageAcl(
+  ctx: GraphqlContext,
+  contentItemId: number,
+  permissionKey: AclPermissionKey
+): Promise<void> {
+  const evaluation = await evaluatePageAclPermission(ctx.db, {
+    contentItemId,
+    permissionKey,
+    userId: ctx.currentUser?.id ?? null
+  });
+  if (!evaluation.allowed) {
+    throw new GraphQLError('Forbidden', { extensions: { code: 'FORBIDDEN', reason: evaluation.reason } });
+  }
+}
+
+async function contentItemIdForVersion(db: DbClient, versionId: number): Promise<number> {
+  const row = await db.get<{ contentItemId: number }>(
+    'SELECT content_item_id as contentItemId FROM content_versions WHERE id = ?',
+    [versionId]
+  );
+  if (!row) {
+    throw new GraphQLError(`Version ${versionId} not found`, { extensions: { code: 'CONTENT_VERSION_NOT_FOUND' } });
+  }
+  return row.contentItemId;
+}
+
+async function contentItemIdForRoute(db: DbClient, routeId: number): Promise<number> {
+  const row = await db.get<{ contentItemId: number }>(
+    'SELECT content_item_id as contentItemId FROM content_routes WHERE id = ?',
+    [routeId]
+  );
+  if (!row) {
+    throw new GraphQLError(`Route ${routeId} not found`, { extensions: { code: 'ROUTE_NOT_FOUND' } });
+  }
+  return row.contentItemId;
 }
 
 async function hasAdminRole(ctx: GraphqlContext): Promise<boolean> {
@@ -748,6 +818,9 @@ InternalUserRef.implement({
     createdAt: t.exposeString('createdAt'),
     roleIds: t.intList({
       resolve: async (parent, _args, ctx) => listUserRoles(ctx.db, parent.id)
+    }),
+    groupIds: t.intList({
+      resolve: async (parent, _args, ctx) => listUserGroupIds(ctx.db, parent.id)
     })
   })
 });
@@ -792,6 +865,79 @@ DbAdminTableRef.implement({
     columns: t.field({ type: [DbAdminColumnRef], resolve: (parent) => parent.columns }),
     primaryKey: t.stringList({ resolve: (parent) => parent.primaryKey }),
     indexes: t.field({ type: [DbAdminIndexRef], resolve: (parent) => parent.indexes })
+  })
+});
+
+const EntityAclRef = builder.objectRef<EntityAclRecord>('EntityAcl');
+EntityAclRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    entityType: t.exposeString('entityType'),
+    entityId: t.exposeString('entityId'),
+    principalType: t.exposeString('principalType'),
+    principalId: t.exposeString('principalId'),
+    permissionKey: t.exposeString('permissionKey'),
+    effect: t.exposeString('effect')
+  })
+});
+
+const PageAclSettingsRef = builder.objectRef<PageAclSettingsRecord>('PageAclSettings');
+PageAclSettingsRef.implement({
+  fields: (t) => ({
+    contentItemId: t.exposeInt('contentItemId'),
+    inheritFromParent: t.exposeBoolean('inheritFromParent')
+  })
+});
+
+const PrincipalGroupRef = builder.objectRef<PrincipalGroupRecord>('PrincipalGroup');
+PrincipalGroupRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    name: t.exposeString('name'),
+    description: t.exposeString('description', { nullable: true }),
+    createdAt: t.exposeString('createdAt'),
+    updatedAt: t.exposeString('updatedAt')
+  })
+});
+
+const VisitorGroupRef = builder.objectRef<VisitorGroupRecord>('VisitorGroup');
+VisitorGroupRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    siteId: t.exposeInt('siteId'),
+    name: t.exposeString('name'),
+    ruleJson: t.exposeString('ruleJson'),
+    createdAt: t.exposeString('createdAt'),
+    updatedAt: t.exposeString('updatedAt')
+  })
+});
+
+const PageTargetingRef = builder.objectRef<PageTargetingRecord>('PageTargeting');
+PageTargetingRef.implement({
+  fields: (t) => ({
+    contentItemId: t.exposeInt('contentItemId'),
+    inheritFromParent: t.exposeBoolean('inheritFromParent'),
+    allowVisitorGroupIdsJson: t.exposeString('allowVisitorGroupIdsJson'),
+    denyVisitorGroupIdsJson: t.exposeString('denyVisitorGroupIdsJson'),
+    denyBehavior: t.exposeString('denyBehavior'),
+    fallbackContentItemId: t.exposeInt('fallbackContentItemId', { nullable: true })
+  })
+});
+
+const PageTargetingEvaluationRef = builder.objectRef<{
+  allowed: boolean;
+  reason: string;
+  matchedAllowGroupIds: number[];
+  matchedDenyGroupIds: number[];
+  fallbackContentItemId: number | null;
+}>('PageTargetingEvaluation');
+PageTargetingEvaluationRef.implement({
+  fields: (t) => ({
+    allowed: t.exposeBoolean('allowed'),
+    reason: t.exposeString('reason'),
+    matchedAllowGroupIds: t.intList({ resolve: (parent) => parent.matchedAllowGroupIds }),
+    matchedDenyGroupIds: t.intList({ resolve: (parent) => parent.matchedDenyGroupIds }),
+    fallbackContentItemId: t.exposeInt('fallbackContentItemId', { nullable: true })
   })
 });
 
@@ -990,6 +1136,21 @@ DraftPatchInputRef.implement({
   })
 });
 
+const EntityAclEntryInputRef = builder.inputRef<{
+  principalType: string;
+  principalId: string;
+  permissionKey: string;
+  effect: string;
+}>('EntityAclEntryInput');
+EntityAclEntryInputRef.implement({
+  fields: (t) => ({
+    principalType: t.string({ required: true }),
+    principalId: t.string({ required: true }),
+    permissionKey: t.string({ required: true }),
+    effect: t.string({ required: true })
+  })
+});
+
 builder.queryType({
   fields: (t) => ({
     me: t.field({
@@ -1185,13 +1346,25 @@ builder.queryType({
           previewAllowed = true;
         }
 
-        return resolveRoute(ctx.db, {
+        const resolved = await resolveRoute(ctx.db, {
           siteId: args.siteId,
           marketCode: args.marketCode,
           localeCode: args.localeCode,
           slug: args.slug,
           previewAllowed
         });
+        if (!resolved) {
+          return null;
+        }
+        const view = await evaluatePageView(ctx.db, {
+          contentItemId: resolved.contentItem.id,
+          userId: ctx.currentUser?.id ?? null,
+          previewAllowed
+        });
+        if (!view.allowed) {
+          return null;
+        }
+        return resolved;
       }
     }),
     getPageByRoute: t.field({
@@ -1239,7 +1412,8 @@ builder.queryType({
           contextJson: args.contextJson,
           previewAllowed,
           variantKeyOverride: args.variantKeyOverride,
-          versionIdOverride: args.versionIdOverride
+          versionIdOverride: args.versionIdOverride,
+          userId: ctx.currentUser?.id ?? null
         });
       }
     }),
@@ -1384,6 +1558,54 @@ builder.queryType({
     }),
     internalPermissions: t.stringList({
       resolve: async () => [...INTERNAL_PERMISSIONS]
+    }),
+    aclPermissionKeys: t.stringList({
+      resolve: async () => [...ACL_PERMISSION_KEYS]
+    }),
+    listEntityAcls: t.field({
+      type: [EntityAclRef],
+      args: {
+        entityType: t.arg.string({ required: true }),
+        entityId: t.arg.string({ required: true })
+      },
+      resolve: async (_root, args: { entityType: string; entityId: string }, ctx) =>
+        listEntityAcls(ctx.db, {
+          entityType: args.entityType as AclEntityType,
+          entityId: args.entityId
+        })
+    }),
+    getPageAclSettings: t.field({
+      type: PageAclSettingsRef,
+      args: { contentItemId: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { contentItemId: number }, ctx) =>
+        getPageAclSettings(ctx.db, args.contentItemId)
+    }),
+    getPageTargeting: t.field({
+      type: PageTargetingRef,
+      args: { contentItemId: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { contentItemId: number }, ctx) =>
+        getPageTargeting(ctx.db, args.contentItemId)
+    }),
+    evaluatePageTargeting: t.field({
+      type: PageTargetingEvaluationRef,
+      args: {
+        contentItemId: t.arg.int({ required: true }),
+        contextJson: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { contentItemId: number; contextJson?: string | null | undefined },
+        ctx
+      ) => evaluatePageTargeting(ctx.db, args)
+    }),
+    listPrincipalGroups: t.field({
+      type: [PrincipalGroupRef],
+      resolve: async (_root, _args, ctx) => listPrincipalGroups(ctx.db)
+    }),
+    listVisitorGroups: t.field({
+      type: [VisitorGroupRef],
+      args: { siteId: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { siteId: number }, ctx) => listVisitorGroups(ctx.db, args.siteId)
     }),
     dbAdminTables: t.field({
       type: [DbAdminTableListItemRef],
@@ -1688,8 +1910,12 @@ builder.mutationType({
           by?: string | null | undefined;
         },
         ctx
-      ) =>
-        createContentItem(ctx.db, {
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        if (args.parentId != null) {
+          await requirePageAcl(ctx, args.parentId, 'page.create');
+        }
+        return createContentItem(ctx.db, {
           siteId: args.siteId,
           contentTypeId: args.contentTypeId,
           parentId: args.parentId,
@@ -1700,7 +1926,8 @@ builder.mutationType({
           metadataJson: args.metadataJson,
           comment: args.comment,
           by: args.by ?? ctx.currentUser?.username ?? 'system'
-        })
+        });
+      }
     }),
     archiveContentItem: t.field({
       type: ContentItemRef,
@@ -1708,8 +1935,11 @@ builder.mutationType({
         id: t.arg.int({ required: true }),
         archived: t.arg.boolean({ required: true })
       },
-      resolve: async (_root, args: { id: number; archived: boolean }, ctx) =>
-        archiveContentItem(ctx.db, args.id, args.archived)
+      resolve: async (_root, args: { id: number; archived: boolean }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        await requirePageAcl(ctx, args.id, 'page.delete');
+        return archiveContentItem(ctx.db, args.id, args.archived);
+      }
     }),
     createChildPage: t.field({
       type: ContentItemRef,
@@ -1738,8 +1968,12 @@ builder.mutationType({
           by?: string | null | undefined;
         },
         ctx
-      ) =>
-        createContentItem(ctx.db, {
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        if (args.parentId != null) {
+          await requirePageAcl(ctx, args.parentId, 'page.create');
+        }
+        return createContentItem(ctx.db, {
           siteId: args.siteId,
           contentTypeId: args.contentTypeId,
           parentId: args.parentId,
@@ -1749,7 +1983,8 @@ builder.mutationType({
           metadataJson: args.metadataJson,
           comment: args.comment,
           by: args.by ?? ctx.currentUser?.username ?? 'system'
-        })
+        });
+      }
     }),
     movePage: t.field({
       type: ContentItemRef,
@@ -1766,7 +2001,14 @@ builder.mutationType({
           newSortOrder?: number | null | undefined;
         },
         ctx
-      ) => movePage(ctx.db, args)
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        await requirePageAcl(ctx, args.pageId, 'page.update');
+        if (args.newParentId != null) {
+          await requirePageAcl(ctx, args.newParentId, 'page.create');
+        }
+        return movePage(ctx.db, args);
+      }
     }),
     reorderSiblings: t.boolean({
       args: {
@@ -1777,7 +2019,13 @@ builder.mutationType({
         _root,
         args: { parentId?: number | null | undefined; orderedIds: number[] },
         ctx
-      ) => reorderSiblings(ctx.db, args)
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        for (const pageId of args.orderedIds) {
+          await requirePageAcl(ctx, pageId, 'page.update');
+        }
+        return reorderSiblings(ctx.db, args);
+      }
     }),
     deletePage: t.boolean({
       args: {
@@ -1785,6 +2033,7 @@ builder.mutationType({
       },
       resolve: async (_root, args: { pageId: number }, ctx) => {
         await requirePermission(ctx, 'CONTENT_WRITE');
+        await requirePageAcl(ctx, args.pageId, 'page.delete');
         return deletePage(ctx.db, args.pageId);
       }
     }),
@@ -1805,13 +2054,16 @@ builder.mutationType({
           by?: string | null | undefined;
         },
         ctx
-      ) =>
-        createDraftVersion(ctx.db, {
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        await requirePageAcl(ctx, args.contentItemId, 'page.update');
+        return createDraftVersion(ctx.db, {
           contentItemId: args.contentItemId,
           fromVersionId: args.fromVersionId,
           comment: args.comment,
           by: args.by ?? ctx.currentUser?.username ?? 'system'
-        })
+        });
+      }
     }),
     updateDraftVersion: t.field({
       type: ContentVersionRef,
@@ -1835,15 +2087,106 @@ builder.mutationType({
           expectedVersionNumber: number;
         },
         ctx
-      ) =>
-        updateDraftVersion(ctx.db, {
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        const contentItemId = await contentItemIdForVersion(ctx.db, args.versionId);
+        await requirePageAcl(ctx, contentItemId, 'page.update');
+        return updateDraftVersion(ctx.db, {
           versionId: args.versionId,
           patch: {
             ...args.patch,
             createdBy: args.patch.createdBy ?? ctx.currentUser?.username ?? 'system'
           },
           expectedVersionNumber: args.expectedVersionNumber
-        })
+        });
+      }
+    }),
+    addComponent: t.field({
+      type: ContentVersionRef,
+      args: {
+        contentVersionId: t.arg.int({ required: true }),
+        componentTypeId: t.arg.string({ required: true }),
+        area: t.arg.string({ required: true }),
+        initialProps: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          contentVersionId: number;
+          componentTypeId: string;
+          area: string;
+          initialProps?: string | null | undefined;
+        },
+        ctx
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        const contentItemId = await contentItemIdForVersion(ctx.db, args.contentVersionId);
+        await requirePageAcl(ctx, contentItemId, 'component.update');
+        return addComponent(ctx.db, {
+          contentVersionId: args.contentVersionId,
+          componentTypeId: args.componentTypeId,
+          area: args.area,
+          initialProps: args.initialProps ? (JSON.parse(args.initialProps) as Record<string, unknown>) : {},
+          by: ctx.currentUser?.username ?? 'system'
+        });
+      }
+    }),
+    updateComponentProps: t.field({
+      type: ContentVersionRef,
+      args: {
+        instanceId: t.arg.string({ required: true }),
+        patch: t.arg.string({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: { instanceId: string; patch: string },
+        ctx
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return updateComponentProps(ctx.db, {
+          instanceId: args.instanceId,
+          patch: JSON.parse(args.patch) as Record<string, unknown>,
+          by: ctx.currentUser?.username ?? 'system'
+        });
+      }
+    }),
+    removeComponent: t.field({
+      type: ContentVersionRef,
+      args: {
+        instanceId: t.arg.string({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: { instanceId: string },
+        ctx
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return removeComponent(ctx.db, {
+          instanceId: args.instanceId,
+          by: ctx.currentUser?.username ?? 'system'
+        });
+      }
+    }),
+    moveComponent: t.field({
+      type: ContentVersionRef,
+      args: {
+        instanceId: t.arg.string({ required: true }),
+        newArea: t.arg.string({ required: true }),
+        newSortOrder: t.arg.int({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: { instanceId: string; newArea: string; newSortOrder: number },
+        ctx
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return moveComponent(ctx.db, {
+          instanceId: args.instanceId,
+          newArea: args.newArea,
+          newSortOrder: args.newSortOrder,
+          by: ctx.currentUser?.username ?? 'system'
+        });
+      }
     }),
     publishVersion: t.field({
       type: ContentVersionRef,
@@ -1862,13 +2205,17 @@ builder.mutationType({
           by?: string | null | undefined;
         },
         ctx
-      ) =>
-        publishVersion(ctx.db, {
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        const contentItemId = await contentItemIdForVersion(ctx.db, args.versionId);
+        await requirePageAcl(ctx, contentItemId, 'page.publish');
+        return publishVersion(ctx.db, {
           versionId: args.versionId,
           expectedVersionNumber: args.expectedVersionNumber,
           comment: args.comment,
           by: args.by ?? ctx.currentUser?.username ?? 'system'
-        })
+        });
+      }
     }),
     rollbackToVersion: t.field({
       type: ContentVersionRef,
@@ -1881,12 +2228,15 @@ builder.mutationType({
         _root,
         args: { contentItemId: number; versionId: number; by?: string | null | undefined },
         ctx
-      ) =>
-        rollbackToVersion(ctx.db, {
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        await requirePageAcl(ctx, args.contentItemId, 'page.update');
+        return rollbackToVersion(ctx.db, {
           contentItemId: args.contentItemId,
           versionId: args.versionId,
           by: args.by ?? ctx.currentUser?.username ?? 'system'
-        })
+        });
+      }
     }),
     createTemplate: t.field({
       type: TemplateRef,
@@ -1962,11 +2312,20 @@ builder.mutationType({
           isCanonical: boolean;
         },
         ctx
-      ) => upsertRoute(ctx.db, args)
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        await requirePageAcl(ctx, args.contentItemId, 'page.update');
+        return upsertRoute(ctx.db, args);
+      }
     }),
     deleteRoute: t.boolean({
       args: { id: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { id: number }, ctx) => deleteRoute(ctx.db, args.id)
+      resolve: async (_root, args: { id: number }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        const contentItemId = await contentItemIdForRoute(ctx.db, args.id);
+        await requirePageAcl(ctx, contentItemId, 'page.update');
+        return deleteRoute(ctx.db, args.id);
+      }
     }),
     upsertVariantSet: t.field({
       type: VariantSetRef,
@@ -2551,10 +2910,130 @@ builder.mutationType({
       resolve: async (_root, args: { userId: number; roleIds: number[] }, ctx) =>
         setUserRoles(ctx.db, args.userId, args.roleIds)
     }),
+    setUserGroups: t.boolean({
+      args: {
+        userId: t.arg.int({ required: true }),
+        groupIds: t.arg.intList({ required: true })
+      },
+      resolve: async (_root, args: { userId: number; groupIds: number[] }, ctx) =>
+        setUserGroups(ctx.db, args.userId, args.groupIds)
+    }),
+    upsertPrincipalGroup: t.field({
+      type: PrincipalGroupRef,
+      args: {
+        id: t.arg.int({ required: false }),
+        name: t.arg.string({ required: true }),
+        description: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { id?: number | null | undefined; name: string; description?: string | null | undefined },
+        ctx
+      ) => upsertPrincipalGroup(ctx.db, args)
+    }),
+    deletePrincipalGroup: t.boolean({
+      args: { id: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { id: number }, ctx) => deletePrincipalGroup(ctx.db, args.id)
+    }),
+    replaceEntityAcls: t.field({
+      type: [EntityAclRef],
+      args: {
+        entityType: t.arg.string({ required: true }),
+        entityId: t.arg.string({ required: true }),
+        entries: t.arg({ type: [EntityAclEntryInputRef], required: true })
+      },
+      resolve: async (
+        _root,
+        args: {
+          entityType: string;
+          entityId: string;
+          entries: Array<{
+            principalType: string;
+            principalId: string;
+            permissionKey: string;
+            effect: string;
+          }>;
+        },
+        ctx
+      ) =>
+        replaceEntityAcls(ctx.db, {
+          entityType: args.entityType as AclEntityType,
+          entityId: args.entityId,
+          entries: args.entries.map((entry) => ({
+            principalType: entry.principalType as AclPrincipalType,
+            principalId: entry.principalId,
+            permissionKey: entry.permissionKey as AclPermissionKey,
+            effect: entry.effect as AclEffect
+          }))
+        })
+    }),
+    upsertPageAclSettings: t.field({
+      type: PageAclSettingsRef,
+      args: {
+        contentItemId: t.arg.int({ required: true }),
+        inheritFromParent: t.arg.boolean({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: { contentItemId: number; inheritFromParent: boolean },
+        ctx
+      ) => upsertPageAclSettings(ctx.db, args)
+    }),
+    upsertVisitorGroup: t.field({
+      type: VisitorGroupRef,
+      args: {
+        id: t.arg.int({ required: false }),
+        siteId: t.arg.int({ required: true }),
+        name: t.arg.string({ required: true }),
+        ruleJson: t.arg.string({ required: true })
+      },
+      resolve: async (
+        _root,
+        args: { id?: number | null | undefined; siteId: number; name: string; ruleJson: string },
+        ctx
+      ) => upsertVisitorGroup(ctx.db, args)
+    }),
+    deleteVisitorGroup: t.boolean({
+      args: { id: t.arg.int({ required: true }) },
+      resolve: async (_root, args: { id: number }, ctx) => deleteVisitorGroup(ctx.db, args.id)
+    }),
+    upsertPageTargeting: t.field({
+      type: PageTargetingRef,
+      args: {
+        contentItemId: t.arg.int({ required: true }),
+        inheritFromParent: t.arg.boolean({ required: true }),
+        allowVisitorGroupIdsJson: t.arg.string({ required: true }),
+        denyVisitorGroupIdsJson: t.arg.string({ required: true }),
+        denyBehavior: t.arg.string({ required: true }),
+        fallbackContentItemId: t.arg.int({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          contentItemId: number;
+          inheritFromParent: boolean;
+          allowVisitorGroupIdsJson: string;
+          denyVisitorGroupIdsJson: string;
+          denyBehavior: string;
+          fallbackContentItemId?: number | null | undefined;
+        },
+        ctx
+      ) =>
+        upsertPageTargeting(ctx.db, {
+          contentItemId: args.contentItemId,
+          inheritFromParent: args.inheritFromParent,
+          allowVisitorGroupIdsJson: args.allowVisitorGroupIdsJson,
+          denyVisitorGroupIdsJson: args.denyVisitorGroupIdsJson,
+          denyBehavior: args.denyBehavior === 'FALLBACK' ? 'FALLBACK' : 'NOT_FOUND',
+          fallbackContentItemId: args.fallbackContentItemId
+        })
+    }),
     issuePreviewToken: t.field({
       type: PreviewTokenRef,
       args: { contentItemId: t.arg.int({ required: true }) },
       resolve: async (_root, args: { contentItemId: number }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_READ');
+        await requirePageAcl(ctx, args.contentItemId, 'page.view');
         const payload = await issuePreviewTokenPayload(ctx.db, args.contentItemId);
         const token = ctx.auth.issuePreviewToken(args.contentItemId);
         return { token, contentItemId: payload.contentItemId };
