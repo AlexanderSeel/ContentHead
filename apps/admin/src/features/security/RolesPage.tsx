@@ -5,10 +5,12 @@ import { DataTable } from 'primereact/datatable';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { MultiSelect } from 'primereact/multiselect';
+import { Splitter, SplitterPanel } from 'primereact/splitter';
+import { Tag } from 'primereact/tag';
 
-import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
+import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type RoleRow = {
   id: number;
@@ -39,71 +41,85 @@ export function RolesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const saveRole = async () => {
+    if (!selected) {
+      return;
+    }
+    await sdk.upsertInternalRole({
+      id: selected.id || null,
+      name: selected.name,
+      description: selected.description ?? null,
+      permissions: selected.permissions
+    });
+    await refresh();
+  };
+
+  const deleteRole = async () => {
+    if (!selected?.id) {
+      return;
+    }
+    await sdk.deleteInternalRole({ id: selected.id });
+    await refresh();
+  };
+
   return (
-    <div className="pageRoot">
-      <PageHeader title="Roles" subtitle="Internal RBAC roles and permissions" helpTopicKey="site_overview" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-        <section className="content-card">
-          <div className="inline-actions" style={{ marginBottom: '0.5rem' }}>
+    <WorkspacePage>
+      <WorkspaceHeader
+        title="Roles"
+        subtitle="Internal RBAC roles and permissions."
+        helpTopicKey="site_overview"
+        badges={selected ? <Tag value={`Selected: ${selected.name || 'New role'}`} /> : null}
+      />
+      <WorkspaceActionBar
+        primary={(
+          <>
             <Button
               label="New Role"
               onClick={() => setSelected({ id: 0, name: '', description: '', permissions: ['CONTENT_READ', 'CONTENT_WRITE'] })}
             />
-          </div>
-          <DataTable value={roles} size="small" selectionMode="single" selection={selected} onSelectionChange={(event) => setSelected((event.value as RoleRow) ?? null)}>
-            <Column field="name" header="Role" />
-            <Column field="permissions" header="Permissions" body={(row: RoleRow) => row.permissions.join(', ')} />
-          </DataTable>
-        </section>
-
-        <section className="content-card">
-          {!selected ? (
-            <p className="muted">Select a role.</p>
-          ) : (
-            <div className="form-row">
-              <label>Name</label>
-              <InputText value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} />
-              <label>Description</label>
-              <InputTextarea rows={3} value={selected.description ?? ''} onChange={(event) => setSelected({ ...selected, description: event.target.value })} />
-              <label>Permissions</label>
-              <MultiSelect
-                value={selected.permissions}
-                options={permissions.map((entry) => ({ label: entry, value: entry }))}
-                onChange={(event) => setSelected({ ...selected, permissions: event.value as string[] })}
-                display="chip"
-              />
-              <div className="inline-actions">
-                <Button
-                  label="Save"
-                  onClick={() =>
-                    sdk
-                      .upsertInternalRole({
-                        id: selected.id || null,
-                        name: selected.name,
-                        description: selected.description ?? null,
-                        permissions: selected.permissions
-                      })
-                      .then(() => refresh())
-                      .catch((error: unknown) => setStatus(String(error)))
-                  }
-                />
-                <Button
-                  label="Delete"
-                  severity="danger"
-                  onClick={() =>
-                    sdk
-                      .deleteInternalRole({ id: selected.id })
-                      .then(() => refresh())
-                      .catch((error: unknown) => setStatus(String(error)))
-                  }
-                  disabled={!selected.id}
-                />
+            <Button label="Save" onClick={() => saveRole().catch((error: unknown) => setStatus(String(error)))} disabled={!selected || selected.name.trim().length < 2} />
+            <Button label="Delete" severity="danger" onClick={() => deleteRole().catch((error: unknown) => setStatus(String(error)))} disabled={!selected?.id} />
+          </>
+        )}
+      />
+      <WorkspaceBody>
+        <Splitter className="splitFill" style={{ width: '100%' }}>
+          <SplitterPanel size={45} minSize={28}>
+            <div className="paneRoot">
+              <div className="paneScroll">
+                <DataTable value={roles} size="small" selectionMode="single" selection={selected} onSelectionChange={(event) => setSelected((event.value as RoleRow) ?? null)}>
+                  <Column field="name" header="Role" />
+                  <Column field="permissions" header="Permissions" body={(row: RoleRow) => row.permissions.join(', ')} />
+                </DataTable>
               </div>
             </div>
-          )}
-        </section>
-      </div>
+          </SplitterPanel>
+          <SplitterPanel size={55} minSize={28}>
+            <div className="paneRoot">
+              <div className="paneScroll">
+                {!selected ? (
+                  <p className="muted">Select a role.</p>
+                ) : (
+                  <div className="form-row">
+                    <label>Name</label>
+                    <InputText value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} />
+                    <label>Description</label>
+                    <InputTextarea rows={3} value={selected.description ?? ''} onChange={(event) => setSelected({ ...selected, description: event.target.value })} />
+                    <label>Permissions</label>
+                    <MultiSelect
+                      value={selected.permissions}
+                      options={permissions.map((entry) => ({ label: entry, value: entry }))}
+                      onChange={(event) => setSelected({ ...selected, permissions: event.value as string[] })}
+                      display="chip"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </SplitterPanel>
+        </Splitter>
+      </WorkspaceBody>
       {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
-    </div>
+    </WorkspacePage>
   );
 }

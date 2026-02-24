@@ -3,11 +3,11 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useUi } from '../../app/UiContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { routeStartsWith } from '../../ui/commands/utils';
+import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { FormBuilderSection } from '../FormBuilderSection';
 
 type FormBuilderHeaderContext = CommandContext & {
@@ -25,7 +25,7 @@ const formBuilderHeaderCommands: Command<FormBuilderHeaderContext>[] = [
   }
 ];
 
-commandRegistry.registerCoreCommands([{ placement: 'pageHeaderOverflow', commands: formBuilderHeaderCommands }]);
+commandRegistry.registerCoreCommands([{ placement: 'overflow', commands: formBuilderHeaderCommands }]);
 
 export function FormBuilderPage() {
   const { siteId } = useAdminContext();
@@ -43,20 +43,22 @@ export function FormBuilderPage() {
     toast,
     openSubmissions: () => navigate('/forms/submissions')
   };
-  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'pageHeaderOverflow');
+  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'overflow');
 
   return (
-    <div className="pageRoot">
-      <PageHeader
+    <WorkspacePage>
+      <WorkspaceHeader
         title="Form Builder"
-        subtitle="Steps, fields and conditional rules"
+        subtitle="Steps, fields and conditional rules."
         helpTopicKey="forms"
-        askAiContext="forms"
-        askAiPayload={{ siteId }}
-        actions={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
-      <FormBuilderSection siteId={siteId} initialFormId={Number.isFinite(initialFormId) ? initialFormId : null} onStatus={setStatus} />
+      <WorkspaceActionBar
+        overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+      />
+      <WorkspaceBody>
+        <FormBuilderSection siteId={siteId} initialFormId={Number.isFinite(initialFormId) ? initialFormId : null} onStatus={setStatus} />
+      </WorkspaceBody>
       {status ? <pre>{status}</pre> : null}
-    </div>
+    </WorkspacePage>
   );
 }

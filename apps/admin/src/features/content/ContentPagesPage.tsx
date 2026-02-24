@@ -20,7 +20,6 @@ import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { EmptyState } from '../../components/common/EmptyState';
-import { PageHeader } from '../../components/common/PageHeader';
 import { MarketLocalePicker } from '../../components/inputs/MarketLocalePicker';
 import { SlugEditor } from '../../components/inputs/SlugEditor';
 import { useUi } from '../../app/UiContext';
@@ -53,6 +52,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
+import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type CType = {
   id: number;
@@ -379,7 +379,7 @@ const contentPageTreeContextCommands: Command<ContentPageTreeCommandContext>[] =
 
 commandRegistry.registerCoreCommands([
   {
-    placement: 'pageHeaderOverflow',
+    placement: 'overflow',
     commands: contentPageHeaderOverflowCommands
   }
 ]);
@@ -1486,7 +1486,7 @@ export function ContentPagesPage() {
     openDiagnostics: () => navigate('/dev/diagnostics')
   };
 
-  const headerOverflowCommands = commandRegistry.getCommands(headerCommandContext, 'pageHeaderOverflow');
+  const headerOverflowCommands = commandRegistry.getCommands(headerCommandContext, 'overflow');
 
   const treeContextMenuItems = (() => {
     if (!treeContextRow) {
@@ -1851,13 +1851,21 @@ export function ContentPagesPage() {
   );
 
   return (
-    <div className="pageRoot cms-editor-page">
-      <PageHeader
+    <WorkspacePage>
+      <WorkspaceHeader
         title="Content Pages"
         subtitle="Professional CMS workspace with on-page editing bridge."
         helpTopicKey="content_pages"
-        actions={
-          <div className="inline-actions">
+        badges={
+          <>
+            {selectedStatus ? <Tag value={`Status: ${selectedStatus}`} severity={selectedStatus === 'Published' ? 'success' : selectedStatus === 'Draft' ? 'warning' : 'secondary'} /> : null}
+            {draft ? <Tag value={`v${draft.versionNumber}`} /> : null}
+          </>
+        }
+      />
+      <WorkspaceActionBar
+        primary={
+          <>
             <Dropdown value={selectedContentTypeId} options={types.map((entry) => ({ label: entry.name, value: entry.id }))} onChange={(event) => setSelectedContentTypeId(Number(event.value))} placeholder="Content type" />
             <Dropdown
               value={selectedTemplate?.id ?? null}
@@ -1890,33 +1898,29 @@ export function ContentPagesPage() {
             <Button label="Create Page" onClick={() => createPage().catch((e: unknown) => setStatus(String(e)))} />
             <Button label="Save Draft" severity="secondary" onClick={() => saveDraft().catch((e: unknown) => setStatus(String(e)))} disabled={!draft || savingDraft} loading={savingDraft} />
             <Button label="Publish" severity="success" onClick={() => publish().catch((e: unknown) => setStatus(String(e)))} disabled={!draft} />
-            <Button label="Preview website" icon="pi pi-external-link" severity="info" onClick={() => openPreviewWebsite()} disabled={!selectedItemId} />
-            <CommandMenuButton
-              commands={headerOverflowCommands}
-              context={headerCommandContext}
-              buttonLabel=""
-              buttonIcon="pi pi-ellipsis-h"
-              text
-            />
-          </div>
+          </>
+        }
+        modeToggle={
+          <>
+            <Button label="Split" size="small" text={workspaceMode !== 'split'} onClick={() => setWorkspaceMode('split')} />
+            <Button label="Properties" size="small" text={workspaceMode !== 'properties'} onClick={() => setWorkspaceMode('properties')} />
+            <Button label="On-page" size="small" text={workspaceMode !== 'onpage'} onClick={() => setWorkspaceMode('onpage')} />
+          </>
+        }
+        overflow={
+          <CommandMenuButton
+            commands={headerOverflowCommands}
+            context={headerCommandContext}
+            buttonLabel=""
+            buttonIcon="pi pi-ellipsis-h"
+            text
+          />
         }
       />
-      <section className="content-pages-toolbar">
-        <div className="inline-actions">
-          <Button label="Split" size="small" text={workspaceMode !== 'split'} onClick={() => setWorkspaceMode('split')} />
-          <Button label="Properties" size="small" text={workspaceMode !== 'properties'} onClick={() => setWorkspaceMode('properties')} />
-          <Button label="On-page" size="small" text={workspaceMode !== 'onpage'} onClick={() => setWorkspaceMode('onpage')} />
-        </div>
-        <div className="inline-actions">
-          {selectedStatus ? <Tag value={`Status: ${selectedStatus}`} severity={selectedStatus === 'Published' ? 'success' : selectedStatus === 'Draft' ? 'warning' : 'secondary'} /> : null}
-          {draft ? <Tag value={`v${draft.versionNumber}`} /> : null}
-        </div>
-      </section>
-
-      <div className="pageBodyFlex splitFill">
+      <WorkspaceBody>
         <Splitter className="splitFill cms-editor-workspace" style={{ width: '100%' }}>
           <SplitterPanel size={28} minSize={20}>
-            <div className="pane paneScroll cms-pane cms-left-pane">
+            <div className="paneRoot paneScroll cms-pane cms-left-pane">
               <TabView activeIndex={leftTabIndex} onTabChange={(event) => setLeftTabIndex(event.index)}>
                 <TabPanel header="Tree">
                   <ContextMenu ref={treeContextMenuRef} model={treeContextMenuItems} />
@@ -2035,7 +2039,7 @@ export function ContentPagesPage() {
             ) : workspaceMode === 'properties' ? renderEditorPane() : renderPreviewPane()}
           </SplitterPanel>
         </Splitter>
-      </div>
+      </WorkspaceBody>
       <Dialog header="Add Component" visible={showAddComponent} onHide={() => setShowAddComponent(false)} style={{ width: '30rem' }}>
         <div className="form-row">
           <label>Component Type</label>
@@ -2106,6 +2110,6 @@ export function ContentPagesPage() {
         </div>
       </Dialog>
       {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
-    </div>
+    </WorkspacePage>
   );
 }

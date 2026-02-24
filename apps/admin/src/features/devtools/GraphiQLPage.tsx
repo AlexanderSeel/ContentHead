@@ -10,8 +10,8 @@ import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Tree } from 'primereact/tree';
 import type { TreeNode } from 'primereact/treenode';
 
-import { PageHeader } from '../../components/common/PageHeader';
 import { useAuth } from '../../app/AuthContext';
+import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 import 'graphiql/style.css';
 
@@ -301,28 +301,21 @@ export function GraphiQLPage() {
   }, [endpoint, parsedHeaders]);
 
   return (
-    <div className="pageRoot ch-graphiql-page-root">
-      <PageHeader
+    <WorkspacePage>
+      <WorkspaceHeader
         title="GraphiQL Dev Tool"
         subtitle="GraphQL playground with docs, explorer, variables, headers, and response inspector."
         helpTopicKey="graphiql"
-        askAiContext="graphql"
-        askAiPayload={{ endpoint, query: activeQuery, variables, headers: headersEditor }}
-        onAskAiInsert={(value) => {
-          setQuery(value);
-          setActiveQuery(value);
-          setEditorSeed((prev) => prev + 1);
-        }}
-        actions={(
-          <div className="graphiql-header-actions">
-            <Button text size="small" icon="pi pi-refresh" label="Reload Schema" onClick={() => void loadSchemaExplorer()} loading={schemaLoading} />
-          </div>
+      />
+      <WorkspaceActionBar
+        primary={(
+          <Button text size="small" icon="pi pi-refresh" label="Reload Schema" onClick={() => void loadSchemaExplorer()} loading={schemaLoading} />
         )}
       />
-      <div className="pageBodyFlex splitFill ch-graphiql-page">
+      <WorkspaceBody>
         <Splitter className="splitFill ch-graphiql-ide" style={{ width: '100%' }}>
           <SplitterPanel size={22} minSize={16}>
-            <div className="pane ch-graphiql-pane ch-graphiql-pane-left">
+            <div className="paneRoot ch-graphiql-pane ch-graphiql-pane-left">
               <TabView className="ch-graphiql-tabs" renderActiveOnly={false}>
                 <TabPanel header="Explorer">
                   <div className="inline-actions" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -363,7 +356,7 @@ export function GraphiQLPage() {
             </div>
           </SplitterPanel>
           <SplitterPanel size={48} minSize={34}>
-            <div className="pane ch-graphiql-pane ch-graphiql-pane-center">
+            <div className="paneRoot ch-graphiql-pane ch-graphiql-pane-center">
               <Accordion
                 className="ch-graphiql-center-accordion"
                 multiple
@@ -439,7 +432,7 @@ export function GraphiQLPage() {
             </div>
           </SplitterPanel>
           <SplitterPanel size={30} minSize={20}>
-            <div className="pane ch-graphiql-pane ch-graphiql-pane-right">
+            <div className="paneRoot ch-graphiql-pane ch-graphiql-pane-right">
               <div className="inline-actions" style={{ justifyContent: 'space-between' }}>
                 <span>Result</span>
                 <div className="inline-actions">
@@ -451,7 +444,7 @@ export function GraphiQLPage() {
             </div>
           </SplitterPanel>
         </Splitter>
-      </div>
-    </div>
+      </WorkspaceBody>
+    </WorkspacePage>
   );
 }

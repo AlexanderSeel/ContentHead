@@ -12,13 +12,13 @@ import { Calendar } from 'primereact/calendar';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { useUi } from '../../app/UiContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { routeStartsWith } from '../../ui/commands/utils';
+import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
 
 type SubmissionRow = {
   id: number;
@@ -104,7 +104,7 @@ const formSubmissionsHeaderCommands: Command<FormSubmissionsHeaderContext>[] = [
   }
 ];
 
-commandRegistry.registerCoreCommands([{ placement: 'pageHeaderOverflow', commands: formSubmissionsHeaderCommands }]);
+commandRegistry.registerCoreCommands([{ placement: 'overflow', commands: formSubmissionsHeaderCommands }]);
 
 const formSubmissionsRowCommands: Command<FormSubmissionsRowContext>[] = [
   {
@@ -263,7 +263,7 @@ export function FormSubmissionsPage() {
     exportData,
     clearFilters
   };
-  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'pageHeaderOverflow');
+  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'overflow');
   const rowContextFor = (row: SubmissionRow): FormSubmissionsRowContext => ({
     route: location.pathname,
     siteId,
@@ -288,19 +288,16 @@ export function FormSubmissionsPage() {
   const contextItems = contextRow ? toTieredMenuItems(commandRegistry.getCommands(rowContextFor(contextRow), 'rowOverflow'), rowContextFor(contextRow)) : [];
 
   return (
-    <div className="pageRoot">
-      <PageHeader
+    <WorkspacePage>
+      <WorkspaceHeader
         title="Form Submissions"
         subtitle="Filter, group, inspect, and export captured form data."
-        actions={(
-          <div className="inline-actions">
-            <Button icon="pi pi-refresh" text onClick={() => reload().catch(() => undefined)} />
-            <CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />
-          </div>
-        )}
       />
-
-      <section className="content-card" style={{ marginBottom: '1rem' }}>
+      <WorkspaceActionBar
+        primary={<Button icon="pi pi-refresh" label="Refresh" onClick={() => reload().catch(() => undefined)} />}
+        overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+      />
+      <WorkspaceToolbar>
         <div className="form-row" style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
           <div>
             <label>Site</label>
@@ -362,9 +359,9 @@ export function FormSubmissionsPage() {
           </div>
         </div>
         <small className="muted">Tip: group by `Form` and expand rows to inspect full submitted JSON payload and metadata.</small>
-      </section>
-
-      <section className="content-card">
+      </WorkspaceToolbar>
+      <WorkspaceBody>
+      <section className="content-card splitFill">
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
           <Button
             label="Mark Processed"
@@ -462,6 +459,7 @@ export function FormSubmissionsPage() {
           />
         </DataTable>
       </section>
-    </div>
+      </WorkspaceBody>
+    </WorkspacePage>
   );
 }

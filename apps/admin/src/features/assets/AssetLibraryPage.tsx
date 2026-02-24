@@ -9,7 +9,6 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { Chips } from 'primereact/chips';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
-import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
 import { getApiBaseUrl } from '../../lib/api';
 import { useAuth } from '../../app/AuthContext';
@@ -20,6 +19,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
+import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
 
 type AssetRow = {
   id: number;
@@ -92,7 +92,7 @@ const assetsRowCommands: Command<AssetsRowContext>[] = [
   }
 ];
 
-commandRegistry.registerCoreCommands([{ placement: 'pageHeaderOverflow', commands: assetsHeaderCommands }]);
+commandRegistry.registerCoreCommands([{ placement: 'overflow', commands: assetsHeaderCommands }]);
 commandRegistry.registerCoreCommands([{ placement: 'rowOverflow', commands: assetsRowCommands }]);
 
 function parseTags(value?: string | null): string[] {
@@ -206,7 +206,7 @@ export function AssetLibraryPage() {
     assets,
     refresh
   };
-  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'pageHeaderOverflow');
+  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'overflow');
 
   const rowContextFor = (row: AssetRow): AssetsRowContext => ({
     ...baseContext,
@@ -228,28 +228,29 @@ export function AssetLibraryPage() {
   const contextItems = contextAsset ? toTieredMenuItems(commandRegistry.getCommands(rowContextFor(contextAsset), 'rowOverflow'), rowContextFor(contextAsset)) : [];
 
   return (
-    <div className="pageRoot">
-      <PageHeader
+    <WorkspacePage>
+      <WorkspaceHeader
         title="Asset Library"
-        subtitle="Upload and manage images with metadata and renditions"
+        subtitle="Upload and manage images with metadata and renditions."
         helpTopicKey="dam"
-        actions={
-          <div className="inline-actions">
-            <label className="p-button p-component p-button-sm">
-              <input type="file" multiple style={{ display: 'none' }} onChange={(event) => uploadFiles(event.target.files).catch(() => undefined)} />
-              <span className="p-button-label p-c">Upload</span>
-            </label>
-            <InputText value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search assets" />
-            <CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />
-          </div>
-        }
       />
-
-      <div className="pageBodyFlex splitFill">
+      <WorkspaceActionBar
+        primary={(
+          <label className="p-button p-component p-button-sm">
+            <input type="file" multiple style={{ display: 'none' }} onChange={(event) => uploadFiles(event.target.files).catch(() => undefined)} />
+            <span className="p-button-label p-c">Upload</span>
+          </label>
+        )}
+        overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+      />
+      <WorkspaceToolbar>
+        <InputText value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search assets" />
+      </WorkspaceToolbar>
+      <WorkspaceBody>
         <Splitter className="splitFill" style={{ width: '100%' }}>
           <SplitterPanel size={62} minSize={35}>
-            <div className="pane paneScroll">
-              <section className="content-card">
+            <div className="paneRoot">
+              <div className="paneScroll">
                 <ContextMenu ref={contextMenuRef} model={contextItems} />
                 <DataTable
                   value={assets}
@@ -279,12 +280,12 @@ export function AssetLibraryPage() {
                     body={(row: AssetRow) => <CommandMenuButton commands={commandRegistry.getCommands(rowContextFor(row), 'rowOverflow')} context={rowContextFor(row)} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
                   />
                 </DataTable>
-              </section>
+              </div>
             </div>
           </SplitterPanel>
           <SplitterPanel size={38} minSize={25}>
-            <div className="pane paneScroll">
-              <section className="content-card">
+            <div className="paneRoot">
+              <div className="paneScroll">
                 {!selected ? (
                   <p className="muted">Select an asset to edit metadata.</p>
                 ) : (
@@ -317,13 +318,13 @@ export function AssetLibraryPage() {
                     </div>
                   </div>
                 )}
-              </section>
+              </div>
             </div>
           </SplitterPanel>
         </Splitter>
-      </div>
+      </WorkspaceBody>
       {uploading ? <div className="status-panel">Uploading files...</div> : null}
       {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
-    </div>
+    </WorkspacePage>
   );
 }

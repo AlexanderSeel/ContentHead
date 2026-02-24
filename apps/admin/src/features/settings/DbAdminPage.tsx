@@ -12,16 +12,17 @@ import { InputSwitch } from 'primereact/inputswitch';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
+import { Tag } from 'primereact/tag';
 import { TabPanel, TabView } from 'primereact/tabview';
 
 import { useAuth } from '../../app/AuthContext';
 import { useUi } from '../../app/UiContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { routeStartsWith } from '../../ui/commands/utils';
+import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
 
 type DbAdminColumn = {
   name: string;
@@ -64,10 +65,17 @@ type RowRecord = Record<string, unknown> & { __rowKey: string };
 
 type DbAdminHeaderContext = CommandContext & {
   selectedCount: number;
-  refreshTables: () => Promise<void>;
+  dangerMode: boolean;
+  toggleDangerMode: () => Promise<void>;
   exportSelectedJson: () => void;
   exportSelectedCsv: () => void;
   deleteSelected: () => Promise<void>;
+};
+
+type DbAdminRowCommandContext = CommandContext & {
+  row: RowRecord;
+  inspectRow: (row: RowRecord) => void;
+  deleteRowByContext: (row: RowRecord) => Promise<void>;
 };
 
 const dbAdminHeaderCommands: Command<DbAdminHeaderContext>[] = [
@@ -90,28 +98,50 @@ const dbAdminHeaderCommands: Command<DbAdminHeaderContext>[] = [
     run: (ctx) => ctx.exportSelectedCsv()
   },
   {
+    id: 'db-admin.show-system',
+    label: 'Toggle system tables',
+    icon: 'pi pi-eye',
+    group: 'View',
+    visible: (ctx) => routeStartsWith(ctx.route, '/settings/global/db-admin'),
+    run: (ctx) => ctx.toggleDangerMode()
+  },
+  {
     id: 'db-admin.delete-selected',
     label: 'Delete selected rows',
     icon: 'pi pi-trash',
-    group: 'Advanced',
+    group: 'Danger',
     danger: true,
     requiresConfirm: true,
     confirmText: 'Delete selected rows? This cannot be undone.',
     visible: (ctx) => routeStartsWith(ctx.route, '/settings/global/db-admin'),
     enabled: (ctx) => ctx.selectedCount > 0,
     run: (ctx) => ctx.deleteSelected()
-  },
-  {
-    id: 'db-admin.refresh-tables',
-    label: 'Refresh table list',
-    icon: 'pi pi-refresh',
-    group: 'Advanced',
-    visible: (ctx) => routeStartsWith(ctx.route, '/settings/global/db-admin'),
-    run: (ctx) => ctx.refreshTables()
   }
 ];
 
-commandRegistry.registerCoreCommands([{ placement: 'pageHeaderOverflow', commands: dbAdminHeaderCommands }]);
+const dbAdminRowCommands: Command<DbAdminRowCommandContext>[] = [
+  {
+    id: 'db-admin.row.inspect',
+    label: 'Inspect row',
+    icon: 'pi pi-search',
+    visible: (ctx) => routeStartsWith(ctx.route, '/settings/global/db-admin'),
+    run: (ctx) => ctx.inspectRow(ctx.row)
+  },
+  {
+    id: 'db-admin.row.delete',
+    label: 'Delete row',
+    icon: 'pi pi-trash',
+    group: 'Danger',
+    danger: true,
+    requiresConfirm: true,
+    confirmText: 'Delete this row? This cannot be undone.',
+    visible: (ctx) => routeStartsWith(ctx.route, '/settings/global/db-admin'),
+    run: (ctx) => ctx.deleteRowByContext(ctx.row)
+  }
+];
+
+commandRegistry.registerCoreCommands([{ placement: 'overflow', commands: dbAdminHeaderCommands }]);
+commandRegistry.registerCoreCommands([{ placement: 'rowOverflow', commands: dbAdminRowCommands }]);
 
 const FILTER_OPS = [
   { label: 'Contains', value: 'contains' },
@@ -221,6 +251,7 @@ export function DbAdminPage() {
   const [forbiddenMessage, setForbiddenMessage] = useState<string | null>(null);
   const [tableSearch, setTableSearch] = useState('');
   const [dangerMode, setDangerMode] = useState(false);
+  const [revealSensitiveColumns, setRevealSensitiveColumns] = useState(false);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [tableInfo, setTableInfo] = useState<DbAdminTable | null>(null);
   const [rows, setRows] = useState<RowRecord[]>([]);
@@ -235,6 +266,7 @@ export function DbAdminPage() {
   const [limit, setLimit] = useState(50);
   const [offset, setOffset] = useState(0);
   const [sort, setSort] = useState<{ column: string; direction: 'ASC' | 'DESC' } | null>(null);
+  const [globalRowSearch, setGlobalRowSearch] = useState('');
   const [status, setStatus] = useState('');
   const [sqlQuery, setSqlQuery] = useState('SELECT * FROM users');
   const [sqlParams, setSqlParams] = useState('[]');
@@ -253,6 +285,22 @@ export function DbAdminPage() {
     () => tableRows.find((row) => row.name === selectedTable) ?? null,
     [selectedTable, tableRows]
   );
+  const visibleColumns = useMemo(() => {
+    const columns = tableInfo?.columns ?? [];
+    if (revealSensitiveColumns) {
+      return columns;
+    }
+    return columns.filter((column) => !/(password|secret|token|hash)/i.test(column.name));
+  }, [tableInfo, revealSensitiveColumns]);
+  const visibleRows = useMemo(() => {
+    const query = globalRowSearch.trim().toLowerCase();
+    if (!query) {
+      return rows;
+    }
+    return rows.filter((row) =>
+      visibleColumns.some((column) => String(row[column.name] ?? '').toLowerCase().includes(query))
+    );
+  }, [globalRowSearch, rows, visibleColumns]);
 
   const parseErrorCode = (error: unknown): string => {
     const candidate = error as {
@@ -582,280 +630,312 @@ export function DbAdminPage() {
     siteId: null,
     selectedContentItemId: null,
     selectedCount: selectedRows.length,
-    refreshTables: () => refreshTables(),
+    dangerMode,
+    toggleDangerMode: async () => {
+      const next = !dangerMode;
+      if (next) {
+        const confirmed = await ui.confirm({
+          header: 'Show System Tables',
+          message: 'This will include internal DuckDB/system tables. Continue?',
+          acceptLabel: 'Enable',
+          rejectLabel: 'Cancel'
+        });
+        if (!confirmed) {
+          return;
+        }
+      }
+      setDangerMode(next);
+      await refreshTables(next);
+    },
     exportSelectedJson: () => exportSelected('json'),
     exportSelectedCsv: () => exportSelected('csv'),
     deleteSelected: () => bulkDelete(),
     toast: ui.toast,
     confirm: ui.confirm
   };
-  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'pageHeaderOverflow');
+  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'overflow');
 
   return (
-    <div className="pageRoot">
-      <PageHeader
+    <WorkspacePage>
+      <WorkspaceHeader
         title="DB Admin"
-        subtitle="Full database administration, with safe read mode and advanced write tooling."
+        subtitle="Database workspace with table explorer, row grid, schema, and SQL console."
         helpTopicKey="db_admin"
-        actions={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+        badges={dangerMode ? <Tag value="System tables visible" severity="warning" /> : undefined}
       />
-      <div className="pageBodyFlex splitFill">
+      <WorkspaceActionBar
+        primary={(
+          <>
+            <Button
+              label="Refresh"
+              onClick={() => selectedTable && loadRows(selectedTable).catch((error: unknown) => setStatus(getErrorMessage(error)))}
+            />
+            <Button label="New Row" onClick={startNewRow} disabled={!tableInfo} />
+          </>
+        )}
+        overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+      />
+      <WorkspaceToolbar defaultExpanded>
+        <div className="table-toolbar">
+          <div className="inline-actions">
+            <InputText placeholder="Search tables" value={tableSearch} onChange={(event) => setTableSearch(event.target.value)} />
+            <InputText placeholder="Global row search" value={globalRowSearch} onChange={(event) => setGlobalRowSearch(event.target.value)} />
+          </div>
+          <div className="inline-actions">
+            <Dropdown
+              value={filterColumn}
+              options={(tableInfo?.columns ?? []).map((column) => ({ label: column.name, value: column.name }))}
+              onChange={(event) => setFilterColumn(event.value as string)}
+              placeholder="Filter column"
+            />
+            <Dropdown value={filterOp} options={FILTER_OPS} onChange={(event) => setFilterOp(event.value as string)} />
+            <InputText
+              placeholder="Filter value"
+              value={filterValue}
+              onChange={(event) => setFilterValue(event.target.value)}
+              disabled={['is_null', 'not_null'].includes(filterOp)}
+            />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              Reveal sensitive
+              <InputSwitch checked={revealSensitiveColumns} onChange={(event) => setRevealSensitiveColumns(Boolean(event.value))} />
+            </label>
+          </div>
+        </div>
+      </WorkspaceToolbar>
+      <WorkspaceBody>
         <Splitter className="splitFill" style={{ width: '100%' }}>
           <SplitterPanel size={22} minSize={16}>
-            <div className="pane paneScroll">
-              <div className="table-toolbar">
-                <InputText
-                  placeholder="Search tables"
-                  value={tableSearch}
-                  onChange={(event) => setTableSearch(event.target.value)}
-                />
-                <div className="inline-actions">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    Show System
-                    <InputSwitch
-                      checked={dangerMode}
-                      onChange={async (event) => {
-                        if (event.value) {
-                          const confirmed = await ui.confirm({
-                            header: 'Show System Tables',
-                            message: 'This will include internal DuckDB/system tables. Continue?',
-                            acceptLabel: 'Enable',
-                            rejectLabel: 'Cancel'
-                          });
-                          if (!confirmed) {
-                            return;
-                          }
-                        }
-                        setDangerMode(Boolean(event.value));
-                        refreshTables(Boolean(event.value)).catch((error: unknown) => setStatus(String(error)));
-                      }}
-                    />
-                  </label>
-                </div>
+            <div className="paneRoot">
+              <div className="paneScroll">
+                <DataTable
+                  value={tableRows}
+                  size="small"
+                  loading={tablesLoading}
+                  selectionMode="single"
+                  selection={selectedTableRow}
+                  onSelectionChange={(event) => setSelectedTable((event.value as DbAdminTableListItem | null)?.name ?? null)}
+                >
+                  <Column field="name" header="Tables" />
+                  <Column field="schema" header="Schema" />
+                  <Column field="rowCount" header="Rows" body={(row: DbAdminTableListItem) => row.rowCount ?? '-'} />
+                </DataTable>
               </div>
-              <DataTable
-                value={tableRows}
-                size="small"
-                loading={tablesLoading}
-                selectionMode="single"
-                selection={selectedTableRow}
-                onSelectionChange={(event) => setSelectedTable((event.value as DbAdminTableListItem | null)?.name ?? null)}
-              >
-                <Column field="name" header="Tables" />
-                <Column field="schema" header="Schema" />
-                <Column field="rowCount" header="Rows" body={(row: DbAdminTableListItem) => row.rowCount ?? '-'} />
-              </DataTable>
             </div>
           </SplitterPanel>
           <SplitterPanel size={48} minSize={28}>
-            <div className="pane paneScroll">
-              <div className="table-toolbar">
-                <div className="inline-actions">
-                  <Button
-                    label="Refresh"
-                    onClick={() => selectedTable && loadRows(selectedTable).catch((error: unknown) => setStatus(getErrorMessage(error)))}
+            <div className="paneRoot">
+              <div className="paneScroll">
+                <DataTable
+                  value={visibleRows}
+                  size="small"
+                  loading={rowsLoading}
+                  dataKey="__rowKey"
+                  selectionMode="multiple"
+                  selection={selectedRows}
+                  onSelectionChange={(event) => setSelectedRows(Array.isArray(event.value) ? (event.value as RowRecord[]) : [])}
+                  onRowClick={(event) => setActiveRow(event.data as RowRecord)}
+                  paginator
+                  lazy
+                  rows={limit}
+                  first={offset}
+                  totalRecords={totalRows}
+                  onPage={(event) => {
+                    setLimit(event.rows ?? limit);
+                    setOffset(event.first ?? 0);
+                  }}
+                  sortField={sort?.column}
+                  sortOrder={sort ? (sort.direction === 'DESC' ? -1 : 1) : 0}
+                  onSort={(event) => {
+                    if (!event.sortField) {
+                      setSort(null);
+                      return;
+                    }
+                    setSort({
+                      column: event.sortField as string,
+                      direction: event.sortOrder === -1 ? 'DESC' : 'ASC'
+                    });
+                  }}
+                >
+                  <Column selectionMode="multiple" headerStyle={{ width: '2.5rem' }} />
+                  <Column
+                    header=""
+                    body={(row) => {
+                      const commandContext: DbAdminRowCommandContext = {
+                        route: location.pathname,
+                        siteId: null,
+                        selectedContentItemId: null,
+                        row: row as RowRecord,
+                        inspectRow: (next) => {
+                          setActiveRow(next);
+                          setEditMode('edit');
+                        },
+                        deleteRowByContext: async (next) => {
+                          await deleteRow(next);
+                          if (selectedTable) {
+                            await loadRows(selectedTable);
+                          }
+                        },
+                        confirm: ui.confirm
+                      };
+                      const commands = commandRegistry.getCommands(commandContext, 'rowOverflow');
+                      return <CommandMenuButton commands={commands} context={commandContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />;
+                    }}
+                    style={{ width: '3rem' }}
                   />
-                  <Button label="New Row" onClick={startNewRow} disabled={!tableInfo} />
-                  <Button label="Delete Selected" severity="danger" onClick={() => void bulkDelete()} disabled={!selectedRows.length} />
-                  <Button label="Export JSON" severity="secondary" onClick={() => exportSelected('json')} disabled={!selectedRows.length} />
-                  <Button label="Export CSV" severity="secondary" onClick={() => exportSelected('csv')} disabled={!selectedRows.length} />
-                </div>
-                <div className="inline-actions">
-                  <Dropdown
-                    value={filterColumn}
-                    options={(tableInfo?.columns ?? []).map((column) => ({ label: column.name, value: column.name }))}
-                    onChange={(event) => setFilterColumn(event.value as string)}
-                    placeholder="Filter column"
-                  />
-                  <Dropdown value={filterOp} options={FILTER_OPS} onChange={(event) => setFilterOp(event.value as string)} />
-                  <InputText
-                    placeholder="Filter value"
-                    value={filterValue}
-                    onChange={(event) => setFilterValue(event.target.value)}
-                    disabled={['is_null', 'not_null'].includes(filterOp)}
-                  />
-                </div>
+                  {visibleColumns.map((column) => (
+                    <Column key={column.name} field={column.name} header={column.name} body={(row) => renderCell((row as RowRecord)[column.name])} sortable />
+                  ))}
+                </DataTable>
               </div>
-              <DataTable
-                value={rows}
-                size="small"
-                loading={rowsLoading}
-                dataKey="__rowKey"
-                selectionMode="multiple"
-                selection={selectedRows}
-                onSelectionChange={(event) => setSelectedRows(Array.isArray(event.value) ? (event.value as RowRecord[]) : [])}
-                onRowClick={(event) => setActiveRow(event.data as RowRecord)}
-                paginator
-                lazy
-                rows={limit}
-                first={offset}
-                totalRecords={totalRows}
-                onPage={(event) => {
-                  setLimit(event.rows ?? limit);
-                  setOffset(event.first ?? 0);
-                }}
-                sortField={sort?.column}
-                sortOrder={sort ? (sort.direction === 'DESC' ? -1 : 1) : 0}
-                onSort={(event) => {
-                  if (!event.sortField) {
-                    setSort(null);
-                    return;
-                  }
-                  setSort({
-                    column: event.sortField as string,
-                    direction: event.sortOrder === -1 ? 'DESC' : 'ASC'
-                  });
-                }}
-              >
-                <Column selectionMode="multiple" headerStyle={{ width: '2.5rem' }} />
-                {(tableInfo?.columns ?? []).map((column) => (
-                  <Column key={column.name} field={column.name} header={column.name} body={(row) => renderCell((row as RowRecord)[column.name])} sortable />
-                ))}
-              </DataTable>
             </div>
           </SplitterPanel>
           <SplitterPanel size={30} minSize={20}>
-            <div className="pane paneScroll">
-              <TabView>
-                <TabPanel header="Row Inspector">
-                  {!tableInfo ? (
-                    <p className="muted">Select a table to inspect rows.</p>
-                  ) : (
-                    <>
-                      <div className="inline-actions" style={{ marginBottom: '0.75rem' }}>
-                        <Button
-                          label="Save"
-                          onClick={() => void saveRow()}
-                          disabled={editMode === 'view' || (editMode === 'edit' && (tableInfo?.primaryKey.length ?? 0) === 0)}
-                        />
-                        <Button
-                          label="Delete"
-                          severity="danger"
-                          onClick={async () => {
-                            if (!activeRow) {
-                              return;
-                            }
-                            const confirmed = await ui.confirm({
-                              header: 'Delete Row',
-                              message: 'Delete the selected row? This cannot be undone.',
-                              acceptLabel: 'Delete',
-                              rejectLabel: 'Cancel'
-                            });
-                            if (!confirmed) {
-                              return;
-                            }
-                            await deleteRow(activeRow);
-                            await loadRows(selectedTable ?? '');
-                            setActiveRow(null);
-                          }}
-                          disabled={!activeRow || (tableInfo?.primaryKey.length ?? 0) === 0}
-                        />
-                      </div>
-                      <div className="form-row">
-                        {(tableInfo.columns ?? []).map((column) => (
-                          <div key={column.name} className="form-row">
-                            <label>
-                              {column.name} <span className="muted">({column.type})</span>
-                              {column.primaryKey ? <span className="muted"> PK</span> : null}
-                            </label>
-                            {renderEditor(column)}
+            <div className="paneRoot">
+              <div className="paneScroll">
+                <TabView>
+                  <TabPanel header="Inspector">
+                    {!tableInfo ? (
+                      <p className="muted">Select a table to inspect rows.</p>
+                    ) : (
+                      <Accordion multiple activeIndex={[0]}>
+                        <AccordionTab header="Basic">
+                          <div className="inline-actions" style={{ marginBottom: '0.75rem' }}>
+                            <Button
+                              label="Save"
+                              onClick={() => void saveRow()}
+                              disabled={editMode === 'view' || (editMode === 'edit' && (tableInfo?.primaryKey.length ?? 0) === 0)}
+                            />
+                            <Button
+                              label="Delete"
+                              severity="danger"
+                              onClick={async () => {
+                                if (!activeRow) {
+                                  return;
+                                }
+                                const confirmed = await ui.confirm({
+                                  header: 'Delete Row',
+                                  message: 'Delete the selected row? This cannot be undone.',
+                                  acceptLabel: 'Delete',
+                                  rejectLabel: 'Cancel'
+                                });
+                                if (!confirmed) {
+                                  return;
+                                }
+                                await deleteRow(activeRow);
+                                await loadRows(selectedTable ?? '');
+                                setActiveRow(null);
+                              }}
+                              disabled={!activeRow || (tableInfo?.primaryKey.length ?? 0) === 0}
+                            />
                           </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </TabPanel>
-                <TabPanel header="Schema">
-                  {!tableInfo ? (
-                    <p className="muted">Select a table to view schema details.</p>
-                  ) : (
-                    <>
-                      <h4 style={{ marginTop: 0 }}>Columns</h4>
-                      <DataTable value={tableInfo.columns} size="small">
-                        <Column field="name" header="Column" />
-                        <Column field="type" header="Type" />
-                        <Column field="nullable" header="Nullable" body={(row: DbAdminColumn) => (row.nullable ? 'Yes' : 'No')} />
-                        <Column field="defaultValue" header="Default" body={(row: DbAdminColumn) => row.defaultValue ?? ''} />
-                        <Column field="primaryKey" header="PK" body={(row: DbAdminColumn) => (row.primaryKey ? 'Yes' : '')} />
-                      </DataTable>
-                      <h4>Indexes</h4>
-                      {tableInfo.indexes.length === 0 ? (
-                        <p className="muted">No indexes reported.</p>
-                      ) : (
-                        <DataTable value={tableInfo.indexes} size="small">
-                          <Column field="name" header="Index" />
-                          <Column field="columns" header="Columns" body={(row: DbAdminIndex) => row.columns.join(', ')} />
-                          <Column field="unique" header="Unique" body={(row: DbAdminIndex) => (row.unique ? 'Yes' : 'No')} />
+                          <div className="form-row">
+                            {(tableInfo.columns ?? []).map((column) => (
+                              <div key={column.name} className="form-row">
+                                <label>
+                                  {column.name} <span className="muted">({column.type})</span>
+                                  {column.primaryKey ? <span className="muted"> PK</span> : null}
+                                </label>
+                                {renderEditor(column)}
+                              </div>
+                            ))}
+                          </div>
+                        </AccordionTab>
+                        <AccordionTab header="Advanced" />
+                      </Accordion>
+                    )}
+                  </TabPanel>
+                  <TabPanel header="Schema">
+                    {!tableInfo ? (
+                      <p className="muted">Select a table to view schema details.</p>
+                    ) : (
+                      <>
+                        <h4 style={{ marginTop: 0 }}>Columns</h4>
+                        <DataTable value={tableInfo.columns} size="small">
+                          <Column field="name" header="Column" />
+                          <Column field="type" header="Type" />
+                          <Column field="nullable" header="Nullable" body={(row: DbAdminColumn) => (row.nullable ? 'Yes' : 'No')} />
+                          <Column field="defaultValue" header="Default" body={(row: DbAdminColumn) => row.defaultValue ?? ''} />
+                          <Column field="primaryKey" header="PK" body={(row: DbAdminColumn) => (row.primaryKey ? 'Yes' : '')} />
                         </DataTable>
-                      )}
-                    </>
-                  )}
-                </TabPanel>
-                <TabPanel header="SQL Console">
-                  <Accordion multiple activeIndex={sqlAdvancedTabs} onTabChange={(event) => setSqlAdvancedTabs(event.index)}>
-                    <AccordionTab header="Advanced: SQL Console">
-                      <div className="form-row">
-                        <label>Query</label>
-                        <InputTextarea rows={8} value={sqlQuery} onChange={(event) => setSqlQuery(event.target.value)} />
-                        <label>Params (JSON array)</label>
-                        <InputTextarea rows={3} value={sqlParams} onChange={(event) => setSqlParams(event.target.value)} />
-                        <label>Enable Writes</label>
-                        <div className="inline-actions">
-                          <InputText
-                            placeholder="Type ENABLE WRITE"
-                            value={sqlConfirm}
-                            onChange={(event) => setSqlConfirm(event.target.value)}
-                          />
-                          <InputSwitch
-                            checked={sqlAllowWrites}
-                            onChange={(event) => {
-                              if (event.value && sqlConfirm.trim().toUpperCase() !== 'ENABLE WRITE') {
-                                setStatus('Type ENABLE WRITE to enable SQL writes.');
-                                return;
-                              }
-                              setSqlAllowWrites(Boolean(event.value));
-                            }}
-                          />
-                        </div>
-                        <div className="inline-actions">
-                          <Button
-                            label="Run Query"
-                            onClick={() => runSql().catch((error: unknown) => setStatus(getErrorMessage(error)))}
-                          />
-                          <Button
-                            label="Clear Results"
-                            severity="secondary"
-                            onClick={() => setSqlResult(null)}
-                          />
-                        </div>
-                      </div>
-                      {sqlResult ? (
-                        <div style={{ marginTop: '1rem' }}>
-                          <div className="inline-actions" style={{ marginBottom: '0.5rem' }}>
-                            <span className="muted">
-                              {sqlResult.readOnly ? 'Read-only' : 'Write'} - {sqlResult.rowCount} row(s)
-                            </span>
-                            {sqlResult.message ? <span className="muted">{sqlResult.message}</span> : null}
+                        <h4>Indexes</h4>
+                        {tableInfo.indexes.length === 0 ? (
+                          <p className="muted">No indexes reported.</p>
+                        ) : (
+                          <DataTable value={tableInfo.indexes} size="small">
+                            <Column field="name" header="Index" />
+                            <Column field="columns" header="Columns" body={(row: DbAdminIndex) => row.columns.join(', ')} />
+                            <Column field="unique" header="Unique" body={(row: DbAdminIndex) => (row.unique ? 'Yes' : 'No')} />
+                          </DataTable>
+                        )}
+                      </>
+                    )}
+                  </TabPanel>
+                  <TabPanel header="SQL Console">
+                    <Accordion multiple activeIndex={sqlAdvancedTabs} onTabChange={(event) => setSqlAdvancedTabs(event.index)}>
+                      <AccordionTab header="Advanced: SQL Console">
+                        <div className="form-row">
+                          <label>Query</label>
+                          <InputTextarea rows={8} value={sqlQuery} onChange={(event) => setSqlQuery(event.target.value)} />
+                          <label>Params (JSON array)</label>
+                          <InputTextarea rows={3} value={sqlParams} onChange={(event) => setSqlParams(event.target.value)} />
+                          <label>Enable Writes</label>
+                          <div className="inline-actions">
+                            <InputText
+                              placeholder="Type ENABLE WRITE"
+                              value={sqlConfirm}
+                              onChange={(event) => setSqlConfirm(event.target.value)}
+                            />
+                            <InputSwitch
+                              checked={sqlAllowWrites}
+                              onChange={(event) => {
+                                if (event.value && sqlConfirm.trim().toUpperCase() !== 'ENABLE WRITE') {
+                                  setStatus('Type ENABLE WRITE to enable SQL writes.');
+                                  return;
+                                }
+                                setSqlAllowWrites(Boolean(event.value));
+                              }}
+                            />
                           </div>
-                          {sqlRows.length > 0 ? (
-                            <DataTable value={sqlRows} size="small">
-                              {sqlColumns.map((column) => (
-                                <Column key={column} field={column} header={column} body={(row) => renderCell((row as RowRecord)[column])} />
-                              ))}
-                            </DataTable>
-                          ) : (
-                            <p className="muted">No rows returned.</p>
-                          )}
+                          <div className="inline-actions">
+                            <Button
+                              label="Run Query"
+                              onClick={() => runSql().catch((error: unknown) => setStatus(getErrorMessage(error)))}
+                            />
+                            <Button
+                              label="Clear Results"
+                              severity="secondary"
+                              onClick={() => setSqlResult(null)}
+                            />
+                          </div>
                         </div>
-                      ) : null}
-                    </AccordionTab>
-                  </Accordion>
-                </TabPanel>
-              </TabView>
+                        {sqlResult ? (
+                          <div style={{ marginTop: '1rem' }}>
+                            <div className="inline-actions" style={{ marginBottom: '0.5rem' }}>
+                              <span className="muted">
+                                {sqlResult.readOnly ? 'Read-only' : 'Write'} - {sqlResult.rowCount} row(s)
+                              </span>
+                              {sqlResult.message ? <span className="muted">{sqlResult.message}</span> : null}
+                            </div>
+                            {sqlRows.length > 0 ? (
+                              <DataTable value={sqlRows} size="small">
+                                {sqlColumns.map((column) => (
+                                  <Column key={column} field={column} header={column} body={(row) => renderCell((row as RowRecord)[column])} />
+                                ))}
+                              </DataTable>
+                            ) : (
+                              <p className="muted">No rows returned.</p>
+                            )}
+                          </div>
+                        ) : null}
+                      </AccordionTab>
+                    </Accordion>
+                  </TabPanel>
+                </TabView>
+              </div>
             </div>
           </SplitterPanel>
         </Splitter>
-      </div>
+      </WorkspaceBody>
       {forbiddenMessage ? (
         <div className="status-panel">
           <pre>{forbiddenMessage}</pre>
@@ -866,6 +946,6 @@ export function DbAdminPage() {
           <pre>{status}</pre>
         </div>
       ) : null}
-    </div>
+    </WorkspacePage>
   );
 }

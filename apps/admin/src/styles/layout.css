@@ -76,27 +76,48 @@ body {
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 0.45rem 0.8rem;
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.45rem 0.65rem;
   border-bottom: 1px solid var(--surface-border);
   background: color-mix(in srgb, var(--surface-card), var(--surface-ground) 14%);
 }
 
+.topbar-utility {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.topbar-utility-left,
+.topbar-utility-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
 .admin-topbar .p-menubar {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap !important;
   border: 1px solid var(--surface-border);
   border-radius: 10px;
-  padding: 0.35rem 0.5rem;
+  padding: 0.2rem 0.35rem;
   background: var(--surface-card);
+  overflow: hidden;
 }
 
 .admin-topbar .p-menubar-root-list {
-  margin-left: 1rem;
-  flex: 1 1 auto;
-}
-
-.topbar-start {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  flex-wrap: nowrap !important;
+  margin-left: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .topbar-brand {
@@ -115,21 +136,32 @@ body {
   border: 1px solid var(--surface-border);
   border-radius: 999px;
   padding: 0.2rem 0.55rem;
-  min-width: 13rem;
+  min-width: 12rem;
+  max-width: 15rem;
 }
 
-.topbar-global-search .p-inputtext {
+.topbar-global-search .p-autocomplete,
+.topbar-global-search .p-autocomplete-input {
+  width: 100%;
+}
+
+.topbar-global-search .p-inputtext,
+.topbar-global-search .p-autocomplete-input {
   border: 0;
   box-shadow: none !important;
   padding: 0.15rem 0;
   background: transparent;
 }
 
-.topbar-end {
+.topbar-search-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding-left: 0.5rem;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.topbar-search-item small {
+  color: var(--text-color-secondary);
 }
 
 .ch-nav-icon {
@@ -145,6 +177,8 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  padding: 0.5rem 0.8rem;
+  white-space: nowrap;
 }
 
 .admin-topbar .p-menubar-end {
@@ -152,11 +186,11 @@ body {
   align-items: center;
   justify-content: flex-end;
   min-width: 0;
-  overflow-x: auto;
+  flex: 0 0 auto;
 }
 
 .topbar-control {
-  min-width: 7.6rem;
+  min-width: 6.8rem;
   flex: 0 0 auto;
 }
 
@@ -243,6 +277,7 @@ body {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  gap: 0.75rem;
 }
 
 .pageBodyFlex {
@@ -252,11 +287,80 @@ body {
   min-width: 0;
 }
 
+.workspace-page {
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  background: var(--surface-card);
+  padding: 1rem;
+}
+
+.workspace-header,
+.workspace-actionbar,
+.workspace-toolbar {
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  background: var(--surface-card);
+}
+
+.workspace-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.workspace-header-copy h1 {
+  margin: 0.15rem 0 0;
+  font-size: 1.5rem;
+}
+
+.workspace-header-copy p {
+  margin: 0.35rem 0 0;
+  color: var(--text-color-secondary);
+}
+
+.workspace-header-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.workspace-actionbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.workspace-toolbar-content {
+  margin-top: 0.5rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.workspace-body {
+  overflow: hidden;
+}
+
 .pane {
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 0;
+}
+
+.paneRoot {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.paneHeader {
+  flex: 0 0 auto;
 }
 
 .paneScroll {
@@ -513,16 +617,16 @@ body {
     border-right: none;
   }
 
-  .admin-topbar .p-menubar {
+  .topbar-utility {
     flex-wrap: wrap;
   }
 
-  .topbar-start {
+  .topbar-utility-left,
+  .topbar-utility-right {
     width: 100%;
-    justify-content: space-between;
   }
 
-  .topbar-global-search {
-    min-width: 10rem;
+  .topbar-utility-right {
+    overflow-x: auto;
   }
 }

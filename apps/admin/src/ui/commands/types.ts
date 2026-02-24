@@ -1,6 +1,9 @@
 import type { ToastMessage } from 'primereact/toast';
 
 export type CommandPlacement =
+  | 'primary'
+  | 'overflow'
+  | 'context'
   | 'pageHeaderOverflow'
   | 'rowOverflow'
   | 'treeNodeContext'

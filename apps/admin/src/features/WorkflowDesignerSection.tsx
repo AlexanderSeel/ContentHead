@@ -177,8 +177,9 @@ export function WorkflowDesignerSection({
       <div className="pageBodyFlex splitFill">
         <Splitter className="splitFill" style={{ width: '100%' }}>
           <SplitterPanel size={22} minSize={16}>
-            <div className="content-card pane paneScroll">
+            <div className="paneRoot split-pane">
               <h3>Definitions</h3>
+              <div className="paneScroll">
               <div className="form-row">
                 <Dropdown
                   value={definitionId}
@@ -231,11 +232,12 @@ export function WorkflowDesignerSection({
                   <InputTextarea rows={4} value={runContextJson} onChange={(event) => setRunContextJson(event.target.value)} />
                 </AccordionTab>
               </Accordion>
+              </div>
             </div>
           </SplitterPanel>
 
           <SplitterPanel size={54} minSize={30}>
-            <div className="content-card pane splitFill">
+            <div className="paneRoot split-pane">
               <div className="inline-actions" style={{ justifyContent: 'space-between' }}>
                 <h3 style={{ margin: 0 }}>Canvas</h3>
                 <div className="inline-actions">
@@ -267,21 +269,23 @@ export function WorkflowDesignerSection({
           </SplitterPanel>
 
           <SplitterPanel size={24} minSize={18}>
-            <div className="content-card pane paneScroll">
+            <div className="paneRoot split-pane">
               <h3>Inspector</h3>
-              <NodeInspector
-                node={selectedNode}
-                onChange={(nextConfig) => {
-                  const errors = validateNodeConfig(selectedNode?.type ?? '', nextConfig);
-                  if (errors.length > 0) {
-                    onStatus(errors[0] ?? 'Invalid config');
-                  }
-                  if (!selectedNode) {
-                    return;
-                  }
-                  setGraphNodes((prev) => prev.map((node) => (node.id === selectedNode.id ? { ...node, config: nextConfig } : node)));
-                }}
-              />
+              <div className="paneScroll">
+                <NodeInspector
+                  node={selectedNode}
+                  onChange={(nextConfig) => {
+                    const errors = validateNodeConfig(selectedNode?.type ?? '', nextConfig);
+                    if (errors.length > 0) {
+                      onStatus(errors[0] ?? 'Invalid config');
+                    }
+                    if (!selectedNode) {
+                      return;
+                    }
+                    setGraphNodes((prev) => prev.map((node) => (node.id === selectedNode.id ? { ...node, config: nextConfig } : node)));
+                  }}
+                />
+              </div>
             </div>
           </SplitterPanel>
         </Splitter>

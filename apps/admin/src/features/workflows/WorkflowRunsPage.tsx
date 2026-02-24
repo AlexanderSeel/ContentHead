@@ -5,17 +5,17 @@ import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
 import { DataTable } from 'primereact/datatable';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
-import { Panel } from 'primereact/panel';
+import { Accordion, AccordionTab } from 'primereact/accordion';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
 import { useUi } from '../../app/UiContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
+import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type WorkflowRun = { id: number; definitionId: number; status: string; currentNodeId?: string | null; logsJson: string; contextJson: string };
 
@@ -80,7 +80,7 @@ const workflowRunsRowCommands: Command<WorkflowRunsRowContext>[] = [
   }
 ];
 
-commandRegistry.registerCoreCommands([{ placement: 'pageHeaderOverflow', commands: workflowRunsHeaderCommands }]);
+commandRegistry.registerCoreCommands([{ placement: 'overflow', commands: workflowRunsHeaderCommands }]);
 commandRegistry.registerCoreCommands([{ placement: 'rowOverflow', commands: workflowRunsRowCommands }]);
 
 export function WorkflowRunsPage() {
@@ -109,7 +109,7 @@ export function WorkflowRunsPage() {
     toast
   };
   const headerContext: WorkflowRunsHeaderContext = { ...baseContext, runs, refresh };
-  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'pageHeaderOverflow');
+  const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'overflow');
 
   const rowContextFor = (row: WorkflowRun): WorkflowRunsRowContext => ({
     ...baseContext,
@@ -129,24 +129,21 @@ export function WorkflowRunsPage() {
   const contextItems = contextRun ? toTieredMenuItems(commandRegistry.getCommands(rowContextFor(contextRun), 'rowOverflow'), rowContextFor(contextRun)) : [];
 
   return (
-    <div className="pageRoot">
-      <PageHeader
+    <WorkspacePage>
+      <WorkspaceHeader
         title="Workflow Runs"
-        subtitle="Run status, approvals and logs"
+        subtitle="Run status, approvals, context, and logs."
         helpTopicKey="workflows"
-        askAiContext="workflows"
-        askAiPayload={{ selectedRun: selected, runCount: runs.length }}
-        actions={
-          <div className="inline-actions">
-            <Button label="Refresh" onClick={() => refresh().catch(() => undefined)} />
-            <CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />
-          </div>
-        }
       />
-      <div className="pageBodyFlex splitFill">
+      <WorkspaceActionBar
+        primary={<Button label="Refresh" onClick={() => refresh().catch(() => undefined)} />}
+        overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+      />
+      <WorkspaceBody>
         <Splitter className="splitFill" style={{ width: '100%' }}>
           <SplitterPanel size={48} minSize={28}>
-            <div className="pane paneScroll">
+            <div className="paneRoot">
+              <div className="paneScroll">
               <ContextMenu ref={contextMenuRef} model={contextItems} />
               <DataTable
                 value={runs}
@@ -168,24 +165,27 @@ export function WorkflowRunsPage() {
                   body={(row: WorkflowRun) => <CommandMenuButton commands={commandRegistry.getCommands(rowContextFor(row), 'rowOverflow')} context={rowContextFor(row)} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
                 />
               </DataTable>
+              </div>
             </div>
           </SplitterPanel>
           <SplitterPanel size={52} minSize={30}>
-            <div className="pane paneScroll">
-              {!selected ? <Panel header="Run Details">Select a run to inspect context and logs.</Panel> : (
-                <>
-                  <Panel header={`Run #${selected.id} Context`}>
-                    <pre>{JSON.stringify(JSON.parse(selected.contextJson || '{}'), null, 2)}</pre>
-                  </Panel>
-                  <Panel header="Timeline / Logs" toggleable>
-                    <pre>{JSON.stringify(JSON.parse(selected.logsJson || '[]'), null, 2)}</pre>
-                  </Panel>
-                </>
-              )}
+            <div className="paneRoot">
+              <div className="paneScroll">
+                {!selected ? <div className="status-panel">Select a run to inspect context and logs.</div> : (
+                  <Accordion multiple activeIndex={[0]}>
+                    <AccordionTab header={`Basic: Run #${selected.id} Context`}>
+                      <pre>{JSON.stringify(JSON.parse(selected.contextJson || '{}'), null, 2)}</pre>
+                    </AccordionTab>
+                    <AccordionTab header="Advanced: Timeline / Logs">
+                      <pre>{JSON.stringify(JSON.parse(selected.logsJson || '[]'), null, 2)}</pre>
+                    </AccordionTab>
+                  </Accordion>
+                )}
+              </div>
             </div>
           </SplitterPanel>
         </Splitter>
-      </div>
-    </div>
+      </WorkspaceBody>
+    </WorkspacePage>
   );
 }

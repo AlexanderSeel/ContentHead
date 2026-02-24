@@ -7,10 +7,14 @@ import { DataTable } from 'primereact/datatable';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
+import { Splitter, SplitterPanel } from 'primereact/splitter';
+import { Tag } from 'primereact/tag';
 
 import { useAuth } from '../../app/AuthContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
+import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
+import type { Command, CommandContext } from '../../ui/commands/types';
+import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type ConnectorDomain = 'auth' | 'db' | 'dam' | 'ai';
 
@@ -65,12 +69,22 @@ function toTitle(domain: ConnectorDomain): string {
   return 'AI Connectors';
 }
 
+type ConnectorCommandContext = CommandContext & {
+  selected: ConnectorRow | null;
+  refresh: () => Promise<void>;
+  runSave: () => Promise<void>;
+  runSetDefault: () => Promise<void>;
+  runTest: () => Promise<void>;
+  runDelete: () => Promise<void>;
+};
+
 export function ConnectorSettingsPage({ domain }: { domain: ConnectorDomain }) {
   const { token } = useAuth();
   const sdk = useMemo(() => createAdminSdk(token), [token]);
 
   const [rows, setRows] = useState<ConnectorRow[]>([]);
   const [selected, setSelected] = useState<ConnectorRow | null>(null);
+  const [selectedBaseline, setSelectedBaseline] = useState<ConnectorRow | null>(null);
   const [status, setStatus] = useState('');
   const [testResult, setTestResult] = useState('');
 
@@ -78,7 +92,9 @@ export function ConnectorSettingsPage({ domain }: { domain: ConnectorDomain }) {
     const response = await sdk.listConnectors({ domain });
     const values = (response.listConnectors ?? []) as ConnectorRow[];
     setRows(values);
-    setSelected((prev) => values.find((entry) => entry.id === prev?.id) ?? values[0] ?? null);
+    const nextSelected = values.find((entry) => entry.id === selected?.id) ?? values[0] ?? null;
+    setSelected(nextSelected);
+    setSelectedBaseline(nextSelected ? { ...nextSelected } : null);
   };
 
   useEffect(() => {
@@ -87,15 +103,120 @@ export function ConnectorSettingsPage({ domain }: { domain: ConnectorDomain }) {
   }, [domain]);
 
   const selectedProvider = providerOptions[domain].find((entry) => entry.value === selected?.type);
+  const parsedConfigValid = useMemo(() => {
+    if (!selected) {
+      return true;
+    }
+    try {
+      JSON.parse(selected.configJson || '{}');
+      return true;
+    } catch {
+      return false;
+    }
+  }, [selected]);
+  const isValid = Boolean(selected?.name?.trim() && selected?.type) && parsedConfigValid;
+  const isDirty = useMemo(() => {
+    if (!selected && !selectedBaseline) {
+      return false;
+    }
+    return JSON.stringify(selected) !== JSON.stringify(selectedBaseline);
+  }, [selected, selectedBaseline]);
+
+  const saveSelected = async () => {
+    if (!selected) {
+      return;
+    }
+    await sdk.upsertConnector({
+      id: selected.id || null,
+      domain,
+      type: selected.type,
+      name: selected.name,
+      enabled: selected.enabled,
+      isDefault: selected.isDefault,
+      configJson: selected.configJson || '{}'
+    });
+    await refresh();
+  };
+
+  const overflowContext: ConnectorCommandContext = {
+    route: '/settings',
+    selectedContentItemId: null,
+    selected,
+    refresh,
+    runSave: saveSelected,
+    runSetDefault: async () => {
+      if (!selected?.id) {
+        return;
+      }
+      await sdk.setDefaultConnector({ domain, id: selected.id });
+      await refresh();
+    },
+    runTest: async () => {
+      if (!selected?.id) {
+        return;
+      }
+      const res = await sdk.testConnector({ id: selected.id });
+      setTestResult(res.testConnector ?? 'No result');
+    },
+    runDelete: async () => {
+      if (!selected?.id) {
+        return;
+      }
+      await sdk.deleteConnector({ id: selected.id });
+      await refresh();
+    }
+  };
+
+  const overflowCommands: Command<ConnectorCommandContext>[] = [
+    {
+      id: 'connector.refresh',
+      label: 'Refresh',
+      icon: 'pi pi-refresh',
+      group: 'View',
+      run: (ctx) => ctx.refresh()
+    },
+    {
+      id: 'connector.set-default',
+      label: 'Set default',
+      icon: 'pi pi-star',
+      group: 'Advanced',
+      enabled: (ctx) => Boolean(ctx.selected?.id),
+      run: (ctx) => ctx.runSetDefault()
+    },
+    {
+      id: 'connector.test',
+      label: 'Test',
+      icon: 'pi pi-check-circle',
+      group: 'Advanced',
+      enabled: (ctx) => Boolean(ctx.selected?.id),
+      run: (ctx) => ctx.runTest()
+    },
+    {
+      id: 'connector.delete',
+      label: 'Delete',
+      icon: 'pi pi-trash',
+      group: 'Danger',
+      danger: true,
+      requiresConfirm: true,
+      confirmText: 'Delete this connector?',
+      enabled: (ctx) => Boolean(ctx.selected?.id),
+      run: (ctx) => ctx.runDelete()
+    }
+  ];
 
   return (
-    <div className="pageRoot">
-      <PageHeader title={toTitle(domain)} subtitle="Provider selection, defaults, advanced config, and validation" helpTopicKey="site_overview" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '1rem' }}>
-        <section className="content-card">
-          <div className="inline-actions" style={{ marginBottom: '0.5rem' }}>
+    <WorkspacePage>
+      <WorkspaceHeader
+        title={toTitle(domain)}
+        subtitle="Provider selection, defaults, advanced config, and validation."
+        helpTopicKey="site_overview"
+        badges={isDirty ? <Tag value="Unsaved changes" severity="warning" /> : null}
+      />
+      <WorkspaceActionBar
+        primary={(
+          <>
             <Button
-              label="New"
+              label="New Connector"
               onClick={() =>
                 setSelected({
                   id: 0,
@@ -108,123 +229,93 @@ export function ConnectorSettingsPage({ domain }: { domain: ConnectorDomain }) {
                 })
               }
             />
-          </div>
-          <DataTable value={rows} size="small" selectionMode="single" selection={selected} onSelectionChange={(event) => setSelected((event.value as ConnectorRow) ?? null)}>
-            <Column field="name" header="Name" />
-            <Column field="type" header="Type" />
-            <Column field="enabled" header="Enabled" body={(row: ConnectorRow) => (row.enabled ? 'Yes' : 'No')} />
-            <Column field="isDefault" header="Default" body={(row: ConnectorRow) => (row.isDefault ? 'Yes' : 'No')} />
-          </DataTable>
-        </section>
-
-        <section className="content-card">
-          {!selected ? (
-            <p className="muted">Select or create a connector.</p>
-          ) : (
-            <Accordion multiple activeIndex={[0, 1]}>
-              <AccordionTab header="Basic">
-                <div className="form-row">
-                  <label>Name</label>
-                  <InputText value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} />
-                </div>
-                <div className="form-row">
-                  <label>Type</label>
-                  <Dropdown
-                    value={selected.type}
-                    options={providerOptions[domain]}
-                    optionLabel="label"
-                    optionValue="value"
-                    onChange={(event) =>
-                      setSelected({
-                        ...selected,
-                        type: String(event.value),
-                        configJson: configHints[String(event.value)] ?? selected.configJson
-                      })
-                    }
-                  />
-                  {selectedProvider ? <small>{selectedProvider.help}</small> : null}
-                </div>
-                <label>
-                  <Checkbox checked={selected.enabled} onChange={(event) => setSelected({ ...selected, enabled: Boolean(event.checked) })} /> Enabled
-                </label>
-                <label>
-                  <Checkbox checked={selected.isDefault} onChange={(event) => setSelected({ ...selected, isDefault: Boolean(event.checked) })} /> Default for {domain}
-                </label>
-                {domain === 'db' ? <div className="status-panel">Core runtime still uses DuckDB. Other DB providers are stored for future activation.</div> : null}
-              </AccordionTab>
-
-              <AccordionTab header="Advanced">
-                <div className="form-row">
-                  <label>Config JSON</label>
-                  <InputTextarea rows={12} value={selected.configJson} onChange={(event) => setSelected({ ...selected, configJson: event.target.value })} />
-                </div>
-              </AccordionTab>
-
-              <AccordionTab header="Secrets">
-                <div className="form-row">
-                  <small>Secret fields are stored in connector config and should be managed carefully. UI masks values after reload.</small>
-                </div>
-              </AccordionTab>
-            </Accordion>
-          )}
-          {selected ? (
-            <div className="inline-actions" style={{ marginTop: '0.75rem' }}>
-              <Button
-                label="Save"
-                onClick={() =>
-                  sdk
-                    .upsertConnector({
-                      id: selected.id || null,
-                      domain,
-                      type: selected.type,
-                      name: selected.name,
-                      enabled: selected.enabled,
-                      isDefault: selected.isDefault,
-                      configJson: selected.configJson || '{}'
-                    })
-                    .then(() => refresh())
-                    .catch((error: unknown) => setStatus(String(error)))
-                }
-              />
-              <Button
-                label="Set Default"
-                severity="secondary"
-                onClick={() =>
-                  sdk
-                    .setDefaultConnector({ domain, id: selected.id })
-                    .then(() => refresh())
-                    .catch((error: unknown) => setStatus(String(error)))
-                }
-                disabled={!selected.id}
-              />
-              <Button
-                label="Test"
-                severity="info"
-                onClick={() =>
-                  sdk
-                    .testConnector({ id: selected.id })
-                    .then((res) => setTestResult(res.testConnector ?? 'No result'))
-                    .catch((error: unknown) => setStatus(String(error)))
-                }
-                disabled={!selected.id}
-              />
-              <Button
-                label="Delete"
-                severity="danger"
-                onClick={() =>
-                  sdk
-                    .deleteConnector({ id: selected.id })
-                    .then(() => refresh())
-                    .catch((error: unknown) => setStatus(String(error)))
-                }
-                disabled={!selected.id}
-              />
+            <Button label="Save" onClick={() => saveSelected().catch((error: unknown) => setStatus(String(error)))} disabled={!isDirty || !isValid} />
+          </>
+        )}
+        overflow={<CommandMenuButton commands={overflowCommands} context={overflowContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+      />
+      <WorkspaceBody>
+        <Splitter className="splitFill" style={{ width: '100%' }}>
+          <SplitterPanel size={40} minSize={28}>
+            <div className="paneRoot">
+              <div className="paneScroll">
+                <DataTable
+                  value={rows}
+                  size="small"
+                  selectionMode="single"
+                  selection={selected}
+                  onSelectionChange={(event) => {
+                    const next = (event.value as ConnectorRow) ?? null;
+                    setSelected(next);
+                    setSelectedBaseline(next ? { ...next } : null);
+                  }}
+                >
+                  <Column field="name" header="Name" />
+                  <Column field="type" header="Type" />
+                  <Column field="enabled" header="Enabled" body={(row: ConnectorRow) => (row.enabled ? 'Yes' : 'No')} />
+                  <Column field="isDefault" header="Default" body={(row: ConnectorRow) => (row.isDefault ? 'Yes' : 'No')} />
+                </DataTable>
+              </div>
             </div>
-          ) : null}
-          {testResult ? <div className="status-panel">{testResult}</div> : null}
-        </section>
-      </div>
+          </SplitterPanel>
+          <SplitterPanel size={60} minSize={32}>
+            <div className="paneRoot">
+              <div className="paneScroll">
+                {!selected ? (
+                  <p className="muted">Select or create a connector.</p>
+                ) : (
+                  <Accordion multiple activeIndex={[0]}>
+                    <AccordionTab header="Basic">
+                      <div className="form-row">
+                        <label>Name</label>
+                        <InputText value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} />
+                      </div>
+                      <div className="form-row">
+                        <label>Type</label>
+                        <Dropdown
+                          value={selected.type}
+                          options={providerOptions[domain]}
+                          optionLabel="label"
+                          optionValue="value"
+                          onChange={(event) =>
+                            setSelected({
+                              ...selected,
+                              type: String(event.value),
+                              configJson: configHints[String(event.value)] ?? selected.configJson
+                            })
+                          }
+                        />
+                        {selectedProvider ? <small>{selectedProvider.help}</small> : null}
+                      </div>
+                      <label>
+                        <Checkbox checked={selected.enabled} onChange={(event) => setSelected({ ...selected, enabled: Boolean(event.checked) })} /> Enabled
+                      </label>
+                      <label>
+                        <Checkbox checked={selected.isDefault} onChange={(event) => setSelected({ ...selected, isDefault: Boolean(event.checked) })} /> Default for {domain}
+                      </label>
+                      {domain === 'db' ? <div className="status-panel">Core runtime still uses DuckDB. Other DB providers are stored for future activation.</div> : null}
+                    </AccordionTab>
+                    <AccordionTab header="Advanced">
+                      <div className="form-row">
+                        <label>Config JSON</label>
+                        <InputTextarea rows={12} value={selected.configJson} onChange={(event) => setSelected({ ...selected, configJson: event.target.value })} />
+                        {!parsedConfigValid ? <small className="error-text">Config JSON must be valid JSON.</small> : null}
+                      </div>
+                    </AccordionTab>
+                    <AccordionTab header="Security / Secrets">
+                      <div className="form-row">
+                        <small>Secret fields are stored in connector config and should be managed carefully. UI masks values after reload.</small>
+                      </div>
+                    </AccordionTab>
+                  </Accordion>
+                )}
+                {testResult ? <div className="status-panel">{testResult}</div> : null}
+              </div>
+            </div>
+          </SplitterPanel>
+        </Splitter>
+      </WorkspaceBody>
       {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
-    </div>
+    </WorkspacePage>
   );
 }
