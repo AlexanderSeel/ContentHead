@@ -22,11 +22,19 @@ body {
 
 .admin-layout {
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: 280px 1fr;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
 }
 
 .admin-main {
+  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -38,7 +46,7 @@ body {
   min-width: 0;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .admin-content > div:not(.pageRoot) {
@@ -48,6 +56,8 @@ body {
 }
 
 .admin-sidebar {
+  width: 280px;
+  flex: 0 0 280px;
   border-right: 1px solid var(--surface-border);
   background: var(--surface-overlay);
   color: var(--text-color);
@@ -55,15 +65,11 @@ body {
   overflow: auto;
 }
 
-.admin-sidebar .p-accordion-content .p-button {
-  width: 100%;
-  justify-content: flex-start;
-  text-align: left;
-}
-
-.admin-sidebar .p-accordion-content .p-button .p-button-label {
-  flex: 1;
-  text-align: left;
+.admin-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
 }
 
 .admin-topbar {
@@ -71,19 +77,39 @@ body {
   top: 0;
   z-index: 10;
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  min-height: 4rem;
-  padding: 0.5rem 1rem;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem 0.45rem;
   border-bottom: 1px solid var(--surface-border);
   background: var(--surface-card);
+}
+
+.admin-topbar-primary {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 300px) 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
 }
 
 .topbar-brand {
   font-weight: 700;
   letter-spacing: 0.02em;
-  white-space: nowrap;
-  flex: 0 0 auto;
+  white-space: nowrap !important;
+  justify-content: flex-start !important;
+  padding-left: 0 !important;
+}
+
+.topbar-area-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  justify-self: center;
+}
+
+.topbar-area-label {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
 }
 
 .topbar-controls {
@@ -102,6 +128,29 @@ body {
 .topbar-control {
   min-width: 8.75rem;
   flex: 0 0 auto;
+}
+
+.topbar-area-control {
+  min-width: 12rem;
+}
+
+.admin-topbar-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+  padding-bottom: 0.1rem;
+}
+
+.topbar-subnav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  min-width: 0;
 }
 
 .page-header {
@@ -385,18 +434,24 @@ body {
 }
 
 @media (max-width: 1100px) {
-  .admin-layout {
-    grid-template-columns: 1fr;
+  .admin-body {
+    flex-direction: column;
   }
 
   .admin-sidebar {
-    border-right: none;
+    width: 100%;
+    flex-basis: auto;
     border-bottom: 1px solid var(--surface-border);
+    border-right: none;
   }
 
-  .admin-topbar {
+  .admin-topbar-primary {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .admin-topbar-secondary {
     flex-direction: column;
     align-items: stretch;
-    gap: 0.5rem;
   }
 }
