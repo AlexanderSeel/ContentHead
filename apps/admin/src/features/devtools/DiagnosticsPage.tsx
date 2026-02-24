@@ -1,14 +1,14 @@
 import { Card } from 'primereact/card';
 
-import { PageHeader } from '../../components/common/PageHeader';
 import { useAdminContext } from '../../app/AdminContext';
 import { useUi } from '../../app/UiContext';
 import { useGraphqlDiagnostics } from '../../lib/graphqlReliability';
 import { readCssVar } from '../../theme/themeManager';
+import { WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 export function DiagnosticsPage() {
   const { siteId, marketCode, localeCode, error } = useAdminContext();
-  const { theme, scale } = useUi();
+  const { theme, scale, themeMode, themeBridge } = useUi();
   const graphqlErrors = useGraphqlDiagnostics();
   const tokens = [
     '--surface-ground',
@@ -21,14 +21,18 @@ export function DiagnosticsPage() {
   ];
 
   return (
-    <div>
-      <PageHeader title="Diagnostics" subtitle="Build and environment info" />
+    <WorkspacePage>
+      <WorkspaceHeader title="Diagnostics" subtitle="Build, GraphQL, and theme diagnostics." />
+      <WorkspaceBody>
+        <div className="pane paneScroll form-row">
       <Card>
         <div className="diagnostics-grid">
           <div className="status-panel"><strong>Site</strong><div>#{siteId}</div></div>
           <div className="status-panel"><strong>Market</strong><div>{marketCode}</div></div>
           <div className="status-panel"><strong>Locale</strong><div>{localeCode}</div></div>
           <div className="status-panel"><strong>Theme</strong><div>{theme}</div></div>
+          <div className="status-panel"><strong>Theme Mode</strong><div>{themeMode}</div></div>
+          <div className="status-panel"><strong>Monaco Theme</strong><div>{themeBridge.monacoTheme}</div></div>
           <div className="status-panel"><strong>Scale</strong><div>{scale}px</div></div>
           <div className="status-panel"><strong>API</strong><div>{import.meta.env.VITE_API_URL ?? 'http://localhost:4000/graphql'}</div></div>
           <div className="status-panel"><strong>Mode</strong><div>{import.meta.env.MODE}</div></div>
@@ -62,6 +66,8 @@ export function DiagnosticsPage() {
           ))}
         </div>
       </Card>
-    </div>
+        </div>
+      </WorkspaceBody>
+    </WorkspacePage>
   );
 }

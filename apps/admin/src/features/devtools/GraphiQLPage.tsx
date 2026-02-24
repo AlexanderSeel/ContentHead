@@ -11,10 +11,11 @@ import { Tree } from 'primereact/tree';
 import type { TreeNode } from 'primereact/treenode';
 
 import { useAuth } from '../../app/AuthContext';
+import { useUi } from '../../app/UiContext';
+import { applyMonacoTheme } from '../../theme/themeBridge';
 import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 import 'graphiql/style.css';
-import { ScrollPanel } from 'primereact/scrollpanel';
 
 const INTROSPECTION_QUERY = `
   query IntrospectionQuery {
@@ -94,6 +95,7 @@ function formatType(type: IntrospectionTypeRef | null | undefined): string {
 
 export function GraphiQLPage() {
   const { token } = useAuth();
+  const { theme } = useUi();
   const endpoint = `${import.meta.env.VITE_API_URL ?? 'http://localhost:4000/graphql'}`;
   const [previewToken, setPreviewToken] = useState('');
   const [useSessionToken, setUseSessionToken] = useState(true);
@@ -297,6 +299,12 @@ export function GraphiQLPage() {
   };
 
   useEffect(() => {
+    void import('monaco-editor').then((monaco) => {
+      applyMonacoTheme(theme, monaco);
+    }).catch(() => undefined);
+  }, [theme]);
+
+  useEffect(() => {
     void loadSchemaExplorer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endpoint, parsedHeaders]);
@@ -316,13 +324,8 @@ export function GraphiQLPage() {
       <WorkspaceBody>
         <Splitter className="splitFill ch-graphiql-ide" style={{ width: '100%' }}>
           <SplitterPanel size={22} minSize={16}>
-            <ScrollPanel style={{ width: '100%', height: '100%' }}>
             <div className="paneRoot ch-graphiql-pane ch-graphiql-pane-left">
-              
-                  <div className="inline-actions" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span>Operations</span>
-                    <Button text size="small" label="Reload" icon="pi pi-refresh" onClick={() => void loadSchemaExplorer()} loading={schemaLoading} />
-                  </div>
+                  <div className="inline-actions" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>Operations</span></div>
                   {schemaError ? <small className="editor-error">{schemaError}</small> : null}
                   <Tree
                     value={schemaNodes}
@@ -341,8 +344,6 @@ export function GraphiQLPage() {
                     }}
                   />              
             </div>
-            
-              </ScrollPanel>
           </SplitterPanel>
           <SplitterPanel size={48} minSize={34}>
             <div className="paneRoot ch-graphiql-pane ch-graphiql-pane-center">

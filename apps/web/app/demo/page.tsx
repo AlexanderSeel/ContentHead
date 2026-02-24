@@ -103,6 +103,8 @@ export default async function DemoPage({
   const payload = result.getPageByRoute;
   const version = payload?.selectedVersion;
   const base = payload?.base;
+  const siteRes = await sdk.getSite({ siteId });
+  const urlPattern = siteRes.getSite?.urlPattern ?? '/{market}/{locale}';
   if (!payload || !version || !base) {
     notFound();
   }
@@ -192,6 +194,7 @@ export default async function DemoPage({
         siteId={siteId}
         marketCode={marketCode}
         localeCode={localeCode}
+        urlPattern={urlPattern}
         routeSlug="demo"
         contentItemId={base.contentItem?.id ?? 0}
         versionId={version.id ?? 0}

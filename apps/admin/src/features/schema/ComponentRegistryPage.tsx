@@ -8,8 +8,8 @@ import { Tag } from 'primereact/tag';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
+import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import {
   resolveComponentRegistry,
   type ComponentTypeSetting,
@@ -79,19 +79,22 @@ export function ComponentRegistryPage() {
   };
 
   return (
-    <div className="pageRoot">
-      <PageHeader
+    <WorkspacePage>
+      <WorkspaceHeader
         title="Component Registry"
         subtitle="Manage available component types for build and authoring."
       />
-      <section className="content-card">
+      <WorkspaceActionBar
+        primary={<Button label="Refresh" onClick={() => refresh().catch((error: unknown) => setStatus(String(error)))} />}
+      />
+      <WorkspaceBody>
+        <section className="content-card pane paneScroll">
         <div className="table-toolbar">
           <InputText
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search component types"
           />
-          <Button label="Refresh" onClick={() => refresh().catch((error: unknown) => setStatus(String(error)))} />
         </div>
         <DataTable value={filteredRows} size="small" paginator rows={12}>
           <Column field="id" header="ID" style={{ width: '12rem' }} />
@@ -148,8 +151,9 @@ export function ComponentRegistryPage() {
             style={{ width: '7rem' }}
           />
         </DataTable>
-      </section>
+        </section>
+      </WorkspaceBody>
       {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
-    </div>
+    </WorkspacePage>
   );
 }

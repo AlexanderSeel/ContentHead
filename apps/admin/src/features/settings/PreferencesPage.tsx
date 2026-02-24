@@ -2,15 +2,16 @@ import { Dropdown } from 'primereact/dropdown';
 import { Slider } from 'primereact/slider';
 
 import { useUi } from '../../app/UiContext';
-import { PageHeader } from '../../components/common/PageHeader';
+import { WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 export function PreferencesPage() {
   const { theme, themes, setTheme, scale, setScale } = useUi();
 
   return (
-    <div className="pageRoot">
-      <PageHeader title="Preferences" subtitle="Theme and UI scale settings for your admin workspace." />
-      <section className="content-card" style={{ maxWidth: '48rem' }}>
+    <WorkspacePage>
+      <WorkspaceHeader title="Preferences" subtitle="Theme and UI scale settings for your admin workspace." />
+      <WorkspaceBody>
+        <section className="content-card pane" style={{ maxWidth: '48rem' }}>
         <div className="form-grid">
           <div className="form-row">
             <label>Theme</label>
@@ -29,7 +30,8 @@ export function PreferencesPage() {
             <Slider value={scale} min={12} max={16} step={1} onChange={(event) => setScale(Number(event.value ?? 14))} />
           </div>
         </div>
-      </section>
-    </div>
+        </section>
+      </WorkspaceBody>
+    </WorkspacePage>
   );
 }

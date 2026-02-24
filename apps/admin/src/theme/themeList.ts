@@ -1,20 +1,93 @@
 export type ThemeOption = {
   label: string;
   value: string;
-  href: string;
+  href: string[];
+  mode: 'light' | 'dark';
 };
 
-const THEME_BASE = 'https://unpkg.com/primereact@10.9.2/resources/themes';
+const CDN_THEME_BASE = 'https://unpkg.com/primereact@10.9.7/resources/themes';
 
-export const PRIME_THEMES: ThemeOption[] = [
-  { label: 'Lara Light Blue', value: 'lara-light-blue', href: `${THEME_BASE}/lara-light-blue/theme.css` },
-  { label: 'Lara Light Indigo', value: 'lara-light-indigo', href: `${THEME_BASE}/lara-light-indigo/theme.css` },
-  { label: 'Lara Light Cyan', value: 'lara-light-cyan', href: `${THEME_BASE}/lara-light-cyan/theme.css` },
-  { label: 'Lara Light Green', value: 'lara-light-green', href: `${THEME_BASE}/lara-light-green/theme.css` },
-  { label: 'Lara Light Amber', value: 'lara-light-amber', href: `${THEME_BASE}/lara-light-amber/theme.css` },
-  { label: 'Lara Dark Blue', value: 'lara-dark-blue', href: `${THEME_BASE}/lara-dark-blue/theme.css` },
-  { label: 'Lara Dark Indigo', value: 'lara-dark-indigo', href: `${THEME_BASE}/lara-dark-indigo/theme.css` },
-  { label: 'Lara Dark Teal', value: 'lara-dark-teal', href: `${THEME_BASE}/lara-dark-teal/theme.css` },
-  { label: 'Soho Light', value: 'soho-light', href: `${THEME_BASE}/soho-light/theme.css` },
-  { label: 'Soho Dark', value: 'soho-dark', href: `${THEME_BASE}/soho-dark/theme.css` }
-];
+const THEME_VALUES = [
+  'arya-blue',
+  'arya-green',
+  'arya-orange',
+  'arya-purple',
+  'bootstrap4-dark-blue',
+  'bootstrap4-dark-purple',
+  'bootstrap4-light-blue',
+  'bootstrap4-light-purple',
+  'fluent-light',
+  'lara-dark-amber',
+  'lara-dark-blue',
+  'lara-dark-cyan',
+  'lara-dark-green',
+  'lara-dark-indigo',
+  'lara-dark-pink',
+  'lara-dark-purple',
+  'lara-dark-teal',
+  'lara-light-amber',
+  'lara-light-blue',
+  'lara-light-cyan',
+  'lara-light-green',
+  'lara-light-indigo',
+  'lara-light-pink',
+  'lara-light-purple',
+  'lara-light-teal',
+  'luna-amber',
+  'luna-blue',
+  'luna-green',
+  'luna-pink',
+  'md-dark-deeppurple',
+  'md-dark-indigo',
+  'md-light-deeppurple',
+  'md-light-indigo',
+  'mdc-dark-deeppurple',
+  'mdc-dark-indigo',
+  'mdc-light-deeppurple',
+  'mdc-light-indigo',
+  'mira',
+  'nano',
+  'nova',
+  'nova-accent',
+  'nova-alt',
+  'rhea',
+  'saga-blue',
+  'saga-green',
+  'saga-orange',
+  'saga-purple',
+  'soho-dark',
+  'soho-light',
+  'tailwind-light',
+  'vela-blue',
+  'vela-green',
+  'vela-orange',
+  'vela-purple',
+  'viva-dark',
+  'viva-light'
+] as const;
+
+function toThemeLabel(value: string): string {
+  return value
+    .split('-')
+    .map((entry) => {
+      if (entry === 'md' || entry === 'mdc') {
+        return entry.toUpperCase();
+      }
+      return entry.charAt(0).toUpperCase() + entry.slice(1);
+    })
+    .join(' ');
+}
+
+function resolveThemeMode(value: string): 'light' | 'dark' {
+  if (value.includes('dark') || value.startsWith('arya') || value.startsWith('luna') || value.startsWith('vela')) {
+    return 'dark';
+  }
+  return 'light';
+}
+
+export const PRIME_THEMES: ThemeOption[] = THEME_VALUES.map((value) => ({
+  label: toThemeLabel(value),
+  value,
+  mode: resolveThemeMode(value),
+  href: [`/themes/${value}/theme.css`, `${CDN_THEME_BASE}/${value}/theme.css`]
+}));

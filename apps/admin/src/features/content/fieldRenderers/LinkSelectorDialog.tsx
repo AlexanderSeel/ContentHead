@@ -13,11 +13,13 @@ export type ContentLinkValue = {
   kind: 'internal' | 'external';
   url?: string;
   contentItemId?: number;
+  routeSlug?: string;
+  anchor?: string;
   text?: string;
   target?: '_self' | '_blank';
 };
 
-type RouteRow = { contentItemId: number; slug: string; marketCode: string; localeCode: string };
+type RouteRow = { contentItemId: number; slug: string; marketCode: string; localeCode: string; isCanonical?: boolean };
 
 export function LinkSelectorDialog({
   visible,
@@ -36,6 +38,8 @@ export function LinkSelectorDialog({
 }) {
   const sdk = useMemo(() => createAdminSdk(token), [token]);
   const [query, setQuery] = useState('');
+  const [anchor, setAnchor] = useState(value?.anchor ?? '');
+  const [linkText, setLinkText] = useState(value?.text ?? '');
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [externalUrl, setExternalUrl] = useState(value?.url ?? 'https://');
   const [openInNewTab, setOpenInNewTab] = useState(value?.target === '_blank');
@@ -55,7 +59,12 @@ export function LinkSelectorDialog({
     if (!text) {
       return routes.slice(0, 100);
     }
-    return routes.filter((entry) => entry.slug.toLowerCase().includes(text) || String(entry.contentItemId).includes(text));
+    return routes.filter(
+      (entry) =>
+        entry.slug.toLowerCase().includes(text) ||
+        `${entry.marketCode}/${entry.localeCode}`.toLowerCase().includes(text) ||
+        String(entry.contentItemId).includes(text)
+    );
   }, [routes, query]);
 
   return (
@@ -78,19 +87,42 @@ export function LinkSelectorDialog({
                   text
                   label="Use"
                   onClick={() => {
-                    onApply({ kind: 'internal', contentItemId: row.contentItemId, url: `/${row.slug}`, target: '_self' });
+                    const hash = anchor.trim() ? `#${anchor.trim().replace(/^#/, '')}` : '';
+                    onApply({
+                      kind: 'internal',
+                      contentItemId: row.contentItemId,
+                      routeSlug: row.slug,
+                      url: `/${row.slug}${hash}`,
+                      ...(anchor.trim() ? { anchor: anchor.trim() } : {}),
+                      ...(linkText.trim() ? { text: linkText.trim() } : {}),
+                      target: '_self'
+                    });
                     onHide();
                   }}
                 />
               )}
             />
           </DataTable>
+          <div className="form-grid" style={{ marginTop: '0.75rem' }}>
+            <div className="form-row">
+              <label>Link text (optional)</label>
+              <InputText value={linkText} onChange={(event) => setLinkText(event.target.value)} placeholder="Use selected text if empty" />
+            </div>
+            <div className="form-row">
+              <label>Anchor (optional)</label>
+              <InputText value={anchor} onChange={(event) => setAnchor(event.target.value)} placeholder="section-id" />
+            </div>
+          </div>
         </TabPanel>
         <TabPanel header="External">
           <div className="form-row">
             <label>URL</label>
             <InputText value={externalUrl} onChange={(event) => setExternalUrl(event.target.value)} placeholder="https://example.com" />
             {!/^https?:\/\//i.test(externalUrl) ? <small className="error-text">Use http:// or https://</small> : null}
+          </div>
+          <div className="form-row">
+            <label>Link text (optional)</label>
+            <InputText value={linkText} onChange={(event) => setLinkText(event.target.value)} placeholder="Use selected text if empty" />
           </div>
           <label>
             <Checkbox checked={openInNewTab} onChange={(event) => setOpenInNewTab(Boolean(event.checked))} /> Open in new tab
@@ -102,7 +134,12 @@ export function LinkSelectorDialog({
                 if (!/^https?:\/\//i.test(externalUrl)) {
                   return;
                 }
-                onApply({ kind: 'external', url: externalUrl, target: openInNewTab ? '_blank' : '_self' });
+                onApply({
+                  kind: 'external',
+                  url: externalUrl,
+                  ...(linkText.trim() ? { text: linkText.trim() } : {}),
+                  target: openInNewTab ? '_blank' : '_self'
+                });
                 onHide();
               }}
             />

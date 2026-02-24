@@ -10,6 +10,7 @@ import { MultiSelect } from 'primereact/multiselect';
 import {
   CONTENT_FIELD_TYPES,
   DEFAULT_RICH_TEXT_FEATURES,
+  FULL_RICH_TEXT_FEATURES,
   RICH_TEXT_FEATURE_OPTIONS,
   ensureUniqueFieldKey,
   type ContentFieldDef,
@@ -160,6 +161,30 @@ export function FieldInspector({
           {selected.type === 'richtext' ? (
             <div className="form-row">
               <label>Rich Text Features</label>
+              <div className="inline-actions">
+                <Dropdown
+                  value={
+                    JSON.stringify(uiConfig.richTextFeatures ?? DEFAULT_RICH_TEXT_FEATURES) === JSON.stringify(DEFAULT_RICH_TEXT_FEATURES)
+                      ? 'default'
+                      : JSON.stringify(uiConfig.richTextFeatures ?? DEFAULT_RICH_TEXT_FEATURES) === JSON.stringify(FULL_RICH_TEXT_FEATURES)
+                        ? 'full'
+                        : 'custom'
+                  }
+                  options={[
+                    { label: 'Preset: Default', value: 'default' },
+                    { label: 'Preset: Full', value: 'full' },
+                    { label: 'Preset: Custom', value: 'custom' }
+                  ]}
+                  onChange={(event) => {
+                    const value = String(event.value);
+                    if (value === 'default') {
+                      apply({ uiConfig: cleanUiConfig({ ...uiConfig, richTextFeatures: [...DEFAULT_RICH_TEXT_FEATURES] }) });
+                    } else if (value === 'full') {
+                      apply({ uiConfig: cleanUiConfig({ ...uiConfig, richTextFeatures: [...FULL_RICH_TEXT_FEATURES] }) });
+                    }
+                  }}
+                />
+              </div>
               <MultiSelect
                 value={uiConfig.richTextFeatures ?? DEFAULT_RICH_TEXT_FEATURES}
                 options={RICH_TEXT_FEATURE_OPTIONS}

@@ -220,6 +220,7 @@ export default async function CatchAllPage({
         siteId={siteId}
         marketCode={marketCode}
         localeCode={localeCode}
+        urlPattern={urlPattern}
         routeSlug={effectiveSlug}
         contentItemId={base.contentItem?.id ?? 0}
         versionId={version.id ?? 0}

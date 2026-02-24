@@ -4,6 +4,7 @@ import { Toast } from 'primereact/toast';
 import type { ToastMessage } from 'primereact/toast';
 import { PRIME_THEMES, type ThemeOption } from '../theme/themeList';
 import { applyScale, applyTheme } from '../theme/themeManager';
+import { createThemeBridgeSnapshot, type ThemeBridgeSnapshot } from '../theme/themeBridge';
 import { setGraphqlErrorNotifier } from '../lib/graphqlReliability';
 
 const THEME_STORAGE_KEY = 'contenthead.admin.theme';
@@ -12,8 +13,10 @@ const SCALE_STORAGE_KEY = 'contenthead.admin.scale';
 
 type UiContextValue = {
   theme: string;
+  themeMode: 'light' | 'dark';
   scale: number;
   themes: ThemeOption[];
+  themeBridge: ThemeBridgeSnapshot;
   setTheme: (value: string) => void;
   setScale: (value: number) => void;
   toast: (message: ToastMessage) => void;
@@ -24,11 +27,13 @@ const UiContext = createContext<UiContextValue | null>(null);
 
 export function UiProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<string>(() => localStorage.getItem(THEME_STORAGE_KEY) ?? PRIME_THEMES[0]!.value);
+  const [themeMode, setThemeMode] = useState<'light' | 'dark'>(() => createThemeBridgeSnapshot(theme).mode);
   const [scale, setScaleState] = useState<number>(() => Number(localStorage.getItem(SCALE_STORAGE_KEY) ?? '14'));
   const toastRef = useRef<Toast>(null);
 
   useEffect(() => {
-    applyTheme(theme);
+    const applied = applyTheme(theme);
+    setThemeMode(applied.mode);
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
@@ -53,8 +58,10 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<UiContextValue>(
     () => ({
       theme,
+      themeMode,
       scale,
       themes: PRIME_THEMES,
+      themeBridge: createThemeBridgeSnapshot(theme),
       setTheme: setThemeState,
       setScale: setScaleState,
       toast: (message) => toastRef.current?.show(message),
@@ -71,7 +78,7 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
           });
         })
     }),
-    [theme, scale]
+    [theme, themeMode, scale]
   );
 
   return (

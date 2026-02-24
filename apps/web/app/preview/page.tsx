@@ -82,6 +82,8 @@ export default async function PreviewPage({
   }
 
   const sdk = createSdk({ endpoint: process.env.API_URL ?? 'http://localhost:4000/graphql' });
+  const siteRes = await sdk.getSite({ siteId });
+  const urlPattern = siteRes.getSite?.urlPattern ?? '/{market}/{locale}';
 
   let resolvedVersionId = versionIdOverride;
   if (!resolvedVersionId && variantKey) {
@@ -139,6 +141,10 @@ export default async function PreviewPage({
       <CmsRendererClient
         contentItemId={contentItemId}
         versionId={version.id ?? 0}
+        siteId={siteId}
+        marketCode={marketCode}
+        localeCode={localeCode}
+        urlPattern={urlPattern}
         fields={fields}
         fieldDefs={fieldDefs}
         composition={composition}

@@ -6,10 +6,10 @@ import { Button } from 'primereact/button';
 import { buildLocalizedPath, validateUrlPattern } from '@contenthead/shared';
 
 import { useAdminContext } from '../../app/AdminContext';
-import { PageHeader } from '../../components/common/PageHeader';
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
 import { useUi } from '../../app/UiContext';
+import { WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 const URL_PATTERN_PRESETS = [
   { label: '/{market}/{locale}/...', value: '/{market}/{locale}' },
@@ -42,9 +42,10 @@ export function SiteOverviewPage() {
   const preview = buildLocalizedPath(effectivePattern, marketCode.toLowerCase(), localeCode.toLowerCase(), 'start');
 
   return (
-    <div>
-      <PageHeader title="Site Overview" subtitle="Current tenant context, defaults and URL rewriting." />
-      <Card>
+    <WorkspacePage>
+      <WorkspaceHeader title="Site Overview" subtitle="Current tenant context, defaults and URL rewriting." />
+      <WorkspaceBody>
+        <Card className="pane paneScroll">
         <div className="form-grid">
           <div className="status-panel"><strong>Site</strong><div>{site?.name ?? `#${siteId}`}</div></div>
           <div className="status-panel"><strong>Current Market</strong><div>{marketCode}</div></div>
@@ -88,7 +89,8 @@ export function SiteOverviewPage() {
         </div>
         {!validation.valid ? <small className="editor-error">{validation.error}</small> : null}
         <div className="status-panel">Example preview: {preview}</div>
-      </Card>
-    </div>
+        </Card>
+      </WorkspaceBody>
+    </WorkspacePage>
   );
 }

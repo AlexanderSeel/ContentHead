@@ -1,15 +1,16 @@
 import { Card } from 'primereact/card';
 
 import { useAdminContext } from '../app/AdminContext';
-import { PageHeader } from '../components/common/PageHeader';
+import { WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../ui/molecules';
 
 export function DashboardPage() {
   const { siteId, marketCode, localeCode, combos } = useAdminContext();
 
   return (
-    <div>
-      <PageHeader title="Dashboard" subtitle="ContentHead Studio backend overview" />
-      <div className="card-grid">
+    <WorkspacePage>
+      <WorkspaceHeader title="Dashboard" subtitle="ContentHead Studio backend overview" />
+      <WorkspaceBody>
+        <div className="pane paneScroll card-grid">
         <Card title="Active Context">
           <p>Site: {siteId}</p>
           <p>Market/Locale: {marketCode}/{localeCode}</p>
@@ -18,7 +19,8 @@ export function DashboardPage() {
         <Card title="Quick Links">
           <p>Use sidebar to navigate to Pages, Matrix, Workflows, and Dev Tools.</p>
         </Card>
-      </div>
-    </div>
+        </div>
+      </WorkspaceBody>
+    </WorkspacePage>
   );
 }

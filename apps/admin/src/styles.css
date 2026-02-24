@@ -65,17 +65,17 @@
 }
 
 .graphiql-host, .graphiql-container, .graphiql-editors, .graphiql-sidebar, .graphiql-tabs {
-  --color-base: var(--color-base);
+  --color-base: var(--text-color);
   --color-primary: var(--primary-color);
   --color-secondary: var(--text-color-secondary);
-  --color-tertiary: var(--surface-100);
-  --color-info: var(--text-color);
+  --color-tertiary: var(--surface-ground);
+  --color-info: var(--surface-card);
   --color-success: var(--green-500);
   --color-warning: var(--yellow-500);
   --color-error: var(--red-500);
   --color-border: var(--surface-border);
   width: 100%;
-  background: var(--surface-ground);
+  background: var(--surface-card);
   color: var(--text-color);
   border-color: var(--surface-border);
 }
@@ -156,6 +156,16 @@
   padding: 0.5rem;
 }
 
+.ch-graphiql-pane-left {
+  overflow: hidden;
+}
+
+.ch-graphiql-pane-left .p-tree {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
 .ch-graphiql-tabs,
 .ch-graphiql-tabs .p-tabview-panels,
 .ch-graphiql-tabs .p-tabview-panel {
@@ -214,7 +224,7 @@
   max-height: none;
   margin-top: 0.5rem;
   background: var(--surface-ground);
-  color:var(--color-base);
+  color: var(--text-color);
 }
 
 .ch-graphiql-pane-right {

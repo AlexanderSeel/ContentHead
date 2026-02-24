@@ -1,7 +1,12 @@
 'use client';
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { evaluateFieldConditions, type FormConditionSet, type FormEvaluationContext } from '@contenthead/shared';
+import {
+  buildLocalizedPath,
+  evaluateFieldConditions,
+  type FormConditionSet,
+  type FormEvaluationContext
+} from '@contenthead/shared';
 
 type ContentLink = {
   kind?: 'internal' | 'external';
@@ -59,6 +64,7 @@ type CmsRendererClientProps = {
   siteId?: number;
   marketCode?: string;
   localeCode?: string;
+  urlPattern?: string;
   routeSlug?: string;
   fields: Record<string, unknown>;
   fieldDefs?: FieldDef[];
@@ -213,6 +219,113 @@ function linkHref(link?: ContentLink | null): string {
     return `#content-${link.contentItemId}`;
   }
   return '#';
+}
+
+function sanitizeRichTextHtml(
+  input: string,
+  options: { marketCode: string; localeCode: string; urlPattern: string; apiBaseUrl: string }
+): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${input || ''}</div>`, 'text/html');
+  const root = doc.body.firstElementChild;
+  if (!root) {
+    return '';
+  }
+  const allowedTags = new Set([
+    'a',
+    'p',
+    'br',
+    'strong',
+    'em',
+    'u',
+    's',
+    'blockquote',
+    'code',
+    'pre',
+    'ul',
+    'ol',
+    'li',
+    'h1',
+    'h2',
+    'h3',
+    'table',
+    'thead',
+    'tbody',
+    'tr',
+    'th',
+    'td',
+    'img',
+    'span',
+    'div'
+  ]);
+  const allowedAttrs = new Set([
+    'href',
+    'src',
+    'target',
+    'rel',
+    'alt',
+    'title',
+    'data-cms-link-kind',
+    'data-cms-content-item-id',
+    'data-cms-route',
+    'data-cms-anchor',
+    'data-cms-asset-id'
+  ]);
+
+  const clean = (node: Node) => {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const element = node as HTMLElement;
+      const tag = element.tagName.toLowerCase();
+      if (!allowedTags.has(tag)) {
+        element.replaceWith(...Array.from(element.childNodes));
+        return;
+      }
+      for (const attr of Array.from(element.attributes)) {
+        if (!allowedAttrs.has(attr.name) || attr.name.startsWith('on')) {
+          element.removeAttribute(attr.name);
+        }
+      }
+      if (tag === 'a') {
+        const kind = element.getAttribute('data-cms-link-kind');
+        const route = element.getAttribute('data-cms-route');
+        const anchor = element.getAttribute('data-cms-anchor');
+        const currentHref = element.getAttribute('href') ?? '';
+        if (kind === 'internal') {
+          const cleanSlug = (route ?? currentHref).replace(/^\/+/, '').split('#')[0] ?? '';
+          const localized = buildLocalizedPath(options.urlPattern, options.marketCode, options.localeCode, cleanSlug);
+          element.setAttribute('href', anchor ? `${localized}#${anchor.replace(/^#/, '')}` : localized);
+          element.setAttribute('target', '_self');
+          element.removeAttribute('rel');
+        } else if (element.getAttribute('data-cms-asset-id')) {
+          const assetId = element.getAttribute('data-cms-asset-id');
+          element.setAttribute('href', `${options.apiBaseUrl}/assets/${assetId}`);
+          element.setAttribute('target', '_blank');
+          element.setAttribute('rel', 'noreferrer');
+        } else {
+          if (/^\s*javascript:/i.test(currentHref)) {
+            element.setAttribute('href', '#');
+          }
+          if (element.getAttribute('target') === '_blank') {
+            element.setAttribute('rel', 'noreferrer');
+          }
+        }
+      }
+      if (tag === 'img') {
+        const assetId = element.getAttribute('data-cms-asset-id');
+        const src = element.getAttribute('src') ?? '';
+        if (assetId) {
+          element.setAttribute('src', `${options.apiBaseUrl}/assets/${assetId}/rendition/medium`);
+        } else if (/^\s*javascript:/i.test(src)) {
+          element.removeAttribute('src');
+        }
+      }
+    }
+    for (const child of Array.from(node.childNodes)) {
+      clean(child);
+    }
+  };
+  clean(root);
+  return root.innerHTML;
 }
 
 function CmsLink({
@@ -641,6 +754,7 @@ function renderComponent(
   siteId: number,
   marketCode: string,
   localeCode: string,
+  urlPattern: string,
   routeSlug: string,
   contentItemId: number,
   versionId: number,
@@ -863,12 +977,13 @@ function renderComponent(
 
   if (componentType === 'richtext' || componentType === 'text_block') {
     const html = String((props.html as string | undefined) ?? (props.body as string | undefined) ?? '');
+    const sanitizedHtml = sanitizeRichTextHtml(html, { marketCode, localeCode, urlPattern, apiBaseUrl });
     return (
       <section key={id} {...wrapperProps} className="cms-section">
         <div
           {...fieldAttrs(`components.${id}.props.body`)}
           data-cms-field-type="richtext"
-          dangerouslySetInnerHTML={{ __html: html || '<p></p>' }}
+          dangerouslySetInnerHTML={{ __html: sanitizedHtml || '<p></p>' }}
         />
       </section>
     );
@@ -893,6 +1008,7 @@ export function CmsRendererClient({
   siteId = 1,
   marketCode = 'US',
   localeCode = 'en-US',
+  urlPattern = '/{market}/{locale}',
   routeSlug = '',
   fields,
   fieldDefs = [],
@@ -1380,6 +1496,7 @@ export function CmsRendererClient({
           const isRichText = fieldDef?.type === 'richtext';
           if (isRichText) {
             const html = String(value ?? '');
+            const sanitizedHtml = sanitizeRichTextHtml(html, { marketCode, localeCode, urlPattern, apiBaseUrl });
             return (
               <div key={key} className="cms-field-block">
                 <small className="cms-field-label">{key}</small>
@@ -1388,7 +1505,7 @@ export function CmsRendererClient({
                   data-cms-field-type="richtext"
                   data-cms-content-item-id={contentItemId}
                   data-cms-version-id={versionId}
-                  dangerouslySetInnerHTML={{ __html: html || '<p></p>' }}
+                  dangerouslySetInnerHTML={{ __html: sanitizedHtml || '<p></p>' }}
                 />
               </div>
             );
@@ -1403,7 +1520,7 @@ export function CmsRendererClient({
       {areas.map((area) => (
         <section key={area.name} style={{ display: 'grid', gap: '0.9rem' }}>
           {area.components.map((componentId) =>
-            renderComponent(siteId, marketCode, localeCode, routeSlug, contentItemId, versionId, componentId, components[componentId], forms, assets, apiBaseUrl)
+            renderComponent(siteId, marketCode, localeCode, urlPattern, routeSlug, contentItemId, versionId, componentId, components[componentId], forms, assets, apiBaseUrl)
           )}
         </section>
       ))}

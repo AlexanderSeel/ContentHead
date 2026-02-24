@@ -132,9 +132,12 @@ export function Topbar() {
             <Dropdown
               value={theme}
               options={themes}
+              optionLabel="label"
+              optionValue="value"
               onChange={(event) => setTheme(String(event.value))}
               placeholder="Theme"
               className="topbar-control"
+              filter
             />
           </label>
         </div>

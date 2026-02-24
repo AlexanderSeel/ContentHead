@@ -15,45 +15,77 @@ export type ContentFieldType =
   | 'assetList';
 
 export type RichTextFeature =
+  | 'h3'
   | 'bold'
   | 'italic'
   | 'underline'
+  | 'strike'
   | 'h1'
   | 'h2'
   | 'list'
   | 'ordered'
+  | 'align'
   | 'link'
   | 'quote'
   | 'code'
   | 'table'
-  | 'image';
+  | 'image'
+  | 'undo'
+  | 'redo';
 
 export const DEFAULT_RICH_TEXT_FEATURES: RichTextFeature[] = [
+  'h1',
+  'h2',
   'bold',
   'italic',
   'underline',
-  'h1',
-  'h2',
   'list',
   'ordered',
   'link',
   'quote',
-  'code'
+  'code',
+  'undo',
+  'redo'
+];
+
+export const FULL_RICH_TEXT_FEATURES: RichTextFeature[] = [
+  'h1',
+  'h2',
+  'h3',
+  'bold',
+  'italic',
+  'underline',
+  'strike',
+  'list',
+  'ordered',
+  'align',
+  'link',
+  'quote',
+  'code',
+  'table',
+  'image',
+  'undo',
+  'redo'
 ];
 
 export const RICH_TEXT_FEATURE_OPTIONS: Array<{ label: string; value: RichTextFeature }> = [
+  { label: 'Heading 1', value: 'h1' },
+  { label: 'Heading 2', value: 'h2' },
+  { label: 'Heading 3', value: 'h3' },
   { label: 'Bold', value: 'bold' },
   { label: 'Italic', value: 'italic' },
   { label: 'Underline', value: 'underline' },
-  { label: 'Heading 1', value: 'h1' },
-  { label: 'Heading 2', value: 'h2' },
+  { label: 'Strike', value: 'strike' },
   { label: 'Bullet List', value: 'list' },
   { label: 'Ordered List', value: 'ordered' },
+  { label: 'Align', value: 'align' },
   { label: 'Link', value: 'link' },
   { label: 'Quote', value: 'quote' },
   { label: 'Code Block', value: 'code' },
   { label: 'Table', value: 'table' },
-  { label: 'Image', value: 'image' }
+  { label: 'Image', value: 'image' },
+  { label: 'Undo', value: 'undo' },
+  { label: 'Redo', value: 'redo' }
 ];
 
 export type ContentFieldDef = {
