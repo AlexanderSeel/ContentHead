@@ -201,7 +201,7 @@ ORDER BY name
 
 export async function upsertInternalRole(
   db: DbClient,
-  input: { id?: number | null | undefined; name: string; description?: string | null | undefined; permissions: string[] }
+  input: { id?: number | null; name: string; description?: string | null; permissions: string[] }
 ): Promise<InternalRoleRecord> {
   const id = input.id ?? (await nextId(db, 'roles'));
   const permissions = Array.from(new Set(input.permissions.filter(Boolean)));
@@ -209,6 +209,7 @@ export async function upsertInternalRole(
   await db.run('BEGIN TRANSACTION');
   try {
     const existing = await db.get<{ id: number }>('SELECT id FROM roles WHERE id = ?', [id]);
+
     if (!existing) {
       await db.run('INSERT INTO roles(id, name, description) VALUES (?, ?, ?)', [
         id,
@@ -216,29 +217,56 @@ export async function upsertInternalRole(
         input.description ?? null
       ]);
     } else {
-      const userRoleLinks = await db.all<{ userId: number }>(
-        'SELECT user_id as userId FROM user_roles WHERE role_id = ?',
-        [id]
-      );
-      await db.run('DELETE FROM user_roles WHERE role_id = ?', [id]);
-      await db.run('DELETE FROM role_permissions WHERE role_id = ?', [id]);
-      await db.run('DELETE FROM roles WHERE id = ?', [id]);
-      await db.run('INSERT INTO roles(id, name, description) VALUES (?, ?, ?)', [
-        id,
-        input.name,
-        input.description ?? null
-      ]);
-      for (const link of userRoleLinks) {
-        await db.run('INSERT INTO user_roles(user_id, role_id) VALUES (?, ?)', [link.userId, id]);
+      try {
+        // First try UPDATE (fast path)
+        await db.run('UPDATE roles SET name = ?, description = ? WHERE id = ?', [
+          input.name,
+          input.description ?? null,
+          id
+        ]);
+      } catch (e: any) {
+        // DuckDB FK limitation workaround: rebuild role row while preserving links
+        const msg = String(e?.message ?? e);
+        const isFkViolation =
+          msg.includes('Constraint Error') &&
+          msg.includes('foreign key') &&
+          msg.includes('role_id');
+
+        if (!isFkViolation) throw e;
+
+        // preserve user-role links
+        const userRoleLinks = await db.all<{ userId: number }>(
+          'SELECT user_id as userId FROM user_roles WHERE role_id = ?',
+          [id]
+        );
+
+        // remove children that reference roles (must delete before deleting role)
+        await db.run('DELETE FROM role_permissions WHERE role_id = ?', [id]);
+        await db.run('DELETE FROM user_roles WHERE role_id = ?', [id]);
+
+        // rebuild role row
+        await db.run('DELETE FROM roles WHERE id = ?', [id]);
+        await db.run('INSERT INTO roles(id, name, description) VALUES (?, ?, ?)', [
+          id,
+          input.name,
+          input.description ?? null
+        ]);
+
+        // restore links
+        for (const link of userRoleLinks) {
+          await db.run('INSERT INTO user_roles(user_id, role_id) VALUES (?, ?)', [link.userId, id]);
+        }
       }
     }
 
+    // now reset permissions to desired state
     await db.run('DELETE FROM role_permissions WHERE role_id = ?', [id]);
     for (const permission of permissions) {
       await db.run('INSERT INTO role_permissions(role_id, permission_key) VALUES (?, ?)', [id, permission]);
     }
 
     await db.run('COMMIT');
+
   } catch (error) {
     await db.run('ROLLBACK');
     throw error;
