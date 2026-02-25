@@ -14,6 +14,7 @@ import { migration013 } from './013_fk_compatibility_fixes.js';
 import { migration014 } from './014_asset_rendition_fit_mode.js';
 import { migration015 } from './015_component_definition_overrides.js';
 import { migration016 } from './016_component_default_props.js';
+import { migration017 } from './017_component_preset_backfill.js';
 
 export type Migration = {
   id: string;
@@ -36,5 +37,6 @@ export const migrations: Migration[] = [
   migration013,
   migration014,
   migration015,
-  migration016
+  migration016,
+  migration017
 ];

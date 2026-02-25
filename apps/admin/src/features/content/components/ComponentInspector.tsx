@@ -32,6 +32,7 @@ export function ComponentInspector({
   component,
   siteId,
   registryEntry,
+  availableComponentRefs = [],
   selectedFieldPath,
   onSelectFieldPath,
   onChange
@@ -39,6 +40,7 @@ export function ComponentInspector({
   component: ComponentRecord | null;
   siteId: number;
   registryEntry?: ResolvedComponentRegistryEntry | null;
+  availableComponentRefs?: Array<{ id: string; label: string }>;
   selectedFieldPath?: string | null;
   onSelectFieldPath?: (value: string) => void;
   onChange: (next: ComponentRecord) => void;
@@ -87,6 +89,22 @@ export function ComponentInspector({
       }
       const match = forms.find((entry) => entry.id === id);
       return match?.name ?? `Form #${id}`;
+    }
+    if (field.type === 'componentRef') {
+      if (typeof value !== 'string' || !value) {
+        return '';
+      }
+      const match = availableComponentRefs.find((entry) => entry.id === value);
+      return match?.label ?? value;
+    }
+    if (field.type === 'objectRef') {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return '';
+      }
+      const typed = value as { componentId?: string; path?: string };
+      const componentId = typeof typed.componentId === 'string' ? typed.componentId : '';
+      const path = typeof typed.path === 'string' ? typed.path : '';
+      return [componentId, path].filter(Boolean).join(':');
     }
     if (field.type === 'boolean') {
       return value ? 'Yes' : 'No';
@@ -286,6 +304,59 @@ export function ComponentInspector({
           onChange={(event) => onChangeValue(event.value)}
           placeholder="Select form"
         />
+      );
+    }
+    if (field.type === 'componentRef') {
+      return (
+        <Dropdown
+          value={typeof value === 'string' ? value : null}
+          options={availableComponentRefs.map((entry) => ({ label: entry.label, value: entry.id }))}
+          onChange={(event) => onChangeValue(typeof event.value === 'string' ? event.value : '')}
+          filter
+          showClear
+          placeholder="Select component"
+        />
+      );
+    }
+    if (field.type === 'objectRef') {
+      const typed =
+        value && typeof value === 'object' && !Array.isArray(value)
+          ? (value as { componentId?: string; path?: string })
+          : {};
+      const componentId = typeof typed.componentId === 'string' ? typed.componentId : '';
+      const path = typeof typed.path === 'string' ? typed.path : '';
+      return (
+        <div className="form-grid">
+          <div className="form-row">
+            <label className="muted">Component</label>
+            <Dropdown
+              value={componentId || null}
+              options={availableComponentRefs.map((entry) => ({ label: entry.label, value: entry.id }))}
+              onChange={(event) =>
+                onChangeValue({
+                  componentId: typeof event.value === 'string' ? event.value : '',
+                  path
+                })
+              }
+              filter
+              showClear
+              placeholder="Select component"
+            />
+          </div>
+          <div className="form-row">
+            <label className="muted">Object path</label>
+            <InputText
+              value={path}
+              onChange={(event) =>
+                onChangeValue({
+                  componentId,
+                  path: event.target.value
+                })
+              }
+              placeholder="items.0.title"
+            />
+          </div>
+        </div>
       );
     }
     if (field.type === 'stringList') {

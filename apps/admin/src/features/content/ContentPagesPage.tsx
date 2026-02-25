@@ -2414,6 +2414,12 @@ export function ContentPagesPage() {
                         registryEntry={
                           selectedComponent ? resolvedComponentRegistryMap.get(selectedComponent.type) ?? null : null
                         }
+                        availableComponentRefs={Object.values(componentMap)
+                          .filter((entry) => entry.id !== selectedComponentId)
+                          .map((entry) => ({
+                            id: entry.id,
+                            label: `${resolvedComponentRegistryMap.get(entry.type)?.label ?? entry.type} (${entry.id})`
+                          }))}
                         selectedFieldPath={selectedFieldPath}
                         onSelectFieldPath={(path) => {
                           setSelectedFieldPath(path);

@@ -31,7 +31,7 @@ type ComponentTypeSettingRow = {
   defaultPropsJson?: string | null;
 };
 
-type PropType = 'string' | 'richtext' | 'number' | 'boolean' | 'select' | 'link' | 'asset' | 'formRef' | 'list' | 'objectList';
+type PropType = 'string' | 'richtext' | 'number' | 'boolean' | 'select' | 'link' | 'asset' | 'formRef' | 'componentRef' | 'objectRef' | 'list' | 'objectList';
 type ControlType = 'InputText' | 'Editor' | 'Dropdown' | 'MultiSelect' | 'LinkPicker' | 'AssetPicker';
 
 type PropDef = {
@@ -64,6 +64,8 @@ const PROP_TYPE_OPTIONS: Array<{ label: string; value: PropType }> = [
   { label: 'Link', value: 'link' },
   { label: 'Asset', value: 'asset' },
   { label: 'Form Ref', value: 'formRef' },
+  { label: 'Component Ref', value: 'componentRef' },
+  { label: 'Object Ref', value: 'objectRef' },
   { label: 'List', value: 'list' },
   { label: 'Object List', value: 'objectList' }
 ];
@@ -132,6 +134,10 @@ function parsePropsFromSchema(schemaJson: string | null | undefined, fallback: R
     type:
       field.type === 'objectList'
         ? 'objectList'
+        : field.type === 'componentRef'
+          ? 'componentRef'
+          : field.type === 'objectRef'
+            ? 'objectRef'
         : field.type === 'richtext'
           ? 'richtext'
           : field.type === 'number'
@@ -237,6 +243,14 @@ function serializeDefaultProps(props: PropDef[]): string {
         next[key] = JSON.parse(raw);
       } catch {
         next[key] = raw;
+      }
+      continue;
+    }
+    if (prop.type === 'objectRef') {
+      try {
+        next[key] = JSON.parse(raw);
+      } catch {
+        next[key] = { componentId: '', path: raw };
       }
       continue;
     }
@@ -666,6 +680,12 @@ export function ComponentRegistryPage() {
                                 <InputTextarea
                                   rows={4}
                                   value={previewValues[prop.key] ?? (prop.type === 'objectList' ? '[]' : '')}
+                                  onChange={(event) => setPreviewValues((prev) => ({ ...prev, [prop.key]: event.target.value }))}
+                                />
+                              ) : prop.type === 'objectRef' ? (
+                                <InputTextarea
+                                  rows={3}
+                                  value={previewValues[prop.key] ?? '{"componentId":"","path":""}'}
                                   onChange={(event) => setPreviewValues((prev) => ({ ...prev, [prop.key]: event.target.value }))}
                                 />
                               ) : (

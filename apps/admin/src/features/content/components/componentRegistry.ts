@@ -16,6 +16,8 @@ export type ComponentUiField = {
     | 'contentLink'
     | 'contentLinkList'
     | 'formRef'
+    | 'componentRef'
+    | 'objectRef'
     | 'objectList'
     | 'json';
   options?: Array<{ label: string; value: string }>;
@@ -80,6 +82,12 @@ function toLegacyFieldType(rawType: string): ComponentUiField['type'] {
   }
   if (normalized === 'formref') {
     return 'formRef';
+  }
+  if (normalized === 'componentref') {
+    return 'componentRef';
+  }
+  if (normalized === 'objectref') {
+    return 'objectRef';
   }
   if (normalized === 'object' || normalized === 'subtype' || normalized === 'complex') {
     return 'objectList';
