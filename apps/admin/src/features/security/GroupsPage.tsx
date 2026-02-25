@@ -102,14 +102,14 @@ export function GroupsPage() {
                 <Column field="description" header="Description" />
               </DataTable>
               {selected ? (
-                <div className="form-row" style={{ marginTop: '0.75rem' }}>
+                <div className="form-row mt-3">
                   <label>Name</label>
                   <InputText value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} />
                   <label>Description</label>
                   <InputTextarea rows={3} value={selected.description ?? ''} onChange={(event) => setSelected({ ...selected, description: event.target.value })} />
                 </div>
               ) : (
-                <p className="muted" style={{ marginTop: '0.75rem' }}>Select or create a group.</p>
+                <p className="muted mt-3">Select or create a group.</p>
               )}
             </div>
           </WorkspaceBody>
@@ -119,3 +119,4 @@ export function GroupsPage() {
     </WorkspacePage>
   );
 }
+

@@ -6,6 +6,7 @@ import { ContextMenu } from 'primereact/contextmenu';
 import { DataTable } from 'primereact/datatable';
 import { InputText } from 'primereact/inputtext';
 import { Checkbox } from 'primereact/checkbox';
+import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
@@ -19,7 +20,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadCsv, downloadJson, routeStartsWith } from '../../ui/commands/utils';
-import { WorkspaceActionBar, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type Route = { id: number; contentItemId: number; marketCode: string; localeCode: string; slug: string; isCanonical: boolean };
 
@@ -111,6 +112,7 @@ export function RoutesPage() {
   const { toast, confirm } = useUi();
   const { siteId, combos } = useAdminContext();
   const [routes, setRoutes] = useState<Route[]>([]);
+  const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<Route>({ id: 0, contentItemId: 0, marketCode: 'US', localeCode: 'en-US', slug: '', isCanonical: true });
   const [selectedContextRoute, setSelectedContextRoute] = useState<Route | null>(null);
   const rowContextMenuRef = useRef<ContextMenu>(null);
@@ -139,6 +141,13 @@ export function RoutesPage() {
   };
 
   const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'pageHeaderOverflow');
+  const filteredRoutes = routes.filter((entry) => {
+    const query = search.trim().toLowerCase();
+    if (!query) {
+      return true;
+    }
+    return entry.slug.toLowerCase().includes(query) || String(entry.contentItemId).includes(query);
+  });
 
   const rowContextMenuItems = selectedContextRoute
     ? toTieredMenuItems(
@@ -174,72 +183,90 @@ export function RoutesPage() {
     <WorkspacePage>
       <WorkspaceHeader title="Routes" subtitle="Route bindings per market/locale" />
       <WorkspaceActionBar
+        primary={
+          <>
+            <InputText placeholder="Search slug or item id" value={search} onChange={(event) => setSearch(event.target.value)} />
+            <Button label="Refresh" onClick={() => refresh()} />
+          </>
+        }
         overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
-      <div className="table-toolbar">
-        <InputText placeholder="Search slug or item id" />
-        <Button label="Refresh" onClick={() => refresh()} />
-      </div>
-      <ContextMenu ref={rowContextMenuRef} model={rowContextMenuItems} />
-      <DataTable
-        value={routes}
-        size="small"
-        onContextMenu={(event) => {
-          setSelectedContextRoute(event.data as Route);
-          window.requestAnimationFrame(() => rowContextMenuRef.current?.show(event.originalEvent));
-        }}
-      >
-        <Column field="id" header="ID" />
-        <Column field="contentItemId" header="Item" />
-        <Column field="marketCode" header="Market" />
-        <Column field="localeCode" header="Locale" />
-        <Column field="slug" header="Slug" />
-        <Column field="isCanonical" header="Canonical" body={(row: Route) => (row.isCanonical ? 'Yes' : 'No')} />
-        <Column
-          header="Actions"
-          body={(row: Route) => {
-            const rowContext: RoutesPageRowContext = {
-              ...baseContext,
-              row,
-              editRow: setDraft,
-              duplicateRow: (entry) => setDraft({ ...entry, id: 0, slug: `${entry.slug}-copy` }),
-              deleteRow: async (entry) => {
-                await sdk.deleteRoute({ id: entry.id });
-                await refresh();
-                toast({ severity: 'success', summary: `Route #${entry.id} deleted` });
-              }
-            };
-            return <CommandMenuButton commands={commandRegistry.getCommands(rowContext, 'rowOverflow')} context={rowContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />;
-          }}
-        />
-      </DataTable>
-      <div className="form-grid">
-        <ContentReferencePicker token={token} siteId={siteId} value={draft.contentItemId || null} onChange={(value) => setDraft((prev) => ({ ...prev, contentItemId: value ?? 0 }))} />
-        <MarketLocalePicker
-          combos={combos}
-          marketCode={draft.marketCode}
-          localeCode={draft.localeCode}
-          onChange={(value) => setDraft((prev) => ({ ...prev, ...value }))}
-        />
-        <SlugEditor value={draft.slug} onChange={(value) => setDraft((prev) => ({ ...prev, slug: value }))} />
-        <label><Checkbox checked={draft.isCanonical} onChange={(e) => setDraft((prev) => ({ ...prev, isCanonical: Boolean(e.checked) }))} /> Canonical</label>
-        <Button
-          label="Save Route"
-          onClick={() =>
-            sdk
-              .upsertRoute({
-                ...(draft.id ? { id: draft.id } : {}),
-                siteId,
-                contentItemId: draft.contentItemId,
-                marketCode: draft.marketCode,
-                localeCode: draft.localeCode,
-                slug: draft.slug,
-                isCanonical: draft.isCanonical
-              })
-              .then(() => refresh())
-          }
-        />
-      </div>
+      <WorkspaceBody>
+        <ContextMenu ref={rowContextMenuRef} model={rowContextMenuItems} />
+        <Splitter className="splitFill">
+          <SplitterPanel size={62} minSize={38}>
+            <PaneRoot className="content-card">
+              <PaneScroll>
+                <DataTable
+                  value={filteredRoutes}
+                  size="small"
+                  onContextMenu={(event) => {
+                    setSelectedContextRoute(event.data as Route);
+                    window.requestAnimationFrame(() => rowContextMenuRef.current?.show(event.originalEvent));
+                  }}
+                >
+                  <Column field="id" header="ID" />
+                  <Column field="contentItemId" header="Item" />
+                  <Column field="marketCode" header="Market" />
+                  <Column field="localeCode" header="Locale" />
+                  <Column field="slug" header="Slug" />
+                  <Column field="isCanonical" header="Canonical" body={(row: Route) => (row.isCanonical ? 'Yes' : 'No')} />
+                  <Column
+                    header="Actions"
+                    body={(row: Route) => {
+                      const rowContext: RoutesPageRowContext = {
+                        ...baseContext,
+                        row,
+                        editRow: setDraft,
+                        duplicateRow: (entry) => setDraft({ ...entry, id: 0, slug: `${entry.slug}-copy` }),
+                        deleteRow: async (entry) => {
+                          await sdk.deleteRoute({ id: entry.id });
+                          await refresh();
+                          toast({ severity: 'success', summary: `Route #${entry.id} deleted` });
+                        }
+                      };
+                      return <CommandMenuButton commands={commandRegistry.getCommands(rowContext, 'rowOverflow')} context={rowContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />;
+                    }}
+                  />
+                </DataTable>
+              </PaneScroll>
+            </PaneRoot>
+          </SplitterPanel>
+          <SplitterPanel size={38} minSize={24}>
+            <PaneRoot className="content-card">
+              <PaneScroll>
+                <div className="form-grid">
+                  <ContentReferencePicker token={token} siteId={siteId} value={draft.contentItemId || null} onChange={(value) => setDraft((prev) => ({ ...prev, contentItemId: value ?? 0 }))} />
+                  <MarketLocalePicker
+                    combos={combos}
+                    marketCode={draft.marketCode}
+                    localeCode={draft.localeCode}
+                    onChange={(value) => setDraft((prev) => ({ ...prev, ...value }))}
+                  />
+                  <SlugEditor value={draft.slug} onChange={(value) => setDraft((prev) => ({ ...prev, slug: value }))} />
+                  <label><Checkbox checked={draft.isCanonical} onChange={(e) => setDraft((prev) => ({ ...prev, isCanonical: Boolean(e.checked) }))} /> Canonical</label>
+                  <Button
+                    label="Save Route"
+                    onClick={() =>
+                      sdk
+                        .upsertRoute({
+                          ...(draft.id ? { id: draft.id } : {}),
+                          siteId,
+                          contentItemId: draft.contentItemId,
+                          marketCode: draft.marketCode,
+                          localeCode: draft.localeCode,
+                          slug: draft.slug,
+                          isCanonical: draft.isCanonical
+                        })
+                        .then(() => refresh())
+                    }
+                  />
+                </div>
+              </PaneScroll>
+            </PaneRoot>
+          </SplitterPanel>
+        </Splitter>
+      </WorkspaceBody>
     </WorkspacePage>
   );
 }

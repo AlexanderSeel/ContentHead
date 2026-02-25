@@ -26,7 +26,7 @@ export function BookingInspectorPanel({ siteId, contentItemId }: { siteId: numbe
         title="Schedule Review Meeting"
         onHide={() => setOpen(false)}
         footer={(
-          <div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
+          <div className="inline-actions justify-content-end">
             <Button text label="Cancel" onClick={() => setOpen(false)} />
             <Button
               label="Create Booking"
@@ -66,3 +66,4 @@ export function BookingInspectorPanel({ siteId, contentItemId }: { siteId: numbe
     </>
   );
 }
+

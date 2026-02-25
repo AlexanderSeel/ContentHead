@@ -121,9 +121,9 @@ export function VisitorGroupsPage() {
             <Column field="id" header="ID" />
           </DataTable>
           {!selected ? (
-            <p className="muted" style={{ marginTop: '0.75rem' }}>Select or create a visitor group.</p>
+            <p className="muted mt-3">Select or create a visitor group.</p>
           ) : (
-            <div className="form-row" style={{ marginTop: '0.75rem' }}>
+            <div className="form-row mt-3">
               <label>Name</label>
               <InputText value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} />
               <label>Rule JSON</label>
@@ -164,3 +164,4 @@ export function VisitorGroupsPage() {
     </WorkspacePage>
   );
 }
+

@@ -8,12 +8,13 @@ import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { MultiSelect } from 'primereact/multiselect';
+import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
 import { useUi } from '../../app/UiContext';
 import { createAdminSdk } from '../../lib/sdk';
-import { WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import type { Command, CommandContext } from '../../ui/commands/types';
@@ -322,115 +323,127 @@ export function ContentTypesPage() {
         onAskAiInsert={(value) => {
           setSelected((prev) => (prev ? { ...prev, description: `${prev.description ?? ''}\n${value}`.trim() } : prev));
         }}
-        actions={
-          <div className="inline-actions">
+      />
+      <WorkspaceActionBar
+        primary={
+          <>
             <Button label="New Type" onClick={createType} />
             <Button label="Save Type" severity="success" onClick={() => saveType().catch(() => undefined)} disabled={!selected} />
-            <CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />
-          </div>
+            <Button label="Add Field" onClick={() => setShowAddField(true)} disabled={!selected} />
+          </>
         }
+        overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
-
-      <div className="form-builder-layout">
-        <section className="content-card">
-          <ContentTypeList
-            items={types}
-            selectedId={selected?.id ?? null}
-            onCreate={createType}
-            onSelect={(item) => {
-              setSelected(item);
-              const parsed = parseFieldsJson(item.fieldsJson);
-              setFields(parsed);
-              setSelectedFieldKey(parsed[0]?.key ?? null);
-              setAllowedComponents(parseStringArrayJson(item.allowedComponentsJson));
-              setAreaRestrictions(parseAreaRestrictionsJson(item.componentAreaRestrictionsJson));
-            }}
-          />
-        </section>
-
-        <section className="content-card">
-          {!selected ? <p>Select a content type.</p> : (
-            <>
-              <div className="form-grid">
-                <div className="form-row">
-                  <label>Name</label>
-                  <InputText value={selected.name} onChange={(event) => setSelected((prev) => (prev ? { ...prev, name: event.target.value } : prev))} />
+      <WorkspaceBody>
+        <Splitter className="splitFill">
+          <SplitterPanel size={24} minSize={16}>
+            <PaneRoot className="content-card">
+              <PaneScroll>
+                <ContentTypeList
+                  items={types}
+                  selectedId={selected?.id ?? null}
+                  onCreate={createType}
+                  onSelect={(item) => {
+                    setSelected(item);
+                    const parsed = parseFieldsJson(item.fieldsJson);
+                    setFields(parsed);
+                    setSelectedFieldKey(parsed[0]?.key ?? null);
+                    setAllowedComponents(parseStringArrayJson(item.allowedComponentsJson));
+                    setAreaRestrictions(parseAreaRestrictionsJson(item.componentAreaRestrictionsJson));
+                  }}
+                />
+              </PaneScroll>
+            </PaneRoot>
+          </SplitterPanel>
+          <SplitterPanel size={46} minSize={28}>
+            <PaneRoot className="content-card">
+              <PaneScroll>
+                {!selected ? <p>Select a content type.</p> : (
+                  <>
+                    <div className="form-grid">
+                      <div className="form-row">
+                        <label>Name</label>
+                        <InputText value={selected.name} onChange={(event) => setSelected((prev) => (prev ? { ...prev, name: event.target.value } : prev))} />
+                      </div>
+                      <div className="form-row">
+                        <label>Description</label>
+                        <InputText value={selected.description ?? ''} onChange={(event) => setSelected((prev) => (prev ? { ...prev, description: event.target.value } : prev))} />
+                      </div>
+                    </div>
+                    <div className="form-grid mt-3">
+                      <div className="form-row">
+                        <label>Allowed Components</label>
+                        <MultiSelect
+                          value={allowedComponents}
+                          options={registryOptions}
+                          onChange={(event) => setAllowedComponents((event.value as string[]) ?? [])}
+                          placeholder="Select allowed component types"
+                          display="chip"
+                          filter
+                        />
+                        <small className="muted">Content editors can only add these component types.</small>
+                      </div>
+                      {areaNames.map((areaName) => (
+                        <div className="form-row" key={areaName}>
+                          <label>{`Allowed (${areaName})`}</label>
+                          <MultiSelect
+                            value={areaRestrictions[areaName] ?? []}
+                            options={registryOptions.filter((option) => allowedComponents.includes(option.value))}
+                            onChange={(event) =>
+                              setAreaRestrictions((prev) => ({
+                                ...prev,
+                                [areaName]: (event.value as string[]) ?? []
+                              }))
+                            }
+                            placeholder={`Restrict ${areaName} area (optional)`}
+                            display="chip"
+                            filter
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="form-row mt-3">
+                      <FieldList
+                        fields={fields}
+                        selectedKey={selectedFieldKey}
+                        onSelect={setSelectedFieldKey}
+                        onReorder={setFields}
+                        onDuplicate={duplicateField}
+                        onDelete={removeField}
+                        onRequired={(key, required) => setFields((prev) => prev.map((entry) => (entry.key === key ? { ...entry, required } : entry)))}
+                      />
+                    </div>
+                  </>
+                )}
+              </PaneScroll>
+            </PaneRoot>
+          </SplitterPanel>
+          <SplitterPanel size={30} minSize={20}>
+            <PaneRoot className="content-card">
+              <PaneScroll>
+                <FieldInspector selected={selectedField} fields={fields} onChange={setFields} />
+                <div className="form-row mt-3">
+                  <label>Preview</label>
+                  <FieldPreview field={selectedField} />
                 </div>
-                <div className="form-row">
-                  <label>Description</label>
-                  <InputText value={selected.description ?? ''} onChange={(event) => setSelected((prev) => (prev ? { ...prev, description: event.target.value } : prev))} />
+                <div className="form-row mt-3">
+                  <label>Usage</label>
+                  {selected?.id ? (
+                    <DataTable value={selectedTypeUsage} size="small" emptyMessage="No content items/routes use this type yet.">
+                      <Column field="contentItemId" header="Item ID" />
+                      <Column field="slug" header="Slug" />
+                      <Column field="marketCode" header="Market" />
+                      <Column field="localeCode" header="Locale" />
+                    </DataTable>
+                  ) : (
+                    <p className="muted">Select a content type to view usage.</p>
+                  )}
                 </div>
-                <div className="inline-actions" style={{ alignSelf: 'end' }}>
-                  <Button label="Add Field" onClick={() => setShowAddField(true)} />
-                </div>
-              </div>
-              <div className="form-grid" style={{ marginTop: '0.75rem' }}>
-                <div className="form-row">
-                  <label>Allowed Components</label>
-                  <MultiSelect
-                    value={allowedComponents}
-                    options={registryOptions}
-                    onChange={(event) => setAllowedComponents((event.value as string[]) ?? [])}
-                    placeholder="Select allowed component types"
-                    display="chip"
-                    filter
-                  />
-                  <small className="muted">Content editors can only add these component types.</small>
-                </div>
-                {areaNames.map((areaName) => (
-                  <div className="form-row" key={areaName}>
-                    <label>{`Allowed (${areaName})`}</label>
-                    <MultiSelect
-                      value={areaRestrictions[areaName] ?? []}
-                      options={registryOptions.filter((option) => allowedComponents.includes(option.value))}
-                      onChange={(event) =>
-                        setAreaRestrictions((prev) => ({
-                          ...prev,
-                          [areaName]: (event.value as string[]) ?? []
-                        }))
-                      }
-                      placeholder={`Restrict ${areaName} area (optional)`}
-                      display="chip"
-                      filter
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <FieldList
-                fields={fields}
-                selectedKey={selectedFieldKey}
-                onSelect={setSelectedFieldKey}
-                onReorder={setFields}
-                onDuplicate={duplicateField}
-                onDelete={removeField}
-                onRequired={(key, required) => setFields((prev) => prev.map((entry) => (entry.key === key ? { ...entry, required } : entry)))}
-              />
-            </>
-          )}
-        </section>
-
-        <section className="content-card">
-          <FieldInspector selected={selectedField} fields={fields} onChange={setFields} />
-          <div className="form-row" style={{ marginTop: '0.75rem' }}>
-            <label>Preview</label>
-            <FieldPreview field={selectedField} />
-          </div>
-          <div className="form-row" style={{ marginTop: '0.75rem' }}>
-            <label>Usage</label>
-            {selected?.id ? (
-              <DataTable value={selectedTypeUsage} size="small" emptyMessage="No content items/routes use this type yet.">
-                <Column field="contentItemId" header="Item ID" />
-                <Column field="slug" header="Slug" />
-                <Column field="marketCode" header="Market" />
-                <Column field="localeCode" header="Locale" />
-              </DataTable>
-            ) : (
-              <p className="muted">Select a content type to view usage.</p>
-            )}
-          </div>
-        </section>
-      </div>
+              </PaneScroll>
+            </PaneRoot>
+          </SplitterPanel>
+        </Splitter>
+      </WorkspaceBody>
 
       <Dialog header="Add Field" visible={showAddField} onHide={() => setShowAddField(false)} style={{ width: '32rem' }}>
         <div className="form-row">
@@ -458,7 +471,7 @@ export function ContentTypesPage() {
         <label>
           <Checkbox checked={newFieldRequired} onChange={(event) => setNewFieldRequired(Boolean(event.checked))} /> Required
         </label>
-        <div className="inline-actions" style={{ marginTop: '0.75rem' }}>
+        <div className="inline-actions mt-3">
           <Button label="Cancel" text onClick={() => setShowAddField(false)} />
           <Button label="Add" onClick={addField} disabled={!newFieldLabel.trim() || fields.some((entry) => entry.key === newFieldKey)} />
         </div>
@@ -466,3 +479,4 @@ export function ContentTypesPage() {
     </WorkspacePage>
   );
 }
+

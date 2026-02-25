@@ -131,6 +131,11 @@
   min-width: 0;
 }
 
+.ch-graphiql .graphiql-editor-tools,
+.ch-graphiql .graphiql-variable-editor {
+  display: none !important;
+}
+
 .graphiql-host .graphiql-response {
   min-width: 0;
   display: none;

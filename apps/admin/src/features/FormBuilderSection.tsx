@@ -185,7 +185,7 @@ function renderFieldInput(
     return <small>{typeof uiConfig.helpText === 'string' ? uiConfig.helpText : field.label}</small>;
   }
   if (field.fieldType === 'spacer') {
-    return <div style={{ height: 18 }} />;
+    return <div className="h-1rem" />;
   }
 
   if (field.fieldType === 'checkbox' || field.fieldType === 'consent') {
@@ -193,7 +193,7 @@ function renderFieldInput(
       <div>
         <label>
           <Checkbox checked={Boolean(value)} onChange={(event) => onChange(field.key, Boolean(event.checked))} disabled={disabled} />
-          <span style={{ marginLeft: 8 }}>{field.label}{required ? ' *' : ''}</span>
+          <span className="ml-2">{field.label}{required ? ' *' : ''}</span>
         </label>
         {errors[field.key] ? <small className="error-text">{errors[field.key]}</small> : null}
       </div>
@@ -1199,3 +1199,4 @@ export function FormBuilderSection({
     </section>
   );
 }
+

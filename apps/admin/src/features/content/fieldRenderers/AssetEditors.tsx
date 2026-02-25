@@ -22,7 +22,7 @@ function AssetPreview({ id }: { id: number }) {
     <img
       src={`${base}/assets/${id}/rendition/thumb`}
       alt="asset"
-      style={{ width: 56, height: 40, objectFit: 'cover', borderRadius: 6 }}
+      className="w-4rem h-3rem border-round-sm object-cover"
     />
   );
 }
@@ -86,7 +86,7 @@ export function AssetRefEditor({
           <small className="muted">No asset selected</small>
         )}
       </div>
-      <div className="inline-actions" style={{ marginTop: '0.5rem', gap: '0.5rem' }}>
+      <div className="inline-actions mt-2">
         <Dropdown
           value={selection.renditionKind ?? 'medium'}
           options={[
@@ -183,3 +183,4 @@ export function AssetListEditor({
     </div>
   );
 }
+

@@ -8,13 +8,22 @@ import bcrypt from 'bcryptjs';
 import { DuckDbClient } from '../db/DuckDbClient.js';
 
 function runSeed(env: Record<string, string>): void {
-  const result = spawnSync('pnpm', ['--filter', '@contenthead/api', 'seed'], {
+  const mergedEnv = { ...process.env, ...env };
+  const normalizedEnv: Record<string, string> = {};
+  for (const [key, value] of Object.entries(mergedEnv)) {
+    if (typeof value === 'string') {
+      normalizedEnv[key] = value;
+    }
+  }
+  const result = spawnSync('pnpm --filter @contenthead/api seed', {
     cwd: resolve(process.cwd(), '../..'),
-    env: { ...process.env, ...env },
-    encoding: 'utf8'
+    env: normalizedEnv,
+    encoding: 'utf8',
+    shell: true
   });
   if (result.status !== 0) {
-    throw new Error(`seed failed: ${result.stderr || result.stdout}`);
+    const reason = result.error?.message ?? result.stderr ?? result.stdout ?? `status=${String(result.status)}`;
+    throw new Error(`seed failed: ${reason}`);
   }
 }
 

@@ -123,7 +123,7 @@ export function Topbar() {
         onClick={(event) => quickSearchRef.current?.toggle(event)}
       />
       <OverlayPanel ref={quickSearchRef} className="topbar-search-panel" dismissable>
-        <span className="p-input-icon-left" style={{ width: '100%' }}>
+        <span className="p-input-icon-left w-full">
           <i className="pi pi-search" />
           <InputText className="w-full" placeholder="Quick search pages, routes, assets..." />
         </span>

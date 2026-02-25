@@ -5,7 +5,6 @@ import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
-import { TabPanel, TabView } from 'primereact/tabview';
 import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Tree } from 'primereact/tree';
 import type { TreeNode } from 'primereact/treenode';
@@ -322,10 +321,10 @@ export function GraphiQLPage() {
         )}
       />
       <WorkspaceBody>
-        <Splitter className="splitFill ch-graphiql-ide" style={{ width: '100%' }}>
+        <Splitter className="splitFill ch-graphiql-ide">
           <SplitterPanel size={22} minSize={16}>
             <div className="paneRoot ch-graphiql-pane ch-graphiql-pane-left">
-                  <div className="inline-actions" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>Operations</span></div>
+                  <div className="inline-actions justify-content-between mb-2"><span>Operations</span></div>
                   {schemaError ? <small className="editor-error">{schemaError}</small> : null}
                   <Tree
                     value={schemaNodes}
@@ -423,7 +422,7 @@ export function GraphiQLPage() {
           </SplitterPanel>
           <SplitterPanel size={30} minSize={20}>
             <div className="paneRoot ch-graphiql-pane ch-graphiql-pane-right">
-              <div className="inline-actions" style={{ justifyContent: 'space-between' }}>
+              <div className="inline-actions justify-content-between">
                 <span>Result</span>
                 <div className="inline-actions">
                   <Button text size="small" label="Clear" onClick={() => setLastResponse('')} />
@@ -438,3 +437,4 @@ export function GraphiQLPage() {
     </WorkspacePage>
   );
 }
+

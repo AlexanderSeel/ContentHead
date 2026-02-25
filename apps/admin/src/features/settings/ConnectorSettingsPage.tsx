@@ -253,7 +253,7 @@ export function ConnectorSettingsPage({ domain }: { domain: ConnectorDomain }) {
             overflow={<CommandMenuButton commands={overflowCommands} context={overflowContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
           />
           <WorkspaceBody>
-            <Splitter className="splitFill" style={{ width: '100%' }}>
+            <Splitter className="splitFill">
           <SplitterPanel size={40} minSize={28}>
             <div className="paneRoot">
               <div className="paneScroll">

@@ -64,7 +64,7 @@ export function LoginPage() {
           }
         />
         {externalProviders.length > 0 ? (
-          <div className="form-row" style={{ marginTop: '0.75rem' }}>
+          <div className="form-row mt-3">
             <label>External providers</label>
             <div className="inline-actions">
               {externalProviders.map((provider) => (
@@ -82,3 +82,4 @@ export function LoginPage() {
     </main>
   );
 }
+

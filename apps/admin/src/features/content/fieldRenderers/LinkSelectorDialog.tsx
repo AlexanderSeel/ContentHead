@@ -103,7 +103,7 @@ export function LinkSelectorDialog({
               )}
             />
           </DataTable>
-          <div className="form-grid" style={{ marginTop: '0.75rem' }}>
+          <div className="form-grid mt-3">
             <div className="form-row">
               <label>Link text (optional)</label>
               <InputText value={linkText} onChange={(event) => setLinkText(event.target.value)} placeholder="Use selected text if empty" />
@@ -127,7 +127,7 @@ export function LinkSelectorDialog({
           <label>
             <Checkbox checked={openInNewTab} onChange={(event) => setOpenInNewTab(Boolean(event.checked))} /> Open in new tab
           </label>
-          <div className="inline-actions" style={{ marginTop: '0.75rem' }}>
+          <div className="inline-actions mt-3">
             <Button
               label="Apply"
               onClick={() => {
@@ -149,3 +149,4 @@ export function LinkSelectorDialog({
     </Dialog>
   );
 }
+

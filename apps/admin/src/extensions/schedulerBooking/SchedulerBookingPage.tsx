@@ -4,7 +4,7 @@ import { Button } from 'primereact/button';
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
 import { DatePicker, NumberInput, Select, TextInput } from '../../ui/atoms';
-import { EntityEditor, EntityTable, ToolbarActions, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { EntityEditor, EntityTable, PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { deleteEntity, insertEntity, listEntities, updateEntity } from '../core/dbEntityApi';
 
@@ -71,60 +71,62 @@ export function SchedulerBookingPage() {
   return (
     <WorkspacePage>
       <WorkspaceHeader title="Scheduler & Booking" subtitle="Bookings table with date filtering and extension inspector hooks." />
-      <ToolbarActions
-        left={(
+      <WorkspaceActionBar
+        primary={(
           <>
             <DatePicker value={filterDate} onChange={setFilterDate} />
             <Button text label="Clear Date" onClick={() => setFilterDate(null)} />
-          </>
-        )}
-        right={
-          <>
             <Button label="New Booking" onClick={() => setEditingBooking({ id: nextId(bookings), site_id: siteId, booking_at: new Date().toISOString(), customer_id: null, content_item_id: null, status: 'PLANNED', notes: null })} />
             <Button text label="Reload" onClick={() => load().catch((error) => setStatus(formatErrorMessage(error)))} />
           </>
-        }
+        )}
       />
-      <EntityTable
-        value={filtered}
-        rowKey="id"
-        columns={[
-          { key: 'id', header: 'ID' },
-          { key: 'booking_at', header: 'Date/Time' },
-          {
-            key: 'customer_id',
-            header: 'Customer',
-            body: (row) => (row.customer_id ? customerLookup.get(row.customer_id) ?? `#${row.customer_id}` : '-')
-          },
-          {
-            key: 'content_item_id',
-            header: 'Content',
-            body: (row) => (row.content_item_id ? `#${row.content_item_id}` : '-')
-          },
-          { key: 'status', header: 'Status' },
-          {
-            key: 'actions',
-            header: 'Actions',
-            body: (row) => (
-              <div className="inline-actions">
-                <Button text label="Edit" onClick={() => setEditingBooking(row)} />
-                <Button
-                  text
-                  severity="danger"
-                  label="Delete"
-                  onClick={() => deleteEntity(token, 'ext_bookings', { id: row.id }).then(() => load()).catch((error) => setStatus(formatErrorMessage(error)))}
-                />
-              </div>
-            )
-          }
-        ]}
-      />
+      <WorkspaceBody>
+        <PaneRoot className="content-card">
+          <PaneScroll>
+            <EntityTable
+              value={filtered}
+              rowKey="id"
+              columns={[
+                { key: 'id', header: 'ID' },
+                { key: 'booking_at', header: 'Date/Time' },
+                {
+                  key: 'customer_id',
+                  header: 'Customer',
+                  body: (row) => (row.customer_id ? customerLookup.get(row.customer_id) ?? `#${row.customer_id}` : '-')
+                },
+                {
+                  key: 'content_item_id',
+                  header: 'Content',
+                  body: (row) => (row.content_item_id ? `#${row.content_item_id}` : '-')
+                },
+                { key: 'status', header: 'Status' },
+                {
+                  key: 'actions',
+                  header: 'Actions',
+                  body: (row) => (
+                    <div className="inline-actions">
+                      <Button text label="Edit" onClick={() => setEditingBooking(row)} />
+                      <Button
+                        text
+                        severity="danger"
+                        label="Delete"
+                        onClick={() => deleteEntity(token, 'ext_bookings', { id: row.id }).then(() => load()).catch((error) => setStatus(formatErrorMessage(error)))}
+                      />
+                    </div>
+                  )
+                }
+              ]}
+            />
+          </PaneScroll>
+        </PaneRoot>
+      </WorkspaceBody>
       <EntityEditor
         visible={Boolean(editingBooking)}
         title={editingBooking?.id ? 'Edit Booking' : 'Create Booking'}
         onHide={() => setEditingBooking(null)}
         footer={(
-          <div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
+          <div className="inline-actions justify-content-end">
             <Button text label="Cancel" onClick={() => setEditingBooking(null)} />
             <Button
               label="Save"
@@ -187,3 +189,4 @@ export function SchedulerBookingPage() {
     </WorkspacePage>
   );
 }
+

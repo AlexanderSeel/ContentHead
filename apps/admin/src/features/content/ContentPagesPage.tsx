@@ -1060,20 +1060,21 @@ export function ContentPagesPage() {
     }
 
     const previewMode = draft && draft.state !== 'PUBLISHED' ? 'draft' : 'published';
-    return buildWebUrl({
-      baseUrl: webBaseUrl,
-      siteId,
-      siteUrlPattern: site?.urlPattern,
-      contentItemId: selectedItemId,
-      marketCode,
-      localeCode,
-      slug: activeRoute.slug,
-      previewToken,
-      versionId: draft?.id,
-      previewMode,
-      cmsBridge: true,
-      inlineEdit: inlineEdit && canInlineEdit
-    });
+      return buildWebUrl({
+        baseUrl: webBaseUrl,
+        siteId,
+        siteUrlPattern: site?.urlPattern,
+        contentItemId: selectedItemId,
+        marketCode,
+        localeCode,
+        slug: activeRoute.slug,
+        previewToken,
+        authToken: token ?? undefined,
+        versionId: draft?.id,
+        previewMode,
+        cmsBridge: true,
+        inlineEdit: inlineEdit && canInlineEdit
+      });
   }, [selectedItemId, activeRoute, draft, webBaseUrl, siteId, site, marketCode, localeCode, previewToken, inlineEdit, canInlineEdit]);
 
   const sendPreviewMessage = (message: CmsBridgeMessage) => {
@@ -1805,6 +1806,7 @@ export function ContentPagesPage() {
       localeCode,
       slug: targetRoute.slug,
       previewToken,
+      authToken: token ?? undefined,
       versionId: row ? undefined : draft?.id,
       previewMode: draft && draft.state !== 'PUBLISHED' ? 'draft' : 'published',
       cmsBridge: true
@@ -2443,7 +2445,7 @@ export function ContentPagesPage() {
                 )}
               />
             </DataTable>
-            <div className="form-grid" style={{ marginTop: '0.75rem' }}>
+            <div className="form-grid mt-3">
               <MarketLocalePicker
                 combos={combos}
                 marketCode={routeDraft.marketCode}
@@ -2594,7 +2596,7 @@ export function ContentPagesPage() {
                     </tbody>
                   </table>
                 </div>
-                <div className="inline-actions" style={{ marginTop: '0.5rem' }}>
+                <div className="inline-actions mt-2">
                   <Button label="Save Permissions" onClick={() => savePagePermissions().catch((e: unknown) => setStatus(formatErrorMessage(e)))} />
                 </div>
               </div>
@@ -2657,7 +2659,7 @@ export function ContentPagesPage() {
                   />
                 </div>
               </div>
-              <div className="inline-actions" style={{ marginBottom: '0.75rem' }}>
+              <div className="inline-actions mb-3">
                 <Button label="Save Targeting" onClick={() => savePageTargeting().catch((e: unknown) => setStatus(formatErrorMessage(e)))} />
               </div>
               <div className="form-row">
@@ -2774,7 +2776,7 @@ export function ContentPagesPage() {
   );
 
   return (
-    <WorkspacePage className="content-pages-workspace">
+    <WorkspacePage>
       <WorkspaceHeader
         title="Content Pages"
         subtitle="Professional CMS workspace with on-page editing bridge."
@@ -2850,17 +2852,16 @@ export function ContentPagesPage() {
       <WorkspaceBody>
         <Splitter
           className="splitFill cms-editor-workspace"
-          style={{ width: '100%' }}
           onResizeEnd={(event) => {
             const next = (event.sizes as number[]) ?? [28, 72];
             setWorkspaceSizes(next);
             window.localStorage.setItem('content-pages.workspace.sizes', JSON.stringify(next));
           }}
         >
-          <SplitterPanel size={leftPaneCollapsed ? 4 : (workspaceSizes[0] ?? 28)} minSize={leftPaneCollapsed ? 4 : 20}>
+          <SplitterPanel size={workspaceSizes[0] ?? 28} minSize={20}>
             <div className="paneRoot paneScroll cms-pane cms-left-pane">
               <ContextMenu ref={treeContextMenuRef} model={treeContextMenuItems} />
-              <div className="inline-actions" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <div className="inline-actions justify-content-between mb-2">
                 <strong>Page Tree</strong>
                 <Button
                   label={leftPaneCollapsed ? 'Expand' : 'Collapse'}
@@ -2872,7 +2873,7 @@ export function ContentPagesPage() {
               </div>
               {!leftPaneCollapsed ? (
                 <>
-                  <div className="form-row" style={{ marginBottom: '0.75rem' }}>
+                  <div className="form-row mb-3">
                     <label>Filter tree</label>
                     <InputText value={treeFilter} onChange={(event) => setTreeFilter(event.target.value)} placeholder="Slug, title, status" />
                   </div>
@@ -2977,9 +2978,9 @@ export function ContentPagesPage() {
               )}
             </div>
           </SplitterPanel>
-          <SplitterPanel size={leftPaneCollapsed ? 96 : (workspaceSizes[1] ?? 72)} minSize={35}>
+          <SplitterPanel size={workspaceSizes[1] ?? 72} minSize={35}>
             {workspaceMode === 'split' ? (
-              <Splitter className="splitFill cms-editor-detail-workspace" style={{ width: '100%' }}>
+              <Splitter className="splitFill cms-editor-detail-workspace">
                 <SplitterPanel size={62} minSize={35}>
                   {renderEditorPane()}
                 </SplitterPanel>
@@ -3010,7 +3011,7 @@ export function ContentPagesPage() {
             editable
           />
         </div>
-        <div className="inline-actions" style={{ marginTop: '0.75rem' }}>
+        <div className="inline-actions mt-3">
           <Button label="Cancel" text onClick={() => setShowAddComponent(false)} />
           <Button label="Add" onClick={addComponent} disabled={!newComponentType || availableComponentTypeOptions.length === 0} />
         </div>
@@ -3052,7 +3053,7 @@ export function ContentPagesPage() {
             placeholder="Select form"
           />
         </div>
-        <div className="inline-actions" style={{ justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+        <div className="inline-actions justify-content-end mt-3">
           <Button label="Cancel" text onClick={() => setOnPageFormPicker(null)} />
           <Button
             label="Apply"
@@ -3096,12 +3097,12 @@ export function ContentPagesPage() {
           <label>Prompt</label>
           <InputTextarea rows={4} value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Tone, audience, constraints" />
         </div>
-        <div className="inline-actions" style={{ marginTop: '0.75rem' }}>
+        <div className="inline-actions mt-3">
           <Button label="Generate Suggestion" onClick={generateAiSuggestion} />
           <Button label="Apply Manually" severity="success" onClick={applyAiSuggestion} disabled={!aiSuggestion} />
           {aiMode === 'translate' ? <Button label="Run AI Translate Version" severity="secondary" onClick={() => runAiTranslateVersion().catch((e) => setStatus(formatErrorMessage(e)))} disabled={!draft} /> : null}
         </div>
-        <div className="form-row" style={{ marginTop: '0.75rem' }}>
+        <div className="form-row mt-3">
           <label>Suggestion</label>
           <InputTextarea rows={8} value={aiSuggestion} onChange={(event) => setAiSuggestion(event.target.value)} />
         </div>
@@ -3110,3 +3111,4 @@ export function ContentPagesPage() {
     </WorkspacePage>
   );
 }
+

@@ -207,7 +207,7 @@ export function ComponentInspector({
               </div>
             ))}
           </div>
-          <div className="inline-actions" style={{ justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+          <div className="inline-actions justify-content-end mt-3">
             <Button label="Cancel" text onClick={() => setEditingIndex(null)} />
             <Button label="Apply" onClick={apply} />
           </div>
@@ -388,3 +388,4 @@ export function ComponentInspector({
     </div>
   );
 }
+

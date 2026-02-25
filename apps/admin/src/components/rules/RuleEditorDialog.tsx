@@ -87,7 +87,7 @@ export function RuleEditorDialog({
     <>
       <Dialog
         header={(
-          <div className="inline-actions" style={{ justifyContent: 'space-between', width: '100%' }}>
+          <div className="inline-actions justify-content-between w-full">
             <span>Rule Editor</span>
             <HelpIcon
               tooltip={helpContent.rules?.tooltip ?? 'Rule editor help'}
@@ -185,3 +185,4 @@ export function RuleEditorDialog({
     </>
   );
 }
+

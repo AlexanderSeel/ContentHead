@@ -72,6 +72,7 @@ export default async function DemoPage({
   const marketCode = (resolvedSearch.market as string | undefined) ?? 'US';
   const localeCode = (resolvedSearch.locale as string | undefined) ?? 'en-US';
   const previewToken = (resolvedSearch.previewToken as string | undefined) ?? null;
+  const authToken = (resolvedSearch.authToken as string | undefined) ?? null;
   const preview = ((resolvedSearch.preview as string | undefined) ?? 'false') === 'true';
   const cmsBridge = (resolvedSearch.cmsBridge as string | undefined) === '1';
 
@@ -86,7 +87,10 @@ export default async function DemoPage({
       .filter(Boolean)
   });
 
-  const sdk = createSdk({ endpoint: process.env.API_URL ?? 'http://localhost:4000/graphql' });
+  const sdk = createSdk({
+    endpoint: process.env.API_URL ?? 'http://localhost:4000/graphql',
+    headersProvider: () => (authToken ? { authorization: `Bearer ${authToken}` } : undefined)
+  });
 
   const result = await sdk.getPageByRoute({
     siteId,

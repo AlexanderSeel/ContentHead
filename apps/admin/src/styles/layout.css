@@ -169,56 +169,6 @@ body {
   flex: 0 0 auto;
 }
 
-.page-header {
-  margin: 0;
-  padding: 0.75rem 1rem;
-  border-radius: 10px;
-  border: 1px solid var(--surface-border);
-  background: var(--surface-card);
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  min-height: 5.25rem;
-}
-
-.page-header h2 {
-  margin: 0;
-}
-
-.page-header p {
-  margin: 0.3rem 0 0;
-  color: var(--text-color-secondary);
-}
-
-.page-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.page-header-copy {
-  min-width: 0;
-}
-
-.content-pages-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  border: 1px solid var(--surface-border);
-  border-radius: 10px;
-  padding: 0.65rem 0.85rem;
-  background: var(--surface-card);
-}
-
-.content-pages-toolbar .inline-actions {
-  gap: 0.4rem;
-}
-
 .content-pages-tree {
   border: 1px solid var(--surface-border);
   border-radius: 8px;
@@ -237,14 +187,6 @@ body {
   background: var(--surface-card);
   color: var(--text-color);
   padding: 1rem;
-}
-
-.split-view {
-  height: calc(100vh - 220px);
-  border-radius: 10px;
-  border: 1px solid var(--surface-border);
-  overflow: hidden;
-  background: var(--surface-card);
 }
 
 .pageRoot {
@@ -343,7 +285,60 @@ body {
   overflow: auto;
 }
 
+.db-admin-page .workspace-body,
+.db-admin-page .db-admin-split {
+  height: 100%;
+  min-height: 0;
+}
+
+.db-admin-page .db-admin-pane {
+  min-height: 0;
+}
+
+.db-admin-page .db-admin-pane-scroll {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.db-admin-page .db-admin-table {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.db-admin-page .db-admin-table .p-datatable-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.db-admin-page .db-admin-table .p-datatable-scrollable-body {
+  min-height: 0;
+}
+
+.db-admin-page .db-admin-inspector-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.db-admin-page .db-admin-inspector-tabs .p-tabview-panels {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.db-admin-page .db-admin-inspector-tabs .p-tabview-panel {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
 .splitFill {
+  width: 100%;
   height: 100%;
   min-height: 0;
 }
@@ -415,17 +410,12 @@ body {
   color: var(--red-500);
 }
 
+
 .status-panel {
   padding: 0.75rem;
   border: 1px solid var(--surface-border);
   border-radius: 8px;
   background: var(--surface-0);
-}
-
-.cms-editor-page .page-header {
-  position: sticky;
-  top: 0;
-  z-index: 9;
 }
 
 .cms-editor-workspace {
@@ -662,76 +652,35 @@ body {
   overflow: auto;
 }
 
-.content-pages-workspace {
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--surface-border), transparent 35%);
-  background: color-mix(in srgb, var(--surface-card), var(--surface-ground) 18%);
-}
-
-.content-pages-workspace .workspace-header,
-.content-pages-workspace .workspace-actionbar {
-  border-color: color-mix(in srgb, var(--surface-border), transparent 40%);
-  background: color-mix(in srgb, var(--surface-card), var(--surface-ground) 10%);
-}
-
-.content-pages-workspace .workspace-body {
-  border: 1px solid color-mix(in srgb, var(--surface-border), transparent 45%);
-  border-radius: 10px;
-  min-height: 0;
+.cms-pane-components-active {
   overflow: hidden;
 }
 
-.content-pages-workspace .cms-pane {
-  padding: 0.75rem;
-  gap: 0.75rem;
-}
-
-.content-pages-workspace .content-pages-tree,
-.content-pages-workspace .cms-preview-frame,
-.content-pages-workspace .p-tabview-panels,
-.content-pages-workspace .p-tabview-nav {
-  border-color: color-mix(in srgb, var(--surface-border), transparent 45%);
-}
-
-.content-pages-workspace .p-splitter {
-  border: 0;
-}
-
-.content-pages-workspace .p-splitter .p-splitter-gutter {
-  background: color-mix(in srgb, var(--surface-border), transparent 75%);
-}
-
-.content-pages-workspace .cms-pane-components-active {
-  overflow: hidden;
-}
-
-.content-pages-workspace .components-tab-shell {
+.components-tab-shell {
   height: 100%;
   min-height: 0;
   overflow: hidden;
 }
 
-.content-pages-workspace .cms-pane-components-active .p-tabview-panel {
+.cms-pane-components-active .p-tabview-panel {
   overflow: hidden;
 }
 
-.content-pages-workspace .components-tab-shell .builder-workspace {
+.components-tab-shell .builder-workspace {
   height: 100%;
   min-height: 0;
 }
 
-.content-pages-workspace .components-tab-shell .content-card {
+.components-tab-shell .content-card {
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
-.content-pages-workspace .components-tab-shell .content-card > .form-row,
-.content-pages-workspace .components-tab-shell .cms-component-list,
-.content-pages-workspace .components-tab-shell .builder-inspector {
+.components-tab-shell .content-card > .form-row,
+.components-tab-shell .cms-component-list,
+.components-tab-shell .builder-inspector {
   min-height: 0;
   overflow: auto;
 }

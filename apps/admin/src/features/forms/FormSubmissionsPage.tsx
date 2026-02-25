@@ -298,7 +298,7 @@ export function FormSubmissionsPage() {
         overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
       <WorkspaceToolbar>
-        <div className="form-row" style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+        <div className="form-row grid">
           <div>
             <label>Site</label>
             <Dropdown
@@ -362,7 +362,7 @@ export function FormSubmissionsPage() {
       </WorkspaceToolbar>
       <WorkspaceBody>
       <section className="content-card splitFill">
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+        <div className="inline-actions mb-2">
           <Button
             label="Mark Processed"
             disabled={selection.length === 0}
@@ -413,14 +413,14 @@ export function FormSubmissionsPage() {
               // keep raw
             }
             return (
-              <div style={{ display: 'grid', gap: '0.75rem' }}>
+              <div className="grid gap-3">
                 <div>
                   <strong>Answers</strong>
-                  <pre style={{ margin: 0 }}>{dataPretty}</pre>
+                  <pre className="m-0">{dataPretty}</pre>
                 </div>
                 <div>
                   <strong>Metadata</strong>
-                  <pre style={{ margin: 0 }}>{metaPretty}</pre>
+                  <pre className="m-0">{metaPretty}</pre>
                 </div>
                 {row.pageRouteSlug ? (
                   <a
@@ -463,3 +463,4 @@ export function FormSubmissionsPage() {
     </WorkspacePage>
   );
 }
+

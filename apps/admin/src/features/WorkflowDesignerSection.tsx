@@ -176,7 +176,7 @@ export function WorkflowDesignerSection({
   return (
     <section className="pageRoot">
       <div className="pageBodyFlex splitFill">
-        <Splitter className="splitFill" style={{ width: '100%' }}>
+        <Splitter className="splitFill">
           <SplitterPanel size={22} minSize={16}>
             <div className="paneRoot split-pane">
               <h3>Definitions</h3>
@@ -239,8 +239,8 @@ export function WorkflowDesignerSection({
 
           <SplitterPanel size={54} minSize={30}>
             <div className="paneRoot split-pane">
-              <div className="inline-actions" style={{ justifyContent: 'space-between' }}>
-                <h3 style={{ margin: 0 }}>Canvas</h3>
+              <div className="inline-actions justify-content-between">
+                <h3 className="m-0">Canvas</h3>
                 <div className="inline-actions">
                   <Button label="Auto-layout" text onClick={() => setGraphNodes((prev) => [...prev])} />
                   <Button label="Run This Workflow" severity="success" onClick={() => startRun().catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
@@ -294,3 +294,4 @@ export function WorkflowDesignerSection({
     </section>
   );
 }
+

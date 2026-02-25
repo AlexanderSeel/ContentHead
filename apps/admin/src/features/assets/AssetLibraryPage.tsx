@@ -255,7 +255,7 @@ export function AssetLibraryPage() {
           <WorkspaceActionBar
             primary={(
               <label className="p-button p-component p-button-sm">
-            <input type="file" multiple style={{ display: 'none' }} onChange={(event) => uploadFiles(event.target.files).catch(() => undefined)} />
+            <input type="file" multiple className="hidden" onChange={(event) => uploadFiles(event.target.files).catch(() => undefined)} />
             <span className="p-button-label p-c">Upload</span>
           </label>
         )}
@@ -265,7 +265,7 @@ export function AssetLibraryPage() {
         <InputText value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search assets" />
       </WorkspaceToolbar>
       <WorkspaceBody>
-        <Splitter className="splitFill" style={{ width: '100%' }}>
+        <Splitter className="splitFill">
           <SplitterPanel size={62} minSize={35}>
             <div className="paneRoot">
               <div className="paneScroll">
@@ -287,7 +287,7 @@ export function AssetLibraryPage() {
                       <img
                         src={`${apiBase}/assets/${row.id}/rendition/thumb`}
                         alt={row.altText ?? row.title ?? row.originalName}
-                        style={{ width: 64, height: 42, objectFit: 'cover', borderRadius: 6 }}
+                        className="w-4rem h-3rem border-round-sm object-cover"
                       />
                     )}
                   />
@@ -311,7 +311,7 @@ export function AssetLibraryPage() {
                     <img
                       src={`${apiBase}/assets/${selected.id}`}
                       alt={selected.altText ?? selected.title ?? selected.originalName}
-                      style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 8 }}
+                      className="w-full border-round object-cover"
                     />
                     <label>Title</label>
                     <InputText value={selected.title ?? ''} onChange={(event) => setSelected({ ...selected, title: event.target.value })} />
@@ -348,3 +348,4 @@ export function AssetLibraryPage() {
     </WorkspacePage>
   );
 }
+

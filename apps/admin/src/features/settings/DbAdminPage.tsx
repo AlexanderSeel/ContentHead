@@ -685,7 +685,7 @@ export function DbAdminPage() {
   const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'overflow');
 
   return (
-    <WorkspacePage>
+    <WorkspacePage className="db-admin-page">
       <WorkspaceHeader
         title="DB Admin"
         subtitle="Database workspace with table explorer, row grid, schema, and SQL console."
@@ -724,7 +724,7 @@ export function DbAdminPage() {
               onChange={(event) => setFilterValue(event.target.value)}
               disabled={['is_null', 'not_null'].includes(filterOp)}
             />
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <label className="flex align-items-center gap-2">
               Reveal sensitive
               <InputSwitch checked={revealSensitiveColumns} onChange={(event) => setRevealSensitiveColumns(Boolean(event.value))} />
             </label>
@@ -737,14 +737,17 @@ export function DbAdminPage() {
         ) : forbiddenMessage ? (
           <ForbiddenState title="DB Admin unavailable" reason={forbiddenMessage} />
         ) : (
-        <Splitter className="splitFill" style={{ width: '100%' }}>
+        <Splitter className="splitFill db-admin-split">
           <SplitterPanel size={22} minSize={16}>
-            <div className="paneRoot">
-              <div className="paneScroll">
+            <div className="paneRoot db-admin-pane">
+              <div className="paneScroll db-admin-pane-scroll">
                 <DataTable
                   value={tableRows}
                   size="small"
                   loading={tablesLoading}
+                  scrollable
+                  scrollHeight="flex"
+                  className="db-admin-table"
                   selectionMode="single"
                   selection={selectedTableRow}
                   onSelectionChange={(event) => setSelectedTable((event.value as DbAdminTableListItem | null)?.name ?? null)}
@@ -757,12 +760,15 @@ export function DbAdminPage() {
             </div>
           </SplitterPanel>
           <SplitterPanel size={48} minSize={28}>
-            <div className="paneRoot">
-              <div className="paneScroll">
+            <div className="paneRoot db-admin-pane">
+              <div className="paneScroll db-admin-pane-scroll">
                 <DataTable
                   value={visibleRows}
                   size="small"
                   loading={rowsLoading}
+                  scrollable
+                  scrollHeight="flex"
+                  className="db-admin-table"
                   dataKey="__rowKey"
                   selectionMode="multiple"
                   selection={selectedRows}
@@ -824,16 +830,16 @@ export function DbAdminPage() {
             </div>
           </SplitterPanel>
           <SplitterPanel size={30} minSize={20}>
-            <div className="paneRoot">
-              <div className="paneScroll">
-                <TabView>
+            <div className="paneRoot db-admin-pane">
+              <div className="paneScroll db-admin-pane-scroll">
+                <TabView className="db-admin-inspector-tabs">
                   <TabPanel header="Inspector">
                     {!tableInfo ? (
                       <p className="muted">Select a table to inspect rows.</p>
                     ) : (
                       <Accordion multiple activeIndex={[0]}>
                         <AccordionTab header="Basic">
-                          <div className="inline-actions" style={{ marginBottom: '0.75rem' }}>
+                          <div className="inline-actions mb-3">
                             <Button
                               label="Save"
                               onClick={() => void saveRow()}
@@ -883,7 +889,7 @@ export function DbAdminPage() {
                       <p className="muted">Select a table to view schema details.</p>
                     ) : (
                       <>
-                        <h4 style={{ marginTop: 0 }}>Columns</h4>
+                        <h4 className="mt-0">Columns</h4>
                         <DataTable value={tableInfo.columns} size="small">
                           <Column field="name" header="Column" />
                           <Column field="type" header="Type" />
@@ -943,8 +949,8 @@ export function DbAdminPage() {
                           </div>
                         </div>
                         {sqlResult ? (
-                          <div style={{ marginTop: '1rem' }}>
-                            <div className="inline-actions" style={{ marginBottom: '0.5rem' }}>
+                          <div className="mt-4">
+                            <div className="inline-actions mb-2">
                               <span className="muted">
                                 {sqlResult.readOnly ? 'Read-only' : 'Write'} - {sqlResult.rowCount} row(s)
                               </span>
@@ -979,3 +985,4 @@ export function DbAdminPage() {
     </WorkspacePage>
   );
 }
+

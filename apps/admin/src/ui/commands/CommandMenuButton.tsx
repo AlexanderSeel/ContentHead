@@ -1,6 +1,5 @@
-import { useMemo, useRef } from 'react';
-import { Button } from 'primereact/button';
-import { TieredMenu } from 'primereact/tieredmenu';
+import { useMemo } from 'react';
+import { Menubar } from 'primereact/menubar';
 
 import { toTieredMenuItems } from './menuModel';
 import type { Command, CommandContext } from './types';
@@ -9,8 +8,8 @@ export function CommandMenuButton<TContext extends CommandContext>({
   commands,
   context,
   buttonLabel = 'More',
-  buttonIcon = 'pi pi-ellipsis-h',
-  text = true,
+  buttonIcon: _buttonIcon = 'pi pi-ellipsis-h',
+  text: _text = true,
   size = 'small',
   className,
   disabled = false
@@ -24,25 +23,22 @@ export function CommandMenuButton<TContext extends CommandContext>({
   className?: string;
   disabled?: boolean;
 }) {
-  const menuRef = useRef<TieredMenu>(null);
   const items = useMemo(() => toTieredMenuItems(commands, context), [commands, context]);
 
   if (items.length === 0) {
     return null;
   }
 
+  const model = items;
+
+  const classes = [
+    size === 'small' ? 'p-menubar-sm' : '',
+    className
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <>
-      <TieredMenu popup ref={menuRef} model={items} />
-      <Button
-        label={buttonLabel}
-        icon={buttonIcon}
-        text={text}
-        size={size}
-        className={className}
-        disabled={disabled}
-        onClick={(event) => menuRef.current?.toggle(event)}
-      />
-    </>
+    <Menubar model={model} className={classes} />
   );
 }

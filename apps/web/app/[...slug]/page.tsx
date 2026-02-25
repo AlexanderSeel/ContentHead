@@ -84,6 +84,7 @@ export default async function CatchAllPage({
   const slug = (resolvedParams.slug ?? []).join('/');
   const siteId = Number((resolvedSearch.siteId as string | undefined) ?? '1');
   const previewToken = (resolvedSearch.previewToken as string | undefined) ?? null;
+  const authToken = (resolvedSearch.authToken as string | undefined) ?? null;
   const preview = ((resolvedSearch.preview as string | undefined) ?? 'false') === 'true';
   const cmsBridge = (resolvedSearch.cmsBridge as string | undefined) === '1';
   const segments = ((resolvedSearch.segments as string | undefined) ?? '')
@@ -108,7 +109,10 @@ export default async function CatchAllPage({
     query
   });
 
-  const sdk = createSdk({ endpoint: process.env.API_URL ?? 'http://localhost:4000/graphql' });
+  const sdk = createSdk({
+    endpoint: process.env.API_URL ?? 'http://localhost:4000/graphql',
+    headersProvider: () => (authToken ? { authorization: `Bearer ${authToken}` } : undefined)
+  });
   const site = await sdk.getSite({ siteId });
   const urlPattern = site.getSite?.urlPattern ?? '/{market}/{locale}';
   const parsedFromPath = parseLocalizedPath(urlPattern, resolvedParams.slug ?? []);

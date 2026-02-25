@@ -140,7 +140,7 @@ export function WorkflowRunsPage() {
         overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
       <WorkspaceBody>
-        <Splitter className="splitFill" style={{ width: '100%' }}>
+        <Splitter className="splitFill">
           <SplitterPanel size={48} minSize={28}>
             <div className="paneRoot">
               <div className="paneScroll">

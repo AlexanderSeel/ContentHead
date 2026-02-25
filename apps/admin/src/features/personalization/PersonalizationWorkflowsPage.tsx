@@ -57,14 +57,14 @@ function initialVariantDrafts(defaultVersionId: number): VariantDraft[] {
       key: 'hero_control',
       headline: 'Control headline',
       hero: 'Current hero message',
-      accentColor: '#1976d2',
+      accentColor: 'var(--primary-color)',
       contentVersionId: defaultVersionId
     },
     {
       key: 'hero_challenger',
       headline: 'Challenger headline',
       hero: 'Alternative hero message',
-      accentColor: '#0f766e',
+      accentColor: 'var(--primary-color)',
       contentVersionId: defaultVersionId
     }
   ];
@@ -123,7 +123,7 @@ export function PersonalizationWorkflowsPage() {
           key: 'hero_variant_c',
           headline: 'Variant C headline',
           hero: 'Third hero message',
-          accentColor: '#9333ea',
+          accentColor: 'var(--primary-color)',
           contentVersionId: prev[0]?.contentVersionId ?? versions[0]?.id ?? 0
         }
       ];
@@ -383,7 +383,7 @@ export function PersonalizationWorkflowsPage() {
               <div className="personalization-variant-grid">
                 {variants.map((variant, index) => (
                   <div key={`variant-${index}`} className="personalization-variant-card" style={{ borderColor: variant.accentColor || 'var(--surface-border)' }}>
-                    <h5 style={{ marginTop: 0, marginBottom: '0.5rem' }}>Variant {index + 1}</h5>
+                    <h5 className="mt-0 mb-2">Variant {index + 1}</h5>
                     <div className="form-row">
                       <label>Key</label>
                       <InputText value={variant.key} onChange={(event) => updateVariant(index, { key: event.target.value })} placeholder="variant key" />
@@ -399,7 +399,7 @@ export function PersonalizationWorkflowsPage() {
                     <div className="form-grid">
                       <div className="form-row">
                         <label>Accent color</label>
-                        <InputText value={variant.accentColor} onChange={(event) => updateVariant(index, { accentColor: event.target.value })} placeholder="#1976d2" />
+                        <InputText value={variant.accentColor} onChange={(event) => updateVariant(index, { accentColor: event.target.value })} placeholder="var(--primary-color)" />
                       </div>
                       <div className="form-row">
                         <label>Content version</label>
@@ -411,7 +411,7 @@ export function PersonalizationWorkflowsPage() {
                         />
                       </div>
                     </div>
-                    <div className="personalization-preview" style={{ background: `${variant.accentColor}1A` }}>
+                    <div className="personalization-preview" style={{ background: `color-mix(in srgb, ${variant.accentColor || 'var(--primary-color)'}, transparent 88%)` }}>
                       <strong>{variant.headline || 'Headline preview'}</strong>
                       <span>{variant.hero || 'Hero copy preview'}</span>
                     </div>
@@ -465,7 +465,7 @@ export function PersonalizationWorkflowsPage() {
                 <Button label="Generate and Attach Workflow" onClick={() => generateFlow().catch((error: unknown) => setStatus(formatErrorMessage(error)))} disabled={busy} />
               ) : (
                 <div className="status-panel">
-                  <p style={{ marginTop: 0 }}><strong>{createdFlow.definitionName}</strong></p>
+                  <p className="mt-0"><strong>{createdFlow.definitionName}</strong></p>
                   <p>Workflow ID: {createdFlow.definitionId} | Variant Set ID: {createdFlow.variantSetId}</p>
                   <div className="inline-actions">
                     <Button label="Run Workflow" severity="success" onClick={() => startCreatedWorkflow().catch((error: unknown) => setStatus(formatErrorMessage(error)))} disabled={busy} />
@@ -477,7 +477,7 @@ export function PersonalizationWorkflowsPage() {
             </div>
           ) : null}
 
-          <div className="inline-actions" style={{ justifyContent: 'space-between' }}>
+          <div className="inline-actions justify-content-between">
             <Button text label="Back" disabled={wizardStep <= 1} onClick={() => setWizardStep((prev) => Math.max(1, prev - 1))} />
             <Button label="Next" disabled={wizardStep >= 5} onClick={() => setWizardStep((prev) => Math.min(5, prev + 1))} />
           </div>
@@ -505,3 +505,4 @@ export function PersonalizationWorkflowsPage() {
     </WorkspacePage>
   );
 }
+

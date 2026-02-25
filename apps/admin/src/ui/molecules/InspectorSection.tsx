@@ -17,14 +17,15 @@ export function InspectorSection({
 
   return (
     <section className="content-card inspector-section">
-      <div className="inline-actions" style={{ justifyContent: 'space-between' }}>
+      <div className="inline-actions justify-content-between">
         <div className="inline-actions">
           <Button text icon={collapsed ? 'pi pi-angle-right' : 'pi pi-angle-down'} onClick={() => setCollapsed((prev) => !prev)} />
           <strong>{title}</strong>
         </div>
         {actions}
       </div>
-      {!collapsed ? <div style={{ marginTop: '0.5rem' }}>{children}</div> : null}
+      {!collapsed ? <div className="mt-2">{children}</div> : null}
     </section>
   );
 }
+

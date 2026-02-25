@@ -107,8 +107,8 @@ export function AssetPickerDialog({
 
   return (
     <Dialog header="Asset Picker" visible={visible} onHide={onHide} style={{ width: 'min(92rem, 98vw)' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '16rem 1fr 20rem', gap: '1rem', minHeight: '28rem' }}>
-        <div className="content-card" style={{ padding: '0.5rem' }}>
+      <div className="grid">
+        <div className="content-card p-2 col-12 xl:col-2">
           <Tree
             value={treeNodes}
             selectionMode="single"
@@ -124,8 +124,8 @@ export function AssetPickerDialog({
           />
         </div>
 
-        <div className="content-card" style={{ padding: '0.75rem' }}>
-          <div className="form-row" style={{ marginBottom: '0.5rem' }}>
+        <div className="content-card p-3 col-12 xl:col-6">
+          <div className="form-row mb-2">
             <label>Search assets</label>
             <InputText value={search} onChange={(event) => setSearch(event.target.value)} placeholder="filename or title" />
           </div>
@@ -157,7 +157,7 @@ export function AssetPickerDialog({
                 <img
                   src={`${apiBase}/assets/${row.id}/rendition/thumb`}
                   alt={row.altText ?? row.title ?? row.originalName}
-                  style={{ width: 56, height: 40, objectFit: 'cover', borderRadius: 6 }}
+                  className="w-4rem h-3rem border-round-sm object-cover"
                 />
               )}
             />
@@ -166,13 +166,13 @@ export function AssetPickerDialog({
           </DataTable>
         </div>
 
-        <div className="content-card" style={{ padding: '0.75rem' }}>
+        <div className="content-card p-3 col-12 xl:col-4">
           {focusedAsset ? (
             <div className="form-row">
               <img
                 src={`${apiBase}/assets/${focusedAsset.id}`}
                 alt={focusedAsset.altText ?? focusedAsset.title ?? focusedAsset.originalName}
-                style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8 }}
+                className="w-full border-round object-cover"
               />
               <div><strong>{focusedAsset.originalName}</strong></div>
               <small>{focusedAsset.title || 'No title'}</small>
@@ -184,7 +184,7 @@ export function AssetPickerDialog({
           )}
         </div>
       </div>
-      <div className="inline-actions" style={{ marginTop: '1rem', justifyContent: 'flex-end' }}>
+      <div className="inline-actions mt-4 justify-content-end">
         <Button label="Cancel" text onClick={onHide} />
         <Button
           label={multiple ? 'Add selected' : 'Select'}
@@ -198,3 +198,4 @@ export function AssetPickerDialog({
     </Dialog>
   );
 }
+

@@ -23,7 +23,7 @@ export function SplitWorkspace({
   const { layoutPreferences } = useUi();
   const showLeftPanel = layoutPreferences.showWorkspacePanel;
   return (
-    <Splitter className={className ?? 'splitFill'} style={{ width: '100%' }}>
+    <Splitter className={className ?? 'splitFill'}>
       <SplitterPanel size={showLeftPanel ? leftSize : 0} minSize={showLeftPanel ? 15 : 0}>
         <div className="pane paneScroll">{showLeftPanel ? left : null}</div>
       </SplitterPanel>

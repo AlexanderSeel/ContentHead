@@ -11,7 +11,7 @@ export function PreferencesPage() {
     <WorkspacePage>
       <WorkspaceHeader title="Preferences" subtitle="Theme and UI scale settings for your admin workspace." />
       <WorkspaceBody>
-        <section className="content-card pane" style={{ maxWidth: '48rem' }}>
+        <section className="content-card pane w-full lg:w-8">
         <div className="form-grid">
           <div className="form-row">
             <label>Theme</label>
@@ -35,3 +35,4 @@ export function PreferencesPage() {
     </WorkspacePage>
   );
 }
+

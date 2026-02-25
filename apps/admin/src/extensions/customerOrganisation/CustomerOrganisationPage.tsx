@@ -5,7 +5,7 @@ import { TabPanel, TabView } from 'primereact/tabview';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { TextInput, NumberInput } from '../../ui/atoms';
-import { EntityEditor, EntityTable, ToolbarActions, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { EntityEditor, EntityTable, PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { deleteEntity, insertEntity, listEntities, updateEntity } from '../core/dbEntityApi';
 
@@ -71,102 +71,108 @@ export function CustomerOrganisationPage() {
   return (
     <WorkspacePage>
       <WorkspaceHeader title="Customers & Organisations" subtitle="Demo extension addon with CRUD pages and content references." />
-      <ToolbarActions
-        left={<small className="muted">Site {siteId}</small>}
-        right={<Button label="Reload" text onClick={() => load().catch((error) => setStatus(formatErrorMessage(error)))} />}
+      <WorkspaceActionBar
+        primary={<small className="muted">Site {siteId}</small>}
+        overflow={<Button label="Reload" text onClick={() => load().catch((error) => setStatus(formatErrorMessage(error)))} />}
       />
-      <TabView>
-        <TabPanel header="Organisations">
-          <div className="inline-actions" style={{ marginBottom: '0.75rem' }}>
-            <Button
-              label="Add Organisation"
-              onClick={() => setEditingOrganisation({ ...emptyOrganisation, id: nextId(organisations), site_id: siteId })}
-            />
-          </div>
-          <EntityTable
-            value={organisations}
-            rowKey="id"
-            columns={[
-              { key: 'id', header: 'ID' },
-              { key: 'name', header: 'Name' },
-              { key: 'website', header: 'Website' },
-              {
-                key: 'actions',
-                header: 'Actions',
-                body: (row) => (
-                  <div className="inline-actions">
-                    <Button text label="Edit" onClick={() => setEditingOrganisation(row)} />
-                    <Button
-                      text
-                      severity="danger"
-                      label="Delete"
-                      onClick={() =>
-                        deleteEntity(token, 'ext_organisations', { id: row.id })
-                          .then(() => load())
-                          .catch((error) => setStatus(formatErrorMessage(error)))
-                      }
-                    />
-                  </div>
-                )
-              }
-            ]}
-          />
-        </TabPanel>
-        <TabPanel header="Customers">
-          <div className="inline-actions" style={{ marginBottom: '0.75rem' }}>
-            <Button
-              label="Add Customer"
-              onClick={() => setEditingCustomer({ ...emptyCustomer, id: nextId(customers), site_id: siteId })}
-            />
-          </div>
-          <EntityTable
-            value={customers}
-            rowKey="id"
-            columns={[
-              { key: 'id', header: 'ID' },
-              { key: 'display_name', header: 'Name' },
-              { key: 'email', header: 'Email' },
-              { key: 'phone', header: 'Phone' },
-              {
-                key: 'organisation',
-                header: 'Organisation',
-                body: (row) => (row.organisation_id ? orgLookup.get(row.organisation_id) ?? `#${row.organisation_id}` : '-')
-              },
-              {
-                key: 'content_item_id',
-                header: 'Content Ref',
-                body: (row) => (row.content_item_id ? `#${row.content_item_id}` : '-')
-              },
-              {
-                key: 'actions',
-                header: 'Actions',
-                body: (row) => (
-                  <div className="inline-actions">
-                    <Button text label="Edit" onClick={() => setEditingCustomer(row)} />
-                    <Button
-                      text
-                      severity="danger"
-                      label="Delete"
-                      onClick={() =>
-                        deleteEntity(token, 'ext_customers', { id: row.id })
-                          .then(() => load())
-                          .catch((error) => setStatus(formatErrorMessage(error)))
-                      }
-                    />
-                  </div>
-                )
-              }
-            ]}
-          />
-        </TabPanel>
-      </TabView>
+      <WorkspaceBody>
+        <PaneRoot className="content-card">
+          <PaneScroll>
+            <TabView>
+              <TabPanel header="Organisations">
+                <div className="inline-actions mb-3">
+                  <Button
+                    label="Add Organisation"
+                    onClick={() => setEditingOrganisation({ ...emptyOrganisation, id: nextId(organisations), site_id: siteId })}
+                  />
+                </div>
+                <EntityTable
+                  value={organisations}
+                  rowKey="id"
+                  columns={[
+                    { key: 'id', header: 'ID' },
+                    { key: 'name', header: 'Name' },
+                    { key: 'website', header: 'Website' },
+                    {
+                      key: 'actions',
+                      header: 'Actions',
+                      body: (row) => (
+                        <div className="inline-actions">
+                          <Button text label="Edit" onClick={() => setEditingOrganisation(row)} />
+                          <Button
+                            text
+                            severity="danger"
+                            label="Delete"
+                            onClick={() =>
+                              deleteEntity(token, 'ext_organisations', { id: row.id })
+                                .then(() => load())
+                                .catch((error) => setStatus(formatErrorMessage(error)))
+                            }
+                          />
+                        </div>
+                      )
+                    }
+                  ]}
+                />
+              </TabPanel>
+              <TabPanel header="Customers">
+                <div className="inline-actions mb-3">
+                  <Button
+                    label="Add Customer"
+                    onClick={() => setEditingCustomer({ ...emptyCustomer, id: nextId(customers), site_id: siteId })}
+                  />
+                </div>
+                <EntityTable
+                  value={customers}
+                  rowKey="id"
+                  columns={[
+                    { key: 'id', header: 'ID' },
+                    { key: 'display_name', header: 'Name' },
+                    { key: 'email', header: 'Email' },
+                    { key: 'phone', header: 'Phone' },
+                    {
+                      key: 'organisation',
+                      header: 'Organisation',
+                      body: (row) => (row.organisation_id ? orgLookup.get(row.organisation_id) ?? `#${row.organisation_id}` : '-')
+                    },
+                    {
+                      key: 'content_item_id',
+                      header: 'Content Ref',
+                      body: (row) => (row.content_item_id ? `#${row.content_item_id}` : '-')
+                    },
+                    {
+                      key: 'actions',
+                      header: 'Actions',
+                      body: (row) => (
+                        <div className="inline-actions">
+                          <Button text label="Edit" onClick={() => setEditingCustomer(row)} />
+                          <Button
+                            text
+                            severity="danger"
+                            label="Delete"
+                            onClick={() =>
+                              deleteEntity(token, 'ext_customers', { id: row.id })
+                                .then(() => load())
+                                .catch((error) => setStatus(formatErrorMessage(error)))
+                            }
+                          />
+                        </div>
+                      )
+                    }
+                  ]}
+                />
+              </TabPanel>
+            </TabView>
+          </PaneScroll>
+        </PaneRoot>
+      </WorkspaceBody>
 
       <EntityEditor
         visible={Boolean(editingOrganisation)}
         title={editingOrganisation?.name ? 'Edit Organisation' : 'Create Organisation'}
         onHide={() => setEditingOrganisation(null)}
         footer={(
-          <div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
+          <div className="inline-actions justify-content-end">
             <Button text label="Cancel" onClick={() => setEditingOrganisation(null)} />
             <Button
               label="Save"
@@ -216,7 +222,7 @@ export function CustomerOrganisationPage() {
         title={editingCustomer?.display_name ? 'Edit Customer' : 'Create Customer'}
         onHide={() => setEditingCustomer(null)}
         footer={(
-          <div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
+          <div className="inline-actions justify-content-end">
             <Button text label="Cancel" onClick={() => setEditingCustomer(null)} />
             <Button
               label="Save"
@@ -277,3 +283,4 @@ export function CustomerOrganisationPage() {
     </WorkspacePage>
   );
 }
+

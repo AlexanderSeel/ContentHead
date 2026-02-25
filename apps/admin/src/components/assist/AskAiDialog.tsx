@@ -125,17 +125,18 @@ export function AskAiDialog({
         <Checkbox checked={includeContext} onChange={(event) => setIncludeContext(Boolean(event.checked))} /> Include current context
       </label>
 
-      <div className="inline-actions" style={{ marginTop: '0.75rem' }}>
+      <div className="inline-actions mt-3">
         <Button label="Generate" onClick={generate} />
         <Button label="Copy" severity="secondary" onClick={() => { navigator.clipboard.writeText(response); onCopy?.(response); }} disabled={!response} />
         <Button label="Insert" severity="secondary" onClick={() => onInsert?.(response)} disabled={!response || !onInsert} />
         <Button label="Apply" severity="success" onClick={() => onApply?.(response)} disabled={!response || !onApply} />
       </div>
 
-      <div className="form-row" style={{ marginTop: '0.75rem' }}>
+      <div className="form-row mt-3">
         <label>Response</label>
         <InputTextarea rows={10} value={response} onChange={(event) => setResponse(event.target.value)} />
       </div>
     </Dialog>
   );
 }
+

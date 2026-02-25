@@ -151,7 +151,7 @@ export function WorkspaceToolbar({
   }
   return (
     <section className="workspace-toolbar">
-      <div className="inline-actions" style={{ justifyContent: 'space-between' }}>
+      <div className="inline-actions justify-content-between">
         <strong>{label}</strong>
         <Button
           text
@@ -169,3 +169,4 @@ export function WorkspaceToolbar({
 export function WorkspaceBody({ children }: { children: ReactNode }) {
   return <section className="pageBodyFlex splitFill workspace-body">{children}</section>;
 }
+

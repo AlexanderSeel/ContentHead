@@ -577,7 +577,7 @@ export function DuckDbAdminPage() {
       ) : (
         <div className="card-grid">
           <section className="content-card">
-          <h3 style={{ marginTop: 0 }}>Load Demo Data</h3>
+          <h3 className="mt-0">Load Demo Data</h3>
           <p className="muted">Run the API seed script to load the demo page (`/demo`) and baseline data.</p>
           <div className="inline-actions">
             <Button
@@ -593,15 +593,15 @@ export function DuckDbAdminPage() {
         </section>
 
         <section className="content-card">
-          <h3 style={{ marginTop: 0 }}>Export Site Snapshot</h3>
+          <h3 className="mt-0">Export Site Snapshot</h3>
           <p className="muted">Exports content types, templates, items (latest version JSON), and routes for the current site.</p>
           <Button label="Export JSON" onClick={() => void exportSnapshot()} loading={working} />
         </section>
 
         <section className="content-card">
-          <h3 style={{ marginTop: 0 }}>Import Site Snapshot</h3>
+          <h3 className="mt-0">Import Site Snapshot</h3>
           <p className="muted">Imports snapshots exported by this screen. Existing content types/templates by name are skipped.</p>
-          <div className="inline-actions" style={{ marginBottom: '0.5rem' }}>
+          <div className="inline-actions mb-2">
             <Button label="Load Demo Import" severity="secondary" onClick={() => void loadDemoImport()} />
           </div>
           <FileUpload
@@ -618,7 +618,7 @@ export function DuckDbAdminPage() {
               file.text().then((text) => setImportJson(text)).catch(() => setStatus('Failed to read file.'));
             }}
           />
-          <div className="form-row" style={{ marginTop: '0.75rem' }}>
+          <div className="form-row mt-3">
             <label>Snapshot JSON</label>
             <InputTextarea rows={12} value={importJson} onChange={(event) => setImportJson(event.target.value)} />
           </div>
@@ -630,3 +630,4 @@ export function DuckDbAdminPage() {
     </WorkspacePage>
   );
 }
+

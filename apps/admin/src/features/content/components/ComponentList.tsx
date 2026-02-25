@@ -68,7 +68,7 @@ export function ComponentList({
                     options={areas.map((entry) => ({ label: entry.name, value: entry.name }))}
                     onClick={(event) => event.stopPropagation()}
                     onChange={(event) => onMoveToArea(id, String(event.value ?? area.name))}
-                    style={{ minWidth: '9rem' }}
+                    className="w-10rem"
                   />
                   <Button text size="small" icon="pi pi-copy" onClick={(event) => { event.stopPropagation(); onDuplicate(id); }} />
                   <Button text size="small" severity="danger" icon="pi pi-trash" onClick={(event) => { event.stopPropagation(); onDelete(id); }} />
@@ -81,3 +81,4 @@ export function ComponentList({
     </div>
   );
 }
+

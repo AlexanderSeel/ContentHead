@@ -74,6 +74,7 @@ export default async function PreviewPage({
   const variantKey = (query.variantKey as string | undefined) ?? null;
   const versionIdOverride = query.versionId ? Number(query.versionId as string) : null;
   const token = (query.token as string | undefined) ?? null;
+  const authToken = (query.authToken as string | undefined) ?? null;
   const cmsBridge = (query.cmsBridge as string | undefined) === '1';
   const inlineEdit = (query.inline as string | undefined) === '1';
 
@@ -81,7 +82,10 @@ export default async function PreviewPage({
     notFound();
   }
 
-  const sdk = createSdk({ endpoint: process.env.API_URL ?? 'http://localhost:4000/graphql' });
+  const sdk = createSdk({
+    endpoint: process.env.API_URL ?? 'http://localhost:4000/graphql',
+    headersProvider: () => (authToken ? { authorization: `Bearer ${authToken}` } : undefined)
+  });
   const siteRes = await sdk.getSite({ siteId });
   const urlPattern = siteRes.getSite?.urlPattern ?? '/{market}/{locale}';
 

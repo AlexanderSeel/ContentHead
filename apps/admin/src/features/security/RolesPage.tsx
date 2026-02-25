@@ -101,7 +101,7 @@ export function RolesPage() {
             )}
           />
           <WorkspaceBody>
-            <Splitter className="splitFill" style={{ width: '100%' }}>
+            <Splitter className="splitFill">
               <SplitterPanel size={45} minSize={28}>
                 <div className="paneRoot">
                   <div className="paneScroll">

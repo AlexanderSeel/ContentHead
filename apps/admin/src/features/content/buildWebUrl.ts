@@ -9,6 +9,7 @@ type BuildWebUrlParams = {
   localeCode: string;
   slug: string;
   previewToken?: string | null | undefined;
+  authToken?: string | null | undefined;
   versionId?: number | null | undefined;
   previewMode: 'draft' | 'published';
   cmsBridge?: boolean;
@@ -29,6 +30,9 @@ export function buildWebUrl(params: BuildWebUrlParams): string {
     query.set('siteId', String(params.siteId));
     query.set('market', params.marketCode);
     query.set('locale', params.localeCode);
+    if (params.authToken) {
+      query.set('authToken', params.authToken);
+    }
     if (params.cmsBridge) {
       query.set('cmsBridge', '1');
     }
@@ -42,6 +46,9 @@ export function buildWebUrl(params: BuildWebUrlParams): string {
   query.set('locale', params.localeCode);
   if (params.previewToken) {
     query.set('token', params.previewToken);
+  }
+  if (params.authToken) {
+    query.set('authToken', params.authToken);
   }
   if (params.versionId) {
     query.set('versionId', String(params.versionId));

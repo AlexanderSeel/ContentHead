@@ -358,7 +358,7 @@ export function TemplatesPage() {
         />
       </DataTable>
 
-      <div style={{ marginTop: '0.75rem' }}>
+      <div className="mt-3">
         <VisualBuilderWorkspace
           palette={componentRegistry.map((entry) => ({
             id: entry.id,
@@ -464,3 +464,4 @@ export function TemplatesPage() {
     </WorkspacePage>
   );
 }
+
