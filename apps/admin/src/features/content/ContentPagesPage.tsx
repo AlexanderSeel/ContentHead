@@ -761,6 +761,7 @@ export function ContentPagesPage() {
 
   const previewIframeRef = useRef<HTMLIFrameElement | null>(null);
   const treeContextMenuRef = useRef<ContextMenu>(null);
+  const leftPaneExpandedSizeRef = useRef(28);
   const saveTimerRef = useRef<number | null>(null);
   const inlineSaveTimerRef = useRef<number | null>(null);
   const lastSavedRef = useRef<string>('');
@@ -2265,6 +2266,27 @@ export function ContentPagesPage() {
     toast({ severity: 'success', summary: `Exported page #${row.contentItemId}` });
   };
 
+  const toggleLeftPaneCollapsed = () => {
+    setLeftPaneCollapsed((prev) => {
+      const nextCollapsed = !prev;
+      if (nextCollapsed) {
+        const currentLeft = workspaceSizes[0] ?? 28;
+        if (currentLeft > 10) {
+          leftPaneExpandedSizeRef.current = currentLeft;
+        }
+        const collapsedSizes: number[] = [8, 92];
+        setWorkspaceSizes(collapsedSizes);
+        window.localStorage.setItem('content-pages.workspace.sizes', JSON.stringify(collapsedSizes));
+      } else {
+        const restoredLeft = Math.max(20, Math.min(45, leftPaneExpandedSizeRef.current || 28));
+        const restoredSizes: number[] = [restoredLeft, 100 - restoredLeft];
+        setWorkspaceSizes(restoredSizes);
+        window.localStorage.setItem('content-pages.workspace.sizes', JSON.stringify(restoredSizes));
+      }
+      return nextCollapsed;
+    });
+  };
+
   const previewWebsiteUrl = buildPreviewWebsiteUrl(null);
 
   const baseCommandContext: CommandContext = {
@@ -2878,7 +2900,7 @@ export function ContentPagesPage() {
               size="small"
               text
               icon={leftPaneCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'}
-              onClick={() => setLeftPaneCollapsed((prev) => !prev)}
+              onClick={toggleLeftPaneCollapsed}
             />
             <Button label="Split" size="small" text={workspaceMode !== 'split'} onClick={() => setWorkspaceMode('split')} />
             <Button label="Properties" size="small" text={workspaceMode !== 'properties'} onClick={() => setWorkspaceMode('properties')} />
@@ -2901,10 +2923,13 @@ export function ContentPagesPage() {
           onResizeEnd={(event) => {
             const next = (event.sizes as number[]) ?? [28, 72];
             setWorkspaceSizes(next);
+            if (!leftPaneCollapsed && (next[0] ?? 0) > 10) {
+              leftPaneExpandedSizeRef.current = next[0] ?? leftPaneExpandedSizeRef.current;
+            }
             window.localStorage.setItem('content-pages.workspace.sizes', JSON.stringify(next));
           }}
         >
-          <SplitterPanel size={workspaceSizes[0] ?? 28} minSize={20}>
+          <SplitterPanel size={workspaceSizes[0] ?? 28} minSize={leftPaneCollapsed ? 8 : 20}>
             <div className="paneRoot paneScroll cms-pane cms-left-pane">
               <ContextMenu ref={treeContextMenuRef} model={treeContextMenuItems} />
               <div className="inline-actions justify-content-between mb-2">
@@ -2914,7 +2939,7 @@ export function ContentPagesPage() {
                   text
                   size="small"
                   icon={leftPaneCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'}
-                  onClick={() => setLeftPaneCollapsed((prev) => !prev)}
+                  onClick={toggleLeftPaneCollapsed}
                 />
               </div>
               {!leftPaneCollapsed ? (
