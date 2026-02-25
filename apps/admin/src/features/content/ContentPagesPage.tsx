@@ -17,6 +17,7 @@ import { Tag } from 'primereact/tag';
 import { InputSwitch } from 'primereact/inputswitch';
 import { MultiSelect } from 'primereact/multiselect';
 
+import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
@@ -1088,7 +1089,7 @@ export function ContentPagesPage() {
       window.clearTimeout(saveTimerRef.current);
     }
     saveTimerRef.current = window.setTimeout(() => {
-      saveDraft({ force, silent: true }).catch((e: unknown) => setStatus(String(e)));
+      saveDraft({ force, silent: true }).catch((e: unknown) => setStatus(formatErrorMessage(e)));
     }, delay);
   };
 
@@ -1469,7 +1470,7 @@ export function ContentPagesPage() {
   };
 
   useEffect(() => {
-    refresh().catch((error: unknown) => setStatus(String(error)));
+    refresh().catch((error: unknown) => setStatus(formatErrorMessage(error)));
   }, [siteId, marketCode, localeCode]);
 
   useEffect(() => {
@@ -1500,7 +1501,7 @@ export function ContentPagesPage() {
       setSelectedFieldPath(null);
       return;
     }
-    loadItem(selectedItemId).catch((error: unknown) => setStatus(String(error)));
+    loadItem(selectedItemId).catch((error: unknown) => setStatus(formatErrorMessage(error)));
   }, [selectedItemId, siteId, marketCode, localeCode]);
 
   useEffect(() => {
@@ -2183,7 +2184,7 @@ export function ContentPagesPage() {
       toast({
         severity: 'warn',
         summary: 'Translation unavailable',
-        detail: `AI provider might be disabled. ${String(error)}`
+        detail: `AI provider might be disabled. ${formatErrorMessage(error)}`
       });
     }
   };
@@ -2290,7 +2291,7 @@ export function ContentPagesPage() {
             title="No page selected"
             description="Pick a page from the tree or search results."
             actionLabel="Create Page"
-            onAction={() => createPage().catch((e: unknown) => setStatus(String(e)))}
+            onAction={() => createPage().catch((e: unknown) => setStatus(formatErrorMessage(e)))}
           />
         </div>
       );
@@ -2594,7 +2595,7 @@ export function ContentPagesPage() {
                   </table>
                 </div>
                 <div className="inline-actions" style={{ marginTop: '0.5rem' }}>
-                  <Button label="Save Permissions" onClick={() => savePagePermissions().catch((e: unknown) => setStatus(String(e)))} />
+                  <Button label="Save Permissions" onClick={() => savePagePermissions().catch((e: unknown) => setStatus(formatErrorMessage(e)))} />
                 </div>
               </div>
             </details>
@@ -2657,7 +2658,7 @@ export function ContentPagesPage() {
                 </div>
               </div>
               <div className="inline-actions" style={{ marginBottom: '0.75rem' }}>
-                <Button label="Save Targeting" onClick={() => savePageTargeting().catch((e: unknown) => setStatus(String(e)))} />
+                <Button label="Save Targeting" onClick={() => savePageTargeting().catch((e: unknown) => setStatus(formatErrorMessage(e)))} />
               </div>
               <div className="form-row">
                 <label>Preview targeting with sample context JSON</label>
@@ -2670,7 +2671,7 @@ export function ContentPagesPage() {
                   <Button
                     label="Evaluate Targeting"
                     severity="secondary"
-                    onClick={() => previewPageTargeting().catch((e: unknown) => setStatus(String(e)))}
+                    onClick={() => previewPageTargeting().catch((e: unknown) => setStatus(formatErrorMessage(e)))}
                   />
                 </div>
                 {targetingPreviewResult ? (
@@ -2689,13 +2690,21 @@ export function ContentPagesPage() {
                 label={rawEditable ? 'Lock JSON Editing' : 'Enable JSON Editing'}
                 severity={rawEditable ? 'danger' : 'secondary'}
                 onClick={() => {
-                  if (!rawEditable) {
-                    const confirmEdit = window.confirm('Enable raw JSON editing? This bypasses visual editors.');
-                    if (!confirmEdit) {
-                      return;
+                  const toggle = async () => {
+                    if (!rawEditable) {
+                      const confirmEdit = await confirm?.({
+                        header: 'Enable Raw JSON Editing',
+                        message: 'Enable raw JSON editing? This bypasses visual editors.',
+                        acceptLabel: 'Enable',
+                        rejectLabel: 'Cancel'
+                      });
+                      if (!confirmEdit) {
+                        return;
+                      }
                     }
-                  }
-                  setRawEditable((prev) => !prev);
+                    setRawEditable((prev) => !prev);
+                  };
+                  toggle().catch(() => undefined);
                 }}
               />
             </div>
@@ -2809,9 +2818,9 @@ export function ContentPagesPage() {
               }}
               placeholder="Template"
             />
-            <Button label="Create Page" onClick={() => createPage().catch((e: unknown) => setStatus(String(e)))} />
-            <Button label="Save Draft" severity="secondary" onClick={() => saveDraft().catch((e: unknown) => setStatus(String(e)))} disabled={!draft || savingDraft} loading={savingDraft} />
-            <Button label="Publish" severity="success" onClick={() => publish().catch((e: unknown) => setStatus(String(e)))} disabled={!draft} />
+            <Button label="Create Page" onClick={() => createPage().catch((e: unknown) => setStatus(formatErrorMessage(e)))} />
+            <Button label="Save Draft" severity="secondary" onClick={() => saveDraft().catch((e: unknown) => setStatus(formatErrorMessage(e)))} disabled={!draft || savingDraft} loading={savingDraft} />
+            <Button label="Publish" severity="success" onClick={() => publish().catch((e: unknown) => setStatus(formatErrorMessage(e)))} disabled={!draft} />
           </>
         }
         modeToggle={
@@ -2953,8 +2962,8 @@ export function ContentPagesPage() {
                         const rowCommands = commandRegistry.getCommands(rowCommandContext, 'rowOverflow');
                         return (
                           <div className="inline-actions">
-                            <Button icon="pi pi-arrow-up" text rounded size="small" onClick={() => moveRowUp(row).catch((e: unknown) => setStatus(String(e)))} />
-                            <Button icon="pi pi-arrow-down" text rounded size="small" onClick={() => moveRowDown(row).catch((e: unknown) => setStatus(String(e)))} />
+                            <Button icon="pi pi-arrow-up" text rounded size="small" onClick={() => moveRowUp(row).catch((e: unknown) => setStatus(formatErrorMessage(e)))} />
+                            <Button icon="pi pi-arrow-down" text rounded size="small" onClick={() => moveRowDown(row).catch((e: unknown) => setStatus(formatErrorMessage(e)))} />
                             <CommandMenuButton commands={rowCommands} context={rowCommandContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />
                           </div>
                         );
@@ -3090,14 +3099,14 @@ export function ContentPagesPage() {
         <div className="inline-actions" style={{ marginTop: '0.75rem' }}>
           <Button label="Generate Suggestion" onClick={generateAiSuggestion} />
           <Button label="Apply Manually" severity="success" onClick={applyAiSuggestion} disabled={!aiSuggestion} />
-          {aiMode === 'translate' ? <Button label="Run AI Translate Version" severity="secondary" onClick={() => runAiTranslateVersion().catch((e) => setStatus(String(e)))} disabled={!draft} /> : null}
+          {aiMode === 'translate' ? <Button label="Run AI Translate Version" severity="secondary" onClick={() => runAiTranslateVersion().catch((e) => setStatus(formatErrorMessage(e)))} disabled={!draft} /> : null}
         </div>
         <div className="form-row" style={{ marginTop: '0.75rem' }}>
           <label>Suggestion</label>
           <InputTextarea rows={8} value={aiSuggestion} onChange={(event) => setAiSuggestion(event.target.value)} />
         </div>
       </Dialog>
-      {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
+      {status ? <div className="status-panel" role="alert">{status}</div> : null}
     </WorkspacePage>
   );
 }

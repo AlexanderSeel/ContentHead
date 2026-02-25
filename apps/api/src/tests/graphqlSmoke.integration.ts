@@ -190,13 +190,24 @@ async function main() {
     contentItemId: item.id
   });
   await execute(`query($siteId:Int!){ listComponentTypeSettings(siteId:$siteId){ componentTypeId enabled } }`, { siteId: 1 });
+  const variantSets = (await execute(`query($siteId:Int!,$contentItemId:Int!,$marketCode:String!,$localeCode:String!){ listVariantSets(siteId:$siteId, contentItemId:$contentItemId, marketCode:$marketCode, localeCode:$localeCode){ id contentItemId marketCode localeCode } }`, { siteId: 1, contentItemId: item.id, marketCode: 'US', localeCode: 'en-US' })) as any;
+  const variantSetId = variantSets?.listVariantSets?.[0]?.id;
+  if (variantSetId) {
+    await execute(`query($variantSetId:Int!){ selectVariant(variantSetId:$variantSetId, contextJson:"{}"){ selectionReason selectedVariantKey } }`, { variantSetId });
+  }
   await execute(`query($siteId:Int!){ listAssets(siteId:$siteId){ total items { id } } }`, { siteId: 1 });
   await execute(`query($id:Int!){ getAsset(id:$id){ id filename } }`, { id: asset.id });
   await execute(`query($siteId:Int!){ listAssetFolders(siteId:$siteId){ id name } }`, { siteId: 1 });
   await execute(`query($siteId:Int!){ listForms(siteId:$siteId){ id name } }`, { siteId: 1 });
   await execute(`query($siteId:Int!){ listFormSubmissions(siteId:$siteId){ total rows { id status } } }`, { siteId: 1 });
+  await execute(`query($siteId:Int!){ exportFormSubmissions(siteId:$siteId, format:"json") }`, { siteId: 1 });
   await execute(`query { listWorkflowDefinitions { id name } }`);
   await execute(`query { listWorkflowRuns(definitionId:null) { id status } }`);
+  const runs = (await execute(`query { listWorkflowRuns(definitionId:null) { id status definitionId } }`)) as any;
+  const firstRunId = runs?.listWorkflowRuns?.[0]?.id;
+  if (firstRunId) {
+    await execute(`query($runId:Int!){ getWorkflowRun(runId:$runId){ id status logsJson contextJson currentNodeId } }`, { runId: firstRunId });
+  }
   await execute(`query { dbAdminTables(dangerMode:false) { name schema } }`);
   await execute(`query { dbAdminDescribe(table:"users", dangerMode:false) { table columns { name type } } }`);
   await execute(

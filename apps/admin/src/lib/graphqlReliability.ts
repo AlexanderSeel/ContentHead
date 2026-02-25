@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { formatErrorMessage } from './graphqlErrorUi';
 
 const GRAPHQL_DIAGNOSTICS_LIMIT = 20;
 
@@ -115,7 +116,7 @@ function normalizeError(error: unknown): {
   codes: string[];
   fallbackMessage: string;
 } {
-  const fallbackMessage = error instanceof Error ? error.message : String(error);
+  const fallbackMessage = formatErrorMessage(error);
 
   if (!error || typeof error !== 'object') {
     return { messages: [fallbackMessage], codes: [], fallbackMessage };

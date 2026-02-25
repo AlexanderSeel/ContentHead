@@ -11,6 +11,7 @@ import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { getApiBaseUrl } from '../../lib/api';
+import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { useUi } from '../../app/UiContext';
@@ -19,7 +20,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
+import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
 
 type AssetRow = {
   id: number;
@@ -120,18 +121,29 @@ export function AssetLibraryPage() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState('');
+  const [forbiddenReason, setForbiddenReason] = useState('');
   const [contextAsset, setContextAsset] = useState<AssetRow | null>(null);
   const contextMenuRef = useRef<ContextMenu>(null);
+
+  const handleError = (error: unknown) => {
+    const message = formatErrorMessage(error);
+    if (isForbiddenError(error)) {
+      setForbiddenReason(message);
+      return;
+    }
+    setStatus(message);
+  };
 
   const refresh = async () => {
     const res = await sdk.listAssets({ siteId, limit: 200, offset: 0, search: search || null, folderId: null, tags: null });
     const rows = (res.listAssets?.items ?? []) as AssetRow[];
     setAssets(rows);
     setSelected((prev) => rows.find((entry) => entry.id === prev?.id) ?? rows[0] ?? null);
+    setStatus('');
   };
 
   useEffect(() => {
-    refresh().catch((error: unknown) => setStatus(String(error)));
+    refresh().catch(handleError);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteId, search]);
 
@@ -162,7 +174,7 @@ export function AssetLibraryPage() {
       }
       await refresh();
     } catch (error) {
-      setStatus(String(error));
+      handleError(error);
     } finally {
       setUploading(false);
     }
@@ -186,7 +198,7 @@ export function AssetLibraryPage() {
       });
       await refresh();
     } catch (error) {
-      setStatus(String(error));
+      handleError(error);
     } finally {
       setSaving(false);
     }
@@ -234,9 +246,15 @@ export function AssetLibraryPage() {
         subtitle="Upload and manage images with metadata and renditions."
         helpTopicKey="dam"
       />
-      <WorkspaceActionBar
-        primary={(
-          <label className="p-button p-component p-button-sm">
+      {forbiddenReason ? (
+        <WorkspaceBody>
+          <ForbiddenState title="Asset library unavailable" reason={forbiddenReason} />
+        </WorkspaceBody>
+      ) : (
+        <>
+          <WorkspaceActionBar
+            primary={(
+              <label className="p-button p-component p-button-sm">
             <input type="file" multiple style={{ display: 'none' }} onChange={(event) => uploadFiles(event.target.files).catch(() => undefined)} />
             <span className="p-button-label p-c">Upload</span>
           </label>
@@ -312,7 +330,7 @@ export function AssetLibraryPage() {
                           sdk
                             .deleteAsset({ id: selected.id })
                             .then(() => refresh())
-                            .catch((error: unknown) => setStatus(String(error)))
+                            .catch(handleError)
                         }
                       />
                     </div>
@@ -323,8 +341,10 @@ export function AssetLibraryPage() {
           </SplitterPanel>
         </Splitter>
       </WorkspaceBody>
-      {uploading ? <div className="status-panel">Uploading files...</div> : null}
-      {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
+          {uploading ? <div className="status-panel">Uploading files...</div> : null}
+          {status ? <div className="status-panel" role="alert">{status}</div> : null}
+        </>
+      )}
     </WorkspacePage>
   );
 }

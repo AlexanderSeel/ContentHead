@@ -3,11 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useUi } from '../../app/UiContext';
+import { isForbiddenError } from '../../lib/graphqlErrorUi';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { routeStartsWith } from '../../ui/commands/utils';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { WorkflowDesignerSection } from '../WorkflowDesignerSection';
 
 type WorkflowDesignerHeaderContext = CommandContext & {
@@ -33,6 +34,7 @@ export function WorkflowDesignerPage() {
   const navigate = useNavigate();
   const { toast } = useUi();
   const [status, setStatus] = useState('');
+  const forbiddenReason = status && isForbiddenError(status) ? status : '';
 
   const headerContext: WorkflowDesignerHeaderContext = {
     route: location.pathname,
@@ -52,20 +54,28 @@ export function WorkflowDesignerPage() {
         subtitle="Design and configure workflow graphs"
         helpTopicKey="workflows"
       />
-      <WorkspaceActionBar
-        overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
-      />
-      <WorkspaceBody>
-        <WorkflowDesignerSection
-          siteId={siteId}
-          selectedItemId={null}
-          selectedVariantSetId={null}
-          market={marketCode}
-          locale={localeCode}
-          onStatus={setStatus}
-        />
-      </WorkspaceBody>
-      {status ? <pre>{status}</pre> : null}
+      {forbiddenReason ? (
+        <WorkspaceBody>
+          <ForbiddenState title="Workflow designer unavailable" reason={forbiddenReason} />
+        </WorkspaceBody>
+      ) : (
+        <>
+          <WorkspaceActionBar
+            overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+          />
+          <WorkspaceBody>
+            <WorkflowDesignerSection
+              siteId={siteId}
+              selectedItemId={null}
+              selectedVariantSetId={null}
+              market={marketCode}
+              locale={localeCode}
+              onStatus={setStatus}
+            />
+          </WorkspaceBody>
+          {status ? <div className="status-panel" role="alert">{status}</div> : null}
+        </>
+      )}
     </WorkspacePage>
   );
 }

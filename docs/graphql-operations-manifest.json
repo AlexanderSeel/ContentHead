@@ -1,0 +1,1533 @@
+[
+  {
+    "operationName": "AclPermissionKeys",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "aclPermissionKeys",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "AddComponent",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "addComponent",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "AdminSiteMatrix",
+    "usages": [
+      {
+        "source": "apps/admin/src/graphql/sites.graphql",
+        "operationType": "query",
+        "rootField": "getSiteMarketLocaleMatrix",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "AiGenerateContent",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "aiGenerateContent",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "AiGenerateContentType",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "aiGenerateContentType",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "AiGenerateVariants",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "aiGenerateVariants",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "AiTranslateVersion",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "aiTranslateVersion",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ApproveStep",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "approveStep",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ArchiveContentItem",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "archiveContentItem",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "CreateAssetFolder",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "createAssetFolder",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "CreateChildPage",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "createChildPage",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "CreateContentItem",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "createContentItem",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "CreateContentType",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "createContentType",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "CreateDraftVersion",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "createDraftVersion",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "CreateInternalUser",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "createInternalUser",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "CreateTemplate",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "createTemplate",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DbAdminDelete",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "dbAdminDelete",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DbAdminDescribe",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "dbAdminDescribe",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DbAdminInsert",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "dbAdminInsert",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DbAdminList",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "dbAdminList",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DbAdminSql",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "dbAdminSql",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DbAdminTables",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "dbAdminTables",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DbAdminUpdate",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "dbAdminUpdate",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeleteAsset",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "deleteAsset",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeleteConnector",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "deleteConnector",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeleteContentType",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "deleteContentType",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeleteForm",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "deleteForm",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeleteFormField",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "deleteFormField",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeleteFormStep",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "deleteFormStep",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeleteInternalRole",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "deleteInternalRole",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeletePage",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "deletePage",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeletePrincipalGroup",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "deletePrincipalGroup",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeleteRoute",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "deleteRoute",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeleteTemplate",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "deleteTemplate",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeleteVariant",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "deleteVariant",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeleteVariantSet",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "deleteVariantSet",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeleteVisitorGroup",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "deleteVisitorGroup",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DeleteWorkflowDefinition",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "deleteWorkflowDefinition",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DevDiagnostics",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/dev-diagnostics.graphql",
+        "operationType": "query",
+        "rootField": "devDiagnostics",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "DiffVersions",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "diffVersions",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "EvaluateForm",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "evaluateForm",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "EvaluatePageTargeting",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "evaluatePageTargeting",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ExportFormSubmissions",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "exportFormSubmissions",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "GetAsset",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "getAsset",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "GetContentItemDetail",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "getContentItemDetail",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "GetPageAclSettings",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "getPageAclSettings",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "GetPageByRoute",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "getPageByRoute",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "GetPageTargeting",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "getPageTargeting",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "GetPageTree",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "getPageTree",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "GetSite",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/sites.graphql",
+        "operationType": "query",
+        "rootField": "getSite",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "GetSiteDefaults",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/sites.graphql",
+        "operationType": "query",
+        "rootField": "getSiteDefaults",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "GetSiteMarketLocaleMatrix",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/sites.graphql",
+        "operationType": "query",
+        "rootField": "getSiteMarketLocaleMatrix",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "GetWorkflowRun",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "getWorkflowRun",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "InternalPermissions",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "internalPermissions",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "IssuePreviewToken",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "issuePreviewToken",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListAssetFolders",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "listAssetFolders",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListAssets",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "listAssets",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListComponentTypeSettings",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listComponentTypeSettings",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListConnectors",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "listConnectors",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListContentItems",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listContentItems",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListContentTypes",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listContentTypes",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListEntityAcls",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "listEntityAcls",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListFormFields",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listFormFields",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListForms",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listForms",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListFormSteps",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listFormSteps",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListFormSubmissions",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listFormSubmissions",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListInternalRoles",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "listInternalRoles",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListInternalUsers",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "listInternalUsers",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListLocales",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/sites.graphql",
+        "operationType": "query",
+        "rootField": "listLocales",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListMarkets",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/sites.graphql",
+        "operationType": "query",
+        "rootField": "listMarkets",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListPrincipalGroups",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "listPrincipalGroups",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListRoutes",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listRoutes",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListSites",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/sites.graphql",
+        "operationType": "query",
+        "rootField": "listSites",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListTemplates",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listTemplates",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListVariants",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listVariants",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListVariantSets",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listVariantSets",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListVersions",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listVersions",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListVisitorGroups",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "query",
+        "rootField": "listVisitorGroups",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListWorkflowDefinitions",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listWorkflowDefinitions",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ListWorkflowRuns",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "listWorkflowRuns",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "LocaleCatalog",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/sites.graphql",
+        "operationType": "query",
+        "rootField": "localeCatalog",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "Login",
+    "usages": [
+      {
+        "source": "apps/admin/src/graphql/login.graphql",
+        "operationType": "mutation",
+        "rootField": "login",
+        "existsInSchema": true
+      },
+      {
+        "source": "apps/web/src/graphql/login.graphql",
+        "operationType": "mutation",
+        "rootField": "login",
+        "existsInSchema": true
+      },
+      {
+        "source": "packages/sdk/src/graphql/login.graphql",
+        "operationType": "mutation",
+        "rootField": "login",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "Me",
+    "usages": [
+      {
+        "source": "apps/admin/src/graphql/me.graphql",
+        "operationType": "query",
+        "rootField": "me",
+        "existsInSchema": true
+      },
+      {
+        "source": "apps/web/src/graphql/me.graphql",
+        "operationType": "query",
+        "rootField": "me",
+        "existsInSchema": true
+      },
+      {
+        "source": "packages/sdk/src/graphql/me.graphql",
+        "operationType": "query",
+        "rootField": "me",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "MoveComponent",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "moveComponent",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "MovePage",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "movePage",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "PublishVersion",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "publishVersion",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ReconcileTemplate",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "reconcileTemplate",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "RemoveComponent",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "removeComponent",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ReorderSiblings",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "reorderSiblings",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ReplaceEntityAcls",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "replaceEntityAcls",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ResetInternalUserPassword",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "resetInternalUserPassword",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ResolveMarketLocale",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/sites.graphql",
+        "operationType": "query",
+        "rootField": "resolveMarketLocale",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ResolveRoute",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "resolveRoute",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "RetryFailed",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "retryFailed",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "RollbackToVersion",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "rollbackToVersion",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "SelectVariant",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "query",
+        "rootField": "selectVariant",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "SetDefaultConnector",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "setDefaultConnector",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "SetSiteLocales",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/site-mutations.graphql",
+        "operationType": "mutation",
+        "rootField": "setSiteLocales",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "SetSiteMarketLocaleMatrix",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/site-mutations.graphql",
+        "operationType": "mutation",
+        "rootField": "setSiteMarketLocaleMatrix",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "SetSiteMarkets",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/site-mutations.graphql",
+        "operationType": "mutation",
+        "rootField": "setSiteMarkets",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "SetSiteName",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/site-mutations.graphql",
+        "operationType": "mutation",
+        "rootField": "setSiteName",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "SetSiteUrlPattern",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/site-mutations.graphql",
+        "operationType": "mutation",
+        "rootField": "setSiteUrlPattern",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "SetUserGroups",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "setUserGroups",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "SetUserRoles",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "setUserRoles",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "StartWorkflowRun",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "startWorkflowRun",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "SubmitForm",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "submitForm",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "TestConnector",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "testConnector",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpdateAssetMetadata",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "updateAssetMetadata",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpdateComponentProps",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "updateComponentProps",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpdateContentType",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "updateContentType",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpdateDraftVersion",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "updateDraftVersion",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpdateInternalUser",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "updateInternalUser",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpdateSubmissionStatus",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "updateSubmissionStatus",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpdateTemplate",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "updateTemplate",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertComponentTypeSetting",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertComponentTypeSetting",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertConnector",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertConnector",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertForm",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertForm",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertFormField",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertFormField",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertFormStep",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertFormStep",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertInternalRole",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertInternalRole",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertLocale",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/site-mutations.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertLocale",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertMarket",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/site-mutations.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertMarket",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertPageAclSettings",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertPageAclSettings",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertPageTargeting",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertPageTargeting",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertPrincipalGroup",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertPrincipalGroup",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertRoute",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertRoute",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertSiteLocaleOverride",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/site-mutations.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertSiteLocaleOverride",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertVariant",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertVariant",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertVariantSet",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertVariantSet",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertVisitorGroup",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/connectors-assets-security.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertVisitorGroup",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "UpsertWorkflowDefinition",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/content.graphql",
+        "operationType": "mutation",
+        "rootField": "upsertWorkflowDefinition",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "ValidateMarketLocale",
+    "usages": [
+      {
+        "source": "packages/sdk/src/graphql/sites.graphql",
+        "operationType": "query",
+        "rootField": "validateMarketLocale",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "WebGetPageByRoute",
+    "usages": [
+      {
+        "source": "apps/web/src/graphql/page-by-route.graphql",
+        "operationType": "query",
+        "rootField": "getPageByRoute",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "WebResolveRoute",
+    "usages": [
+      {
+        "source": "apps/web/src/graphql/resolve-route.graphql",
+        "operationType": "query",
+        "rootField": "resolveRoute",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "WebSite",
+    "usages": [
+      {
+        "source": "apps/web/src/graphql/market-locale.graphql",
+        "operationType": "query",
+        "rootField": "getSite",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "WebSiteDefaults",
+    "usages": [
+      {
+        "source": "apps/web/src/graphql/market-locale.graphql",
+        "operationType": "query",
+        "rootField": "getSiteDefaults",
+        "existsInSchema": true
+      }
+    ]
+  },
+  {
+    "operationName": "WebValidateMarketLocale",
+    "usages": [
+      {
+        "source": "apps/web/src/graphql/market-locale.graphql",
+        "operationType": "query",
+        "rootField": "validateMarketLocale",
+        "existsInSchema": true
+      }
+    ]
+  }
+]

@@ -1916,7 +1916,14 @@ export async function upsertRoute(db: DbClient, input: {
   }
 
   const slug = normalizeSlug(input.slug);
-  const id = input.id ?? (await nextId(db, 'content_routes'));
+  const existingRoute =
+    input.id == null
+      ? await db.get<{ id: number }>(
+          'SELECT id FROM content_routes WHERE site_id = ? AND market_code = ? AND locale_code = ? AND slug = ?',
+          [input.siteId, input.marketCode, input.localeCode, slug]
+        )
+      : null;
+  const id = input.id ?? existingRoute?.id ?? (await nextId(db, 'content_routes'));
 
   await db.run(
     `

@@ -10,7 +10,8 @@ import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { createAdminSdk } from '../../lib/sdk';
 import { RuleEditorDialog } from '../../components/rules/RuleEditorDialog';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
+import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type VisitorGroup = {
   id: number;
@@ -28,16 +29,27 @@ export function VisitorGroupsPage() {
   const [selected, setSelected] = useState<VisitorGroup | null>(null);
   const [ruleEditorOpen, setRuleEditorOpen] = useState(false);
   const [status, setStatus] = useState('');
+  const [forbiddenReason, setForbiddenReason] = useState('');
+
+  const handleError = (error: unknown) => {
+    const message = formatErrorMessage(error);
+    if (isForbiddenError(error)) {
+      setForbiddenReason(message);
+      return;
+    }
+    setStatus(message);
+  };
 
   const refresh = async () => {
     const res = await sdk.listVisitorGroups({ siteId });
     const nextRows = (res.listVisitorGroups ?? []) as VisitorGroup[];
     setRows(nextRows);
     setSelected((prev) => nextRows.find((entry) => entry.id === prev?.id) ?? nextRows[0] ?? null);
+    setStatus('');
   };
 
   useEffect(() => {
-    refresh().catch((error: unknown) => setStatus(String(error)));
+    refresh().catch(handleError);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteId]);
 
@@ -69,28 +81,34 @@ export function VisitorGroupsPage() {
         subtitle="Rule-based audience segments for page targeting and personalization."
         helpTopicKey="variants"
       />
-      <WorkspaceActionBar
-        primary={(
-          <>
-            <Button
-              label="New Group"
-              onClick={() => setSelected({ id: 0, siteId, name: '', ruleJson: '{"all":[]}' })}
-            />
-            <Button
-              label="Save"
-              onClick={() => save().catch((error: unknown) => setStatus(String(error)))}
-              disabled={!selected || !selected.name.trim()}
-            />
-            <Button
-              label="Delete"
-              severity="danger"
-              onClick={() => remove().catch((error: unknown) => setStatus(String(error)))}
-              disabled={!selected?.id}
-            />
-          </>
-        )}
-      />
-      <WorkspaceBody>
+      {forbiddenReason ? (
+        <WorkspaceBody>
+          <ForbiddenState title="Visitor groups unavailable" reason={forbiddenReason} />
+        </WorkspaceBody>
+      ) : (
+        <>
+          <WorkspaceActionBar
+            primary={(
+              <>
+                <Button
+                  label="New Group"
+                  onClick={() => setSelected({ id: 0, siteId, name: '', ruleJson: '{"all":[]}' })}
+                />
+                <Button
+                  label="Save"
+                  onClick={() => save().catch(handleError)}
+                  disabled={!selected || !selected.name.trim()}
+                />
+                <Button
+                  label="Delete"
+                  severity="danger"
+                  onClick={() => remove().catch(handleError)}
+                  disabled={!selected?.id}
+                />
+              </>
+            )}
+          />
+          <WorkspaceBody>
         <div className="paneRoot paneScroll">
           <DataTable
             value={rows}
@@ -116,8 +134,8 @@ export function VisitorGroupsPage() {
             </div>
           )}
         </div>
-      </WorkspaceBody>
-      <RuleEditorDialog
+          </WorkspaceBody>
+          <RuleEditorDialog
         visible={ruleEditorOpen}
         initialRule={(() => {
           try {
@@ -139,8 +157,10 @@ export function VisitorGroupsPage() {
           }
           setRuleEditorOpen(false);
         }}
-      />
-      {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
+          />
+          {status ? <div className="status-panel" role="alert">{status}</div> : null}
+        </>
+      )}
     </WorkspacePage>
   );
 }

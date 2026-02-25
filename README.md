@@ -88,6 +88,15 @@ pnpm --filter @contenthead/api seed
 - `pnpm build`: `schema -> codegen -> build all`
 - `pnpm typecheck`
 - `pnpm test`
+- `pnpm ops:inventory`: export schema + validate UI-used GraphQL operations against schema
+- `pnpm test:health`: seed + ops inventory + API integration tests + admin tests
+
+
+## Architecture / Reliability Docs
+- System health checklist: `docs/health.md`
+- Architecture overview: `docs/architecture.md`
+- RBAC rules: `docs/permissions.md`
+- Preview bridge protocol: `docs/preview-visivic.md`
 
 ## Admin Navigation
 Admin now uses routed backend UI with shell layout:
@@ -352,4 +361,6 @@ Passed locally:
 - `pnpm codegen`
 - `pnpm typecheck`
 - `pnpm test`
+- `pnpm ops:inventory`: export schema + validate UI-used GraphQL operations against schema
+- `pnpm test:health`: seed + ops inventory + API integration tests + admin tests
 - `pnpm build`

@@ -14,7 +14,8 @@ import { useAuth } from '../../app/AuthContext';
 import { createAdminSdk } from '../../lib/sdk';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import type { Command, CommandContext } from '../../ui/commands/types';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
+import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type ConnectorDomain = 'auth' | 'db' | 'dam' | 'ai';
 
@@ -87,6 +88,16 @@ export function ConnectorSettingsPage({ domain }: { domain: ConnectorDomain }) {
   const [selectedBaseline, setSelectedBaseline] = useState<ConnectorRow | null>(null);
   const [status, setStatus] = useState('');
   const [testResult, setTestResult] = useState('');
+  const [forbiddenReason, setForbiddenReason] = useState('');
+
+  const handleError = (error: unknown) => {
+    const message = formatErrorMessage(error);
+    if (isForbiddenError(error)) {
+      setForbiddenReason(message);
+      return;
+    }
+    setStatus(message);
+  };
 
   const refresh = async () => {
     const response = await sdk.listConnectors({ domain });
@@ -95,10 +106,11 @@ export function ConnectorSettingsPage({ domain }: { domain: ConnectorDomain }) {
     const nextSelected = values.find((entry) => entry.id === selected?.id) ?? values[0] ?? null;
     setSelected(nextSelected);
     setSelectedBaseline(nextSelected ? { ...nextSelected } : null);
+    setStatus('');
   };
 
   useEffect(() => {
-    refresh().catch((error: unknown) => setStatus(String(error)));
+    refresh().catch(handleError);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domain]);
 
@@ -212,30 +224,36 @@ export function ConnectorSettingsPage({ domain }: { domain: ConnectorDomain }) {
         helpTopicKey="site_overview"
         badges={isDirty ? <Tag value="Unsaved changes" severity="warning" /> : null}
       />
-      <WorkspaceActionBar
-        primary={(
-          <>
-            <Button
-              label="New Connector"
-              onClick={() =>
-                setSelected({
-                  id: 0,
-                  domain,
-                  type: providerOptions[domain][0]?.value ?? 'internal',
-                  name: `${domain} connector`,
-                  enabled: true,
-                  isDefault: rows.length === 0,
-                  configJson: configHints[providerOptions[domain][0]?.value ?? 'internal'] ?? '{}'
-                })
-              }
-            />
-            <Button label="Save" onClick={() => saveSelected().catch((error: unknown) => setStatus(String(error)))} disabled={!isDirty || !isValid} />
-          </>
-        )}
-        overflow={<CommandMenuButton commands={overflowCommands} context={overflowContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
-      />
-      <WorkspaceBody>
-        <Splitter className="splitFill" style={{ width: '100%' }}>
+      {forbiddenReason ? (
+        <WorkspaceBody>
+          <ForbiddenState title="Connector settings unavailable" reason={forbiddenReason} />
+        </WorkspaceBody>
+      ) : (
+        <>
+          <WorkspaceActionBar
+            primary={(
+              <>
+                <Button
+                  label="New Connector"
+                  onClick={() =>
+                    setSelected({
+                      id: 0,
+                      domain,
+                      type: providerOptions[domain][0]?.value ?? 'internal',
+                      name: `${domain} connector`,
+                      enabled: true,
+                      isDefault: rows.length === 0,
+                      configJson: configHints[providerOptions[domain][0]?.value ?? 'internal'] ?? '{}'
+                    })
+                  }
+                />
+                <Button label="Save" onClick={() => saveSelected().catch(handleError)} disabled={!isDirty || !isValid} />
+              </>
+            )}
+            overflow={<CommandMenuButton commands={overflowCommands} context={overflowContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+          />
+          <WorkspaceBody>
+            <Splitter className="splitFill" style={{ width: '100%' }}>
           <SplitterPanel size={40} minSize={28}>
             <div className="paneRoot">
               <div className="paneScroll">
@@ -313,9 +331,11 @@ export function ConnectorSettingsPage({ domain }: { domain: ConnectorDomain }) {
               </div>
             </div>
           </SplitterPanel>
-        </Splitter>
-      </WorkspaceBody>
-      {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
+            </Splitter>
+          </WorkspaceBody>
+          {status ? <div className="status-panel" role="alert">{status}</div> : null}
+        </>
+      )}
     </WorkspacePage>
   );
 }

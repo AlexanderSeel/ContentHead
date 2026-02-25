@@ -17,12 +17,13 @@ import { TabPanel, TabView } from 'primereact/tabview';
 
 import { useAuth } from '../../app/AuthContext';
 import { useUi } from '../../app/UiContext';
+import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { createAdminSdk } from '../../lib/sdk';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { routeStartsWith } from '../../ui/commands/utils';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
+import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
 
 type DbAdminColumn = {
   name: string;
@@ -249,6 +250,7 @@ export function DbAdminPage() {
   const [tablesLoading, setTablesLoading] = useState(false);
   const [rowsLoading, setRowsLoading] = useState(false);
   const [forbiddenMessage, setForbiddenMessage] = useState<string | null>(null);
+  const [accessChecked, setAccessChecked] = useState(false);
   const [tableSearch, setTableSearch] = useState('');
   const [dangerMode, setDangerMode] = useState(false);
   const [revealSensitiveColumns, setRevealSensitiveColumns] = useState(false);
@@ -318,7 +320,26 @@ export function DbAdminPage() {
   const getErrorMessage = (error: unknown): string =>
     parseErrorCode(error) === 'FORBIDDEN'
       ? 'Forbidden: DB Admin requires DB_ADMIN permission or admin role.'
-      : String(error);
+      : formatErrorMessage(error);
+
+  const checkDbAdminAccess = async (): Promise<boolean> => {
+    const diagnosticsResult = await sdk.safe.devDiagnostics();
+    if (!diagnosticsResult.ok) {
+      setAccessChecked(true);
+      return true;
+    }
+    const diagnostics = diagnosticsResult.data.devDiagnostics;
+    const roles = diagnostics?.roles ?? [];
+    const permissions = diagnostics?.permissions ?? [];
+    const hasAccess = roles.includes('admin') || permissions.includes('DB_ADMIN') || permissions.includes('DB_ADMIN_READ');
+    if (!hasAccess) {
+      setForbiddenMessage('Forbidden: DB Admin requires DB_ADMIN permission or admin role.');
+    } else {
+      setForbiddenMessage(null);
+    }
+    setAccessChecked(true);
+    return hasAccess;
+  };
 
   const refreshTables = async (nextDangerMode = dangerMode) => {
     setTablesLoading(true);
@@ -383,11 +404,16 @@ export function DbAdminPage() {
   };
 
   useEffect(() => {
-    refreshTables().catch((error: unknown) => setStatus(getErrorMessage(error)));
+    checkDbAdminAccess()
+      .then((hasAccess) => (hasAccess ? refreshTables() : undefined))
+      .catch((error: unknown) => setStatus(getErrorMessage(error)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    if (!accessChecked || forbiddenMessage) {
+      return;
+    }
     if (!selectedTable) {
       setTableInfo(null);
       setRows([]);
@@ -410,6 +436,9 @@ export function DbAdminPage() {
   }, [selectedTable, dangerMode]);
 
   useEffect(() => {
+    if (!accessChecked || forbiddenMessage) {
+      return;
+    }
     if (!selectedTable) {
       return;
     }
@@ -703,6 +732,11 @@ export function DbAdminPage() {
         </div>
       </WorkspaceToolbar>
       <WorkspaceBody>
+        {!accessChecked ? (
+          <div className="status-panel">Checking DB Admin permissions...</div>
+        ) : forbiddenMessage ? (
+          <ForbiddenState title="DB Admin unavailable" reason={forbiddenMessage} />
+        ) : (
         <Splitter className="splitFill" style={{ width: '100%' }}>
           <SplitterPanel size={22} minSize={16}>
             <div className="paneRoot">
@@ -935,15 +969,11 @@ export function DbAdminPage() {
             </div>
           </SplitterPanel>
         </Splitter>
+        )}
       </WorkspaceBody>
-      {forbiddenMessage ? (
-        <div className="status-panel">
-          <pre>{forbiddenMessage}</pre>
-        </div>
-      ) : null}
       {status ? (
-        <div className="status-panel">
-          <pre>{status}</pre>
+        <div className="status-panel" role="alert">
+          {status}
         </div>
       ) : null}
     </WorkspacePage>

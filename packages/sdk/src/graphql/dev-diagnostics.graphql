@@ -1,0 +1,11 @@
+query DevDiagnostics {
+  devDiagnostics {
+    roles
+    permissions
+    seedStatus {
+      adminRoleExists
+      adminPermissionCoverage
+      adminUserHasRole
+    }
+  }
+}

@@ -230,6 +230,13 @@ export type DbAdminTableListItem = {
   schema?: Maybe<Scalars['String']['output']>;
 };
 
+export type DevDiagnostics = {
+  __typename?: 'DevDiagnostics';
+  permissions?: Maybe<Array<Scalars['String']['output']>>;
+  roles?: Maybe<Array<Scalars['String']['output']>>;
+  seedStatus?: Maybe<SecuritySeedStatus>;
+};
+
 export type EntityAcl = {
   __typename?: 'EntityAcl';
   effect?: Maybe<Scalars['String']['output']>;
@@ -1130,6 +1137,7 @@ export type Query = {
   dbAdminDescribe?: Maybe<DbAdminTable>;
   dbAdminList?: Maybe<DbAdminListResult>;
   dbAdminTables?: Maybe<Array<DbAdminTableListItem>>;
+  devDiagnostics?: Maybe<DevDiagnostics>;
   diffVersions?: Maybe<VersionDiff>;
   evaluateForm?: Maybe<FormEvaluation>;
   evaluatePageTargeting?: Maybe<PageTargetingEvaluation>;
@@ -1457,6 +1465,13 @@ export type ResolvedRoute = {
   mode?: Maybe<Scalars['String']['output']>;
   route?: Maybe<ContentRoute>;
   version?: Maybe<ContentVersion>;
+};
+
+export type SecuritySeedStatus = {
+  __typename?: 'SecuritySeedStatus';
+  adminPermissionCoverage?: Maybe<Scalars['Boolean']['output']>;
+  adminRoleExists?: Maybe<Scalars['Boolean']['output']>;
+  adminUserHasRole?: Maybe<Scalars['Boolean']['output']>;
 };
 
 export type Site = {

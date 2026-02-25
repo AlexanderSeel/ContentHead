@@ -11,7 +11,8 @@ import { Tag } from 'primereact/tag';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
+import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type UserRow = {
   id: number;
@@ -43,6 +44,16 @@ export function UsersPage() {
   const [newUser, setNewUser] = useState({ username: '', displayName: '', password: '', active: true });
   const [resetPassword, setResetPassword] = useState('');
   const [status, setStatus] = useState('');
+  const [forbiddenReason, setForbiddenReason] = useState('');
+
+  const handleError = (error: unknown) => {
+    const message = formatErrorMessage(error);
+    if (isForbiddenError(error)) {
+      setForbiddenReason(message);
+      return;
+    }
+    setStatus(message);
+  };
 
   const refresh = async () => {
     const [usersRes, rolesRes, groupsRes] = await Promise.all([
@@ -55,10 +66,11 @@ export function UsersPage() {
     setRoles((rolesRes.listInternalRoles ?? []) as RoleRow[]);
     setGroups((groupsRes.listPrincipalGroups ?? []) as GroupRow[]);
     setSelected((prev) => nextUsers.find((entry) => entry.id === prev?.id) ?? nextUsers[0] ?? null);
+    setStatus('');
   };
 
   useEffect(() => {
-    refresh().catch((error: unknown) => setStatus(String(error)));
+    refresh().catch(handleError);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -97,92 +109,96 @@ export function UsersPage() {
         helpTopicKey="site_overview"
         badges={selected ? <Tag value={`Selected: ${selected.username}`} /> : null}
       />
-      <WorkspaceActionBar
-        primary={(
-          <>
-            <Button
-              label="Create User"
-              onClick={() => createUser().catch((error: unknown) => setStatus(String(error)))}
-              disabled={newUser.username.trim().length < 3 || newUser.password.length < 8}
-            />
-            <Button
-              label="Save Changes"
-              onClick={() => saveUser().catch((error: unknown) => setStatus(String(error)))}
-              disabled={!selected}
-            />
-            <Button
-              label="Reset Password"
-              severity="secondary"
-              onClick={() => resetSelectedPassword().catch((error: unknown) => setStatus(String(error)))}
-              disabled={!selected || resetPassword.length < 8}
-            />
-          </>
-        )}
-      />
-      <WorkspaceBody>
-        <Splitter className="splitFill" style={{ width: '100%' }}>
-          <SplitterPanel size={45} minSize={28}>
-            <div className="paneRoot">
-              <div className="paneHeader"><h3>Create user</h3></div>
-              <div className="paneScroll">
-                <div className="form-row">
-                  <label>Username</label>
-                  <InputText value={newUser.username} onChange={(event) => setNewUser({ ...newUser, username: event.target.value })} />
-                  <label>Display name</label>
-                  <InputText value={newUser.displayName} onChange={(event) => setNewUser({ ...newUser, displayName: event.target.value })} />
-                  <label>Password</label>
-                  <Password value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} feedback={false} toggleMask />
-                  <label>
-                    <Checkbox checked={newUser.active} onChange={(event) => setNewUser({ ...newUser, active: Boolean(event.checked) })} /> Active
-                  </label>
-                </div>
-                <DataTable value={users} size="small" selectionMode="single" selection={selected} onSelectionChange={(event) => setSelected((event.value as UserRow) ?? null)}>
-                  <Column field="username" header="Username" />
-                  <Column field="displayName" header="Display Name" />
-                  <Column field="active" header="Active" body={(row: UserRow) => (row.active ? 'Yes' : 'No')} />
-                </DataTable>
-              </div>
-            </div>
-          </SplitterPanel>
-          <SplitterPanel size={55} minSize={28}>
-            <div className="paneRoot">
-              <div className="paneScroll">
-                {!selected ? (
-                  <p className="muted">Select a user to edit.</p>
-                ) : (
-                  <div className="form-row">
-                    <label>Display name</label>
-                    <InputText value={selected.displayName} onChange={(event) => setSelected({ ...selected, displayName: event.target.value })} />
-                    <label>
-                      <Checkbox checked={selected.active} onChange={(event) => setSelected({ ...selected, active: Boolean(event.checked) })} /> Active
-                    </label>
-                    <label>Roles</label>
-                    <MultiSelect
-                      value={selected.roleIds}
-                      options={roles.map((entry) => ({ label: entry.name, value: entry.id }))}
-                      onChange={(event) => setSelected({ ...selected, roleIds: event.value as number[] })}
-                    />
-                    <label>Reset password</label>
-                    <Password value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} feedback={false} toggleMask />
-                    <label>Groups</label>
-                    <MultiSelect
-                      value={selected.groupIds ?? []}
-                      options={groups.map((entry) => ({ label: entry.name, value: entry.id }))}
-                      onChange={(event) =>
-                        setSelected({
-                          ...selected,
-                          groupIds: event.value as number[]
-                        })
-                      }
-                    />
+      {forbiddenReason ? (
+        <WorkspaceBody>
+          <ForbiddenState title="Users management unavailable" reason={forbiddenReason} />
+        </WorkspaceBody>
+      ) : (
+        <>
+          <WorkspaceActionBar
+            primary={(
+              <>
+                <Button
+                  label="Create User"
+                  onClick={() => createUser().catch(handleError)}
+                  disabled={newUser.username.trim().length < 3 || newUser.password.length < 8}
+                />
+                <Button label="Save Changes" onClick={() => saveUser().catch(handleError)} disabled={!selected} />
+                <Button
+                  label="Reset Password"
+                  severity="secondary"
+                  onClick={() => resetSelectedPassword().catch(handleError)}
+                  disabled={!selected || resetPassword.length < 8}
+                />
+              </>
+            )}
+          />
+          <WorkspaceBody>
+            <Splitter className="splitFill" style={{ width: '100%' }}>
+              <SplitterPanel size={45} minSize={28}>
+                <div className="paneRoot">
+                  <div className="paneHeader"><h3>Create user</h3></div>
+                  <div className="paneScroll">
+                    <div className="form-row">
+                      <label>Username</label>
+                      <InputText value={newUser.username} onChange={(event) => setNewUser({ ...newUser, username: event.target.value })} />
+                      <label>Display name</label>
+                      <InputText value={newUser.displayName} onChange={(event) => setNewUser({ ...newUser, displayName: event.target.value })} />
+                      <label>Password</label>
+                      <Password value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} feedback={false} toggleMask />
+                      <label>
+                        <Checkbox checked={newUser.active} onChange={(event) => setNewUser({ ...newUser, active: Boolean(event.checked) })} /> Active
+                      </label>
+                    </div>
+                    <DataTable value={users} size="small" selectionMode="single" selection={selected} onSelectionChange={(event) => setSelected((event.value as UserRow) ?? null)}>
+                      <Column field="username" header="Username" />
+                      <Column field="displayName" header="Display Name" />
+                      <Column field="active" header="Active" body={(row: UserRow) => (row.active ? 'Yes' : 'No')} />
+                    </DataTable>
                   </div>
-                )}
-              </div>
-            </div>
-          </SplitterPanel>
-        </Splitter>
-      </WorkspaceBody>
-      {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
+                </div>
+              </SplitterPanel>
+              <SplitterPanel size={55} minSize={28}>
+                <div className="paneRoot">
+                  <div className="paneScroll">
+                    {!selected ? (
+                      <p className="muted">Select a user to edit.</p>
+                    ) : (
+                      <div className="form-row">
+                        <label>Display name</label>
+                        <InputText value={selected.displayName} onChange={(event) => setSelected({ ...selected, displayName: event.target.value })} />
+                        <label>
+                          <Checkbox checked={selected.active} onChange={(event) => setSelected({ ...selected, active: Boolean(event.checked) })} /> Active
+                        </label>
+                        <label>Roles</label>
+                        <MultiSelect
+                          value={selected.roleIds}
+                          options={roles.map((entry) => ({ label: entry.name, value: entry.id }))}
+                          onChange={(event) => setSelected({ ...selected, roleIds: event.value as number[] })}
+                        />
+                        <label>Reset password</label>
+                        <Password value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} feedback={false} toggleMask />
+                        <label>Groups</label>
+                        <MultiSelect
+                          value={selected.groupIds ?? []}
+                          options={groups.map((entry) => ({ label: entry.name, value: entry.id }))}
+                          onChange={(event) =>
+                            setSelected({
+                              ...selected,
+                              groupIds: event.value as number[]
+                            })
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </SplitterPanel>
+            </Splitter>
+          </WorkspaceBody>
+          {status ? <div className="status-panel" role="alert">{status}</div> : null}
+        </>
+      )}
     </WorkspacePage>
   );
 }

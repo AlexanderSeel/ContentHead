@@ -5,6 +5,7 @@ import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
 import { DatePicker, NumberInput, Select, TextInput } from '../../ui/atoms';
 import { EntityEditor, EntityTable, ToolbarActions, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { deleteEntity, insertEntity, listEntities, updateEntity } from '../core/dbEntityApi';
 
 type Booking = {
@@ -54,7 +55,7 @@ export function SchedulerBookingPage() {
   };
 
   useEffect(() => {
-    load().catch((error) => setStatus(String(error)));
+    load().catch((error) => setStatus(formatErrorMessage(error)));
   }, [siteId]);
 
   const customerLookup = useMemo(() => new Map(customers.map((entry) => [entry.id, entry.display_name])), [customers]);
@@ -80,7 +81,7 @@ export function SchedulerBookingPage() {
         right={
           <>
             <Button label="New Booking" onClick={() => setEditingBooking({ id: nextId(bookings), site_id: siteId, booking_at: new Date().toISOString(), customer_id: null, content_item_id: null, status: 'PLANNED', notes: null })} />
-            <Button text label="Reload" onClick={() => load().catch((error) => setStatus(String(error)))} />
+            <Button text label="Reload" onClick={() => load().catch((error) => setStatus(formatErrorMessage(error)))} />
           </>
         }
       />
@@ -111,7 +112,7 @@ export function SchedulerBookingPage() {
                   text
                   severity="danger"
                   label="Delete"
-                  onClick={() => deleteEntity(token, 'ext_bookings', { id: row.id }).then(() => load()).catch((error) => setStatus(String(error)))}
+                  onClick={() => deleteEntity(token, 'ext_bookings', { id: row.id }).then(() => load()).catch((error) => setStatus(formatErrorMessage(error)))}
                 />
               </div>
             )
@@ -138,7 +139,7 @@ export function SchedulerBookingPage() {
                 const action = bookings.some((entry) => entry.id === payload.id)
                   ? updateEntity(token, 'ext_bookings', { id: payload.id }, payload)
                   : insertEntity(token, 'ext_bookings', payload);
-                action.then(() => load()).then(() => setEditingBooking(null)).catch((error) => setStatus(String(error)));
+                action.then(() => load()).then(() => setEditingBooking(null)).catch((error) => setStatus(formatErrorMessage(error)));
               }}
             />
           </div>
@@ -182,7 +183,7 @@ export function SchedulerBookingPage() {
           </div>
         ) : null}
       </EntityEditor>
-      {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
+      {status ? <div className="status-panel" role="alert">{status}</div> : null}
     </WorkspacePage>
   );
 }

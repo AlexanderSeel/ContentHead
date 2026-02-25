@@ -4,6 +4,7 @@ import { Button } from 'primereact/button';
 import { useAuth } from '../../app/AuthContext';
 import { DatePicker, TextInput } from '../../ui/atoms';
 import { EntityEditor } from '../../ui/molecules';
+import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { insertEntity } from '../core/dbEntityApi';
 
 export function BookingInspectorPanel({ siteId, contentItemId }: { siteId: number; contentItemId: number | null }) {
@@ -46,7 +47,7 @@ export function BookingInspectorPanel({ siteId, contentItemId }: { siteId: numbe
                     setStatus('Booking created');
                     setOpen(false);
                   })
-                  .catch((error) => setStatus(String(error)));
+                  .catch((error) => setStatus(formatErrorMessage(error)));
               }}
               disabled={!contentItemId}
             />

@@ -11,8 +11,9 @@
     "migrate": "tsx src/scripts/migrate.ts",
     "seed": "tsx src/scripts/seed.ts",
     "typecheck": "tsc --noEmit",
-    "test": "tsx src/tests/assets.integration.ts && tsx src/tests/dbAdmin.integration.ts && tsx src/tests/graphqlSmoke.integration.ts",
-    "lint": "eslint src --ext .ts"
+    "test": "tsx src/tests/auth.integration.ts && tsx src/tests/assets.integration.ts && tsx src/tests/dbAdmin.integration.ts && tsx src/tests/graphqlSmoke.integration.ts && tsx src/tests/permissionEvaluator.integration.ts && tsx src/tests/routeUpsert.integration.ts && tsx src/tests/seedAdminResync.integration.ts && tsx src/tests/securitySeed.integration.ts && tsx src/tests/workflowPermissions.integration.ts && tsx src/tests/connectorPermissions.integration.ts && tsx src/tests/formsPermissions.integration.ts && tsx src/tests/siteSettingsPermissions.integration.ts",
+    "lint": "eslint src --ext .ts",
+    "ops:inventory": "tsx src/scripts/operationsInventory.ts"
   },
   "dependencies": {
     "@contenthead/shared": "workspace:*",

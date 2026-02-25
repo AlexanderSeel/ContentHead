@@ -10,7 +10,8 @@ import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { RuleEditorDialog } from '../../components/rules/RuleEditorDialog';
 import { createAdminSdk } from '../../lib/sdk';
-import { WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
+import { ForbiddenState, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type Item = { id: number };
 type Version = { id: number; versionNumber: number };
@@ -86,13 +87,14 @@ export function PersonalizationWorkflowsPage() {
   const [ruleEditorOpen, setRuleEditorOpen] = useState(false);
   const [ruleEditorSession, setRuleEditorSession] = useState(0);
   const [status, setStatus] = useState('');
+  const forbiddenReason = status && isForbiddenError(status) ? status : '';
   const [busy, setBusy] = useState(false);
   const [createdFlow, setCreatedFlow] = useState<CreatedFlow | null>(null);
 
   useEffect(() => {
     sdk.listContentItems({ siteId }).then((res) => {
       setItems((res.listContentItems ?? []) as Item[]);
-    }).catch((error: unknown) => setStatus(String(error)));
+    }).catch((error: unknown) => setStatus(formatErrorMessage(error)));
   }, [sdk, siteId]);
 
   const loadContentItem = async (id: number) => {
@@ -261,7 +263,7 @@ export function PersonalizationWorkflowsPage() {
           : 'Flow created successfully.'
       );
     } catch (error) {
-      setStatus(String(error));
+      setStatus(formatErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -288,7 +290,7 @@ export function PersonalizationWorkflowsPage() {
       });
       navigate('/workflows/runs');
     } catch (error) {
-      setStatus(String(error));
+      setStatus(formatErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -305,37 +307,45 @@ export function PersonalizationWorkflowsPage() {
         actions={<Button text label="Open Variants (Power Users)" onClick={() => navigate('/personalization/variants')} />}
       />
 
-      <div className="content-card personalization-landing">
-        <h3>Make personalization self-explanatory</h3>
-        <div className="personalization-steps">
-          <div className="personalization-step-card">
-            <small>Step 1</small>
-            <h4>Define audiences</h4>
-            <p>Pick who should see each experience using rules and segments.</p>
-          </div>
-          <div className="personalization-step-card">
-            <small>Step 2</small>
-            <h4>Define experiences</h4>
-            <p>Create 2-3 variants with visual headline and hero controls.</p>
-          </div>
-          <div className="personalization-step-card">
-            <small>Step 3</small>
-            <h4>Orchestrate rollout</h4>
-            <p>Choose rollout strategy and generate a runnable workflow.</p>
-          </div>
-        </div>
-        <div className="inline-actions">
-          <Button
-            label={wizardStarted ? 'Continue Personalization Flow' : 'Create Personalization Flow'}
-            onClick={() => {
-              setWizardStarted(true);
-              setWizardStep((prev) => (prev > 0 ? prev : 1));
-            }}
-          />
-        </div>
-      </div>
+      {forbiddenReason ? (
+        <WorkspaceBody>
+          <ForbiddenState title="You do not have access to personalization workflows." reason={forbiddenReason} />
+        </WorkspaceBody>
+      ) : null}
 
-      {wizardStarted ? (
+      {!forbiddenReason ? (
+        <div className="content-card personalization-landing">
+          <h3>Make personalization self-explanatory</h3>
+          <div className="personalization-steps">
+            <div className="personalization-step-card">
+              <small>Step 1</small>
+              <h4>Define audiences</h4>
+              <p>Pick who should see each experience using rules and segments.</p>
+            </div>
+            <div className="personalization-step-card">
+              <small>Step 2</small>
+              <h4>Define experiences</h4>
+              <p>Create 2-3 variants with visual headline and hero controls.</p>
+            </div>
+            <div className="personalization-step-card">
+              <small>Step 3</small>
+              <h4>Orchestrate rollout</h4>
+              <p>Choose rollout strategy and generate a runnable workflow.</p>
+            </div>
+          </div>
+          <div className="inline-actions">
+            <Button
+              label={wizardStarted ? 'Continue Personalization Flow' : 'Create Personalization Flow'}
+              onClick={() => {
+                setWizardStarted(true);
+                setWizardStep((prev) => (prev > 0 ? prev : 1));
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {wizardStarted && !forbiddenReason ? (
         <div className="content-card personalization-wizard">
           <div className="personalization-wizard-steps">
             {[1, 2, 3, 4, 5].map((step) => (
@@ -355,7 +365,7 @@ export function PersonalizationWorkflowsPage() {
               <Dropdown
                 value={contentItemId}
                 options={items.map((entry) => ({ label: `#${entry.id}`, value: entry.id }))}
-                onChange={(event) => loadContentItem(Number(event.value)).catch((error: unknown) => setStatus(String(error)))}
+                onChange={(event) => loadContentItem(Number(event.value)).catch((error: unknown) => setStatus(formatErrorMessage(error)))}
                 placeholder="Select content item"
                 filter
               />
@@ -452,13 +462,13 @@ export function PersonalizationWorkflowsPage() {
                 This creates a workflow graph with: <strong>CreateDraftVersion</strong> (for variant versions), <strong>ManualApproval</strong>, <strong>PublishVersion</strong>, and <strong>ActivateVariant</strong>.
               </p>
               {!createdFlow ? (
-                <Button label="Generate and Attach Workflow" onClick={() => generateFlow().catch((error: unknown) => setStatus(String(error)))} disabled={busy} />
+                <Button label="Generate and Attach Workflow" onClick={() => generateFlow().catch((error: unknown) => setStatus(formatErrorMessage(error)))} disabled={busy} />
               ) : (
                 <div className="status-panel">
                   <p style={{ marginTop: 0 }}><strong>{createdFlow.definitionName}</strong></p>
                   <p>Workflow ID: {createdFlow.definitionId} | Variant Set ID: {createdFlow.variantSetId}</p>
                   <div className="inline-actions">
-                    <Button label="Run Workflow" severity="success" onClick={() => startCreatedWorkflow().catch((error: unknown) => setStatus(String(error)))} disabled={busy} />
+                    <Button label="Run Workflow" severity="success" onClick={() => startCreatedWorkflow().catch((error: unknown) => setStatus(formatErrorMessage(error)))} disabled={busy} />
                     <Button text label="Open Workflows" onClick={() => navigate('/workflows/designer')} />
                     <Button text label="Open Runs" onClick={() => navigate('/workflows/runs')} />
                   </div>
@@ -472,7 +482,7 @@ export function PersonalizationWorkflowsPage() {
             <Button label="Next" disabled={wizardStep >= 5} onClick={() => setWizardStep((prev) => Math.min(5, prev + 1))} />
           </div>
 
-          {status ? <Message severity="info" text={status} /> : null}
+          {status && !forbiddenReason ? <Message severity="info" text={status} /> : null}
         </div>
       ) : null}
 

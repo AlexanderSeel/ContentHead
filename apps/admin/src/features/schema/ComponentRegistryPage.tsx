@@ -9,7 +9,8 @@ import { Tag } from 'primereact/tag';
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
 import { createAdminSdk } from '../../lib/sdk';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
+import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import {
   resolveComponentRegistry,
   type ComponentTypeSetting,
@@ -29,7 +30,17 @@ export function ComponentRegistryPage() {
   const { siteId } = useAdminContext();
   const [settings, setSettings] = useState<ComponentTypeSetting[]>([]);
   const [status, setStatus] = useState('');
+  const [forbiddenReason, setForbiddenReason] = useState('');
   const [search, setSearch] = useState('');
+
+  const handleError = (error: unknown) => {
+    const message = formatErrorMessage(error);
+    if (isForbiddenError(error)) {
+      setForbiddenReason(message);
+      return;
+    }
+    setStatus(message);
+  };
 
   const refresh = async () => {
     const result = await sdk.listComponentTypeSettings({ siteId });
@@ -43,10 +54,11 @@ export function ComponentRegistryPage() {
           groupName: row.groupName ?? null
         }))
     );
+    setStatus('');
   };
 
   useEffect(() => {
-    refresh().catch((error: unknown) => setStatus(String(error)));
+    refresh().catch(handleError);
   }, [siteId]);
 
   const rows = useMemo(() => resolveComponentRegistry(settings), [settings]);
@@ -84,11 +96,17 @@ export function ComponentRegistryPage() {
         title="Component Registry"
         subtitle="Manage available component types for build and authoring."
       />
-      <WorkspaceActionBar
-        primary={<Button label="Refresh" onClick={() => refresh().catch((error: unknown) => setStatus(String(error)))} />}
-      />
-      <WorkspaceBody>
-        <section className="content-card pane paneScroll">
+      {forbiddenReason ? (
+        <WorkspaceBody>
+          <ForbiddenState title="Component registry unavailable" reason={forbiddenReason} />
+        </WorkspaceBody>
+      ) : (
+        <>
+          <WorkspaceActionBar
+            primary={<Button label="Refresh" onClick={() => refresh().catch((error: unknown) => handleError(error))} />}
+          />
+          <WorkspaceBody>
+            <section className="content-card pane paneScroll">
         <div className="table-toolbar">
           <InputText
             value={search}
@@ -125,7 +143,7 @@ export function ComponentRegistryPage() {
                     return Array.from(map.values());
                   });
                 }}
-                onBlur={() => saveSetting(entry, { groupName: entry.groupName }).catch((error: unknown) => setStatus(String(error)))}
+                onBlur={() => saveSetting(entry, { groupName: entry.groupName }).catch((error: unknown) => handleError(error))}
                 placeholder="Group"
               />
             )}
@@ -144,16 +162,18 @@ export function ComponentRegistryPage() {
               <InputSwitch
                 checked={entry.enabled}
                 onChange={(event) =>
-                  saveSetting(entry, { enabled: Boolean(event.value) }).catch((error: unknown) => setStatus(String(error)))
+                  saveSetting(entry, { enabled: Boolean(event.value) }).catch((error: unknown) => handleError(error))
                 }
               />
             )}
             style={{ width: '7rem' }}
           />
         </DataTable>
-        </section>
-      </WorkspaceBody>
-      {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
+            </section>
+          </WorkspaceBody>
+          {status ? <div className="status-panel" role="alert">{status}</div> : null}
+        </>
+      )}
     </WorkspacePage>
   );
 }
