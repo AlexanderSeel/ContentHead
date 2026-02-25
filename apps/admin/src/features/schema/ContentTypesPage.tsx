@@ -145,6 +145,7 @@ export function ContentTypesPage() {
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [allowedComponents, setAllowedComponents] = useState<string[]>([]);
   const [areaRestrictions, setAreaRestrictions] = useState<Record<string, string[]>>({});
+  const [newAreaName, setNewAreaName] = useState('');
   const [componentSettings, setComponentSettings] = useState<ComponentTypeSetting[]>([]);
   const [allItems, setAllItems] = useState<Array<{ id?: number | null; contentTypeId?: number | null }>>([]);
   const [allRoutes, setAllRoutes] = useState<Array<{ contentItemId?: number | null; slug?: string | null; marketCode?: string | null; localeCode?: string | null }>>([]);
@@ -209,7 +210,13 @@ export function ContentTypesPage() {
         value: entry.id
       }));
   }, [componentSettings]);
-  const areaNames = ['main', 'sidebar'];
+  const areaNames = useMemo(() => {
+    const keys = Object.keys(areaRestrictions).map((entry) => entry.trim()).filter(Boolean);
+    if (keys.length === 0) {
+      return ['main', 'sidebar'];
+    }
+    return Array.from(new Set(keys));
+  }, [areaRestrictions]);
 
   const selectedTypeUsage = useMemo(() => {
     if (!selected?.id) {
@@ -300,6 +307,23 @@ export function ContentTypesPage() {
     setNewFieldRequired(false);
   };
 
+  const addArea = () => {
+    const normalized = newAreaName.trim();
+    if (!normalized) {
+      return;
+    }
+    setAreaRestrictions((prev) => ({ ...prev, [normalized]: prev[normalized] ?? [] }));
+    setNewAreaName('');
+  };
+
+  const removeArea = (areaName: string) => {
+    setAreaRestrictions((prev) => {
+      const next = { ...prev };
+      delete next[areaName];
+      return next;
+    });
+  };
+
   const headerContext: ContentTypesHeaderContext = {
     route: location.pathname,
     siteId,
@@ -383,9 +407,31 @@ export function ContentTypesPage() {
                         />
                         <small className="muted">Content editors can only add these component types.</small>
                       </div>
+                      <div className="form-row">
+                        <label>Areas</label>
+                        <div className="inline-actions">
+                          <InputText
+                            value={newAreaName}
+                            onChange={(event) => setNewAreaName(event.target.value)}
+                            placeholder="e.g. header"
+                          />
+                          <Button label="Add Area" onClick={addArea} disabled={!newAreaName.trim()} />
+                        </div>
+                        <small className="muted">Define content areas used by the page builder.</small>
+                      </div>
                       {areaNames.map((areaName) => (
                         <div className="form-row" key={areaName}>
-                          <label>{`Allowed (${areaName})`}</label>
+                          <div className="inline-actions justify-content-between">
+                            <label>{`Allowed (${areaName})`}</label>
+                            <Button
+                              text
+                              size="small"
+                              icon="pi pi-trash"
+                              severity="danger"
+                              onClick={() => removeArea(areaName)}
+                              disabled={areaNames.length <= 1}
+                            />
+                          </div>
                           <MultiSelect
                             value={areaRestrictions[areaName] ?? []}
                             options={registryOptions.filter((option) => allowedComponents.includes(option.value))}

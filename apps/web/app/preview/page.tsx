@@ -22,6 +22,18 @@ type ComponentInstancePayload = {
   sortOrder: number;
   props?: Record<string, unknown>;
 };
+type ContentItemDetailPayload = {
+  item?: unknown;
+  contentType?: { fieldsJson?: string | null } | null;
+  currentDraftVersion?: ContentVersionPayload | null;
+  currentPublishedVersion?: ContentVersionPayload | null;
+};
+type ContentVersionPayload = {
+  id?: number | null;
+  fieldsJson?: string | null;
+  compositionJson?: string | null;
+  componentsJson?: string | null;
+};
 
 function parseComponentData(
   compositionJson: string,
@@ -83,45 +95,82 @@ export default async function PreviewPage({
   }
 
   const sdk = createSdk({
-    endpoint: process.env.API_URL ?? 'http://localhost:4000/graphql',
+    endpoint: process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql',
     headersProvider: () => (authToken ? { authorization: `Bearer ${authToken}` } : undefined)
   });
-  const siteRes = await sdk.getSite({ siteId });
-  const urlPattern = siteRes.getSite?.urlPattern ?? '/{market}/{locale}';
+  let urlPattern = '/{market}/{locale}';
+  try {
+    const siteRes = await sdk.getSite({ siteId });
+    urlPattern = siteRes.getSite?.urlPattern ?? '/{market}/{locale}';
+  } catch (error) {
+    return (
+      <div style={{ padding: '1rem', fontFamily: 'system-ui, sans-serif' }}>
+        <h2 style={{ marginTop: 0 }}>Preview unavailable</h2>
+        <p style={{ marginBottom: '0.5rem' }}>
+          Could not connect to API endpoint: <code>{process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql'}</code>
+        </p>
+        <p style={{ marginTop: 0, opacity: 0.8 }}>
+          Ensure API is running and your preview auth token is valid.
+        </p>
+        <pre style={{ background: '#f5f5f5', padding: '0.75rem', borderRadius: 6, overflow: 'auto' }}>
+          {error instanceof Error ? error.message : 'Unknown fetch error'}
+        </pre>
+      </div>
+    );
+  }
 
   let resolvedVersionId = versionIdOverride;
-  if (!resolvedVersionId && variantKey) {
-    const sets = await sdk.listVariantSets({
-      siteId,
-      contentItemId,
-      marketCode,
-      localeCode
-    });
+  let entity: ContentItemDetailPayload | null = null;
+  let version: ContentVersionPayload | null = null;
+  try {
+    if (!resolvedVersionId && variantKey) {
+      const sets = await sdk.listVariantSets({
+        siteId,
+        contentItemId,
+        marketCode,
+        localeCode
+      });
 
-    const firstSetId = sets.listVariantSets?.[0]?.id;
-    if (firstSetId) {
-      const list = await sdk.listVariants({ variantSetId: firstSetId });
-      const matched = list.listVariants?.find((entry) => entry.key === variantKey);
-      if (matched?.contentVersionId) {
-        resolvedVersionId = matched.contentVersionId;
+      const firstSetId = sets.listVariantSets?.[0]?.id;
+      if (firstSetId) {
+        const list = await sdk.listVariants({ variantSetId: firstSetId });
+        const matched = list.listVariants?.find((entry) => entry.key === variantKey);
+        if (matched?.contentVersionId) {
+          resolvedVersionId = matched.contentVersionId;
+        }
       }
     }
+
+    const detail = await sdk.getContentItemDetail({ contentItemId });
+    entity = (detail.getContentItemDetail ?? null) as ContentItemDetailPayload | null;
+    if (!entity?.item) {
+      notFound();
+    }
+
+    version =
+      (resolvedVersionId
+        ? (((await sdk.listVersions({ contentItemId })).listVersions ?? []).find((entry) => entry.id === resolvedVersionId) as
+            | ContentVersionPayload
+            | undefined)
+        : null) ??
+      entity.currentDraftVersion ??
+      entity.currentPublishedVersion ??
+      null;
+  } catch (error) {
+    return (
+      <div style={{ padding: '1rem', fontFamily: 'system-ui, sans-serif' }}>
+        <h2 style={{ marginTop: 0 }}>Preview data fetch failed</h2>
+        <p style={{ marginBottom: '0.5rem' }}>
+          Endpoint: <code>{process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql'}</code>
+        </p>
+        <pre style={{ background: '#f5f5f5', padding: '0.75rem', borderRadius: 6, overflow: 'auto' }}>
+          {error instanceof Error ? error.message : 'Unknown fetch error'}
+        </pre>
+      </div>
+    );
   }
 
-  const detail = await sdk.getContentItemDetail({ contentItemId });
-  const entity = detail.getContentItemDetail;
-  if (!entity?.item) {
-    notFound();
-  }
-
-  const version =
-    (resolvedVersionId
-      ? (await sdk.listVersions({ contentItemId })).listVersions?.find((entry) => entry.id === resolvedVersionId)
-      : null) ??
-    entity.currentDraftVersion ??
-    entity.currentPublishedVersion;
-
-  if (!version) {
+  if (!version || !entity) {
     notFound();
   }
 

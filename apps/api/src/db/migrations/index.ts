@@ -15,6 +15,9 @@ import { migration014 } from './014_asset_rendition_fit_mode.js';
 import { migration015 } from './015_component_definition_overrides.js';
 import { migration016 } from './016_component_default_props.js';
 import { migration017 } from './017_component_preset_backfill.js';
+import { migration018 } from './018_component_type_system_sync_flag.js';
+import { migration019 } from './019_component_schema_type_normalization.js';
+import { migration020 } from './020_feature_grid_items_component_ref.js';
 
 export type Migration = {
   id: string;
@@ -38,5 +41,8 @@ export const migrations: Migration[] = [
   migration014,
   migration015,
   migration016,
-  migration017
+  migration017,
+  migration018,
+  migration019,
+  migration020
 ];

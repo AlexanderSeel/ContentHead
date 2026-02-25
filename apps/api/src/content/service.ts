@@ -806,8 +806,19 @@ type ComponentPreset = {
     required?: boolean;
     defaultValue?: unknown;
     control?: string;
+    options?: Array<{ label: string; value: string }>;
     itemLabelKey?: string;
-    fields?: Array<{ key: string; label: string; type: string; required?: boolean; defaultValue?: unknown; control?: string }>;
+    fields?: Array<{
+      key: string;
+      label: string;
+      type: string;
+      required?: boolean;
+      defaultValue?: unknown;
+      control?: string;
+      options?: Array<{ label: string; value: string }>;
+      refComponentTypes?: string[];
+    }>;
+    refComponentTypes?: string[];
   }>;
   defaultProps: Record<string, unknown>;
 };
@@ -819,15 +830,34 @@ const COMPONENT_PRESETS: ComponentPreset[] = [
     groupName: 'Marketing',
     enabled: true,
     schema: [
-      { key: 'title', label: 'Title', type: 'string', required: true, defaultValue: 'Ship faster with ContentHead' },
-      { key: 'subtitle', label: 'Subtitle', type: 'string', defaultValue: 'Compose pages visually and publish with confidence.' },
-      { key: 'primaryCta', label: 'Primary CTA', type: 'link', control: 'LinkPicker' },
-      { key: 'secondaryCta', label: 'Secondary CTA', type: 'link', control: 'LinkPicker' },
-      { key: 'backgroundAssetRef', label: 'Background Asset', type: 'asset', control: 'AssetPicker' }
+      { key: 'title', label: 'Title', type: 'text', required: true, defaultValue: 'Ship faster with ContentHead' },
+      { key: 'subtitle', label: 'Subtitle', type: 'multiline', defaultValue: 'Compose pages visually, localize, personalize, and deploy with confidence.' },
+      { key: 'primaryCta', label: 'Primary CTA', type: 'contentLink', control: 'LinkPicker' },
+      { key: 'secondaryCta', label: 'Secondary CTA', type: 'contentLink', control: 'LinkPicker' },
+      { key: 'backgroundAssetRef', label: 'Background Asset', type: 'assetRef', control: 'AssetPicker' }
     ],
     defaultProps: {
       title: 'Ship faster with ContentHead',
-      subtitle: 'Compose pages visually and publish with confidence.'
+      subtitle: 'Compose pages visually, localize, personalize, and deploy with confidence.',
+      primaryCta: { kind: 'internal', url: '/demo#pricing', text: 'View Pricing', target: '_self' },
+      secondaryCta: { kind: 'external', url: 'https://example.com/docs', text: 'Read Docs', target: '_blank' },
+      backgroundAssetRef: null
+    }
+  },
+  {
+    componentTypeId: 'feature_grid_item',
+    label: 'Feature Grid Item',
+    groupName: 'Marketing',
+    enabled: true,
+    schema: [
+      { key: 'icon', label: 'Icon', type: 'text', defaultValue: 'pi-bolt' },
+      { key: 'title', label: 'Title', type: 'text', required: true, defaultValue: 'Feature title' },
+      { key: 'description', label: 'Description', type: 'multiline', required: true, defaultValue: 'Feature description' }
+    ],
+    defaultProps: {
+      icon: 'pi-bolt',
+      title: 'Feature title',
+      description: 'Feature description'
     }
   },
   {
@@ -836,26 +866,20 @@ const COMPONENT_PRESETS: ComponentPreset[] = [
     groupName: 'Marketing',
     enabled: true,
     schema: [
-      { key: 'title', label: 'Title', type: 'string', defaultValue: 'Why teams choose ContentHead' },
+      { key: 'title', label: 'Title', type: 'text', defaultValue: 'Why teams choose ContentHead' },
       {
         key: 'items',
         label: 'Items',
         type: 'objectList',
-        itemLabelKey: 'title',
+        itemLabelKey: 'item',
         fields: [
-          { key: 'icon', label: 'Icon', type: 'string', defaultValue: 'pi-bolt' },
-          { key: 'title', label: 'Title', type: 'string', required: true },
-          { key: 'description', label: 'Description', type: 'string' }
+          { key: 'item', label: 'Item Component', type: 'componentRef', refComponentTypes: ['feature_grid_item'] }
         ]
       }
     ],
     defaultProps: {
       title: 'Why teams choose ContentHead',
-      items: [
-        { icon: 'pi-bolt', title: 'Fast authoring', description: 'Live preview and on-page editing for rapid iteration.' },
-        { icon: 'pi-globe', title: 'Market ready', description: 'Built-in market and locale routing with overrides.' },
-        { icon: 'pi-sliders-h', title: 'Variants', description: 'Personalize with variant sets and deterministic rules.' }
-      ]
+      items: []
     }
   },
   {
@@ -864,13 +888,19 @@ const COMPONENT_PRESETS: ComponentPreset[] = [
     groupName: 'Marketing',
     enabled: true,
     schema: [
-      { key: 'title', label: 'Title', type: 'string', required: true },
-      { key: 'body', label: 'Body', type: 'string' },
-      { key: 'imageAssetRef', label: 'Image Asset', type: 'asset', control: 'AssetPicker' },
+      { key: 'title', label: 'Title', type: 'text', required: true },
+      { key: 'body', label: 'Body', type: 'multiline' },
+      { key: 'imageAssetRef', label: 'Image Asset', type: 'assetRef', control: 'AssetPicker' },
       { key: 'invert', label: 'Invert Layout', type: 'boolean', defaultValue: false },
-      { key: 'cta', label: 'CTA', type: 'link', control: 'LinkPicker' }
+      { key: 'cta', label: 'CTA', type: 'contentLink', control: 'LinkPicker' }
     ],
-    defaultProps: { title: 'Composable sections', body: 'Use reusable blocks with field-level validation.' }
+    defaultProps: {
+      title: 'Composable sections',
+      body: 'Use reusable blocks with field-level validation and smart defaults.',
+      imageAssetRef: null,
+      invert: false,
+      cta: { kind: 'internal', url: '/demo#faq', text: 'Learn more', target: '_self' }
+    }
   },
   {
     componentTypeId: 'pricing',
@@ -878,10 +908,29 @@ const COMPONENT_PRESETS: ComponentPreset[] = [
     groupName: 'Marketing',
     enabled: true,
     schema: [
-      { key: 'title', label: 'Title', type: 'string', defaultValue: 'Pricing' },
-      { key: 'tiers', label: 'Tiers', type: 'list', control: 'MultiSelect' }
+      { key: 'title', label: 'Title', type: 'text', defaultValue: 'Pricing' },
+      {
+        key: 'tiers',
+        label: 'Tiers',
+        type: 'objectList',
+        itemLabelKey: 'name',
+        fields: [
+          { key: 'name', label: 'Name', type: 'text', required: true },
+          { key: 'price', label: 'Price', type: 'text', required: true },
+          { key: 'description', label: 'Description', type: 'multiline' },
+          { key: 'features', label: 'Features', type: 'stringList' },
+          { key: 'cta', label: 'CTA', type: 'contentLink', control: 'LinkPicker' }
+        ]
+      }
     ],
-    defaultProps: { title: 'Pricing', tiers: [] }
+    defaultProps: {
+      title: 'Pricing',
+      tiers: [
+        { name: 'Starter', price: '$0', description: 'For experiments', features: ['1 site', 'Core CMS'], cta: { kind: 'internal', url: '/demo#newsletter', text: 'Start free', target: '_self' } },
+        { name: 'Growth', price: '$149', description: 'For teams', features: ['Multi-market', 'Variants', 'Forms'], cta: { kind: 'external', url: 'https://example.com/sales', text: 'Talk to sales', target: '_blank' } },
+        { name: 'Enterprise', price: 'Custom', description: 'For scale', features: ['SSO', 'Advanced workflows'], cta: { kind: 'external', url: 'https://example.com/contact', text: 'Contact', target: '_blank' } }
+      ]
+    }
   },
   {
     componentTypeId: 'faq',
@@ -889,10 +938,25 @@ const COMPONENT_PRESETS: ComponentPreset[] = [
     groupName: 'Marketing',
     enabled: true,
     schema: [
-      { key: 'title', label: 'Title', type: 'string', defaultValue: 'Frequently asked questions' },
-      { key: 'items', label: 'Items', type: 'list', control: 'MultiSelect' }
+      { key: 'title', label: 'Title', type: 'text', defaultValue: 'Frequently asked questions' },
+      {
+        key: 'items',
+        label: 'Items',
+        type: 'objectList',
+        itemLabelKey: 'question',
+        fields: [
+          { key: 'question', label: 'Question', type: 'text', required: true },
+          { key: 'answer', label: 'Answer', type: 'multiline', required: true }
+        ]
+      }
     ],
-    defaultProps: { title: 'Frequently asked questions', items: [] }
+    defaultProps: {
+      title: 'Frequently asked questions',
+      items: [
+        { question: 'Can I preview before publishing?', answer: 'Yes, use preview tokens and on-page bridge integration.' },
+        { question: 'Can I run A/B tests?', answer: 'Yes, variant sets support targeted or traffic-based variants.' }
+      ]
+    }
   },
   {
     componentTypeId: 'newsletter_form',
@@ -900,12 +964,12 @@ const COMPONENT_PRESETS: ComponentPreset[] = [
     groupName: 'Forms',
     enabled: true,
     schema: [
-      { key: 'title', label: 'Title', type: 'string' },
-      { key: 'description', label: 'Description', type: 'string' },
+      { key: 'title', label: 'Title', type: 'text' },
+      { key: 'description', label: 'Description', type: 'multiline' },
       { key: 'formId', label: 'Form', type: 'formRef' },
-      { key: 'submitLabel', label: 'Submit Label', type: 'string' }
+      { key: 'submitLabel', label: 'Submit Label', type: 'text' }
     ],
-    defaultProps: { title: 'Stay in the loop', description: 'Get monthly updates.', submitLabel: 'Subscribe' }
+    defaultProps: { title: 'Stay in the loop', description: 'Get monthly product updates and release notes.', formId: null, submitLabel: 'Subscribe' }
   },
   {
     componentTypeId: 'footer',
@@ -913,11 +977,30 @@ const COMPONENT_PRESETS: ComponentPreset[] = [
     groupName: 'Layout',
     enabled: true,
     schema: [
-      { key: 'copyright', label: 'Copyright', type: 'string' },
-      { key: 'linkGroups', label: 'Link Groups', type: 'list', control: 'MultiSelect' },
-      { key: 'socialLinks', label: 'Social Links', type: 'list', control: 'MultiSelect' }
+      { key: 'copyright', label: 'Copyright', type: 'text' },
+      {
+        key: 'linkGroups',
+        label: 'Link Groups',
+        type: 'objectList',
+        itemLabelKey: 'title',
+        fields: [
+          { key: 'title', label: 'Group Title', type: 'text', required: true },
+          { key: 'links', label: 'Links', type: 'contentLinkList' }
+        ]
+      },
+      { key: 'socialLinks', label: 'Social Links', type: 'contentLinkList' }
     ],
-    defaultProps: { copyright: '© ContentHead', linkGroups: [], socialLinks: [] }
+    defaultProps: {
+      copyright: '© ContentHead',
+      linkGroups: [
+        { title: 'Product', links: [{ kind: 'internal', url: '/demo#features', text: 'Features' }, { kind: 'internal', url: '/demo#pricing', text: 'Pricing' }] },
+        { title: 'Company', links: [{ kind: 'external', url: 'https://example.com/about', text: 'About', target: '_blank' }] }
+      ],
+      socialLinks: [
+        { kind: 'external', url: 'https://x.com', text: 'X', target: '_blank' },
+        { kind: 'external', url: 'https://linkedin.com', text: 'LinkedIn', target: '_blank' }
+      ]
+    }
   },
   {
     componentTypeId: 'text_block',
@@ -936,9 +1019,19 @@ const COMPONENT_PRESETS: ComponentPreset[] = [
     groupName: 'Content',
     enabled: true,
     schema: [
-      { key: 'text', label: 'Label', type: 'string', required: true, defaultValue: 'Learn more' },
-      { key: 'href', label: 'URL', type: 'string', required: true, defaultValue: '/learn-more' },
-      { key: 'style', label: 'Style', type: 'select', control: 'Dropdown', defaultValue: 'primary' }
+      { key: 'text', label: 'Label', type: 'text', required: true, defaultValue: 'Learn more' },
+      { key: 'href', label: 'URL', type: 'text', required: true, defaultValue: '/learn-more' },
+      {
+        key: 'style',
+        label: 'Style',
+        type: 'select',
+        control: 'Dropdown',
+        defaultValue: 'primary',
+        options: [
+          { label: 'Primary', value: 'primary' },
+          { label: 'Secondary', value: 'secondary' }
+        ]
+      }
     ],
     defaultProps: { text: 'Learn more', href: '/learn-more', style: 'primary' }
   }
@@ -946,21 +1039,38 @@ const COMPONENT_PRESETS: ComponentPreset[] = [
 
 async function ensureComponentTypePresets(db: DbClient, siteId: number): Promise<void> {
   for (const preset of COMPONENT_PRESETS) {
-    const exists = await db.get<{ id: string }>(
+    const exists = await db.get<{ id: string; enabled: boolean; updatedBy: string | null }>(
       `
-SELECT component_type_id as id
+SELECT
+  component_type_id as id,
+  enabled,
+  updated_by as updatedBy
 FROM component_type_settings
 WHERE site_id = ? AND component_type_id = ?
 `,
       [siteId, preset.componentTypeId]
     );
-    if (exists?.id) {
+    if (!exists?.id) {
+      await upsertComponentTypeSetting(db, {
+        siteId,
+        componentTypeId: preset.componentTypeId,
+        enabled: preset.enabled,
+        label: preset.label,
+        groupName: preset.groupName,
+        schemaJson: JSON.stringify(preset.schema),
+        uiMetaJson: null,
+        defaultPropsJson: JSON.stringify(preset.defaultProps),
+        by: 'system'
+      });
+      continue;
+    }
+    if ((exists.updatedBy ?? 'system') !== 'system') {
       continue;
     }
     await upsertComponentTypeSetting(db, {
       siteId,
       componentTypeId: preset.componentTypeId,
-      enabled: preset.enabled,
+      enabled: Boolean(exists.enabled),
       label: preset.label,
       groupName: preset.groupName,
       schemaJson: JSON.stringify(preset.schema),

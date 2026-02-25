@@ -21,12 +21,15 @@ import { createAdminSdk } from '../../../lib/sdk';
 import { ContentLinkEditor, ContentLinkListEditor } from '../fieldRenderers/ContentLinkEditors';
 import { AssetListEditor, AssetRefEditor } from '../fieldRenderers/AssetEditors';
 import { RichTextEditor } from '../fieldRenderers/RichTextEditor';
+import { JsonSourceEditor } from '../../../ui/atoms/JsonSourceEditor';
 
 type ComponentRecord = {
   id: string;
   type: string;
   props: Record<string, unknown>;
 };
+
+const looseObjectJsonSchema: Record<string, unknown> = { type: 'object', additionalProperties: true };
 
 export function ComponentInspector({
   component,
@@ -40,7 +43,7 @@ export function ComponentInspector({
   component: ComponentRecord | null;
   siteId: number;
   registryEntry?: ResolvedComponentRegistryEntry | null;
-  availableComponentRefs?: Array<{ id: string; label: string }>;
+  availableComponentRefs?: Array<{ id: string; label: string; type: string }>;
   selectedFieldPath?: string | null;
   onSelectFieldPath?: (value: string) => void;
   onChange: (next: ComponentRecord) => void;
@@ -242,6 +245,10 @@ export function ComponentInspector({
   }
 
   function renderFieldInput(field: ComponentUiField, value: unknown, onChangeValue: (next: unknown) => void) {
+    const filteredComponentRefs =
+      Array.isArray(field.refComponentTypes) && field.refComponentTypes.length > 0
+        ? availableComponentRefs.filter((entry) => field.refComponentTypes?.includes(entry.type))
+        : availableComponentRefs;
     if (field.type === 'number') {
       return (
         <InputNumber
@@ -310,7 +317,7 @@ export function ComponentInspector({
       return (
         <Dropdown
           value={typeof value === 'string' ? value : null}
-          options={availableComponentRefs.map((entry) => ({ label: entry.label, value: entry.id }))}
+          options={filteredComponentRefs.map((entry) => ({ label: entry.label, value: entry.id }))}
           onChange={(event) => onChangeValue(typeof event.value === 'string' ? event.value : '')}
           filter
           showClear
@@ -331,7 +338,7 @@ export function ComponentInspector({
             <label className="muted">Component</label>
             <Dropdown
               value={componentId || null}
-              options={availableComponentRefs.map((entry) => ({ label: entry.label, value: entry.id }))}
+              options={filteredComponentRefs.map((entry) => ({ label: entry.label, value: entry.id }))}
               onChange={(event) =>
                 onChangeValue({
                   componentId: typeof event.value === 'string' ? event.value : '',
@@ -389,16 +396,18 @@ export function ComponentInspector({
     }
     if (field.type === 'json') {
       return (
-        <InputTextarea
-          rows={6}
+        <JsonSourceEditor
+          editorId={`component-prop-json-${component?.id ?? 'unknown'}-${field.key}`}
           value={typeof value === 'string' ? value : JSON.stringify(value ?? {}, null, 2)}
-          onChange={(event) => {
+          onChange={(next) => {
             try {
-              onChangeValue(JSON.parse(event.target.value));
+              onChangeValue(JSON.parse(next));
             } catch {
-              onChangeValue(event.target.value);
+              onChangeValue(next);
             }
           }}
+          height={180}
+          schema={looseObjectJsonSchema}
         />
       );
     }
@@ -448,12 +457,12 @@ export function ComponentInspector({
       ) : null}
       <div className="form-row">
         <label>Advanced Props JSON (fallback)</label>
-        <InputTextarea
-          rows={8}
+        <JsonSourceEditor
+          editorId={`component-props-json-${component.id}`}
           value={propsJson}
-          onChange={(event) => {
+          onChange={(next) => {
             try {
-              const parsed = JSON.parse(event.target.value);
+              const parsed = JSON.parse(next);
               if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
                 onChange({ ...component, props: parsed as Record<string, unknown> });
               }
@@ -461,6 +470,8 @@ export function ComponentInspector({
               // Keep editor permissive while typing invalid JSON.
             }
           }}
+          height={240}
+          schema={looseObjectJsonSchema}
         />
       </div>
     </div>

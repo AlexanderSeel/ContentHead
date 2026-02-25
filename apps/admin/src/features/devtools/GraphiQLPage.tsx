@@ -103,7 +103,6 @@ export function GraphiQLPage() {
   const [headersEditor, setHeadersEditor] = useState('{}');
   const [headersError, setHeadersError] = useState('');
   const [editorSeed, setEditorSeed] = useState(0);
-  const [activeQuery, setActiveQuery] = useState('');
   const [lastResponse, setLastResponse] = useState('');
   const [schemaNodes, setSchemaNodes] = useState<TreeNode[]>([]);
   const [docsNodes, setDocsNodes] = useState<TreeNode[]>([]);
@@ -120,7 +119,7 @@ export function GraphiQLPage() {
     } catch {
       parsedVariables = {};
     }
-    return { query: activeQuery || query, variables: parsedVariables };
+    return { query, variables: parsedVariables };
   };
 
   useEffect(() => {
@@ -178,7 +177,6 @@ export function GraphiQLPage() {
     const opName = `${nodeData.fieldName}Sample`;
     const text = `${nodeData.operation} ${opName}${variableDefs} {\n  ${nodeData.fieldName}${fieldArgs}\n}`;
     setQuery(text);
-    setActiveQuery(text);
     if (args.length > 0) {
       const nextVars = args.reduce<Record<string, string | number | boolean | null>>((acc, arg) => {
         if (arg.type.includes('Int') || arg.type.includes('Float')) {
@@ -366,7 +364,7 @@ export function GraphiQLPage() {
                       initialHeaders={headersEditor}
                       defaultHeaders={headersEditor}
                       defaultEditorToolsVisibility={false}
-                      onEditQuery={(value) => setActiveQuery(value)}
+                      onEditQuery={(value) => setQuery(value)}
                       onEditVariables={(value) => setVariables(value)}
                     />
                   </div>
@@ -392,9 +390,8 @@ export function GraphiQLPage() {
                         size="small"
                         label="Prettify Query"
                         onClick={() => {
-                          const text = (activeQuery || query).replace(/\s+/g, ' ').replace(/\s*\{\s*/g, ' {\n  ').replace(/\s*\}\s*/g, '\n}\n');
+                          const text = query.replace(/\s+/g, ' ').replace(/\s*\{\s*/g, ' {\n  ').replace(/\s*\}\s*/g, '\n}\n');
                           setQuery(text.trim());
-                          setActiveQuery(text.trim());
                           setEditorSeed((prev) => prev + 1);
                         }}
                       />

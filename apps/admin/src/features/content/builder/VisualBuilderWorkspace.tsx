@@ -13,6 +13,7 @@ type PaletteEntry = {
 
 export function VisualBuilderWorkspace({
   palette,
+  areaNames,
   areas,
   componentMap,
   selectedComponentId,
@@ -27,6 +28,7 @@ export function VisualBuilderWorkspace({
   rightPane
 }: {
   palette: PaletteEntry[];
+  areaNames?: string[];
   areas: CompositionArea[];
   componentMap: Record<string, ComponentRecord>;
   selectedComponentId: string | null;
@@ -40,13 +42,16 @@ export function VisualBuilderWorkspace({
   onDelete: (id: string) => void;
   rightPane: ReactNode;
 }) {
+  const resolvedAreaNames = areaNames && areaNames.length > 0
+    ? areaNames
+    : areas.map((entry) => entry.name);
   return (
     <SplitWorkspace
       className="builder-workspace"
       left={(
         <div className="content-card">
           <h4 className="mt-0">Block Palette</h4>
-          <small className="muted">Insert components into header, main, sidebar, or footer.</small>
+          <small className="muted">Insert components into configured content areas.</small>
           <div className="form-row mt-3">
             {palette.map((entry) => (
               <div key={entry.id} className="cms-component-card">
@@ -55,10 +60,15 @@ export function VisualBuilderWorkspace({
                 </div>
                 {entry.description ? <small className="muted">{entry.description}</small> : null}
                 <div className="inline-actions mt-2">
-                  <Button label="Add to Main" size="small" onClick={() => onAdd(entry.id, 'main')} />
-                  <Button text label="Header" size="small" onClick={() => onAdd(entry.id, 'header')} />
-                  <Button text label="Sidebar" size="small" onClick={() => onAdd(entry.id, 'sidebar')} />
-                  <Button text label="Footer" size="small" onClick={() => onAdd(entry.id, 'footer')} />
+                  {resolvedAreaNames.map((areaName, index) => (
+                    <Button
+                      key={`${entry.id}-${areaName}`}
+                      label={index === 0 ? `Add to ${areaName}` : areaName}
+                      size="small"
+                      {...(index > 0 ? { text: true } : {})}
+                      onClick={() => onAdd(entry.id, areaName)}
+                    />
+                  ))}
                 </div>
               </div>
             ))}

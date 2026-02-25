@@ -6,6 +6,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { InputSwitch } from 'primereact/inputswitch';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
+import { MultiSelect } from 'primereact/multiselect';
 import { TabPanel, TabView } from 'primereact/tabview';
 import { Tag } from 'primereact/tag';
 
@@ -14,6 +15,7 @@ import { useAuth } from '../../app/AuthContext';
 import { createAdminSdk } from '../../lib/sdk';
 import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
 import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { JsonSourceEditor } from '../../ui/atoms/JsonSourceEditor';
 import {
   resolveComponentRegistry,
   type ComponentTypeSetting,
@@ -31,8 +33,31 @@ type ComponentTypeSettingRow = {
   defaultPropsJson?: string | null;
 };
 
-type PropType = 'string' | 'richtext' | 'number' | 'boolean' | 'select' | 'link' | 'asset' | 'formRef' | 'componentRef' | 'objectRef' | 'list' | 'objectList';
-type ControlType = 'InputText' | 'Editor' | 'Dropdown' | 'MultiSelect' | 'LinkPicker' | 'AssetPicker';
+type PropType =
+  | 'text'
+  | 'multiline'
+  | 'richtext'
+  | 'number'
+  | 'boolean'
+  | 'select'
+  | 'stringList'
+  | 'contentLink'
+  | 'contentLinkList'
+  | 'assetRef'
+  | 'assetList'
+  | 'formRef'
+  | 'componentRef'
+  | 'objectRef'
+  | 'objectList'
+  | 'json';
+type ControlType =
+  | 'InputText'
+  | 'Editor'
+  | 'Dropdown'
+  | 'MultiSelect'
+  | 'LinkPicker'
+  | 'AssetPicker'
+  | 'ComponentPicker';
 
 type PropDef = {
   key: string;
@@ -44,6 +69,7 @@ type PropDef = {
   optionsText: string;
   itemLabelKey: string;
   nestedFieldsJson: string;
+  refComponentTypesText: string;
 };
 
 type DraftDefinition = {
@@ -56,18 +82,22 @@ type DraftDefinition = {
 };
 
 const PROP_TYPE_OPTIONS: Array<{ label: string; value: PropType }> = [
-  { label: 'String', value: 'string' },
+  { label: 'Text', value: 'text' },
+  { label: 'Multiline', value: 'multiline' },
   { label: 'Rich Text', value: 'richtext' },
   { label: 'Number', value: 'number' },
   { label: 'Boolean', value: 'boolean' },
   { label: 'Select', value: 'select' },
-  { label: 'Link', value: 'link' },
-  { label: 'Asset', value: 'asset' },
+  { label: 'String List', value: 'stringList' },
+  { label: 'Content Link', value: 'contentLink' },
+  { label: 'Content Link List', value: 'contentLinkList' },
+  { label: 'Asset Ref', value: 'assetRef' },
+  { label: 'Asset List', value: 'assetList' },
   { label: 'Form Ref', value: 'formRef' },
   { label: 'Component Ref', value: 'componentRef' },
   { label: 'Object Ref', value: 'objectRef' },
-  { label: 'List', value: 'list' },
-  { label: 'Object List', value: 'objectList' }
+  { label: 'Object List', value: 'objectList' },
+  { label: 'JSON', value: 'json' }
 ];
 
 const CONTROL_OPTIONS: Array<{ label: string; value: ControlType }> = [
@@ -76,8 +106,149 @@ const CONTROL_OPTIONS: Array<{ label: string; value: ControlType }> = [
   { label: 'Dropdown', value: 'Dropdown' },
   { label: 'MultiSelect', value: 'MultiSelect' },
   { label: 'LinkPicker', value: 'LinkPicker' },
-  { label: 'AssetPicker', value: 'AssetPicker' }
+  { label: 'AssetPicker', value: 'AssetPicker' },
+  { label: 'ComponentPicker', value: 'ComponentPicker' }
 ];
+
+const componentFieldsJsonSchema: Record<string, unknown> = {
+  type: 'array',
+  items: {
+    type: 'object',
+    required: ['key', 'label', 'type'],
+    properties: {
+      key: { type: 'string' },
+      label: { type: 'string' },
+      type: { type: 'string' },
+      required: { type: 'boolean' },
+      defaultValue: {},
+      control: { type: 'string' },
+      itemLabelKey: { type: 'string' },
+      refComponentTypes: {
+        type: 'array',
+        items: { type: 'string' }
+      },
+      options: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['value'],
+          properties: {
+            label: { type: 'string' },
+            value: { type: 'string' }
+          }
+        }
+      },
+      fields: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['key', 'label', 'type'],
+          properties: {
+            key: { type: 'string' },
+            label: { type: 'string' },
+            type: { type: 'string' },
+            required: { type: 'boolean' },
+            defaultValue: {},
+            control: { type: 'string' },
+            refComponentTypes: {
+              type: 'array',
+              items: { type: 'string' }
+            }
+          }
+        }
+      }
+    }
+  }
+};
+
+const uiMetaJsonSchema: Record<string, unknown> = {
+  type: 'object',
+  additionalProperties: true
+};
+
+const looseJsonObjectSchema: Record<string, unknown> = {
+  type: 'object',
+  additionalProperties: true
+};
+
+function normalizeEditorPropType(raw: string): PropType {
+  const normalized = raw.trim().toLowerCase();
+  const known = PROP_TYPE_OPTIONS.find((entry) => entry.value.toLowerCase() === normalized);
+  if (known) return known.value;
+  if (normalized === 'string') {
+    return 'text';
+  }
+  if (normalized === 'link') {
+    return 'contentLink';
+  }
+  if (normalized === 'asset') {
+    return 'assetRef';
+  }
+  if (normalized === 'stringlist' || normalized === 'list') {
+    return 'stringList';
+  }
+  if (normalized === 'contentlink') {
+    return 'contentLink';
+  }
+  if (normalized === 'contentlinklist') {
+    return 'contentLinkList';
+  }
+  if (normalized === 'assetref') {
+    return 'assetRef';
+  }
+  if (normalized === 'assetlist') {
+    return 'assetList';
+  }
+  if (normalized === 'formref') {
+    return 'formRef';
+  }
+  if (normalized === 'componentref') {
+    return 'componentRef';
+  }
+  if (normalized === 'objectref') {
+    return 'objectRef';
+  }
+  if (normalized === 'objectlist') {
+    return 'objectList';
+  }
+  if (normalized === 'subtype' || normalized === 'complex' || normalized === 'object') {
+    return 'objectList';
+  }
+  return 'text';
+}
+
+function defaultControlForType(type: PropType): ControlType {
+  if (type === 'richtext') {
+    return 'Editor';
+  }
+  if (type === 'select') {
+    return 'Dropdown';
+  }
+  if (type === 'contentLink') {
+    return 'LinkPicker';
+  }
+  if (type === 'assetRef') {
+    return 'AssetPicker';
+  }
+  if (type === 'componentRef' || type === 'objectRef') {
+    return 'ComponentPicker';
+  }
+  if (type === 'objectList') {
+    return 'ComponentPicker';
+  }
+  return 'InputText';
+}
+
+function normalizeControlForType(type: PropType, rawControl: unknown): ControlType {
+  const parsed =
+    CONTROL_OPTIONS.find((option) => option.value === String(rawControl))?.value ?? defaultControlForType(type);
+  if (type === 'componentRef' || type === 'objectRef' || type === 'objectList') {
+    if (parsed === 'InputText' || parsed === 'Editor') {
+      return defaultControlForType(type);
+    }
+  }
+  return parsed;
+}
 
 function parsePropsFromSchema(schemaJson: string | null | undefined, fallback: ResolvedComponentRegistryEntry): PropDef[] {
   if (schemaJson) {
@@ -91,15 +262,12 @@ function parsePropsFromSchema(schemaJson: string | null | undefined, fallback: R
             if (!key) {
               return null;
             }
-            const typeRaw = String(entry.type ?? 'string');
-            const type = (PROP_TYPE_OPTIONS.find((option) => option.value === (typeRaw as PropType))?.value ?? 'string') as PropType;
+            const typeRaw = String(entry.type ?? 'text');
+            const type = normalizeEditorPropType(typeRaw);
             return {
               key,
               label: String(entry.label ?? key),
-              type:
-                typeRaw === 'objectList' || typeRaw === 'objectlist'
-                  ? 'objectList'
-                  : type,
+              type,
               required: Boolean(entry.required),
               defaultValue:
                 entry.defaultValue == null
@@ -107,7 +275,7 @@ function parsePropsFromSchema(schemaJson: string | null | undefined, fallback: R
                   : typeof entry.defaultValue === 'string'
                     ? entry.defaultValue
                     : JSON.stringify(entry.defaultValue),
-              control: (CONTROL_OPTIONS.find((option) => option.value === String(entry.control))?.value ?? 'InputText') as ControlType,
+              control: normalizeControlForType(type, entry.control),
               optionsText: Array.isArray(entry.options)
                 ? (entry.options as Array<Record<string, unknown>>)
                     .map((option) => `${String(option.value ?? '')}:${String(option.label ?? option.value ?? '')}`)
@@ -115,7 +283,16 @@ function parsePropsFromSchema(schemaJson: string | null | undefined, fallback: R
                     .join('\n')
                 : '',
               itemLabelKey: String(entry.itemLabelKey ?? ''),
-              nestedFieldsJson: Array.isArray(entry.fields) ? JSON.stringify(entry.fields, null, 2) : ''
+              nestedFieldsJson: Array.isArray(entry.fields) ? JSON.stringify(entry.fields, null, 2) : '',
+              refComponentTypesText: Array.isArray(entry.refComponentTypes)
+                ? (entry.refComponentTypes as unknown[])
+                    .filter((value): value is string => typeof value === 'string')
+                    .join(', ')
+                : type === 'objectList' && Array.isArray(entry.fields)
+                  ? ((entry.fields as Array<Record<string, unknown>>)
+                      .find((field) => String(field.type ?? '').toLowerCase() === 'componentref')
+                      ?.refComponentTypes as string[] | undefined)?.join(', ') ?? ''
+                  : ''
             } satisfies PropDef;
           })
           .filter((entry): entry is PropDef => Boolean(entry));
@@ -131,30 +308,7 @@ function parsePropsFromSchema(schemaJson: string | null | undefined, fallback: R
   return fallback.fields.map((field) => ({
     key: field.key,
     label: field.label,
-    type:
-      field.type === 'objectList'
-        ? 'objectList'
-        : field.type === 'componentRef'
-          ? 'componentRef'
-          : field.type === 'objectRef'
-            ? 'objectRef'
-        : field.type === 'richtext'
-          ? 'richtext'
-          : field.type === 'number'
-            ? 'number'
-            : field.type === 'boolean'
-              ? 'boolean'
-              : field.type === 'select'
-                ? 'select'
-                : field.type === 'contentLink'
-                  ? 'link'
-                  : field.type === 'assetRef'
-                    ? 'asset'
-                    : field.type === 'formRef'
-                      ? 'formRef'
-                      : field.type === 'stringList'
-                        ? 'list'
-                        : 'string',
+    type: normalizeEditorPropType(field.type),
     required: Boolean(field.required),
     defaultValue:
       field.defaultValue == null
@@ -162,10 +316,22 @@ function parsePropsFromSchema(schemaJson: string | null | undefined, fallback: R
         : typeof field.defaultValue === 'string'
           ? field.defaultValue
           : JSON.stringify(field.defaultValue),
-    control: field.type === 'richtext' ? 'Editor' : field.type === 'select' ? 'Dropdown' : field.type === 'contentLink' ? 'LinkPicker' : field.type === 'assetRef' ? 'AssetPicker' : 'InputText',
+    control: normalizeControlForType(
+      normalizeEditorPropType(field.type),
+      field.type === 'richtext'
+        ? 'Editor'
+        : field.type === 'select'
+          ? 'Dropdown'
+          : field.type === 'contentLink'
+            ? 'LinkPicker'
+            : field.type === 'assetRef'
+              ? 'AssetPicker'
+              : 'InputText'
+    ),
     optionsText: (field.options ?? []).map((option) => `${option.value}:${option.label}`).join('\n'),
     itemLabelKey: field.itemLabelKey ?? '',
-    nestedFieldsJson: Array.isArray(field.fields) && field.fields.length > 0 ? JSON.stringify(field.fields, null, 2) : ''
+    nestedFieldsJson: Array.isArray(field.fields) && field.fields.length > 0 ? JSON.stringify(field.fields, null, 2) : '',
+    refComponentTypesText: Array.isArray(field.refComponentTypes) ? field.refComponentTypes.join(', ') : ''
   }));
 }
 
@@ -206,9 +372,30 @@ function serializeProps(props: PropDef[]): string {
             } catch {
               base.fields = [];
             }
+          } else if (prop.refComponentTypesText.trim()) {
+            base.fields = [
+              {
+                key: 'item',
+                label: 'Item Component',
+                type: 'componentRef',
+                refComponentTypes: prop.refComponentTypesText
+                  .split(',')
+                  .map((value) => value.trim())
+                  .filter(Boolean)
+              }
+            ];
+            if (!base.itemLabelKey) {
+              base.itemLabelKey = 'item';
+            }
           } else {
             base.fields = [];
           }
+        }
+        if (prop.type === 'componentRef' || prop.type === 'objectRef') {
+          base.refComponentTypes = prop.refComponentTypesText
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean);
         }
         return base;
       })
@@ -238,7 +425,12 @@ function serializeDefaultProps(props: PropDef[]): string {
       next[key] = raw === 'true';
       continue;
     }
-    if (prop.type === 'list' || prop.type === 'objectList') {
+    if (
+      prop.type === 'objectList' ||
+      prop.type === 'stringList' ||
+      prop.type === 'contentLinkList' ||
+      prop.type === 'assetList'
+    ) {
       try {
         next[key] = JSON.parse(raw);
       } catch {
@@ -246,11 +438,11 @@ function serializeDefaultProps(props: PropDef[]): string {
       }
       continue;
     }
-    if (prop.type === 'objectRef') {
+    if (prop.type === 'objectRef' || prop.type === 'contentLink') {
       try {
         next[key] = JSON.parse(raw);
       } catch {
-        next[key] = { componentId: '', path: raw };
+        next[key] = prop.type === 'objectRef' ? { componentId: '', path: raw } : raw;
       }
       continue;
     }
@@ -277,9 +469,12 @@ function validateDraft(draft: DraftDefinition): string[] {
       errors.push(`Select prop "${prop.key || '(new prop)'}" requires options.`);
     }
     if (prop.type === 'objectList') {
-      if (!prop.nestedFieldsJson.trim()) {
+      if (!prop.nestedFieldsJson.trim() && !prop.refComponentTypesText.trim()) {
         errors.push(`Object list prop "${prop.key || '(new prop)'}" requires nested field schema JSON.`);
       } else {
+        if (!prop.nestedFieldsJson.trim() && prop.refComponentTypesText.trim()) {
+          continue;
+        }
         try {
           const parsed = JSON.parse(prop.nestedFieldsJson);
           if (!Array.isArray(parsed)) {
@@ -392,6 +587,10 @@ export function ComponentRegistryPage() {
   }, [rows, selectedId, settingsMap]);
 
   const validation = useMemo(() => (draft ? validateDraft(draft) : []), [draft]);
+  const componentTypeOptions = useMemo(
+    () => rows.map((entry) => ({ label: `${entry.label} (${entry.id})`, value: entry.id })),
+    [rows]
+  );
 
   const save = async () => {
     if (!draft) {
@@ -535,13 +734,14 @@ export function ComponentRegistryPage() {
                                         {
                                           key: `prop_${prev.props.length + 1}`,
                                           label: 'New Prop',
-                                          type: 'string',
+                                          type: 'text',
                                           required: false,
                                           defaultValue: '',
                                           control: 'InputText',
                                           optionsText: '',
                                           itemLabelKey: '',
-                                          nestedFieldsJson: ''
+                                          nestedFieldsJson: '',
+                                          refComponentTypesText: ''
                                         }
                                       ]
                                     }
@@ -600,10 +800,53 @@ export function ComponentRegistryPage() {
                           />
                           <Column header="Key" body={(row: PropDef, options) => <InputText value={row.key} onChange={(event) => updateProp(options.rowIndex, { key: event.target.value })} />} />
                           <Column header="Label" body={(row: PropDef, options) => <InputText value={row.label} onChange={(event) => updateProp(options.rowIndex, { label: event.target.value })} />} />
-                          <Column header="Type" body={(row: PropDef, options) => <Dropdown value={row.type} options={PROP_TYPE_OPTIONS} onChange={(event) => updateProp(options.rowIndex, { type: event.value as PropType })} />} />
+                          <Column
+                            header="Type"
+                            body={(row: PropDef, options) => (
+                              <Dropdown
+                                value={row.type}
+                                options={PROP_TYPE_OPTIONS}
+                                onChange={(event) => {
+                                  const nextType = event.value as PropType;
+                                  updateProp(options.rowIndex, {
+                                    type: nextType,
+                                    control: defaultControlForType(nextType)
+                                  });
+                                }}
+                              />
+                            )}
+                          />
                           <Column header="Required" body={(row: PropDef, options) => <InputSwitch checked={row.required} onChange={(event) => updateProp(options.rowIndex, { required: Boolean(event.value) })} />} />
                           <Column header="Default" body={(row: PropDef, options) => <InputText value={row.defaultValue} onChange={(event) => updateProp(options.rowIndex, { defaultValue: event.target.value })} />} />
                           <Column header="Control" body={(row: PropDef, options) => <Dropdown value={row.control} options={CONTROL_OPTIONS} onChange={(event) => updateProp(options.rowIndex, { control: event.value as ControlType })} />} />
+                          <Column
+                            header="Ref Types"
+                            body={(row: PropDef, options) => {
+                              if (row.type !== 'componentRef' && row.type !== 'objectRef' && row.type !== 'objectList') {
+                                return <span className="muted">-</span>;
+                              }
+                              const selected = row.refComponentTypesText
+                                .split(',')
+                                .map((value) => value.trim())
+                                .filter(Boolean);
+                              return (
+                                <MultiSelect
+                                  value={selected}
+                                  options={componentTypeOptions}
+                                  onChange={(event) => {
+                                    const next = Array.isArray(event.value)
+                                      ? event.value.filter((value): value is string => typeof value === 'string')
+                                      : [];
+                                    updateProp(options.rowIndex, { refComponentTypesText: next.join(', ') });
+                                  }}
+                                  display="chip"
+                                  filter
+                                  placeholder="Select component types"
+                                  maxSelectedLabels={2}
+                                />
+                              );
+                            }}
+                          />
                           <Column
                             header="Actions"
                             body={(_row, options) => (
@@ -622,9 +865,14 @@ export function ComponentRegistryPage() {
                         </DataTable>
                       </TabPanel>
                       <TabPanel header="UI">
-                        <p className="muted">Control mapping per prop and select options (`value:label` per line).</p>
+                        <p className="muted">Control mapping per prop, with typed JSON source editors for nested schemas.</p>
                         {draft.props.map((prop, index) => (
-                          <div key={`${prop.key}-${index}`} className="form-grid">
+                          <div key={`${prop.key}-${index}`} className="content-card mb-3">
+                            <div className="status-panel mb-2">
+                              <strong>{prop.label || prop.key || `Prop ${index + 1}`}</strong>
+                              <div className="muted">{prop.key} ({prop.type})</div>
+                            </div>
+                            <div className="form-grid">
                             <div className="form-row">
                               <label>{prop.key} control</label>
                               <Dropdown value={prop.control} options={CONTROL_OPTIONS} onChange={(event) => updateProp(index, { control: event.value as ControlType })} />
@@ -643,15 +891,36 @@ export function ComponentRegistryPage() {
                                 </div>
                                 <div className="form-row">
                                   <label>{prop.key} nested fields JSON</label>
-                                  <InputTextarea
-                                    rows={8}
+                                  <JsonSourceEditor
+                                    editorId={`component-registry-${draft.id}-nested-${prop.key || index}`}
                                     value={prop.nestedFieldsJson}
-                                    onChange={(event) => updateProp(index, { nestedFieldsJson: event.target.value })}
-                                    placeholder={'[{"key":"title","label":"Title","type":"string"},{"key":"description","label":"Description","type":"string"}]'}
+                                    onChange={(next) => updateProp(index, { nestedFieldsJson: next })}
+                                    height={220}
+                                    schema={componentFieldsJsonSchema}
                                   />
                                 </div>
                               </>
                             ) : null}
+                            {prop.type === 'componentRef' || prop.type === 'objectRef' || prop.type === 'objectList' ? (
+                              <div className="form-row">
+                                <label>{prop.key} allowed component types</label>
+                                <MultiSelect
+                                  value={prop.refComponentTypesText.split(',').map((value) => value.trim()).filter(Boolean)}
+                                  options={componentTypeOptions}
+                                  onChange={(event) => {
+                                    const next = Array.isArray(event.value)
+                                      ? event.value.filter((value): value is string => typeof value === 'string')
+                                      : [];
+                                    updateProp(index, { refComponentTypesText: next.join(', ') });
+                                  }}
+                                  display="chip"
+                                  filter
+                                  placeholder="Select component types"
+                                  maxSelectedLabels={3}
+                                />
+                              </div>
+                            ) : null}
+                            </div>
                           </div>
                         ))}
                       </TabPanel>
@@ -676,17 +945,37 @@ export function ComponentRegistryPage() {
                                     })}
                                   onChange={(event) => setPreviewValues((prev) => ({ ...prev, [prop.key]: String(event.value ?? '') }))}
                                 />
-                              ) : prop.type === 'list' || prop.type === 'objectList' ? (
-                                <InputTextarea
-                                  rows={4}
-                                  value={previewValues[prop.key] ?? (prop.type === 'objectList' ? '[]' : '')}
-                                  onChange={(event) => setPreviewValues((prev) => ({ ...prev, [prop.key]: event.target.value }))}
+                              ) : prop.type === 'componentRef' ? (
+                                <Dropdown
+                                  value={previewValues[prop.key] ?? ''}
+                                  options={componentTypeOptions}
+                                  onChange={(event) => setPreviewValues((prev) => ({ ...prev, [prop.key]: String(event.value ?? '') }))}
+                                  filter
+                                  showClear
+                                />
+                              ) : prop.type === 'stringList' || prop.type === 'contentLinkList' || prop.type === 'assetList' || prop.type === 'objectList' ? (
+                                <JsonSourceEditor
+                                  editorId={`component-registry-${draft.id}-preview-${prop.key}`}
+                                  value={previewValues[prop.key] ?? (prop.type === 'objectList' ? '[]' : '[]')}
+                                  onChange={(next) => setPreviewValues((prev) => ({ ...prev, [prop.key]: next }))}
+                                  height={160}
+                                  schema={prop.type === 'objectList' ? componentFieldsJsonSchema : null}
                                 />
                               ) : prop.type === 'objectRef' ? (
-                                <InputTextarea
-                                  rows={3}
+                                <JsonSourceEditor
+                                  editorId={`component-registry-${draft.id}-preview-object-ref-${prop.key}`}
                                   value={previewValues[prop.key] ?? '{"componentId":"","path":""}'}
-                                  onChange={(event) => setPreviewValues((prev) => ({ ...prev, [prop.key]: event.target.value }))}
+                                  onChange={(next) => setPreviewValues((prev) => ({ ...prev, [prop.key]: next }))}
+                                  height={140}
+                                  schema={looseJsonObjectSchema}
+                                />
+                              ) : prop.type === 'json' ? (
+                                <JsonSourceEditor
+                                  editorId={`component-registry-${draft.id}-preview-json-${prop.key}`}
+                                  value={previewValues[prop.key] ?? '{}'}
+                                  onChange={(next) => setPreviewValues((prev) => ({ ...prev, [prop.key]: next }))}
+                                  height={180}
+                                  schema={looseJsonObjectSchema}
                                 />
                               ) : (
                                 <InputText value={previewValues[prop.key] ?? ''} onChange={(event) => setPreviewValues((prev) => ({ ...prev, [prop.key]: event.target.value }))} />
@@ -698,11 +987,23 @@ export function ComponentRegistryPage() {
                       <TabPanel header="Advanced JSON">
                         <div className="form-row">
                           <label>Schema JSON</label>
-                          <InputTextarea rows={10} value={serializeProps(draft.props)} readOnly />
+                          <JsonSourceEditor
+                            editorId={`component-registry-${draft.id}-schema-json`}
+                            value={serializeProps(draft.props)}
+                            readOnly
+                            height={280}
+                            schema={componentFieldsJsonSchema}
+                          />
                         </div>
                         <div className="form-row">
                           <label>UI Metadata JSON</label>
-                          <InputTextarea rows={10} value={draft.uiMetaJsonText} onChange={(event) => setDraft((prev) => (prev ? { ...prev, uiMetaJsonText: event.target.value } : prev))} />
+                          <JsonSourceEditor
+                            editorId={`component-registry-${draft.id}-ui-meta-json`}
+                            value={draft.uiMetaJsonText || '{}'}
+                            onChange={(next) => setDraft((prev) => (prev ? { ...prev, uiMetaJsonText: next } : prev))}
+                            height={280}
+                            schema={uiMetaJsonSchema}
+                          />
                         </div>
                       </TabPanel>
                     </TabView>

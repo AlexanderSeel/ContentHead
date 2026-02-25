@@ -943,6 +943,27 @@ export function ContentPagesPage() {
   const areaRestrictions = useMemo(() => {
     return parseJson<Record<string, string[]>>(selectedType?.componentAreaRestrictionsJson ?? '{}', {});
   }, [selectedType?.componentAreaRestrictionsJson]);
+  const configuredAreaNames = useMemo(() => {
+    const fromRestrictions = Object.keys(areaRestrictions).map((entry) => entry.trim()).filter(Boolean);
+    const fromComposition = composition.areas.map((entry) => entry.name).filter(Boolean);
+    const merged = [...fromRestrictions, ...fromComposition];
+    if (merged.length === 0) {
+      return ['main', 'sidebar'];
+    }
+    return Array.from(new Set(merged));
+  }, [areaRestrictions, composition.areas]);
+  const builderAreas = useMemo(() => {
+    const byName = new Map(composition.areas.map((entry) => [entry.name, entry]));
+    return configuredAreaNames.map((name) => byName.get(name) ?? { name, components: [] });
+  }, [composition.areas, configuredAreaNames]);
+  useEffect(() => {
+    if (configuredAreaNames.length === 0) {
+      return;
+    }
+    if (!configuredAreaNames.includes(newComponentArea)) {
+      setNewComponentArea(configuredAreaNames[0] ?? 'main');
+    }
+  }, [configuredAreaNames, newComponentArea]);
   const availableComponentTypeOptions = useMemo(() => {
     return enabledComponentRegistry
       .filter((entry) => {
@@ -2035,6 +2056,10 @@ export function ContentPagesPage() {
   };
 
   const moveComponentToArea = (id: string, areaName: string) => {
+    if (!configuredAreaNames.includes(areaName)) {
+      setStatus(`Area "${areaName}" is not configured for this content type.`);
+      return;
+    }
     const without = removeComponentFromAreas(composition.areas, id);
     const nextAreas = placeComponentInArea(without, areaName, id);
     updateBuilder(nextAreas, componentMap);
@@ -2075,6 +2100,10 @@ export function ContentPagesPage() {
   };
 
   const addComponent = () => {
+    if (!configuredAreaNames.includes(newComponentArea)) {
+      setStatus(`Area "${newComponentArea}" is not configured for this content type.`);
+      return;
+    }
     const allowedByType = new Set(allowedComponentIds);
     if (!allowedByType.has(newComponentType)) {
       setStatus(`Component type "${newComponentType}" is not allowed for this content type.`);
@@ -2364,7 +2393,8 @@ export function ContentPagesPage() {
                   id: String(entry.value),
                   label: String(entry.label)
                 }))}
-                areas={composition.areas}
+                areaNames={configuredAreaNames}
+                areas={builderAreas}
                 componentMap={componentMap}
                 selectedComponentId={selectedComponentId}
                 selectedComponentSource={componentSourceResolver}
@@ -2374,14 +2404,18 @@ export function ContentPagesPage() {
                   setSelectedFieldPath(`components.${id}`);
                 }}
                 onAdd={(componentTypeId, areaName) => {
+                  const targetArea =
+                    areaName && configuredAreaNames.includes(areaName)
+                      ? areaName
+                      : configuredAreaNames[0] ?? 'main';
                   setNewComponentType(componentTypeId);
-                  setNewComponentArea(areaName ?? 'main');
+                  setNewComponentArea(targetArea);
                   const allowedByType = new Set(allowedComponentIds);
                   if (!allowedByType.has(componentTypeId)) {
                     setStatus(`Component type \"${componentTypeId}\" is not allowed for this content type.`);
                     return;
                   }
-                  const area = areaName ?? 'main';
+                  const area = targetArea;
                   const areaAllowed =
                     Array.isArray(areaRestrictions[area]) && areaRestrictions[area]!.length > 0
                       ? new Set(areaRestrictions[area]!)
@@ -2418,7 +2452,8 @@ export function ContentPagesPage() {
                           .filter((entry) => entry.id !== selectedComponentId)
                           .map((entry) => ({
                             id: entry.id,
-                            label: `${resolvedComponentRegistryMap.get(entry.type)?.label ?? entry.type} (${entry.id})`
+                            label: `${resolvedComponentRegistryMap.get(entry.type)?.label ?? entry.type} (${entry.id})`,
+                            type: entry.type
                           }))}
                         selectedFieldPath={selectedFieldPath}
                         onSelectFieldPath={(path) => {
@@ -3019,9 +3054,8 @@ export function ContentPagesPage() {
           <label>Area</label>
           <Dropdown
             value={newComponentArea}
-            options={(composition.areas.length > 0 ? composition.areas : [{ name: 'main', components: [] }]).map((area) => ({ label: area.name, value: area.name }))}
+            options={configuredAreaNames.map((areaName) => ({ label: areaName, value: areaName }))}
             onChange={(event) => setNewComponentArea(String(event.value))}
-            editable
           />
         </div>
         <div className="inline-actions mt-3">

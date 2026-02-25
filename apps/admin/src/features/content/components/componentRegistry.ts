@@ -26,6 +26,7 @@ export type ComponentUiField = {
   required?: boolean;
   defaultValue?: unknown;
   control?: string;
+  refComponentTypes?: string[];
 };
 
 export type ComponentRegistryEntry = {
@@ -64,6 +65,7 @@ type PersistedComponentField = {
   required?: unknown;
   defaultValue?: unknown;
   control?: unknown;
+  refComponentTypes?: unknown;
 };
 
 function toLegacyFieldType(rawType: string): ComponentUiField['type'] {
@@ -138,6 +140,12 @@ function parsePersistedField(entry: PersistedComponentField): ComponentUiField |
         .map((field) => parsePersistedField(field as PersistedComponentField))
         .filter((field): field is ComponentUiField => Boolean(field))
     : undefined;
+  const refComponentTypes = Array.isArray(entry.refComponentTypes)
+    ? entry.refComponentTypes
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.trim())
+        .filter(Boolean)
+    : undefined;
   return {
     key,
     label,
@@ -147,7 +155,8 @@ function parsePersistedField(entry: PersistedComponentField): ComponentUiField |
     ...(typeof entry.itemLabelKey === 'string' && entry.itemLabelKey.trim() ? { itemLabelKey: entry.itemLabelKey.trim() } : {}),
     ...(typeof entry.required === 'boolean' ? { required: entry.required } : {}),
     ...('defaultValue' in entry ? { defaultValue: entry.defaultValue } : {}),
-    ...(typeof entry.control === 'string' && entry.control.trim() ? { control: entry.control } : {})
+    ...(typeof entry.control === 'string' && entry.control.trim() ? { control: entry.control } : {}),
+    ...(refComponentTypes && refComponentTypes.length > 0 ? { refComponentTypes } : {})
   } as ComponentUiField;
 }
 
@@ -184,14 +193,33 @@ function parseDefaultProps(value: string | null | undefined): Record<string, unk
   }
 }
 
-function propsSchemaFromFields(fields: ComponentUiField[]) {
+type PersistedSchemaField = {
+  key: string;
+  label: string;
+  type: ComponentUiField['type'];
+  required: boolean;
+  control?: string;
+  options?: Array<{ label: string; value: string }>;
+  defaultValue?: unknown;
+  refComponentTypes?: string[];
+  itemLabelKey?: string;
+  fields?: PersistedSchemaField[];
+};
+
+function propsSchemaFromFields(fields: ComponentUiField[]): PersistedSchemaField[] {
   return fields.map((field) => ({
     key: field.key,
     label: field.label,
     type: field.type,
     required: Boolean(field.required),
     ...(field.control ? { control: field.control } : {}),
-    ...('defaultValue' in field ? { defaultValue: field.defaultValue } : {})
+    ...(Array.isArray(field.options) && field.options.length > 0 ? { options: field.options } : {}),
+    ...('defaultValue' in field ? { defaultValue: field.defaultValue } : {}),
+    ...(Array.isArray(field.refComponentTypes) && field.refComponentTypes.length > 0
+      ? { refComponentTypes: field.refComponentTypes }
+      : {}),
+    ...(typeof field.itemLabelKey === 'string' && field.itemLabelKey.trim() ? { itemLabelKey: field.itemLabelKey } : {}),
+    ...(Array.isArray(field.fields) && field.fields.length > 0 ? { fields: propsSchemaFromFields(field.fields) } : {})
   }));
 }
 
@@ -231,6 +259,26 @@ export const componentRegistry: ComponentRegistryEntry[] = [
     ]
   },
   {
+    id: 'feature_grid_item',
+    label: 'Feature Grid Item',
+    icon: 'pi pi-th-large',
+    schema: z.object({
+      icon: z.string().optional(),
+      title: z.string().min(1),
+      description: z.string().min(1)
+    }),
+    defaultProps: {
+      icon: 'pi-bolt',
+      title: 'Feature title',
+      description: 'Feature description'
+    },
+    fields: [
+      { key: 'icon', label: 'Icon', type: 'text' },
+      { key: 'title', label: 'Title', type: 'text' },
+      { key: 'description', label: 'Description', type: 'multiline' }
+    ]
+  },
+  {
     id: 'feature_grid',
     label: 'Feature Grid',
     icon: 'pi pi-th-large',
@@ -238,19 +286,13 @@ export const componentRegistry: ComponentRegistryEntry[] = [
       title: z.string().optional(),
       items: z.array(
         z.object({
-          icon: z.string().optional(),
-          title: z.string().min(1),
-          description: z.string().min(1)
+          item: z.string().min(1)
         })
       )
     }),
     defaultProps: {
       title: 'Why teams choose ContentHead',
-      items: [
-        { icon: 'pi-bolt', title: 'Fast authoring', description: 'Live preview and on-page editing for rapid iteration.' },
-        { icon: 'pi-globe', title: 'Market ready', description: 'Built-in market and locale routing with overrides.' },
-        { icon: 'pi-sliders-h', title: 'Variants', description: 'Personalize with variant sets and deterministic rules.' }
-      ]
+      items: []
     },
     fields: [
       { key: 'title', label: 'Title', type: 'text' },
@@ -258,11 +300,9 @@ export const componentRegistry: ComponentRegistryEntry[] = [
         key: 'items',
         label: 'Items',
         type: 'objectList',
-        itemLabelKey: 'title',
+        itemLabelKey: 'item',
         fields: [
-          { key: 'icon', label: 'Icon', type: 'text' },
-          { key: 'title', label: 'Title', type: 'text' },
-          { key: 'description', label: 'Description', type: 'multiline' }
+          { key: 'item', label: 'Item Component', type: 'componentRef', refComponentTypes: ['feature_grid_item'] }
         ]
       }
     ]
@@ -467,7 +507,22 @@ export function resolveComponentRegistry(settings: ComponentTypeSetting[]): Reso
     const enabled = setting?.enabled ?? true;
     const groupName = setting?.groupName?.trim() || 'General';
     const overrideFields = parsePersistedFields(setting?.schemaJson);
-    const fields = overrideFields && overrideFields.length > 0 ? overrideFields : entry.fields;
+    let fields = overrideFields && overrideFields.length > 0 ? overrideFields : entry.fields;
+    const canonicalByKey = new Map(entry.fields.map((field) => [field.key, field]));
+    fields = fields.map((field) => {
+      const canonical = canonicalByKey.get(field.key);
+      if (!canonical) {
+        return field;
+      }
+      // Repair stale overrides where structured fields were accidentally downgraded to plain text.
+      const downgraded =
+        (field.type === 'text' || field.type === 'multiline') &&
+        (canonical.type === 'objectList' || canonical.type === 'componentRef' || canonical.type === 'objectRef');
+      if (downgraded) {
+        return canonical;
+      }
+      return field;
+    });
     const persistedDefaultProps = parseDefaultProps(setting?.defaultPropsJson);
     const defaultProps =
       persistedDefaultProps ??

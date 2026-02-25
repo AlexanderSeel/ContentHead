@@ -824,6 +824,7 @@ function renderComponent(
   versionId: number,
   id: string,
   component: ComponentPayload | undefined,
+  allComponents: Record<string, ComponentPayload>,
   forms: Record<string, { fields: FormFieldPayload[]; steps?: FormStepPayload[] }>,
   assets: Record<string, AssetPayload>,
   apiBaseUrl: string
@@ -886,17 +887,45 @@ function renderComponent(
   }
 
   if (componentType === 'feature_grid') {
-    const items = Array.isArray(props.items) ? (props.items as Array<{ icon?: string; title?: string; description?: string }>) : [];
+    const items = Array.isArray(props.items) ? (props.items as Array<Record<string, unknown>>) : [];
     return (
       <section key={id} {...wrapperProps} className="cms-section" id="features">
           <h2 {...fieldAttrs(`components.${id}.props.title`, 'text')}>{String(props.title ?? 'Features')}</h2>
         <div className="cms-grid features">
-          {items.map((item, index) => (
-            <article key={`${id}-${index}`} className="cms-card" {...fieldAttrs(`components.${id}.props.items`)}>
-              <h3>{item.icon ? <i className={`pi ${item.icon}`} style={{ marginRight: 6 }} /> : null}{item.title ?? `Feature ${index + 1}`}</h3>
-              <p className="cms-muted">{item.description ?? ''}</p>
-            </article>
-          ))}
+          {items.map((item, index) => {
+            const itemRef = typeof item.item === 'string' ? item.item : '';
+            const referenced = itemRef ? allComponents[itemRef] : undefined;
+            const referencedProps = componentProps(referenced);
+            const referencedType = referenced?.type ? normalizeType(referenced.type) : '';
+            const icon =
+              typeof referencedProps.icon === 'string'
+                ? referencedProps.icon
+                : typeof item.icon === 'string'
+                  ? item.icon
+                  : '';
+            const title =
+              typeof referencedProps.title === 'string'
+                ? referencedProps.title
+                : typeof item.title === 'string'
+                  ? item.title
+                  : `Feature ${index + 1}`;
+            const description =
+              typeof referencedProps.description === 'string'
+                ? referencedProps.description
+                : typeof item.description === 'string'
+                  ? item.description
+                  : '';
+
+            return (
+              <article key={`${id}-${index}`} className="cms-card" {...fieldAttrs(`components.${id}.props.items`)}>
+                <h3>{icon ? <i className={`pi ${icon}`} style={{ marginRight: 6 }} /> : null}{title}</h3>
+                <p className="cms-muted">{description}</p>
+                {itemRef && referencedType !== 'feature_grid_item' ? (
+                  <small className="cms-muted">Unsupported ref type: {referenced?.type ?? 'missing'}</small>
+                ) : null}
+              </article>
+            );
+          })}
         </div>
       </section>
     );
@@ -1058,6 +1087,10 @@ function renderComponent(
         />
       </section>
     );
+  }
+
+  if (componentType === 'feature_grid_item') {
+    return null;
   }
 
   if (componentType === 'cta') {
@@ -1705,7 +1738,7 @@ export function CmsRendererClient({
       {areas.map((area) => (
         <section key={area.name} style={{ display: 'grid', gap: '0.9rem' }}>
           {area.components.map((componentId) =>
-            renderComponent(siteId, marketCode, localeCode, urlPattern, routeSlug, contentItemId, versionId, componentId, components[componentId], forms, assets, apiBaseUrl)
+            renderComponent(siteId, marketCode, localeCode, urlPattern, routeSlug, contentItemId, versionId, componentId, components[componentId], components, forms, assets, apiBaseUrl)
           )}
         </section>
       ))}
