@@ -14,6 +14,7 @@ import { evaluateFieldConditions, type Rule } from '@contenthead/shared';
 import { RuleEditorDialog } from '../components/rules/RuleEditorDialog';
 
 import { useAuth } from '../app/AuthContext';
+import { formatErrorMessage } from '../lib/graphqlErrorUi';
 import { createAdminSdk } from '../lib/sdk';
 import {
   applyDesignerRows,
@@ -310,7 +311,7 @@ export function FormBuilderSection({
   };
 
   useEffect(() => {
-    refreshForms().catch((error: unknown) => onStatus(String(error)));
+    refreshForms().catch((error: unknown) => onStatus(formatErrorMessage(error)));
   }, [siteId, token]);
 
   const scopedFields = useMemo(() => fields.filter((field) => field.stepId === selectedStepId), [fields, selectedStepId]);
@@ -669,7 +670,7 @@ export function FormBuilderSection({
     try {
       const parsed = JSON.parse(payload) as { source: 'palette'; fieldType: FieldType } | { source: 'field'; fieldId: number };
       if (parsed.source === 'palette') {
-        createField(parsed.fieldType).catch((error: unknown) => onStatus(String(error)));
+        createField(parsed.fieldType).catch((error: unknown) => onStatus(formatErrorMessage(error)));
         return;
       }
 
@@ -787,20 +788,20 @@ export function FormBuilderSection({
             setFormName(form?.name ?? '');
             setFormDescription(form?.description ?? '');
             setFormActive(Boolean(form?.active));
-            refreshFormDetails(selected).catch((error: unknown) => onStatus(String(error)));
+            refreshFormDetails(selected).catch((error: unknown) => onStatus(formatErrorMessage(error)));
           }}
           placeholder="Select form"
         />
         <InputText value={formName} onChange={(event) => { setFormName(event.target.value); setFormDirty(true); }} placeholder="Form name" />
         <InputText value={formDescription} onChange={(event) => { setFormDescription(event.target.value); setFormDirty(true); }} placeholder="Description" />
         <label><Checkbox checked={formActive} onChange={(event) => { setFormActive(Boolean(event.checked)); setFormDirty(true); }} /> Active</label>
-        <Button label="Save" onClick={() => saveAllDraftChanges().catch((error: unknown) => onStatus(String(error)))} />
+        <Button label="Save" onClick={() => saveAllDraftChanges().catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
         <Button label={formActive ? 'Deactivate' : 'Activate'} severity="secondary" onClick={() => {
           setFormActive((prev) => !prev);
           setFormDirty(true);
         }} />
-        <Button label="Duplicate Step" severity="secondary" onClick={() => duplicateStep().catch((error: unknown) => onStatus(String(error)))} disabled={!selectedStepId} />
-        <Button label="Save Form Only" text onClick={() => saveForm().catch((error: unknown) => onStatus(String(error)))} />
+        <Button label="Duplicate Step" severity="secondary" onClick={() => duplicateStep().catch((error: unknown) => onStatus(formatErrorMessage(error)))} disabled={!selectedStepId} />
+        <Button label="Save Form Only" text onClick={() => saveForm().catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
         <Button label="Test Answers" text onClick={() => setShowTestDrawer(true)} />
       </div>
 
@@ -809,7 +810,7 @@ export function FormBuilderSection({
           <h4>Steps</h4>
           <div className="form-row">
             <InputText value={stepName} onChange={(event) => setStepName(event.target.value)} placeholder="New step name" />
-            <Button label="Add Step" onClick={() => addStep().catch((error: unknown) => onStatus(String(error)))} disabled={!formId} />
+            <Button label="Add Step" onClick={() => addStep().catch((error: unknown) => onStatus(formatErrorMessage(error)))} disabled={!formId} />
           </div>
 
           <DataTable value={[...steps].sort((a, b) => a.position - b.position || a.id - b.id)} size="small" selectionMode="single" selection={steps.find((step) => step.id === selectedStepId) ?? null} onSelectionChange={(event) => {
@@ -829,7 +830,7 @@ export function FormBuilderSection({
             <Column
               header="Delete"
               body={(row: FormStep) => (
-                <Button text severity="danger" size="small" label="Remove" onClick={() => deleteStep(row.id).catch((error: unknown) => onStatus(String(error)))} />
+                <Button text severity="danger" size="small" label="Remove" onClick={() => deleteStep(row.id).catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
               )}
             />
           </DataTable>
@@ -845,7 +846,7 @@ export function FormBuilderSection({
                 onDragStart={(event) => {
                   event.dataTransfer.setData('application/x-contenthead-form', JSON.stringify({ source: 'palette', fieldType: option.value }));
                 }}
-                onClick={() => createField(option.value).catch((error: unknown) => onStatus(String(error)))}
+                onClick={() => createField(option.value).catch((error: unknown) => onStatus(formatErrorMessage(error)))}
                 disabled={!selectedStepId}
               >
                 {option.label}
@@ -864,7 +865,7 @@ export function FormBuilderSection({
                 onDragStart={(event) => {
                   event.dataTransfer.setData('application/x-contenthead-form', JSON.stringify({ source: 'palette', fieldType: option.value }));
                 }}
-                onClick={() => createField(option.value).catch((error: unknown) => onStatus(String(error)))}
+                onClick={() => createField(option.value).catch((error: unknown) => onStatus(formatErrorMessage(error)))}
                 disabled={!selectedStepId}
               >
                 {option.label}
@@ -924,8 +925,8 @@ export function FormBuilderSection({
                                 const validations = parseJsonObject<FormValidationSet>(field.validationsJson, {});
                                 updateField(field.id, (current) => ({ ...current, validationsJson: JSON.stringify({ ...validations, required: !Boolean(validations.required) }) }));
                               }} />
-                              <Button text size="small" icon="pi pi-copy" onClick={() => duplicateField(field).catch((error: unknown) => onStatus(String(error)))} />
-                              <Button text severity="danger" size="small" icon="pi pi-trash" onClick={() => deleteField(field).catch((error: unknown) => onStatus(String(error)))} />
+                              <Button text size="small" icon="pi pi-copy" onClick={() => duplicateField(field).catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
+                              <Button text severity="danger" size="small" icon="pi pi-trash" onClick={() => deleteField(field).catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
                             </div>
                           </div>
                         </div>
@@ -1010,7 +1011,7 @@ export function FormBuilderSection({
                   body={(row: FormField) => (
                     <div className="inline-actions">
                       <Button text size="small" label="Select" onClick={() => setSelectedFieldId(row.id)} />
-                      <Button text severity="danger" size="small" label="Delete" onClick={() => deleteField(row).catch((error: unknown) => onStatus(String(error)))} />
+                      <Button text severity="danger" size="small" label="Delete" onClick={() => deleteField(row).catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
                     </div>
                   )}
                 />

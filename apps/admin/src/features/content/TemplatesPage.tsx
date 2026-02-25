@@ -9,6 +9,7 @@ import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { useUi } from '../../app/UiContext';
 import { createAdminSdk } from '../../lib/sdk';
+import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
 import { ComponentInspector } from './components/ComponentInspector';
 import { componentRegistry, getComponentRegistryEntry } from './components/componentRegistry';
 import {
@@ -22,7 +23,7 @@ import {
   type ComponentRecord
 } from './builder/visualBuilderModel';
 import { VisualBuilderWorkspace } from './builder/VisualBuilderWorkspace';
-import { InspectorSection, WorkspaceActionBar, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { ForbiddenState, InspectorSection, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { TextInput } from '../../ui/atoms';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
@@ -160,6 +161,7 @@ export function TemplatesPage() {
   const [draft, setDraft] = useState<Template>(DEFAULT_TEMPLATE);
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
   const [status, setStatus] = useState('');
+  const forbiddenReason = status && isForbiddenError(status) ? status : '';
   const [affectedDrafts, setAffectedDrafts] = useState<Array<{ itemId: number; versionId: number; versionNumber: number }>>([]);
   const [loadingImpact, setLoadingImpact] = useState(false);
   const [contextTemplate, setContextTemplate] = useState<Template | null>(null);
@@ -187,7 +189,7 @@ export function TemplatesPage() {
   };
 
   useEffect(() => {
-    refresh().catch((error) => setStatus(String(error)));
+    refresh().catch((error) => setStatus(formatErrorMessage(error)));
   }, [siteId]);
 
   const loadImpact = async () => {
@@ -217,14 +219,14 @@ export function TemplatesPage() {
 
       setAffectedDrafts(matched.filter((entry) => entry.itemId > 0 && entry.versionId > 0));
     } catch (error) {
-      setStatus(String(error));
+      setStatus(formatErrorMessage(error));
     } finally {
       setLoadingImpact(false);
     }
   };
 
   useEffect(() => {
-    loadImpact().catch((error) => setStatus(String(error)));
+    loadImpact().catch((error) => setStatus(formatErrorMessage(error)));
   }, [draft.id, draft.compositionJson, draft.componentsJson, siteId]);
 
   const saveTemplate = async () => {
@@ -329,9 +331,15 @@ export function TemplatesPage() {
       <WorkspaceActionBar
         overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
-      <ContextMenu ref={contextMenuRef} model={contextItems} />
-      <DataTable
-        value={templates}
+      {forbiddenReason ? (
+        <WorkspaceBody>
+          <ForbiddenState title="Templates unavailable" reason={forbiddenReason} />
+        </WorkspaceBody>
+      ) : (
+        <>
+          <ContextMenu ref={contextMenuRef} model={contextItems} />
+          <DataTable
+            value={templates}
         size="small"
         selectionMode="single"
         selection={draft.id ? draft : null}
@@ -423,8 +431,8 @@ export function TemplatesPage() {
                   />
                 </div>
                 <div className="inline-actions">
-                  <Button label="Save Template" onClick={() => saveTemplate().catch((error) => setStatus(String(error)))} />
-                  <Button label="Reconcile" severity="secondary" onClick={() => sdk.reconcileTemplate({ templateId: draft.id }).then((res) => setStatus(JSON.stringify(res.reconcileTemplate ?? {}, null, 2))).catch((error) => setStatus(String(error)))} disabled={!draft.id} />
+                  <Button label="Save Template" onClick={() => saveTemplate().catch((error) => setStatus(formatErrorMessage(error)))} />
+                  <Button label="Reconcile" severity="secondary" onClick={() => sdk.reconcileTemplate({ templateId: draft.id }).then((res) => setStatus(JSON.stringify(res.reconcileTemplate ?? {}, null, 2))).catch((error) => setStatus(formatErrorMessage(error)))} disabled={!draft.id} />
                 </div>
               </InspectorSection>
               <InspectorSection title="Selected Block" defaultCollapsed={!selectedComponent}>
@@ -442,15 +450,17 @@ export function TemplatesPage() {
                   {loadingImpact ? 'Calculating affected pages...' : `${affectedDrafts.length} page drafts currently linked to this template.`}
                 </div>
                 <div className="inline-actions">
-                  <Button label="Apply to linked pages" severity="success" onClick={() => applyTemplateUpdate().catch((error) => setStatus(String(error)))} disabled={!draft.id || affectedDrafts.length === 0} />
-                  <Button label="Create template version" severity="secondary" onClick={() => createTemplateVersion().catch((error) => setStatus(String(error)))} disabled={!draft.name.trim()} />
+                  <Button label="Apply to linked pages" severity="success" onClick={() => applyTemplateUpdate().catch((error) => setStatus(formatErrorMessage(error)))} disabled={!draft.id || affectedDrafts.length === 0} />
+                  <Button label="Create template version" severity="secondary" onClick={() => createTemplateVersion().catch((error) => setStatus(formatErrorMessage(error)))} disabled={!draft.name.trim()} />
                 </div>
               </InspectorSection>
             </div>
           )}
         />
       </div>
-      {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
+        </>
+      )}
+      {status && !forbiddenReason ? <div className="status-panel" role="alert">{status}</div> : null}
     </WorkspacePage>
   );
 }

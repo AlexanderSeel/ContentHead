@@ -10,6 +10,7 @@ import { Splitter, SplitterPanel } from 'primereact/splitter';
 import ReactFlow, { Background, Controls, MiniMap, type Connection, type Edge, type Node, type OnConnect } from 'reactflow';
 import 'reactflow/dist/style.css';
 
+import { formatErrorMessage } from '../lib/graphqlErrorUi';
 import { createAdminSdk } from '../lib/sdk';
 import { nodeRegistry, validateNodeConfig } from './workflows/nodeRegistry';
 import { NodeInspector } from './workflows/NodeInspector';
@@ -109,7 +110,7 @@ export function WorkflowDesignerSection({
   };
 
   useEffect(() => {
-    refreshDefinitions().catch((error: unknown) => onStatus(String(error)));
+    refreshDefinitions().catch((error: unknown) => onStatus(formatErrorMessage(error)));
   }, []);
 
   useEffect(() => {
@@ -207,7 +208,7 @@ export function WorkflowDesignerSection({
                 <InputNumber value={definitionVersion} min={1} onValueChange={(event) => setDefinitionVersion(event.value ?? 1)} />
               </div>
               <div className="inline-actions">
-                <Button label="Save" onClick={() => saveDefinition().catch((error: unknown) => onStatus(String(error)))} />
+                <Button label="Save" onClick={() => saveDefinition().catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
               </div>
 
               <h4>Node Palette</h4>
@@ -242,7 +243,7 @@ export function WorkflowDesignerSection({
                 <h3 style={{ margin: 0 }}>Canvas</h3>
                 <div className="inline-actions">
                   <Button label="Auto-layout" text onClick={() => setGraphNodes((prev) => [...prev])} />
-                  <Button label="Run This Workflow" severity="success" onClick={() => startRun().catch((error: unknown) => onStatus(String(error)))} />
+                  <Button label="Run This Workflow" severity="success" onClick={() => startRun().catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
                 </div>
               </div>
               <div className="paneScroll">

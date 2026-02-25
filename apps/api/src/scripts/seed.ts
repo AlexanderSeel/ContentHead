@@ -1,5 +1,7 @@
 import { resolve } from 'node:path';
 
+import bcrypt from 'bcryptjs';
+
 import { config } from '../config.js';
 import { InternalAuthProvider } from '../auth/InternalAuthProvider.js';
 import { DuckDbClient } from '../db/DuckDbClient.js';
@@ -7,6 +9,7 @@ import { runMigrations } from '../db/migrate.js';
 import type { SignOptions } from 'jsonwebtoken';
 import { ensureBaselineConnectors } from '../connectors/service.js';
 import { ensureBaselineSecurity } from '../security/service.js';
+import { ensureUserHasRole } from '../security/permissionEvaluator.js';
 import { LocalFileStorageProvider } from '../assets/storage.js';
 import { createAssetFromUpload, listAssets } from '../assets/service.js';
 import { createContentItem, updateDraftVersion, publishVersion, createDraftVersion } from '../content/service.js';
@@ -389,18 +392,35 @@ async function main(): Promise<void> {
     config.jwtSecret,
     config.jwtExpiresIn as NonNullable<SignOptions['expiresIn']>
   );
-  const existing = await auth.validateCredentials(config.seedAdminUsername, config.seedAdminPassword);
+  const existingByUsername = await db.get<{ id: number }>(
+    'SELECT id FROM users WHERE lower(username) = lower(?)',
+    [config.seedAdminUsername]
+  );
 
-  if (!existing) {
-    await auth.createUser({
+  let adminUser;
+  if (existingByUsername?.id) {
+    const passwordHash = await bcrypt.hash(config.seedAdminPassword, 12);
+    await db.run('UPDATE users SET password_hash = ?, display_name = ?, active = TRUE WHERE id = ?', [
+      passwordHash,
+      config.seedAdminDisplayName,
+      existingByUsername.id
+    ]);
+    adminUser = await auth.getUserById(existingByUsername.id);
+    console.log(`Seed user already exists: ${config.seedAdminUsername}`);
+  } else {
+    adminUser = await auth.createUser({
       username: config.seedAdminUsername,
       password: config.seedAdminPassword,
       displayName: config.seedAdminDisplayName
     });
     console.log(`Seeded admin user: ${config.seedAdminUsername}`);
-  } else {
-    console.log(`Seed user already exists: ${config.seedAdminUsername}`);
   }
+
+  if (!adminUser) {
+    throw new Error('Failed to ensure seed admin user');
+  }
+
+  await ensureUserHasRole(db, adminUser.id, 'admin');
 
   await db.run(
     `INSERT INTO markets(code, name, currency, timezone, active)

@@ -1,15 +1,48 @@
 import { Card } from 'primereact/card';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useUi } from '../../app/UiContext';
+import { useAuth } from '../../app/AuthContext';
 import { useGraphqlDiagnostics } from '../../lib/graphqlReliability';
+import { createAdminSdk } from '../../lib/sdk';
 import { readCssVar } from '../../theme/themeManager';
-import { WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { ForbiddenState, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 export function DiagnosticsPage() {
   const { siteId, marketCode, localeCode, error } = useAdminContext();
   const { theme, scale, themeMode, themeBridge } = useUi();
   const graphqlErrors = useGraphqlDiagnostics();
+  const { token } = useAuth();
+  const sdk = useMemo(() => createAdminSdk(token), [token]);
+  const [securityInfo, setSecurityInfo] = useState<{ roles: string[]; permissions: string[]; seedStatus: { adminRoleExists: boolean; adminPermissionCoverage: boolean; adminUserHasRole: boolean } } | null>(null);
+  const [securityError, setSecurityError] = useState<string | null>(null);
+
+  useEffect(() => {
+    sdk.safe
+      .devDiagnostics()
+      .then((result) => {
+        if (result.ok) {
+          setSecurityError(null);
+          const diagnostics = result.data.devDiagnostics;
+          if (!diagnostics) {
+            return;
+          }
+          setSecurityInfo({
+            roles: diagnostics.roles ?? [],
+            permissions: diagnostics.permissions ?? [],
+            seedStatus: {
+              adminRoleExists: diagnostics.seedStatus?.adminRoleExists ?? false,
+              adminPermissionCoverage: diagnostics.seedStatus?.adminPermissionCoverage ?? false,
+              adminUserHasRole: diagnostics.seedStatus?.adminUserHasRole ?? false
+            }
+          });
+          return;
+        }
+        setSecurityError(result.error.message);
+      })
+      .catch(() => setSecurityError('Unable to load security diagnostics.'));
+  }, [sdk]);
   const tokens = [
     '--surface-ground',
     '--surface-card',
@@ -53,6 +86,21 @@ export function DiagnosticsPage() {
                 <pre>{JSON.stringify(entry.variables, null, 2)}</pre>
               </div>
             ))}
+          </div>
+        )}
+      </Card>
+      <Card title="Security / RBAC Diagnostics">
+        {securityError ? (
+          <ForbiddenState title="Security diagnostics unavailable" reason={securityError} />
+        ) : !securityInfo ? (
+          <div className="status-panel">Loading security diagnostics...</div>
+        ) : (
+          <div className="diagnostics-grid">
+            <div className="status-panel"><strong>Roles</strong><div>{securityInfo.roles.join(', ') || 'none'}</div></div>
+            <div className="status-panel"><strong>Permissions</strong><div>{securityInfo.permissions.length}</div></div>
+            <div className="status-panel"><strong>Admin role exists</strong><div>{securityInfo.seedStatus.adminRoleExists ? 'yes' : 'no'}</div></div>
+            <div className="status-panel"><strong>Admin has full permissions</strong><div>{securityInfo.seedStatus.adminPermissionCoverage ? 'yes' : 'no'}</div></div>
+            <div className="status-panel"><strong>Admin user linked to admin role</strong><div>{securityInfo.seedStatus.adminUserHasRole ? 'yes' : 'no'}</div></div>
           </div>
         )}
       </Card>

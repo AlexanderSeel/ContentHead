@@ -6,6 +6,7 @@ import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { TextInput, NumberInput } from '../../ui/atoms';
 import { EntityEditor, EntityTable, ToolbarActions, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { deleteEntity, insertEntity, listEntities, updateEntity } from '../core/dbEntityApi';
 
 type Organisation = {
@@ -62,7 +63,7 @@ export function CustomerOrganisationPage() {
   };
 
   useEffect(() => {
-    load().catch((error) => setStatus(String(error)));
+    load().catch((error) => setStatus(formatErrorMessage(error)));
   }, [siteId]);
 
   const orgLookup = useMemo(() => new Map(organisations.map((entry) => [entry.id, entry.name])), [organisations]);
@@ -72,7 +73,7 @@ export function CustomerOrganisationPage() {
       <WorkspaceHeader title="Customers & Organisations" subtitle="Demo extension addon with CRUD pages and content references." />
       <ToolbarActions
         left={<small className="muted">Site {siteId}</small>}
-        right={<Button label="Reload" text onClick={() => load().catch((error) => setStatus(String(error)))} />}
+        right={<Button label="Reload" text onClick={() => load().catch((error) => setStatus(formatErrorMessage(error)))} />}
       />
       <TabView>
         <TabPanel header="Organisations">
@@ -102,7 +103,7 @@ export function CustomerOrganisationPage() {
                       onClick={() =>
                         deleteEntity(token, 'ext_organisations', { id: row.id })
                           .then(() => load())
-                          .catch((error) => setStatus(String(error)))
+                          .catch((error) => setStatus(formatErrorMessage(error)))
                       }
                     />
                   </div>
@@ -149,7 +150,7 @@ export function CustomerOrganisationPage() {
                       onClick={() =>
                         deleteEntity(token, 'ext_customers', { id: row.id })
                           .then(() => load())
-                          .catch((error) => setStatus(String(error)))
+                          .catch((error) => setStatus(formatErrorMessage(error)))
                       }
                     />
                   </div>
@@ -185,7 +186,7 @@ export function CustomerOrganisationPage() {
                 action
                   .then(() => load())
                   .then(() => setEditingOrganisation(null))
-                  .catch((error) => setStatus(String(error)));
+                  .catch((error) => setStatus(formatErrorMessage(error)));
               }}
               disabled={!editingOrganisation?.name.trim()}
             />
@@ -236,7 +237,7 @@ export function CustomerOrganisationPage() {
                 action
                   .then(() => load())
                   .then(() => setEditingCustomer(null))
-                  .catch((error) => setStatus(String(error)));
+                  .catch((error) => setStatus(formatErrorMessage(error)));
               }}
               disabled={!editingCustomer?.display_name.trim()}
             />
@@ -272,7 +273,7 @@ export function CustomerOrganisationPage() {
           </div>
         ) : null}
       </EntityEditor>
-      {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
+      {status ? <div className="status-panel" role="alert">{status}</div> : null}
     </WorkspacePage>
   );
 }

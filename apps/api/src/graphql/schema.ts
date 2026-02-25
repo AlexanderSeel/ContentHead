@@ -207,13 +207,13 @@ import {
   deleteInternalRole,
   listInternalRoles,
   listInternalUsers,
-  listUserPermissions,
   listUserRoles,
   resetInternalUserPassword,
   setUserRoles,
   updateInternalUser,
   upsertInternalRole
 } from '../security/service.js';
+import { checkPermission } from '../security/permissionEvaluator.js';
 import { cacheKey, requestCache } from '../cache/requestCache.js';
 
 export type GraphqlContext = {
@@ -287,12 +287,13 @@ type SetSiteMatrixArgs = {
 const builder = new SchemaBuilder<{ Context: GraphqlContext }>({});
 
 async function requirePermission(ctx: GraphqlContext, permission: string): Promise<void> {
-  if (!ctx.currentUser) {
-    throw new GraphQLError('Unauthorized', { extensions: { code: 'UNAUTHORIZED' } });
-  }
-  const permissions = await listUserPermissions(ctx.db, ctx.currentUser.id);
-  if (!permissions.includes(permission)) {
-    throw new GraphQLError('Forbidden', { extensions: { code: 'FORBIDDEN' } });
+  const evaluation = await checkPermission(ctx.db, {
+    userId: ctx.currentUser?.id ?? null,
+    action: permission
+  });
+  if (!evaluation.allowed) {
+    const code = ctx.currentUser ? 'FORBIDDEN' : 'UNAUTHORIZED';
+    throw new GraphQLError('Forbidden', { extensions: { code, reason: evaluation.reason } });
   }
 }
 
@@ -333,39 +334,19 @@ async function contentItemIdForRoute(db: DbClient, routeId: number): Promise<num
   return row.contentItemId;
 }
 
-async function hasAdminRole(ctx: GraphqlContext): Promise<boolean> {
-  if (!ctx.currentUser) {
-    return false;
-  }
-  const row = await ctx.db.get<{ hasAdmin: boolean }>(
-    `
-SELECT EXISTS(
-  SELECT 1
-  FROM user_roles ur
-  INNER JOIN roles r ON r.id = ur.role_id
-  WHERE ur.user_id = ? AND lower(r.name) = 'admin'
-) as hasAdmin
-`,
-    [ctx.currentUser.id]
-  );
-  return Boolean(row?.hasAdmin);
-}
-
 async function requireDbAdminAccess(
   ctx: GraphqlContext,
   legacyPermission: 'DB_ADMIN_READ' | 'DB_ADMIN_WRITE'
 ): Promise<void> {
-  if (!ctx.currentUser) {
-    throw new GraphQLError('Unauthorized', { extensions: { code: 'UNAUTHORIZED' } });
+  const evaluation = await checkPermission(ctx.db, {
+    userId: ctx.currentUser?.id ?? null,
+    action: 'DB_ADMIN',
+    fallbackActions: [legacyPermission]
+  });
+  if (!evaluation.allowed) {
+    const code = ctx.currentUser ? 'FORBIDDEN' : 'UNAUTHORIZED';
+    throw new GraphQLError('Forbidden', { extensions: { code, reason: evaluation.reason } });
   }
-  if (await hasAdminRole(ctx)) {
-    return;
-  }
-  const permissions = await listUserPermissions(ctx.db, ctx.currentUser.id);
-  if (permissions.includes('DB_ADMIN') || permissions.includes(legacyPermission)) {
-    return;
-  }
-  throw new GraphQLError('Forbidden', { extensions: { code: 'FORBIDDEN' } });
 }
 
 const UserRef = builder.objectRef<SafeUser>('User');
@@ -1152,6 +1133,37 @@ EntityAclEntryInputRef.implement({
   })
 });
 
+
+const SecuritySeedStatusRef = builder.objectRef<{
+  adminRoleExists: boolean;
+  adminPermissionCoverage: boolean;
+  adminUserHasRole: boolean;
+}>('SecuritySeedStatus');
+SecuritySeedStatusRef.implement({
+  fields: (t) => ({
+    adminRoleExists: t.exposeBoolean('adminRoleExists'),
+    adminPermissionCoverage: t.exposeBoolean('adminPermissionCoverage'),
+    adminUserHasRole: t.exposeBoolean('adminUserHasRole')
+  })
+});
+
+const DevDiagnosticsRef = builder.objectRef<{
+  roles: string[];
+  permissions: string[];
+  seedStatus: {
+    adminRoleExists: boolean;
+    adminPermissionCoverage: boolean;
+    adminUserHasRole: boolean;
+  };
+}>('DevDiagnostics');
+DevDiagnosticsRef.implement({
+  fields: (t) => ({
+    roles: t.exposeStringList('roles'),
+    permissions: t.exposeStringList('permissions'),
+    seedStatus: t.field({ type: SecuritySeedStatusRef, resolve: (parent) => parent.seedStatus })
+  })
+});
+
 builder.queryType({
   fields: (t) => ({
     me: t.field({
@@ -1159,14 +1171,75 @@ builder.queryType({
       nullable: true,
       resolve: (_root, _args, ctx) => ctx.currentUser
     }),
+    devDiagnostics: t.field({
+      type: DevDiagnosticsRef,
+      resolve: async (_root, _args, ctx) => {
+        if (!ctx.currentUser) {
+          throw new GraphQLError('Unauthorized', { extensions: { code: 'UNAUTHORIZED' } });
+        }
+        const roleRows = await ctx.db.all<{ name: string }>(
+          `
+SELECT lower(r.name) as name
+FROM user_roles ur
+INNER JOIN roles r ON r.id = ur.role_id
+WHERE ur.user_id = ?
+ORDER BY 1
+`,
+          [ctx.currentUser.id]
+        );
+        const permissionRows = await ctx.db.all<{ permissionKey: string }>(
+          `
+SELECT DISTINCT rp.permission_key as permissionKey
+FROM role_permissions rp
+INNER JOIN user_roles ur ON ur.role_id = rp.role_id
+WHERE ur.user_id = ?
+ORDER BY 1
+`,
+          [ctx.currentUser.id]
+        );
+        const adminRole = await ctx.db.get<{ id: number }>("SELECT id FROM roles WHERE lower(name) = 'admin'");
+        const adminPermissions = adminRole
+          ? await ctx.db.all<{ permissionKey: string }>('SELECT permission_key as permissionKey FROM role_permissions WHERE role_id = ?', [
+              adminRole.id
+            ])
+          : [];
+        const adminUser = await ctx.db.get<{ id: number }>("SELECT id FROM users WHERE lower(username) = 'admin'");
+        const adminUserHasRole = Boolean(
+          adminRole &&
+            adminUser &&
+            (await ctx.db.get<{ linked: boolean }>(
+              'SELECT EXISTS(SELECT 1 FROM user_roles WHERE user_id = ? AND role_id = ?) as linked',
+              [adminUser.id, adminRole.id]
+            ))?.linked
+        );
+        const expected = new Set(INTERNAL_PERMISSIONS);
+        const actual = new Set(adminPermissions.map((entry) => entry.permissionKey));
+
+        return {
+          roles: roleRows.map((entry) => entry.name),
+          permissions: permissionRows.map((entry) => entry.permissionKey),
+          seedStatus: {
+            adminRoleExists: Boolean(adminRole),
+            adminPermissionCoverage: Array.from(expected).every((key) => actual.has(key)),
+            adminUserHasRole
+          }
+        };
+      }
+    }),
     listSites: t.field({
       type: [SiteRef],
-      resolve: async (_root, _args, ctx) => listSites(ctx.db)
+      resolve: async (_root, _args, ctx) => {
+        await requirePermission(ctx, 'CONTENT_READ');
+        return listSites(ctx.db);
+      }
     }),
     getSite: t.field({
       type: SiteRef,
       args: { siteId: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { siteId: number }, ctx) => getSite(ctx.db, args.siteId)
+      resolve: async (_root, args: { siteId: number }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_READ');
+        return getSite(ctx.db, args.siteId);
+      }
     }),
     localeCatalog: t.field({
       type: [LocaleCatalogRef],
@@ -1175,27 +1248,38 @@ builder.queryType({
     listMarkets: t.field({
       type: [MarketRef],
       args: { siteId: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { siteId: number }, ctx) => listMarkets(ctx.db, args.siteId)
+      resolve: async (_root, args: { siteId: number }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_READ');
+        return listMarkets(ctx.db, args.siteId);
+      }
     }),
     listLocales: t.field({
       type: [LocaleRef],
       args: { siteId: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { siteId: number }, ctx) => listLocales(ctx.db, args.siteId)
+      resolve: async (_root, args: { siteId: number }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_READ');
+        return listLocales(ctx.db, args.siteId);
+      }
     }),
     getSiteDefaults: t.field({
       type: SiteDefaultsRef,
       args: { siteId: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { siteId: number }, ctx) => getSiteDefaults(ctx.db, args.siteId)
+      resolve: async (_root, args: { siteId: number }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_READ');
+        return getSiteDefaults(ctx.db, args.siteId);
+      }
     }),
     getSiteMarketLocaleMatrix: t.field({
       type: MatrixRef,
       args: { siteId: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { siteId: number }, ctx) =>
-        requestCache.getOrSet(
+      resolve: async (_root, args: { siteId: number }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_READ');
+        return requestCache.getOrSet(
           cacheKey('matrix', [args.siteId]),
           120_000,
           () => getSiteMarketLocaleMatrix(ctx.db, args.siteId)
-        )
+        );
+      }
     }),
     validateMarketLocale: t.boolean({
       args: {
@@ -1203,8 +1287,10 @@ builder.queryType({
         marketCode: t.arg.string({ required: true }),
         localeCode: t.arg.string({ required: true })
       },
-      resolve: async (_root, args: { siteId: number; marketCode: string; localeCode: string }, ctx) =>
-        validateMarketLocale(ctx.db, args.siteId, args.marketCode, args.localeCode)
+      resolve: async (_root, args: { siteId: number; marketCode: string; localeCode: string }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_READ');
+        return validateMarketLocale(ctx.db, args.siteId, args.marketCode, args.localeCode);
+      }
     }),
     resolveMarketLocale: t.field({
       type: ResolvedMarketLocaleRef,
@@ -1213,8 +1299,10 @@ builder.queryType({
         marketCode: t.arg.string({ required: true }),
         localeCode: t.arg.string({ required: true })
       },
-      resolve: async (_root, args: { siteId: number; marketCode: string; localeCode: string }, ctx) =>
-        resolveMarketLocaleFallback(ctx.db, args.siteId, args.marketCode, args.localeCode)
+      resolve: async (_root, args: { siteId: number; marketCode: string; localeCode: string }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_READ');
+        return resolveMarketLocaleFallback(ctx.db, args.siteId, args.marketCode, args.localeCode);
+      }
     }),
     listContentTypes: t.field({
       type: [ContentTypeRef],
@@ -1447,7 +1535,10 @@ builder.queryType({
     listForms: t.field({
       type: [FormRef],
       args: { siteId: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { siteId: number }, ctx) => listForms(ctx.db, args.siteId)
+      resolve: async (_root, args: { siteId: number }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_READ');
+        return listForms(ctx.db, args.siteId);
+      }
     }),
     listFormSteps: t.field({
       type: [FormStepRef],
@@ -1505,7 +1596,10 @@ builder.queryType({
           sortOrder?: string | null | undefined;
         },
         ctx
-      ) => listFormSubmissions(ctx.db, args)
+      ) => {
+        await requirePermission(ctx, 'CONTENT_READ');
+        return listFormSubmissions(ctx.db, args);
+      }
     }),
     exportFormSubmissions: t.string({
       args: {
@@ -1533,7 +1627,10 @@ builder.queryType({
           format: string;
         },
         ctx
-      ) => exportFormSubmissions(ctx.db, args)
+      ) => {
+        await requirePermission(ctx, 'CONTENT_READ');
+        return exportFormSubmissions(ctx.db, args);
+      }
     }),
     listAssets: t.field({
       type: AssetListRef,
@@ -1578,16 +1675,24 @@ builder.queryType({
     listConnectors: t.field({
       type: [ConnectorRef],
       args: { domain: t.arg.string({ required: true }) },
-      resolve: async (_root, args: { domain: string }, ctx) =>
-        listConnectors(ctx.db, args.domain as ConnectorDomain)
+      resolve: async (_root, args: { domain: string }, ctx) => {
+        await requirePermission(ctx, 'SETTINGS_MANAGE');
+        return listConnectors(ctx.db, args.domain as ConnectorDomain);
+      }
     }),
     listInternalUsers: t.field({
       type: [InternalUserRef],
-      resolve: async (_root, _args, ctx) => listInternalUsers(ctx.db)
+      resolve: async (_root, _args, ctx) => {
+        await requirePermission(ctx, 'SECURITY_MANAGE');
+        return listInternalUsers(ctx.db);
+      }
     }),
     listInternalRoles: t.field({
       type: [InternalRoleRef],
-      resolve: async (_root, _args, ctx) => listInternalRoles(ctx.db)
+      resolve: async (_root, _args, ctx) => {
+        await requirePermission(ctx, 'SECURITY_MANAGE');
+        return listInternalRoles(ctx.db);
+      }
     }),
     internalPermissions: t.stringList({
       resolve: async () => [...INTERNAL_PERMISSIONS]
@@ -1687,20 +1792,28 @@ builder.queryType({
     }),
     listWorkflowDefinitions: t.field({
       type: [WorkflowDefinitionRef],
-      resolve: async (_root, _args, ctx) => listWorkflowDefinitions(ctx.db)
+      resolve: async (_root, _args, ctx) => {
+        await requirePermission(ctx, 'SETTINGS_MANAGE');
+        return listWorkflowDefinitions(ctx.db);
+      }
     }),
     listWorkflowRuns: t.field({
       type: [WorkflowRunRef],
       args: {
         definitionId: t.arg.int({ required: false })
       },
-      resolve: async (_root, args: { definitionId?: number | null | undefined }, ctx) =>
-        listWorkflowRuns(ctx.db, args.definitionId)
+      resolve: async (_root, args: { definitionId?: number | null | undefined }, ctx) => {
+        await requirePermission(ctx, 'SETTINGS_MANAGE');
+        return listWorkflowRuns(ctx.db, args.definitionId);
+      }
     }),
     getWorkflowRun: t.field({
       type: WorkflowRunRef,
       args: { runId: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { runId: number }, ctx) => getWorkflowRun(ctx.db, args.runId)
+      resolve: async (_root, args: { runId: number }, ctx) => {
+        await requirePermission(ctx, 'SETTINGS_MANAGE');
+        return getWorkflowRun(ctx.db, args.runId);
+      }
     })
   })
 });
@@ -1737,7 +1850,10 @@ builder.mutationType({
         active: t.arg.boolean({ required: true }),
         isDefault: t.arg.boolean({ required: true })
       },
-      resolve: async (_root, args: UpsertMarketArgs, ctx) => upsertMarket(ctx.db, args)
+      resolve: async (_root, args: UpsertMarketArgs, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return upsertMarket(ctx.db, args);
+      }
     }),
     upsertLocale: t.field({
       type: [LocaleRef],
@@ -1749,7 +1865,10 @@ builder.mutationType({
         fallbackLocaleCode: t.arg.string({ required: false }),
         isDefault: t.arg.boolean({ required: true })
       },
-      resolve: async (_root, args: UpsertLocaleArgs, ctx) => upsertLocale(ctx.db, args)
+      resolve: async (_root, args: UpsertLocaleArgs, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return upsertLocale(ctx.db, args);
+      }
     }),
     upsertSiteLocaleOverride: t.field({
       type: [LocaleRef],
@@ -1759,7 +1878,10 @@ builder.mutationType({
         displayName: t.arg.string({ required: false }),
         fallbackLocaleCode: t.arg.string({ required: false })
       },
-      resolve: async (_root, args: UpsertSiteLocaleOverrideArgs, ctx) => upsertSiteLocaleOverride(ctx.db, args)
+      resolve: async (_root, args: UpsertSiteLocaleOverrideArgs, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return upsertSiteLocaleOverride(ctx.db, args);
+      }
     }),
     setSiteUrlPattern: t.field({
       type: SiteRef,
@@ -1767,8 +1889,10 @@ builder.mutationType({
         siteId: t.arg.int({ required: true }),
         urlPattern: t.arg.string({ required: true })
       },
-      resolve: async (_root, args: { siteId: number; urlPattern: string }, ctx) =>
-        setSiteUrlPattern(ctx.db, args.siteId, args.urlPattern)
+      resolve: async (_root, args: { siteId: number; urlPattern: string }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return setSiteUrlPattern(ctx.db, args.siteId, args.urlPattern);
+      }
     }),
     setSiteName: t.field({
       type: SiteRef,
@@ -1776,8 +1900,10 @@ builder.mutationType({
         siteId: t.arg.int({ required: true }),
         name: t.arg.string({ required: true })
       },
-      resolve: async (_root, args: { siteId: number; name: string }, ctx) =>
-        setSiteName(ctx.db, args.siteId, args.name)
+      resolve: async (_root, args: { siteId: number; name: string }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return setSiteName(ctx.db, args.siteId, args.name);
+      }
     }),
     setSiteMarkets: t.field({
       type: [MarketRef],
@@ -1786,8 +1912,10 @@ builder.mutationType({
         markets: t.arg({ type: [SiteMarketInputRef], required: true }),
         defaultMarketCode: t.arg.string({ required: true })
       },
-      resolve: async (_root, args: SetSiteMarketsArgs, ctx) =>
-        setSiteMarkets(ctx.db, args.siteId, args.markets, args.defaultMarketCode)
+      resolve: async (_root, args: SetSiteMarketsArgs, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return setSiteMarkets(ctx.db, args.siteId, args.markets, args.defaultMarketCode);
+      }
     }),
     setSiteLocales: t.field({
       type: [LocaleRef],
@@ -1796,8 +1924,10 @@ builder.mutationType({
         locales: t.arg({ type: [SiteLocaleInputRef], required: true }),
         defaultLocaleCode: t.arg.string({ required: true })
       },
-      resolve: async (_root, args: SetSiteLocalesArgs, ctx) =>
-        setSiteLocales(ctx.db, args.siteId, args.locales, args.defaultLocaleCode)
+      resolve: async (_root, args: SetSiteLocalesArgs, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return setSiteLocales(ctx.db, args.siteId, args.locales, args.defaultLocaleCode);
+      }
     }),
     setSiteMarketLocaleMatrix: t.field({
       type: MatrixRef,
@@ -1806,13 +1936,15 @@ builder.mutationType({
         combinations: t.arg({ type: [SiteMarketLocaleInputRef], required: true }),
         defaults: t.arg({ type: MatrixDefaultsInputRef, required: false })
       },
-      resolve: async (_root, args: SetSiteMatrixArgs, ctx) =>
-        setSiteMarketLocaleMatrix(
+      resolve: async (_root, args: SetSiteMatrixArgs, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return setSiteMarketLocaleMatrix(
           ctx.db,
           args.siteId,
           args.combinations,
           args.defaults?.marketDefaultLocales ?? []
-        )
+        );
+      }
     }),
     createContentType: t.field({
       type: ContentTypeRef,
@@ -2439,11 +2571,17 @@ builder.mutationType({
           active: boolean;
         },
         ctx
-      ) => upsertForm(ctx.db, args)
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return upsertForm(ctx.db, args);
+      }
     }),
     deleteForm: t.boolean({
       args: { id: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { id: number }, ctx) => deleteForm(ctx.db, args.id)
+      resolve: async (_root, args: { id: number }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return deleteForm(ctx.db, args.id);
+      }
     }),
     upsertFormStep: t.field({
       type: FormStepRef,
@@ -2457,11 +2595,17 @@ builder.mutationType({
         _root,
         args: { id?: number | null | undefined; formId: number; name: string; position: number },
         ctx
-      ) => upsertFormStep(ctx.db, args)
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return upsertFormStep(ctx.db, args);
+      }
     }),
     deleteFormStep: t.boolean({
       args: { id: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { id: number }, ctx) => deleteFormStep(ctx.db, args.id)
+      resolve: async (_root, args: { id: number }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return deleteFormStep(ctx.db, args.id);
+      }
     }),
     upsertFormField: t.field({
       type: FormFieldRef,
@@ -2494,11 +2638,17 @@ builder.mutationType({
           active: boolean;
         },
         ctx
-      ) => upsertFormField(ctx.db, args)
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return upsertFormField(ctx.db, args);
+      }
     }),
     deleteFormField: t.boolean({
       args: { id: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { id: number }, ctx) => deleteFormField(ctx.db, args.id)
+      resolve: async (_root, args: { id: number }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return deleteFormField(ctx.db, args.id);
+      }
     }),
     submitForm: t.field({
       type: FormSubmissionRef,
@@ -2537,8 +2687,10 @@ builder.mutationType({
         id: t.arg.int({ required: true }),
         status: t.arg.string({ required: true })
       },
-      resolve: async (_root, args: { id: number; status: string }, ctx) =>
-        updateFormSubmissionStatus(ctx.db, args)
+      resolve: async (_root, args: { id: number; status: string }, ctx) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return updateFormSubmissionStatus(ctx.db, args);
+      }
     }),
     upsertWorkflowDefinition: t.field({
       type: WorkflowDefinitionRef,
@@ -2563,15 +2715,20 @@ builder.mutationType({
           createdBy?: string | null | undefined;
         },
         ctx
-      ) =>
-        upsertWorkflowDefinition(ctx.db, {
+      ) => {
+        await requirePermission(ctx, 'SETTINGS_MANAGE');
+        return upsertWorkflowDefinition(ctx.db, {
           ...args,
           createdBy: args.createdBy ?? ctx.currentUser?.username ?? 'system'
-        })
+        });
+      }
     }),
     deleteWorkflowDefinition: t.boolean({
       args: { id: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { id: number }, ctx) => deleteWorkflowDefinition(ctx.db, args.id)
+      resolve: async (_root, args: { id: number }, ctx) => {
+        await requirePermission(ctx, 'SETTINGS_MANAGE');
+        return deleteWorkflowDefinition(ctx.db, args.id);
+      }
     }),
     startWorkflowRun: t.field({
       type: WorkflowRunRef,
@@ -2584,11 +2741,13 @@ builder.mutationType({
         _root,
         args: { definitionId: number; contextJson: string; startedBy?: string | null | undefined },
         ctx
-      ) =>
-        startWorkflowRun(ctx.db, {
+      ) => {
+        await requirePermission(ctx, 'SETTINGS_MANAGE');
+        return startWorkflowRun(ctx.db, {
           ...args,
           startedBy: args.startedBy ?? ctx.currentUser?.username ?? 'system'
-        })
+        });
+      }
     }),
     approveStep: t.field({
       type: WorkflowRunRef,
@@ -2601,19 +2760,24 @@ builder.mutationType({
         _root,
         args: { runId: number; nodeId: string; approvedBy?: string | null | undefined },
         ctx
-      ) =>
-        approveWorkflowStep(ctx.db, {
+      ) => {
+        await requirePermission(ctx, 'SETTINGS_MANAGE');
+        return approveWorkflowStep(ctx.db, {
           runId: args.runId,
           nodeId: args.nodeId,
           approvedBy: args.approvedBy ?? ctx.currentUser?.username ?? 'system'
-        })
+        });
+      }
     }),
     retryFailed: t.field({
       type: WorkflowRunRef,
       args: {
         runId: t.arg.int({ required: true })
       },
-      resolve: async (_root, args: { runId: number }, ctx) => retryFailedWorkflowRun(ctx.db, args.runId)
+      resolve: async (_root, args: { runId: number }, ctx) => {
+        await requirePermission(ctx, 'SETTINGS_MANAGE');
+        return retryFailedWorkflowRun(ctx.db, args.runId);
+      }
     }),
     aiGenerateContentType: t.field({
       type: ContentTypeRef,
@@ -2794,8 +2958,9 @@ builder.mutationType({
           configJson: string;
         },
         ctx
-      ) =>
-        upsertConnector(ctx.db, {
+      ) => {
+        await requirePermission(ctx, 'SETTINGS_MANAGE');
+        return upsertConnector(ctx.db, {
           id: args.id,
           domain: args.domain as ConnectorDomain,
           type: args.type,
@@ -2803,11 +2968,15 @@ builder.mutationType({
           enabled: args.enabled,
           isDefault: args.isDefault,
           configJson: args.configJson
-        })
+        });
+      }
     }),
     deleteConnector: t.boolean({
       args: { id: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { id: number }, ctx) => deleteConnector(ctx.db, args.id)
+      resolve: async (_root, args: { id: number }, ctx) => {
+        await requirePermission(ctx, 'SETTINGS_MANAGE');
+        return deleteConnector(ctx.db, args.id);
+      }
     }),
     setDefaultConnector: t.field({
       type: ConnectorRef,
@@ -2815,14 +2984,19 @@ builder.mutationType({
         domain: t.arg.string({ required: true }),
         id: t.arg.int({ required: true })
       },
-      resolve: async (_root, args: { domain: string; id: number }, ctx) =>
-        setDefaultConnector(ctx.db, args.domain as ConnectorDomain, args.id)
+      resolve: async (_root, args: { domain: string; id: number }, ctx) => {
+        await requirePermission(ctx, 'SETTINGS_MANAGE');
+        return setDefaultConnector(ctx.db, args.domain as ConnectorDomain, args.id);
+      }
     }),
     testConnector: t.string({
       args: {
         id: t.arg.int({ required: true })
       },
-      resolve: async (_root, args: { id: number }, ctx) => testConnector(ctx.db, args.id)
+      resolve: async (_root, args: { id: number }, ctx) => {
+        await requirePermission(ctx, 'SETTINGS_MANAGE');
+        return testConnector(ctx.db, args.id);
+      }
     }),
     dbAdminInsert: t.field({
       type: DbAdminMutationResultRef,
@@ -2897,7 +3071,10 @@ builder.mutationType({
         _root,
         args: { username: string; displayName: string; password: string; active: boolean },
         ctx
-      ) => createInternalUser(ctx.db, args)
+      ) => {
+        await requirePermission(ctx, 'SECURITY_MANAGE');
+        return createInternalUser(ctx.db, args);
+      }
     }),
     updateInternalUser: t.field({
       type: InternalUserRef,
@@ -2906,16 +3083,20 @@ builder.mutationType({
         displayName: t.arg.string({ required: true }),
         active: t.arg.boolean({ required: true })
       },
-      resolve: async (_root, args: { id: number; displayName: string; active: boolean }, ctx) =>
-        updateInternalUser(ctx.db, args)
+      resolve: async (_root, args: { id: number; displayName: string; active: boolean }, ctx) => {
+        await requirePermission(ctx, 'SECURITY_MANAGE');
+        return updateInternalUser(ctx.db, args);
+      }
     }),
     resetInternalUserPassword: t.boolean({
       args: {
         userId: t.arg.int({ required: true }),
         password: t.arg.string({ required: true })
       },
-      resolve: async (_root, args: { userId: number; password: string }, ctx) =>
-        resetInternalUserPassword(ctx.db, args.userId, args.password)
+      resolve: async (_root, args: { userId: number; password: string }, ctx) => {
+        await requirePermission(ctx, 'SECURITY_MANAGE');
+        return resetInternalUserPassword(ctx.db, args.userId, args.password);
+      }
     }),
     upsertInternalRole: t.field({
       type: InternalRoleRef,
@@ -2929,33 +3110,42 @@ builder.mutationType({
         _root,
         args: { id?: number | null | undefined; name: string; description?: string | null | undefined; permissions: string[] },
         ctx
-      ) =>
-        upsertInternalRole(ctx.db, {
+      ) => {
+        await requirePermission(ctx, 'SECURITY_MANAGE');
+        return upsertInternalRole(ctx.db, {
           id: args.id ?? null,
           name: args.name,
           description: args.description ?? null,
           permissions: args.permissions
-        })
+        });
+      }
     }),
     deleteInternalRole: t.boolean({
       args: { id: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { id: number }, ctx) => deleteInternalRole(ctx.db, args.id)
+      resolve: async (_root, args: { id: number }, ctx) => {
+        await requirePermission(ctx, 'SECURITY_MANAGE');
+        return deleteInternalRole(ctx.db, args.id);
+      }
     }),
     setUserRoles: t.boolean({
       args: {
         userId: t.arg.int({ required: true }),
         roleIds: t.arg.intList({ required: true })
       },
-      resolve: async (_root, args: { userId: number; roleIds: number[] }, ctx) =>
-        setUserRoles(ctx.db, args.userId, args.roleIds)
+      resolve: async (_root, args: { userId: number; roleIds: number[] }, ctx) => {
+        await requirePermission(ctx, 'SECURITY_MANAGE');
+        return setUserRoles(ctx.db, args.userId, args.roleIds);
+      }
     }),
     setUserGroups: t.boolean({
       args: {
         userId: t.arg.int({ required: true }),
         groupIds: t.arg.intList({ required: true })
       },
-      resolve: async (_root, args: { userId: number; groupIds: number[] }, ctx) =>
-        setUserGroups(ctx.db, args.userId, args.groupIds)
+      resolve: async (_root, args: { userId: number; groupIds: number[] }, ctx) => {
+        await requirePermission(ctx, 'SECURITY_MANAGE');
+        return setUserGroups(ctx.db, args.userId, args.groupIds);
+      }
     }),
     upsertPrincipalGroup: t.field({
       type: PrincipalGroupRef,

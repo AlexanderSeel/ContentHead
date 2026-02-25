@@ -33,4 +33,16 @@ describe('createGraphqlFailure', () => {
     expect(failure.kind).toBe('schema_mismatch');
     expect(failure.message).toContain('Schema mismatch');
   });
+
+  it('uses shared fallback formatting for non-graphql error payloads', () => {
+    const failure = createGraphqlFailure({
+      operationName: 'ListContentItems',
+      variables: { siteId: 1 },
+      error: { unexpected: 'shape' }
+    });
+
+    expect(failure.kind).toBe('unknown');
+    expect(failure.message).toBe('[object Object]');
+    expect(failure.rawMessages).toEqual(['[object Object]']);
+  });
 });

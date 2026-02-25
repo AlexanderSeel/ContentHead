@@ -7,7 +7,8 @@ import { InputTextarea } from 'primereact/inputtextarea';
 
 import { useAuth } from '../../app/AuthContext';
 import { createAdminSdk } from '../../lib/sdk';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
+import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type GroupRow = {
   id: number;
@@ -22,16 +23,27 @@ export function GroupsPage() {
   const [rows, setRows] = useState<GroupRow[]>([]);
   const [selected, setSelected] = useState<GroupRow | null>(null);
   const [status, setStatus] = useState('');
+  const [forbiddenReason, setForbiddenReason] = useState('');
+
+  const handleError = (error: unknown) => {
+    const message = formatErrorMessage(error);
+    if (isForbiddenError(error)) {
+      setForbiddenReason(message);
+      return;
+    }
+    setStatus(message);
+  };
 
   const refresh = async () => {
     const res = await sdk.listPrincipalGroups();
     const nextRows = (res.listPrincipalGroups ?? []) as GroupRow[];
     setRows(nextRows);
     setSelected((prev) => nextRows.find((entry) => entry.id === prev?.id) ?? nextRows[0] ?? null);
+    setStatus('');
   };
 
   useEffect(() => {
-    refresh().catch((error: unknown) => setStatus(String(error)));
+    refresh().catch(handleError);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -62,40 +74,48 @@ export function GroupsPage() {
         subtitle="User groups for ACL grants and assignments."
         helpTopicKey="site_overview"
       />
-      <WorkspaceActionBar
-        primary={(
-          <>
-            <Button label="New Group" onClick={() => setSelected({ id: 0, name: '', description: '' })} />
-            <Button label="Save" onClick={() => save().catch((error: unknown) => setStatus(String(error)))} disabled={!selected || !selected.name.trim()} />
-            <Button label="Delete" severity="danger" onClick={() => remove().catch((error: unknown) => setStatus(String(error)))} disabled={!selected?.id} />
-          </>
-        )}
-      />
-      <WorkspaceBody>
-        <div className="paneRoot paneScroll">
-          <DataTable
-            value={rows}
-            size="small"
-            selectionMode="single"
-            selection={selected}
-            onSelectionChange={(event) => setSelected((event.value as GroupRow) ?? null)}
-          >
-            <Column field="name" header="Group" />
-            <Column field="description" header="Description" />
-          </DataTable>
-          {selected ? (
-            <div className="form-row" style={{ marginTop: '0.75rem' }}>
-              <label>Name</label>
-              <InputText value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} />
-              <label>Description</label>
-              <InputTextarea rows={3} value={selected.description ?? ''} onChange={(event) => setSelected({ ...selected, description: event.target.value })} />
+      {forbiddenReason ? (
+        <WorkspaceBody>
+          <ForbiddenState title="Group management unavailable" reason={forbiddenReason} />
+        </WorkspaceBody>
+      ) : (
+        <>
+          <WorkspaceActionBar
+            primary={(
+              <>
+                <Button label="New Group" onClick={() => setSelected({ id: 0, name: '', description: '' })} />
+                <Button label="Save" onClick={() => save().catch(handleError)} disabled={!selected || !selected.name.trim()} />
+                <Button label="Delete" severity="danger" onClick={() => remove().catch(handleError)} disabled={!selected?.id} />
+              </>
+            )}
+          />
+          <WorkspaceBody>
+            <div className="paneRoot paneScroll">
+              <DataTable
+                value={rows}
+                size="small"
+                selectionMode="single"
+                selection={selected}
+                onSelectionChange={(event) => setSelected((event.value as GroupRow) ?? null)}
+              >
+                <Column field="name" header="Group" />
+                <Column field="description" header="Description" />
+              </DataTable>
+              {selected ? (
+                <div className="form-row" style={{ marginTop: '0.75rem' }}>
+                  <label>Name</label>
+                  <InputText value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} />
+                  <label>Description</label>
+                  <InputTextarea rows={3} value={selected.description ?? ''} onChange={(event) => setSelected({ ...selected, description: event.target.value })} />
+                </div>
+              ) : (
+                <p className="muted" style={{ marginTop: '0.75rem' }}>Select or create a group.</p>
+              )}
             </div>
-          ) : (
-            <p className="muted" style={{ marginTop: '0.75rem' }}>Select or create a group.</p>
-          )}
-        </div>
-      </WorkspaceBody>
-      {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
+          </WorkspaceBody>
+          {status ? <div className="status-panel" role="alert">{status}</div> : null}
+        </>
+      )}
     </WorkspacePage>
   );
 }

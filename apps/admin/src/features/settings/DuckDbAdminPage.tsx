@@ -6,7 +6,8 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
 import { createAdminSdk } from '../../lib/sdk';
-import { WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
+import { ForbiddenState, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type ExportedItem = {
   externalId?: string;
@@ -100,8 +101,13 @@ export function DuckDbAdminPage() {
   const sdk = useMemo(() => createAdminSdk(token), [token]);
   const { siteId } = useAdminContext();
   const [status, setStatus] = useState('');
+  const forbiddenReason = status && isForbiddenError(status) ? status : '';
   const [importJson, setImportJson] = useState('');
   const [working, setWorking] = useState(false);
+
+  const handleError = (error: unknown) => {
+    setStatus(formatErrorMessage(error));
+  };
 
   const exportSnapshot = async () => {
     setWorking(true);
@@ -240,7 +246,7 @@ export function DuckDbAdminPage() {
       downloadJson(`contenthead-site-${siteId}-${Date.now()}.json`, snapshot);
       setStatus(`Exported ${contentTypes.length} content types, ${templates.length} templates, ${items.length} items, ${forms.length} forms.`);
     } catch (error) {
-      setStatus(String(error));
+      handleError(error);
     } finally {
       setWorking(false);
     }
@@ -540,7 +546,7 @@ export function DuckDbAdminPage() {
 
       setStatus(`Import complete. Imported ${importedItems} items into site ${siteId}.`);
     } catch (error) {
-      setStatus(String(error));
+      handleError(error);
     } finally {
       setWorking(false);
     }
@@ -557,15 +563,20 @@ export function DuckDbAdminPage() {
       setImportJson(text);
       setStatus('Loaded demo import JSON.');
     } catch (error) {
-      setStatus(String(error));
+      handleError(error);
     }
   };
 
   return (
     <WorkspacePage>
       <WorkspaceHeader title="DuckDB Admin" subtitle="Runtime DB operations, demo data, and JSON import/export." />
-      <div className="card-grid">
-        <section className="content-card">
+      {forbiddenReason ? (
+        <WorkspaceBody>
+          <ForbiddenState title="DuckDB admin unavailable" reason={forbiddenReason} />
+        </WorkspaceBody>
+      ) : (
+        <div className="card-grid">
+          <section className="content-card">
           <h3 style={{ marginTop: 0 }}>Load Demo Data</h3>
           <p className="muted">Run the API seed script to load the demo page (`/demo`) and baseline data.</p>
           <div className="inline-actions">
@@ -613,8 +624,9 @@ export function DuckDbAdminPage() {
           </div>
           <Button label="Import JSON" severity="success" onClick={() => void importSnapshot()} disabled={!importJson.trim()} loading={working} />
         </section>
-      </div>
-      {status ? <div className="status-panel"><pre>{status}</pre></div> : null}
+        </div>
+      )}
+      {status && !forbiddenReason ? <div className="status-panel" role="alert">{status}</div> : null}
     </WorkspacePage>
   );
 }

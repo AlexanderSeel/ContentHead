@@ -32,6 +32,8 @@ export function createSdk(options: CreateSdkOptions) {
       execute<G.LoginMutation>(G.LoginDocument, variables, requestOptions),
     me: (requestOptions?: RequestOptions) =>
       execute<G.MeQuery>(G.MeDocument, {}, requestOptions),
+    devDiagnostics: (requestOptions?: RequestOptions) =>
+      execute<G.DevDiagnosticsQuery>(G.DevDiagnosticsDocument, {}, requestOptions),
 
     listSites: (requestOptions?: RequestOptions) =>
       execute<G.ListSitesQuery>(G.ListSitesDocument, {}, requestOptions),
