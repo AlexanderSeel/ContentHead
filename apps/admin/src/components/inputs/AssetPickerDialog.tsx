@@ -106,7 +106,7 @@ export function AssetPickerDialog({
   const apiBase = getApiBaseUrl();
 
   return (
-    <Dialog header="Asset Picker" visible={visible} onHide={onHide} style={{ width: 'min(92rem, 98vw)' }}>
+    <Dialog header="Asset Picker" visible={visible} onHide={onHide} className="w-11">
       <div className="grid">
         <div className="content-card p-2 col-12 xl:col-2">
           <Tree

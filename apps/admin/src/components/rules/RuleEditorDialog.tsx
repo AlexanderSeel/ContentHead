@@ -97,7 +97,7 @@ export function RuleEditorDialog({
         )}
         visible={visible}
         onHide={onHide}
-        style={{ width: '46rem' }}
+        className="w-11 lg:w-9 xl:w-8"
       >
       <TabView>
         <TabPanel header="Visual">

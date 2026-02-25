@@ -15,7 +15,8 @@ export function ComponentList({
   onMoveToArea,
   onDuplicate,
   onDelete,
-  sourceResolver
+  sourceResolver,
+  labelResolver
 }: {
   areas: CompositionArea[];
   componentMap: Record<string, ComponentRecord>;
@@ -26,6 +27,7 @@ export function ComponentList({
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
   sourceResolver?: (id: string) => 'template' | 'override' | null;
+  labelResolver?: (typeId: string) => string | null;
 }) {
   return (
     <div className="cms-component-list">
@@ -39,6 +41,7 @@ export function ComponentList({
           {area.components.map((id) => {
             const component = componentMap[id];
             const meta = getComponentRegistryEntry(component?.type ?? '');
+            const resolvedLabel = component?.type ? labelResolver?.(component.type) : null;
             const active = selected === id;
             const source = sourceResolver?.(id) ?? null;
             return (
@@ -56,7 +59,7 @@ export function ComponentList({
                 }}
               >
                 <div className="cms-component-card-head">
-                  <strong>{meta?.label ?? component?.type ?? 'Unknown'}</strong>
+                  <strong>{resolvedLabel ?? meta?.label ?? component?.type ?? 'Unknown'}</strong>
                   <small>{id}</small>
                 </div>
                 {source ? <small className={`cms-component-source cms-component-source-${source}`}>{source}</small> : null}

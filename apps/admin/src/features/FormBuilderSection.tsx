@@ -1169,7 +1169,7 @@ export function FormBuilderSection({
         </aside>
       </div>
 
-      <Sidebar position="right" visible={showTestDrawer} onHide={() => setShowTestDrawer(false)} style={{ width: '32rem' }}>
+      <Sidebar position="right" visible={showTestDrawer} onHide={() => setShowTestDrawer(false)} className="w-11 md:w-10 lg:w-8 xl:w-6">
         <h3>Test with Answers</h3>
         <p className="muted">Answers drive condition and validation preview.</p>
         {scopedFields.map((field) => (

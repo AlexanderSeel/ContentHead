@@ -5,6 +5,7 @@ export type CmsSelectMessage = {
   componentId?: string | undefined;
   componentType?: string | undefined;
   fieldPath?: string | undefined;
+  propPath?: string | undefined;
   rect?: { top: number; left: number; width: number; height: number };
 };
 
@@ -29,15 +30,44 @@ export type CmsInlineModeMessage = {
   enabled: boolean;
 };
 
-export type CmsInlineEditMessage = {
-  type: 'CMS_INLINE_EDIT';
-  fieldPath: string;
-  html: string;
+export type CmsInlineEditMode = 'text' | 'richtext';
+
+export type CmsInlineEditBaseMessage = {
+  contentItemId: number;
+  versionId: number;
+  fieldPath?: string | undefined;
+  componentId?: string | undefined;
+  propPath?: string | undefined;
+  mode: CmsInlineEditMode;
+  value: string;
+};
+
+export type CmsInlineEditPatchMessage = CmsInlineEditBaseMessage & {
+  type: 'CMS_INLINE_EDIT_PATCH';
+};
+
+export type CmsInlineEditCommitMessage = CmsInlineEditBaseMessage & {
+  type: 'CMS_INLINE_EDIT_COMMIT';
+};
+
+export type CmsInlineEditCancelMessage = {
+  type: 'CMS_INLINE_EDIT_CANCEL';
+  contentItemId: number;
+  versionId: number;
+  fieldPath?: string | undefined;
+  componentId?: string | undefined;
+  propPath?: string | undefined;
+};
+
+export type CmsInlineEditErrorMessage = {
+  type: 'CMS_INLINE_EDIT_ERROR';
+  fieldPath?: string | undefined;
+  componentId?: string | undefined;
+  propPath?: string | undefined;
+  message?: string | undefined;
 };
 
 export type CmsActionId =
-  | 'edit'
-  | 'inline_edit'
   | 'replace'
   | 'clear'
   | 'delete'
@@ -54,6 +84,7 @@ export type CmsActionRequestMessage = {
   componentId?: string | undefined;
   componentType?: string | undefined;
   fieldPath?: string | undefined;
+  propPath?: string | undefined;
 };
 
 export type CmsActionsMessage = {
@@ -76,6 +107,9 @@ export type CmsBridgeMessage =
   | CmsScrollToMessage
   | CmsRefreshMessage
   | CmsInlineModeMessage
-  | CmsInlineEditMessage
+  | CmsInlineEditPatchMessage
+  | CmsInlineEditCommitMessage
+  | CmsInlineEditCancelMessage
+  | CmsInlineEditErrorMessage
   | CmsActionRequestMessage
   | CmsActionsMessage;

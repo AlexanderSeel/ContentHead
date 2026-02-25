@@ -68,7 +68,7 @@ export function LinkSelectorDialog({
   }, [routes, query]);
 
   return (
-    <Dialog header="Select Link" visible={visible} onHide={onHide} style={{ width: '48rem' }}>
+    <Dialog header="Select Link" visible={visible} onHide={onHide} className="w-11 lg:w-10 xl:w-9">
       <TabView>
         <TabPanel header="Internal">
           <div className="form-row">

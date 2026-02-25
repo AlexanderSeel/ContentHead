@@ -14,9 +14,15 @@
   - mode `execute`: asks admin to execute selected action.
   - payload includes `contentItemId`, `versionId`, optional `componentId`, optional `fieldPath`.
 
-- `CMS_INLINE_EDIT`
-  - emitted when inline edit updates text/richtext content in preview.
-  - admin applies patch by path and schedules draft save.
+- `CMS_INLINE_EDIT_PATCH`
+  - emitted during inline typing (debounced autosave).
+  - payload includes `contentItemId`, `versionId`, `mode`, `value`, and either `fieldPath` or `componentId` + `propPath`.
+
+- `CMS_INLINE_EDIT_COMMIT`
+  - emitted on Enter / Ctrl+Enter / blur to force immediate persistence.
+
+- `CMS_INLINE_EDIT_CANCEL`
+  - emitted on `Esc` when the preview reverts to the original value.
 
 ### Admin -> Preview
 
@@ -38,5 +44,5 @@
 ## Safety constraints
 
 - Inline editing is disabled for published-only context.
-- Raw JSON editing is advanced-only and gated behind confirm dialog.
+- Raw JSON editing is advanced-only.
 - Asset/link/form replacement routes through existing picker dialogs.

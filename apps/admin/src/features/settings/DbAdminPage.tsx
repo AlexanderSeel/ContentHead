@@ -796,7 +796,7 @@ export function DbAdminPage() {
                     });
                   }}
                 >
-                  <Column selectionMode="multiple" headerStyle={{ width: '2.5rem' }} />
+                  <Column selectionMode="multiple" headerClassName="w-3rem" bodyClassName="w-3rem" />
                   <Column
                     header=""
                     body={(row) => {
@@ -820,7 +820,8 @@ export function DbAdminPage() {
                       const commands = commandRegistry.getCommands(commandContext, 'rowOverflow');
                       return <CommandMenuButton commands={commands} context={commandContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />;
                     }}
-                    style={{ width: '3rem' }}
+                    headerClassName="w-3rem"
+                    bodyClassName="w-3rem"
                   />
                   {visibleColumns.map((column) => (
                     <Column key={column.name} field={column.name} header={column.name} body={(row) => renderCell((row as RowRecord)[column.name])} sortable />

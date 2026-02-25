@@ -15,7 +15,7 @@ export function EntityEditor({
   footer?: ReactNode;
 }) {
   return (
-    <Dialog header={title} visible={visible} onHide={onHide} style={{ width: 'min(52rem, 96vw)' }} footer={footer}>
+    <Dialog header={title} visible={visible} onHide={onHide} className="w-11 lg:w-9 xl:w-8" footer={footer}>
       {children}
     </Dialog>
   );

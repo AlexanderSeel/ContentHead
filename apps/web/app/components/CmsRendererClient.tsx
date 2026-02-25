@@ -7,6 +7,7 @@ import {
   type FormConditionSet,
   type FormEvaluationContext
 } from '@contenthead/shared';
+import { resolveInlineFieldPath, resolveInlineMode, shouldCommit } from '../../src/inlineEditModel';
 
 type ContentLink = {
   kind?: 'internal' | 'external';
@@ -78,7 +79,7 @@ type CmsRendererClientProps = {
 };
 
 type CmsRect = { top: number; left: number; width: number; height: number };
-type CmsActionId = 'edit' | 'inline_edit' | 'replace' | 'clear' | 'delete' | 'duplicate' | 'move_up' | 'move_down';
+type CmsActionId = 'replace' | 'clear' | 'delete' | 'duplicate' | 'move_up' | 'move_down';
 type CmsActionItem = { id: CmsActionId; label: string; primary?: boolean };
 type CmsActionsPayload = {
   type: 'CMS_ACTIONS';
@@ -88,6 +89,16 @@ type CmsActionsPayload = {
   fieldPath?: string;
   targetType?: 'text' | 'richtext' | 'asset' | 'link' | 'form' | 'component' | 'unknown';
   actions?: CmsActionItem[];
+};
+type CmsInlineEditMode = 'text' | 'richtext';
+type CmsInlineEditPayload = {
+  contentItemId: number;
+  versionId: number;
+  fieldPath?: string;
+  componentId?: string;
+  propPath?: string;
+  mode: CmsInlineEditMode;
+  value: string;
 };
 
 function getAnnotatedTarget(element: Element | null): HTMLElement | null {
@@ -175,6 +186,7 @@ function emitSelect(target: HTMLElement) {
     componentId: target.dataset.cmsComponentId ?? findDatasetValue(target, 'cmsComponentId'),
     componentType: target.dataset.cmsComponentType ?? findDatasetValue(target, 'cmsComponentType'),
     fieldPath: target.dataset.cmsFieldPath ?? findDatasetValue(target, 'cmsFieldPath'),
+    propPath: target.dataset.cmsPropPath ?? findDatasetValue(target, 'cmsPropPath'),
     rect: toRect(target)
   };
 
@@ -202,7 +214,8 @@ function emitActionRequest(
       versionId,
       componentId: target.dataset.cmsComponentId ?? findDatasetValue(target, 'cmsComponentId'),
       componentType: target.dataset.cmsComponentType ?? findDatasetValue(target, 'cmsComponentType'),
-      fieldPath: target.dataset.cmsFieldPath ?? findDatasetValue(target, 'cmsFieldPath')
+      fieldPath: target.dataset.cmsFieldPath ?? findDatasetValue(target, 'cmsFieldPath'),
+      propPath: target.dataset.cmsPropPath ?? findDatasetValue(target, 'cmsPropPath')
     },
     '*'
   );
@@ -533,11 +546,15 @@ function NewsletterForm({
     const stepId = typeof field.stepId === 'number' ? field.stepId : parsedSteps[0]?.id ?? 0;
     return stepId === currentStepId && field.behavior.visible;
   });
-  const fieldAttrs = (suffix: string) => {
+  const fieldAttrs = (suffix: string, inlineKind?: CmsInlineEditMode) => {
     if (!fieldPathPrefix) {
       return undefined;
     }
-    return { ...(bridgeAttrs ?? {}), 'data-cms-field-path': `${fieldPathPrefix}.${suffix}` };
+    return {
+      ...(bridgeAttrs ?? {}),
+      'data-cms-field-path': `${fieldPathPrefix}.${suffix}`,
+      ...(inlineKind ? { 'data-cms-inline-kind': inlineKind } : {})
+    };
   };
 
   const parseUiConfig = (field: FormFieldPayload): Record<string, unknown> => {
@@ -756,8 +773,8 @@ function NewsletterForm({
 
   return (
     <section className="cms-section cms-newsletter">
-      <h2 {...fieldAttrs('title')}>{title ?? 'Newsletter'}</h2>
-      <p className="cms-muted" {...fieldAttrs('description')}>{description ?? 'Stay updated with product releases.'}</p>
+      <h2 {...fieldAttrs('title', 'text')}>{title ?? 'Newsletter'}</h2>
+      <p className="cms-muted" {...fieldAttrs('description', 'text')}>{description ?? 'Stay updated with product releases.'}</p>
       <form onSubmit={submit}>
         {visibleStepIds.length > 1 ? (
           <small className="cms-muted">Step {activeStepIndex + 1} of {visibleStepIds.length}</small>
@@ -771,7 +788,7 @@ function NewsletterForm({
             {fieldErrors[field.key] ? <small style={{ color: '#dc2626' }}>{fieldErrors[field.key]}</small> : null}
           </label>
         ))}
-        <button className="cms-btn primary" type="submit" {...fieldAttrs('submitLabel')}>
+        <button className="cms-btn primary" type="submit" {...fieldAttrs('submitLabel', 'text')}>
           {activeStepIndex < visibleStepIds.length - 1 ? 'Continue' : submitLabel ?? 'Submit'}
         </button>
         {activeStepIndex > 0 ? (
@@ -827,9 +844,12 @@ function renderComponent(
     'data-cms-content-item-id': contentItemId,
     'data-cms-version-id': versionId
   };
-  const fieldAttrs = (path: string) => ({
+  const fieldAttrs = (path: string, inlineKind?: CmsInlineEditMode) => ({
     ...bridgeAttrs,
-    'data-cms-field-path': path
+    'data-cms-component-id': id,
+    'data-cms-field-path': path,
+    ...(path.startsWith(`components.${id}.props.`) ? { 'data-cms-prop-path': path.slice(`components.${id}.props.`.length) } : {}),
+    ...(inlineKind ? { 'data-cms-inline-kind': inlineKind } : {})
   });
 
   if (componentType === 'hero' || componentType === 'hero_component') {
@@ -854,8 +874,8 @@ function renderComponent(
           </div>
         ) : null}
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <h1 {...fieldAttrs(`components.${id}.props.title`)}>{String(props.title ?? 'Demo hero')}</h1>
-          <p {...fieldAttrs(`components.${id}.props.subtitle`)}>{String(props.subtitle ?? '')}</p>
+          <h1 {...fieldAttrs(`components.${id}.props.title`, 'text')}>{String(props.title ?? 'Demo hero')}</h1>
+          <p {...fieldAttrs(`components.${id}.props.subtitle`, 'text')}>{String(props.subtitle ?? '')}</p>
           <div className="cms-buttons">
             <CmsLink link={primaryCta} className="cms-btn primary" fieldPath={`components.${id}.props.primaryCta`} bridgeAttrs={bridgeAttrs} />
             <CmsLink link={secondaryCta} className="cms-btn secondary" fieldPath={`components.${id}.props.secondaryCta`} bridgeAttrs={bridgeAttrs} />
@@ -869,7 +889,7 @@ function renderComponent(
     const items = Array.isArray(props.items) ? (props.items as Array<{ icon?: string; title?: string; description?: string }>) : [];
     return (
       <section key={id} {...wrapperProps} className="cms-section" id="features">
-        <h2 {...fieldAttrs(`components.${id}.props.title`)}>{String(props.title ?? 'Features')}</h2>
+          <h2 {...fieldAttrs(`components.${id}.props.title`, 'text')}>{String(props.title ?? 'Features')}</h2>
         <div className="cms-grid features">
           {items.map((item, index) => (
             <article key={`${id}-${index}`} className="cms-card" {...fieldAttrs(`components.${id}.props.items`)}>
@@ -901,8 +921,8 @@ function renderComponent(
           />
         </div>
         <div>
-          <h2 {...fieldAttrs(`components.${id}.props.title`)}>{String(props.title ?? '')}</h2>
-          <p className="cms-muted" {...fieldAttrs(`components.${id}.props.body`)}>{String(props.body ?? '')}</p>
+          <h2 {...fieldAttrs(`components.${id}.props.title`, 'text')}>{String(props.title ?? '')}</h2>
+          <p className="cms-muted" {...fieldAttrs(`components.${id}.props.body`, 'text')}>{String(props.body ?? '')}</p>
           <CmsLink link={cta} className="cms-btn primary" fieldPath={`components.${id}.props.cta`} bridgeAttrs={bridgeAttrs} />
         </div>
       </section>
@@ -913,7 +933,7 @@ function renderComponent(
     const tiers = Array.isArray(props.tiers) ? (props.tiers as Array<Record<string, unknown>>) : [];
     return (
       <section key={id} {...wrapperProps} className="cms-section" id="pricing">
-        <h2 {...fieldAttrs(`components.${id}.props.title`)}>{String(props.title ?? 'Pricing')}</h2>
+        <h2 {...fieldAttrs(`components.${id}.props.title`, 'text')}>{String(props.title ?? 'Pricing')}</h2>
         <div className="cms-pricing-grid">
           {tiers.map((tier, index) => (
             <article key={`${id}-${index}`} className="cms-card cms-pricing-tier" {...fieldAttrs(`components.${id}.props.tiers`)}>
@@ -944,7 +964,7 @@ function renderComponent(
       : [];
     return (
       <section key={id} {...wrapperProps} className="cms-section" id="faq">
-        <h2 {...fieldAttrs(`components.${id}.props.title`)}>{String(props.title ?? 'FAQ')}</h2>
+        <h2 {...fieldAttrs(`components.${id}.props.title`, 'text')}>{String(props.title ?? 'FAQ')}</h2>
         <div>
           {items.map((item, index) => (
             <details key={`${id}-${index}`} className="cms-faq-item" {...fieldAttrs(`components.${id}.props.items`)}>
@@ -1009,10 +1029,10 @@ function renderComponent(
           ))}
         </div>
         <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', gap: '0.8rem', flexWrap: 'wrap' }}>
-          <small {...fieldAttrs(`components.${id}.props.copyright`)}>{String(props.copyright ?? '')}</small>
+          <small {...fieldAttrs(`components.${id}.props.copyright`, 'text')}>{String(props.copyright ?? '')}</small>
           <div className="cms-buttons" style={{ marginTop: 0 }}>
             {socials.map((entry, index) => (
-              <CmsLink
+          <CmsLink
                 key={`${id}-social-${index}`}
                 link={entry}
                 className="cms-btn secondary"
@@ -1032,7 +1052,7 @@ function renderComponent(
     return (
       <section key={id} {...wrapperProps} className="cms-section">
         <div
-          {...fieldAttrs(`components.${id}.props.body`)}
+          {...fieldAttrs(`components.${id}.props.body`, 'richtext')}
           data-cms-field-type="richtext"
           dangerouslySetInnerHTML={{ __html: sanitizedHtml || '<p></p>' }}
         />
@@ -1043,7 +1063,7 @@ function renderComponent(
   if (componentType === 'cta') {
     return (
       <section key={id} {...wrapperProps} className="cms-section">
-        <a className="cms-btn primary" href={String(props.href ?? '#')} {...fieldAttrs(`components.${id}.props.text`)}>
+        <a className="cms-btn primary" href={String(props.href ?? '#')} {...fieldAttrs(`components.${id}.props.text`, 'text')}>
           {String(props.text ?? 'CTA')}
         </a>
       </section>
@@ -1074,57 +1094,165 @@ export function CmsRendererClient({
   const hoverRef = useRef<HTMLElement | null>(null);
   const selectedRef = useRef<HTMLElement | null>(null);
   const inlineModeRef = useRef(Boolean(cmsBridge && inlineEdit));
-  const inlineTargetRef = useRef<HTMLElement | null>(null);
-  const inlineHandlersRef = useRef<{ blur: () => void; keydown: (event: KeyboardEvent) => void } | null>(null);
+  const inlineSessionRef = useRef<{
+    target: HTMLElement;
+    payload: Omit<CmsInlineEditPayload, 'value'>;
+    mode: CmsInlineEditMode;
+    originalValue: string;
+    input: (event: Event) => void;
+    keydown: (event: KeyboardEvent) => void;
+    blur: () => void;
+    timerId: number | null;
+  } | null>(null);
+  const inlineHintRef = useRef<HTMLDivElement | null>(null);
   const inlineFeaturesRef = useRef<string[]>([]);
   const actionItemsRef = useRef<CmsActionItem[]>([]);
-  const selectedTargetTypeRef = useRef<CmsActionsPayload['targetType']>('unknown');
   const fieldEntries = useMemo(() => Object.entries(fields), [fields]);
   const fieldDefMap = useMemo(() => new Map(fieldDefs.map((def) => [def.key, def])), [fieldDefs]);
   const areas = composition.areas ?? [{ name: 'main', components: Object.keys(components) }];
 
-  const clearInlineTarget = () => {
-    const target = inlineTargetRef.current;
-    const handlers = inlineHandlersRef.current;
-    if (target && handlers) {
-      target.removeEventListener('blur', handlers.blur);
-      target.removeEventListener('keydown', handlers.keydown);
+  const readInlineValue = (target: HTMLElement, mode: CmsInlineEditMode): string =>
+    mode === 'richtext' ? target.innerHTML : target.textContent ?? '';
+
+  const toInlinePayload = (target: HTMLElement, mode: CmsInlineEditMode): Omit<CmsInlineEditPayload, 'value'> | null => {
+    const contentItemId = Number(findDatasetValue(target, 'cmsContentItemId') ?? '0');
+    const versionId = Number(findDatasetValue(target, 'cmsVersionId') ?? '0');
+    const fieldPath = target.dataset.cmsFieldPath ?? findDatasetValue(target, 'cmsFieldPath');
+    const componentId = target.dataset.cmsComponentId ?? findDatasetValue(target, 'cmsComponentId');
+    const propPath = target.dataset.cmsPropPath ?? findDatasetValue(target, 'cmsPropPath');
+    const resolvedFieldPath = resolveInlineFieldPath({ fieldPath, componentId, propPath });
+    if (!resolvedFieldPath && !(componentId && propPath)) {
+      return null;
     }
-    if (target) {
-      target.removeAttribute('contenteditable');
-      target.classList.remove('cms-inline-editing');
-    }
-    inlineTargetRef.current = null;
-    inlineHandlersRef.current = null;
+    return {
+      contentItemId,
+      versionId,
+      ...(resolvedFieldPath ? { fieldPath: resolvedFieldPath } : {}),
+      ...(componentId ? { componentId } : {}),
+      ...(propPath ? { propPath } : {}),
+      mode
+    };
   };
 
-  const postInlineEdit = (target: HTMLElement) => {
-    const fieldPath = target.dataset.cmsFieldPath;
-    if (!fieldPath) {
+  const postInlineEditMessage = (type: 'CMS_INLINE_EDIT_PATCH' | 'CMS_INLINE_EDIT_COMMIT', payload: CmsInlineEditPayload) => {
+    if (!window.parent || window.parent === window) {
       return;
     }
-    const html = target.innerHTML;
-    window.parent?.postMessage(
-      {
-        type: 'CMS_INLINE_EDIT',
-        fieldPath,
-        html
-      },
-      '*'
-    );
+    window.parent.postMessage({ type, ...payload }, '*');
   };
 
-  const enableInlineTarget = (target: HTMLElement | null) => {
-    clearInlineTarget();
+  const teardownInlineSession = () => {
+    const session = inlineSessionRef.current;
+    if (!session) {
+      return;
+    }
+    if (session.timerId != null) {
+      window.clearTimeout(session.timerId);
+    }
+    session.target.removeEventListener('input', session.input);
+    session.target.removeEventListener('keydown', session.keydown);
+    session.target.removeEventListener('blur', session.blur);
+    session.target.removeAttribute('contenteditable');
+    session.target.classList.remove('cms-inline-editing');
+    inlineSessionRef.current = null;
+    if (inlineHintRef.current) {
+      inlineHintRef.current.remove();
+      inlineHintRef.current = null;
+    }
+  };
+
+  const cancelInlineSession = () => {
+    const session = inlineSessionRef.current;
+    if (!session) {
+      return;
+    }
+    if (session.mode === 'richtext') {
+      session.target.innerHTML = session.originalValue;
+    } else {
+      session.target.textContent = session.originalValue;
+    }
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(
+        {
+          type: 'CMS_INLINE_EDIT_CANCEL',
+          ...session.payload
+        },
+        '*'
+      );
+    }
+    teardownInlineSession();
+  };
+
+  const commitInlineSession = () => {
+    const session = inlineSessionRef.current;
+    if (!session) {
+      return;
+    }
+    const value = readInlineValue(session.target, session.mode);
+    postInlineEditMessage('CMS_INLINE_EDIT_COMMIT', {
+      ...session.payload,
+      value
+    });
+    teardownInlineSession();
+  };
+
+  const schedulePatchMessage = () => {
+    const session = inlineSessionRef.current;
+    if (!session) {
+      return;
+    }
+    if (session.timerId != null) {
+      window.clearTimeout(session.timerId);
+    }
+    session.timerId = window.setTimeout(() => {
+      const active = inlineSessionRef.current;
+      if (!active) {
+        return;
+      }
+      postInlineEditMessage('CMS_INLINE_EDIT_PATCH', {
+        ...active.payload,
+        value: readInlineValue(active.target, active.mode)
+      });
+    }, 900);
+  };
+
+  const startInlineSession = (target: HTMLElement | null) => {
     if (!inlineModeRef.current || !target) {
       return;
     }
-    if (target.dataset.cmsFieldType !== 'richtext') {
+    const mode = resolveInlineMode({
+      inlineKind: target.dataset.cmsInlineKind ?? findDatasetValue(target, 'cmsInlineKind'),
+      fieldType: target.dataset.cmsFieldType ?? findDatasetValue(target, 'cmsFieldType')
+    }) as CmsInlineEditMode | null;
+    if (!mode) {
       return;
     }
+    const payload = toInlinePayload(target, mode);
+    if (!payload) {
+      return;
+    }
+    teardownInlineSession();
     target.setAttribute('contenteditable', 'true');
     target.classList.add('cms-inline-editing');
-    const blur = () => postInlineEdit(target);
+    if (mode === 'richtext') {
+      const hint = document.createElement('div');
+      hint.textContent = 'Ctrl+Enter to save, Esc to cancel';
+      hint.style.position = 'fixed';
+      hint.style.zIndex = '2147483647';
+      hint.style.padding = '4px 8px';
+      hint.style.borderRadius = '8px';
+      hint.style.fontSize = '11px';
+      hint.style.background = 'rgba(15, 23, 42, 0.92)';
+      hint.style.color = '#f8fafc';
+      const rect = target.getBoundingClientRect();
+      hint.style.left = `${Math.max(8, rect.left)}px`;
+      hint.style.top = `${Math.max(8, rect.top - 28)}px`;
+      document.body.appendChild(hint);
+      inlineHintRef.current = hint;
+    }
+    const input = () => {
+      schedulePatchMessage();
+    };
     const keydown = (event: KeyboardEvent) => {
       const allowed = new Set(inlineFeaturesRef.current);
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'b' && !allowed.has('bold')) {
@@ -1143,66 +1271,47 @@ export function CmsRendererClient({
         event.preventDefault();
         return;
       }
-      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      if (event.key === 'Escape') {
         event.preventDefault();
-        postInlineEdit(target);
-        (target as HTMLElement).blur();
-      }
-    };
-    target.addEventListener('blur', blur);
-    target.addEventListener('keydown', keydown);
-    inlineTargetRef.current = target;
-    inlineHandlersRef.current = { blur, keydown };
-  };
-
-  const runInlineEditAction = (target: HTMLElement | null) => {
-    if (!target) {
-      return;
-    }
-    const fieldPath = target.dataset.cmsFieldPath ?? findDatasetValue(target, 'cmsFieldPath');
-    if (!fieldPath) {
-      return;
-    }
-    const targetType = selectedTargetTypeRef.current;
-    if (targetType === 'richtext') {
-      const previous = inlineModeRef.current;
-      inlineModeRef.current = true;
-      enableInlineTarget(target);
-      window.requestAnimationFrame(() => focusEditableTarget(target));
-      if (!previous) {
-        window.parent?.postMessage({ type: 'CMS_INLINE_MODE', enabled: true }, '*');
-      }
-      return;
-    }
-    if (targetType === 'text') {
-      const current = target.textContent ?? '';
-      const next = window.prompt('Edit text', current);
-      if (next == null) {
+        cancelInlineSession();
         return;
       }
-      target.textContent = next;
-      window.parent?.postMessage({ type: 'CMS_INLINE_EDIT', fieldPath, html: next }, '*');
-      return;
-    }
-    const currentHtml = target.innerHTML;
-    const next = window.prompt('Edit value', currentHtml);
-    if (next == null) {
-      return;
-    }
-    target.innerHTML = next;
-    window.parent?.postMessage({ type: 'CMS_INLINE_EDIT', fieldPath, html: next }, '*');
+      if (shouldCommit(mode, event)) {
+        event.preventDefault();
+        commitInlineSession();
+      }
+    };
+    const blur = () => {
+      commitInlineSession();
+    };
+    target.addEventListener('input', input);
+    target.addEventListener('keydown', keydown);
+    target.addEventListener('blur', blur);
+    inlineSessionRef.current = {
+      target,
+      payload,
+      mode,
+      originalValue: readInlineValue(target, mode),
+      input,
+      keydown,
+      blur,
+      timerId: null
+    };
+    window.requestAnimationFrame(() => focusEditableTarget(target));
   };
 
   useEffect(() => {
     inlineModeRef.current = Boolean(cmsBridge && inlineEdit);
     if (!inlineModeRef.current) {
-      clearInlineTarget();
-      return;
-    }
-    if (selectedRef.current) {
-      enableInlineTarget(selectedRef.current);
+      teardownInlineSession();
     }
   }, [cmsBridge, inlineEdit]);
+
+  useEffect(() => {
+    return () => {
+      teardownInlineSession();
+    };
+  }, []);
 
   useEffect(() => {
     if (!cmsBridge) {
@@ -1316,11 +1425,7 @@ export function CmsRendererClient({
       if (!target) {
         return;
       }
-      if (actionId === 'inline_edit') {
-        runInlineEditAction(target);
-      } else {
-        emitActionRequest('run', target, actionId);
-      }
+      emitActionRequest('run', target, actionId);
       hideMenus();
     };
 
@@ -1418,8 +1523,8 @@ export function CmsRendererClient({
       if (!target) {
         return;
       }
-      const isInlineRichText = inlineModeRef.current && target.dataset.cmsFieldType === 'richtext';
-      if (!isInlineRichText) {
+      const activeInline = inlineSessionRef.current;
+      if (!activeInline || !activeInline.target.contains(event.target as Node)) {
         event.preventDefault();
         event.stopPropagation();
       }
@@ -1428,11 +1533,20 @@ export function CmsRendererClient({
       syncOverlays();
       emitSelect(target);
       emitActionRequest('list', target);
-      if (inlineModeRef.current) {
-        enableInlineTarget(target);
-        if (isInlineRichText) {
-          window.requestAnimationFrame(() => focusEditableTarget(target));
-        }
+    };
+
+    const onDoubleClick = (event: MouseEvent) => {
+      const target = getAnnotatedTarget(event.target as Element | null);
+      if (!target) {
+        return;
+      }
+      selectedRef.current = target;
+      emitSelect(target);
+      syncOverlays();
+      startInlineSession(target);
+      if (inlineSessionRef.current?.target === target) {
+        event.preventDefault();
+        event.stopPropagation();
       }
     };
 
@@ -1471,7 +1585,6 @@ export function CmsRendererClient({
       if (payload.type === 'CMS_ACTIONS') {
         const actionsPayload = payload as CmsActionsPayload;
         actionItemsRef.current = Array.isArray(actionsPayload.actions) ? actionsPayload.actions : [];
-        selectedTargetTypeRef.current = actionsPayload.targetType ?? 'unknown';
         renderToolbar();
         return;
       }
@@ -1485,10 +1598,6 @@ export function CmsRendererClient({
           emitActionRequest('list', selectedRef.current);
         } else {
           actionItemsRef.current = [];
-          selectedTargetTypeRef.current = 'unknown';
-        }
-        if (inlineModeRef.current) {
-          enableInlineTarget(selectedRef.current);
         }
       }
       if (payload.type === 'CMS_SCROLL_TO' && payload.componentId) {
@@ -1500,10 +1609,23 @@ export function CmsRendererClient({
         inlineModeRef.current = enabled;
         if (!enabled) {
           inlineFeaturesRef.current = [];
-          clearInlineTarget();
-        } else if (selectedRef.current) {
-          enableInlineTarget(selectedRef.current);
+          teardownInlineSession();
         }
+      }
+      if (payload.type === 'CMS_INLINE_EDIT_ERROR') {
+        const badge = document.createElement('div');
+        badge.textContent = 'Not saved';
+        badge.style.position = 'fixed';
+        badge.style.right = '12px';
+        badge.style.bottom = '12px';
+        badge.style.zIndex = '2147483647';
+        badge.style.padding = '6px 10px';
+        badge.style.borderRadius = '8px';
+        badge.style.background = 'rgba(185, 28, 28, 0.95)';
+        badge.style.color = '#fff';
+        badge.style.fontSize = '12px';
+        document.body.appendChild(badge);
+        window.setTimeout(() => badge.remove(), 1600);
       }
       if (payload.type === 'CMS_REFRESH') {
         window.location.reload();
@@ -1512,6 +1634,7 @@ export function CmsRendererClient({
 
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('click', onClick, true);
+    window.addEventListener('dblclick', onDoubleClick, true);
     window.addEventListener('contextmenu', onContextMenu, true);
     window.addEventListener('click', onWindowClick);
     window.addEventListener('resize', syncOverlays);
@@ -1521,12 +1644,13 @@ export function CmsRendererClient({
     return () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('click', onClick, true);
+      window.removeEventListener('dblclick', onDoubleClick, true);
       window.removeEventListener('contextmenu', onContextMenu, true);
       window.removeEventListener('click', onWindowClick);
       window.removeEventListener('resize', syncOverlays);
       window.removeEventListener('scroll', syncOverlays, true);
       window.removeEventListener('message', onMessage);
-      clearInlineTarget();
+      teardownInlineSession();
       hover.remove();
       selected.remove();
       toolbar.remove();
@@ -1535,7 +1659,6 @@ export function CmsRendererClient({
       hoverRef.current = null;
       selectedRef.current = null;
       actionItemsRef.current = [];
-      selectedTargetTypeRef.current = 'unknown';
     };
   }, [cmsBridge]);
 
@@ -1554,6 +1677,7 @@ export function CmsRendererClient({
                 <div
                   data-cms-field-path={`fields.${key}`}
                   data-cms-field-type="richtext"
+                  data-cms-inline-kind="richtext"
                   data-cms-content-item-id={contentItemId}
                   data-cms-version-id={versionId}
                   dangerouslySetInnerHTML={{ __html: sanitizedHtml || '<p></p>' }}
@@ -1561,9 +1685,19 @@ export function CmsRendererClient({
               </div>
             );
           }
+          const textInline = fieldDef?.type === 'text' || fieldDef?.type === 'multiline' || fieldDef?.type === 'string';
           return (
-            <div key={key} data-cms-field-path={`fields.${key}`} data-cms-content-item-id={contentItemId} data-cms-version-id={versionId}>
-              <strong>{key}:</strong> <span className="cms-muted">{String(value ?? '')}</span>
+            <div key={key} data-cms-content-item-id={contentItemId} data-cms-version-id={versionId}>
+              <strong>{key}:</strong>{' '}
+              <span
+                className="cms-muted"
+                data-cms-field-path={`fields.${key}`}
+                data-cms-content-item-id={contentItemId}
+                data-cms-version-id={versionId}
+                {...(textInline ? { 'data-cms-inline-kind': 'text' } : {})}
+              >
+                {String(value ?? '')}
+              </span>
             </div>
           );
         })}

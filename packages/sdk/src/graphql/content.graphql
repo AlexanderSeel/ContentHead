@@ -19,7 +19,11 @@ query ListComponentTypeSettings($siteId: Int!) {
     siteId
     componentTypeId
     enabled
+    label
     groupName
+    schemaJson
+    uiMetaJson
+    defaultPropsJson
     updatedAt
     updatedBy
   }
@@ -303,20 +307,32 @@ mutation UpsertComponentTypeSetting(
   $siteId: Int!
   $componentTypeId: String!
   $enabled: Boolean!
+  $label: String
   $groupName: String
+  $schemaJson: String
+  $uiMetaJson: String
+  $defaultPropsJson: String
   $by: String
 ) {
   upsertComponentTypeSetting(
     siteId: $siteId
     componentTypeId: $componentTypeId
     enabled: $enabled
+    label: $label
     groupName: $groupName
+    schemaJson: $schemaJson
+    uiMetaJson: $uiMetaJson
+    defaultPropsJson: $defaultPropsJson
     by: $by
   ) {
     siteId
     componentTypeId
     enabled
+    label
     groupName
+    schemaJson
+    uiMetaJson
+    defaultPropsJson
     updatedAt
     updatedBy
   }

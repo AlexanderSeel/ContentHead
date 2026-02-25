@@ -74,9 +74,13 @@ export type AuthPayload = {
 export type ComponentTypeSetting = {
   __typename?: 'ComponentTypeSetting';
   componentTypeId?: Maybe<Scalars['String']['output']>;
+  defaultPropsJson?: Maybe<Scalars['String']['output']>;
   enabled?: Maybe<Scalars['Boolean']['output']>;
   groupName?: Maybe<Scalars['String']['output']>;
+  label?: Maybe<Scalars['String']['output']>;
+  schemaJson?: Maybe<Scalars['String']['output']>;
   siteId?: Maybe<Scalars['Int']['output']>;
+  uiMetaJson?: Maybe<Scalars['String']['output']>;
   updatedAt?: Maybe<Scalars['String']['output']>;
   updatedBy?: Maybe<Scalars['String']['output']>;
 };
@@ -910,9 +914,13 @@ export type MutationUpdateTemplateArgs = {
 export type MutationUpsertComponentTypeSettingArgs = {
   by?: InputMaybe<Scalars['String']['input']>;
   componentTypeId: Scalars['String']['input'];
+  defaultPropsJson?: InputMaybe<Scalars['String']['input']>;
   enabled: Scalars['Boolean']['input'];
   groupName?: InputMaybe<Scalars['String']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  schemaJson?: InputMaybe<Scalars['String']['input']>;
   siteId: Scalars['Int']['input'];
+  uiMetaJson?: InputMaybe<Scalars['String']['input']>;
 };
 
 

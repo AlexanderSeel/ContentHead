@@ -12,7 +12,7 @@ export function HelpDialog({ topicKey, visible, onHide }: { topicKey: string | n
   const topic = topicKey ? helpContent[topicKey] : null;
 
   return (
-    <Dialog header={topic?.title ?? 'Help'} visible={visible} onHide={onHide} style={{ width: '34rem' }}>
+    <Dialog header={topic?.title ?? 'Help'} visible={visible} onHide={onHide} className="w-11 md:w-10 lg:w-8 xl:w-6">
       <div dangerouslySetInnerHTML={{ __html: renderMarkdown(topic?.markdown ?? 'No help topic found.') }} />
     </Dialog>
   );

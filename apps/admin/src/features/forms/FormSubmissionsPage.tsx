@@ -298,8 +298,8 @@ export function FormSubmissionsPage() {
         overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
       <WorkspaceToolbar>
-        <div className="form-row grid">
-          <div>
+        <div className="grid">
+          <div className="col-12 md:col-6 xl:col-3">
             <label>Site</label>
             <Dropdown
               value={siteId}
@@ -310,7 +310,7 @@ export function FormSubmissionsPage() {
               }}
             />
           </div>
-          <div>
+          <div className="col-12 md:col-6 xl:col-3">
             <label>Form</label>
             <Dropdown
               value={formId}
@@ -321,7 +321,7 @@ export function FormSubmissionsPage() {
               }}
             />
           </div>
-          <div>
+          <div className="col-12 md:col-6 xl:col-3">
             <label>Status</label>
             <Dropdown
               value={statusFilter}
@@ -337,23 +337,23 @@ export function FormSubmissionsPage() {
               }}
             />
           </div>
-          <div>
+          <div className="col-12 md:col-6 xl:col-3">
             <label>Market</label>
             <InputText value={marketFilter} onChange={(event) => { setMarketFilter(event.target.value); setFirst(0); }} placeholder="US" />
           </div>
-          <div>
+          <div className="col-12 md:col-6 xl:col-3">
             <label>Locale</label>
             <InputText value={localeFilter} onChange={(event) => { setLocaleFilter(event.target.value); setFirst(0); }} placeholder="en-US" />
           </div>
-          <div>
+          <div className="col-12 md:col-6 xl:col-3">
             <label>From</label>
             <Calendar value={fromDate} onChange={(event) => { setFromDate((event.value as Date | null) ?? null); setFirst(0); }} showIcon />
           </div>
-          <div>
+          <div className="col-12 md:col-6 xl:col-3">
             <label>To</label>
             <Calendar value={toDate} onChange={(event) => { setToDate((event.value as Date | null) ?? null); setFirst(0); }} showIcon />
           </div>
-          <div>
+          <div className="col-12 md:col-6 xl:col-3">
             <label>Search</label>
             <InputText value={search} onChange={(event) => { setSearch(event.target.value); setFirst(0); }} placeholder="Search answers/meta/route" />
           </div>
@@ -439,8 +439,8 @@ export function FormSubmissionsPage() {
             window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
           }}
         >
-          <Column expander style={{ width: '3rem' }} />
-          <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
+          <Column expander headerClassName="w-3rem" bodyClassName="w-3rem" />
+          <Column selectionMode="multiple" headerClassName="w-3rem" bodyClassName="w-3rem" />
           <Column field="id" header="ID" sortable />
           <Column field="createdAt" header="Created" sortable />
           <Column field="formId" header="Form" sortable />

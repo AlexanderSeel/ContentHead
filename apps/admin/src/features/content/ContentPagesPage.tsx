@@ -14,7 +14,6 @@ import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { Tag } from 'primereact/tag';
-import { InputSwitch } from 'primereact/inputswitch';
 import { MultiSelect } from 'primereact/multiselect';
 
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
@@ -49,6 +48,7 @@ import {
   type ComponentTypeSetting
 } from './components/componentRegistry';
 import type { CmsActionId, CmsBridgeMessage, CmsActionsMessage, CmsActionRequestMessage } from './previewBridge';
+import { handleInlineEditPatchMessage, resolveInlineEditFieldPath } from './inlineEditBridge';
 import { extensionInspectorPanels } from '../../extensions/core/registry';
 import { InspectorSection } from '../../ui/molecules';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
@@ -91,7 +91,15 @@ type Variant = { id: number; variantSetId: number; key: string; priority: number
 type CompositionArea = { name: string; components: string[] };
 type ComponentRecord = { id: string; type: string; props: Record<string, unknown> };
 type ComponentInstance = { instanceId: string; componentTypeId: string; area: string; sortOrder: number; props: Record<string, unknown> };
-type ComponentTypeSettingRow = { componentTypeId?: string | null; enabled?: boolean | null; groupName?: string | null };
+type ComponentTypeSettingRow = {
+  componentTypeId?: string | null;
+  enabled?: boolean | null;
+  label?: string | null;
+  groupName?: string | null;
+  schemaJson?: string | null;
+  uiMetaJson?: string | null;
+  defaultPropsJson?: string | null;
+};
 type AclEntry = {
   principalType: 'ROLE' | 'USER' | 'GROUP';
   principalId: string;
@@ -717,7 +725,7 @@ export function ContentPagesPage() {
   const [aiSuggestion, setAiSuggestion] = useState('');
   const [targetMarketCode, setTargetMarketCode] = useState(marketCode);
   const [targetLocaleCode, setTargetLocaleCode] = useState(localeCode);
-  const [inlineEdit, setInlineEdit] = useState(false);
+  const [inlineSaveError, setInlineSaveError] = useState('');
   const [treeContextRow, setTreeContextRow] = useState<TreeRow | null>(null);
   const [treeContextSelectionKey, setTreeContextSelectionKey] = useState<string | null>(null);
   const [onPageAssetPicker, setOnPageAssetPicker] = useState<{ visible: boolean; path: string; multiple: boolean; selected: number[] } | null>(null);
@@ -740,9 +748,21 @@ export function ContentPagesPage() {
     }
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        window.clearTimeout(saveTimerRef.current);
+      }
+      if (inlineSaveTimerRef.current) {
+        window.clearTimeout(inlineSaveTimerRef.current);
+      }
+    };
+  }, []);
+
   const previewIframeRef = useRef<HTMLIFrameElement | null>(null);
   const treeContextMenuRef = useRef<ContextMenu>(null);
   const saveTimerRef = useRef<number | null>(null);
+  const inlineSaveTimerRef = useRef<number | null>(null);
   const lastSavedRef = useRef<string>('');
   const saveInFlightRef = useRef(false);
   const pendingSaveRef = useRef(false);
@@ -904,6 +924,10 @@ export function ContentPagesPage() {
     return templateComponentIds.has(id) ? 'template' : 'override';
   };
   const resolvedComponentRegistry = useMemo(() => resolveComponentRegistry(componentSettings), [componentSettings]);
+  const resolvedComponentRegistryMap = useMemo(
+    () => new Map(resolvedComponentRegistry.map((entry) => [entry.id, entry])),
+    [resolvedComponentRegistry]
+  );
   const enabledComponentRegistry = useMemo(
     () => resolvedComponentRegistry.filter((entry) => entry.enabled),
     [resolvedComponentRegistry]
@@ -955,7 +979,7 @@ export function ContentPagesPage() {
         return undefined;
       }
       const component = componentMap[parsed.componentId];
-      const entry = component ? getComponentRegistryEntry(component.type) : null;
+      const entry = component ? resolvedComponentRegistryMap.get(component.type) ?? getComponentRegistryEntry(component.type) : null;
       const fieldKey = parsed.key.split('.')[0] ?? '';
       const fieldDef = entry?.fields.find((field) => field.key === fieldKey);
       if (fieldDef?.type === 'richtext') {
@@ -982,7 +1006,7 @@ export function ContentPagesPage() {
       return null;
     }
     const component = componentMap[parsed.componentId];
-    const entry = component ? getComponentRegistryEntry(component.type) : null;
+    const entry = component ? resolvedComponentRegistryMap.get(component.type) ?? getComponentRegistryEntry(component.type) : null;
     const fieldKey = parsed.key.split('.')[0] ?? '';
     const fieldDef = entry?.fields.find((field) => field.key === fieldKey);
     return fieldDef?.type ?? null;
@@ -999,7 +1023,7 @@ export function ContentPagesPage() {
     if (fieldType === 'richtext') {
       return 'richtext';
     }
-    if (fieldType === 'text' || fieldType === 'multiline') {
+    if (fieldType === 'text' || fieldType === 'multiline' || fieldType === 'string') {
       return 'text';
     }
     if (fieldType === 'assetRef' || fieldType === 'assetList') {
@@ -1024,12 +1048,10 @@ export function ContentPagesPage() {
       }
     };
 
-    push('edit', 'Edit', true);
     if (!canMutate) {
       return actions;
     }
     if (target.targetType === 'text' || target.targetType === 'richtext') {
-      push('inline_edit', 'Inline Edit', true);
       push('clear', 'Clear');
     }
     if (target.targetType === 'asset' || target.targetType === 'link' || target.targetType === 'form') {
@@ -1073,9 +1095,9 @@ export function ContentPagesPage() {
         versionId: draft?.id,
         previewMode,
         cmsBridge: true,
-        inlineEdit: inlineEdit && canInlineEdit
+        inlineEdit: canInlineEdit
       });
-  }, [selectedItemId, activeRoute, draft, webBaseUrl, siteId, site, marketCode, localeCode, previewToken, inlineEdit, canInlineEdit]);
+  }, [selectedItemId, activeRoute, draft, webBaseUrl, siteId, site, marketCode, localeCode, previewToken, canInlineEdit]);
 
   const sendPreviewMessage = (message: CmsBridgeMessage) => {
     const target = previewIframeRef.current?.contentWindow;
@@ -1092,6 +1114,26 @@ export function ContentPagesPage() {
     saveTimerRef.current = window.setTimeout(() => {
       saveDraft({ force, silent: true }).catch((e: unknown) => setStatus(formatErrorMessage(e)));
     }, delay);
+  };
+
+  const scheduleInlineSave = (request: { force: boolean; delay: number; fieldPath: string }) => {
+    if (inlineSaveTimerRef.current) {
+      window.clearTimeout(inlineSaveTimerRef.current);
+    }
+    inlineSaveTimerRef.current = window.setTimeout(() => {
+      saveDraft({ force: request.force, silent: true, refreshPreview: false })
+        .then(() => setInlineSaveError(''))
+        .catch((error: unknown) => {
+          const message = formatErrorMessage(error);
+          setInlineSaveError(message);
+          sendPreviewMessage({
+            type: 'CMS_INLINE_EDIT_ERROR',
+            fieldPath: request.fieldPath,
+            message
+          });
+          setStatus(message);
+        });
+    }, request.delay);
   };
 
   const hasAclAllow = (principalType: AclEntry['principalType'], principalId: string, permissionKey: string) =>
@@ -1138,7 +1180,12 @@ export function ContentPagesPage() {
     setComponentsJson(serializeComponentInstances(nextAreas, nextMap));
   };
 
-  const setValueByPath = (fieldPath: string, nextValue: unknown) => {
+  const setValueByPath = (
+    fieldPath: string,
+    nextValue: unknown,
+    options?: { scheduleSave?: boolean; forceSave?: boolean; delay?: number }
+  ) => {
+    const scheduleNextSave = options?.scheduleSave ?? true;
     if (fieldPath.startsWith('fields.')) {
       const key = fieldPathToKey(fieldPath);
       if (!key) {
@@ -1147,7 +1194,9 @@ export function ContentPagesPage() {
       setFields((prev) => ({ ...prev, [key]: nextValue }));
       setSelectedComponentId(null);
       setSelectedFieldPath(fieldPath);
-      scheduleDraftSave(true, 50);
+      if (scheduleNextSave) {
+        scheduleDraftSave(options?.forceSave ?? true, options?.delay ?? 50);
+      }
       return true;
     }
 
@@ -1170,16 +1219,24 @@ export function ContentPagesPage() {
     updateBuilder(composition.areas, nextMap);
     setSelectedComponentId(parsed.componentId);
     setSelectedFieldPath(fieldPath);
-    scheduleDraftSave(true, 50);
+    if (scheduleNextSave) {
+      scheduleDraftSave(options?.forceSave ?? true, options?.delay ?? 50);
+    }
     return true;
   };
 
-  const resolveOnPageTarget = (message: Pick<CmsActionRequestMessage, 'contentItemId' | 'versionId' | 'componentId' | 'fieldPath'>): OnPageTarget | null => {
+  const resolveOnPageTarget = (
+    message: Pick<CmsActionRequestMessage, 'contentItemId' | 'versionId' | 'componentId' | 'fieldPath' | 'propPath'>
+  ): OnPageTarget | null => {
     if (!selectedItemId || Number(message.contentItemId) !== selectedItemId) {
       return null;
     }
     const componentId = typeof message.componentId === 'string' ? message.componentId : null;
-    const fieldPath = typeof message.fieldPath === 'string' ? message.fieldPath : null;
+    const fieldPath = resolveInlineEditFieldPath({
+      fieldPath: typeof message.fieldPath === 'string' ? message.fieldPath : null,
+      componentId,
+      propPath: typeof message.propPath === 'string' ? message.propPath : null
+    });
     const targetType = resolveOnPageTargetType(fieldPath, componentId);
     return {
       contentItemId: Number(message.contentItemId),
@@ -1206,22 +1263,6 @@ export function ContentPagesPage() {
   const executeOnPageAction = (request: CmsActionRequestMessage) => {
     const target = resolveOnPageTarget(request);
     if (!target || !request.action) {
-      return;
-    }
-
-    if (request.action === 'edit') {
-      if (target.componentId) {
-        setSelectedComponentId(target.componentId);
-        setCenterTabIndex(1);
-      }
-      if (target.fieldPath) {
-        setSelectedFieldPath(target.fieldPath);
-        if (target.fieldPath.startsWith('fields.')) {
-          setSelectedComponentId(null);
-          setCenterTabIndex(0);
-        }
-        focusEditorByPath(target.fieldPath);
-      }
       return;
     }
 
@@ -1374,7 +1415,11 @@ export function ContentPagesPage() {
         .map((entry) => ({
           componentTypeId: entry.componentTypeId as string,
           enabled: Boolean(entry.enabled ?? true),
-          groupName: entry.groupName ?? null
+          label: entry.label ?? null,
+          groupName: entry.groupName ?? null,
+          schemaJson: entry.schemaJson ?? null,
+          uiMetaJson: entry.uiMetaJson ?? null,
+          defaultPropsJson: entry.defaultPropsJson ?? null
         }))
     );
   };
@@ -1506,12 +1551,6 @@ export function ContentPagesPage() {
   }, [selectedItemId, siteId, marketCode, localeCode]);
 
   useEffect(() => {
-    if (!canInlineEdit) {
-      setInlineEdit(false);
-    }
-  }, [canInlineEdit]);
-
-  useEffect(() => {
     sdk
       .listForms({ siteId })
       .then((res) =>
@@ -1543,40 +1582,25 @@ export function ContentPagesPage() {
         return;
       }
 
-      if (payload.type === 'CMS_INLINE_EDIT') {
-        if (!draft) {
-          return;
+      if (payload.type === 'CMS_INLINE_EDIT_PATCH' || payload.type === 'CMS_INLINE_EDIT_COMMIT') {
+        const result = handleInlineEditPatchMessage({
+          selectedItemId,
+          hasDraft: Boolean(draft),
+          message: payload,
+          applyValueByPath: (fieldPath, value) => setValueByPath(fieldPath, value, { scheduleSave: false }),
+          scheduleSave: scheduleInlineSave
+        });
+        if (result.handled && !result.applied && result.fieldPath) {
+          sendPreviewMessage({
+            type: 'CMS_INLINE_EDIT_ERROR',
+            fieldPath: result.fieldPath,
+            message: 'Inline change was not applied.'
+          });
         }
-        const fieldPath = typeof payload.fieldPath === 'string' ? payload.fieldPath : null;
-        const html = typeof payload.html === 'string' ? payload.html : null;
-        if (!fieldPath || html == null) {
-          return;
-        }
-        if (fieldPath.startsWith('fields.')) {
-          const key = fieldPathToKey(fieldPath);
-          if (!key) {
-            return;
-          }
-          setFields((prev) => ({ ...prev, [key]: html }));
-          setSelectedComponentId(null);
-          setSelectedFieldPath(fieldPath);
-          scheduleDraftSave(true, 50);
-          return;
-        }
-        const parsed = parseComponentFieldPath(fieldPath);
-        if (!parsed) {
-          return;
-        }
-        const component = componentMap[parsed.componentId];
-        if (!component) {
-          return;
-        }
-        const nextProps = setNestedValue(component.props ?? {}, parsed.key, html);
-        const nextMap = { ...componentMap, [parsed.componentId]: { ...component, props: nextProps } };
-        updateBuilder(composition.areas, nextMap);
-        setSelectedComponentId(parsed.componentId);
-        setSelectedFieldPath(fieldPath);
-        scheduleDraftSave(true, 50);
+        return;
+      }
+
+      if (payload.type === 'CMS_INLINE_EDIT_CANCEL') {
         return;
       }
 
@@ -1588,8 +1612,12 @@ export function ContentPagesPage() {
         return;
       }
 
-      const fieldPath = typeof payload.fieldPath === 'string' ? payload.fieldPath : null;
-        const componentId = typeof payload.componentId === 'string' ? payload.componentId : null;
+      const componentId = typeof payload.componentId === 'string' ? payload.componentId : null;
+      const fieldPath = resolveInlineEditFieldPath({
+        fieldPath: typeof payload.fieldPath === 'string' ? payload.fieldPath : null,
+        componentId,
+        propPath: typeof payload.propPath === 'string' ? payload.propPath : null
+      });
 
       if (componentId) {
         setSelectedComponentId(componentId);
@@ -1626,13 +1654,13 @@ export function ContentPagesPage() {
     componentMap,
     composition,
     fields,
-    inlineEdit,
     draft,
     resolveOnPageTarget,
     resolveOnPageTargetType,
     sendOnPageActions,
     executeOnPageAction,
-    scheduleDraftSave
+    scheduleDraftSave,
+    scheduleInlineSave
   ]);
 
   useEffect(() => {
@@ -1674,9 +1702,9 @@ export function ContentPagesPage() {
     }
     sendPreviewMessage({
       type: 'CMS_INLINE_MODE',
-      enabled: inlineEdit && canInlineEdit
+      enabled: canInlineEdit
     });
-  }, [inlineEdit, canInlineEdit, previewIframeUrl, previewReloadKey]);
+  }, [canInlineEdit, previewIframeUrl, previewReloadKey]);
 
   useEffect(() => {
     if (availableComponentTypeOptions.length === 0) {
@@ -1716,7 +1744,7 @@ export function ContentPagesPage() {
     }
   };
 
-  const saveDraft = async (options: { force?: boolean; silent?: boolean } = {}) => {
+  const saveDraft = async (options: { force?: boolean; silent?: boolean; refreshPreview?: boolean } = {}) => {
     if (!draft) {
       return;
     }
@@ -1754,8 +1782,10 @@ export function ContentPagesPage() {
         if (!options.silent) {
           await loadItem(selectedItemId);
         }
-        setPreviewReloadKey((prev) => prev + 1);
-        sendPreviewMessage({ type: 'CMS_REFRESH' });
+        if (options.refreshPreview !== false) {
+          setPreviewReloadKey((prev) => prev + 1);
+          sendPreviewMessage({ type: 'CMS_REFRESH' });
+        }
         if (!options.silent) {
           toast({ severity: 'success', summary: 'Draft saved' });
         }
@@ -2059,7 +2089,7 @@ export function ContentPagesPage() {
       return;
     }
 
-    const entry = getComponentRegistryEntry(newComponentType);
+    const entry = resolvedComponentRegistryMap.get(newComponentType) ?? getComponentRegistryEntry(newComponentType);
     if (!entry) {
       return;
     }
@@ -2238,17 +2268,6 @@ export function ContentPagesPage() {
     copyRoute: () => copyText('Route', activeRoute?.slug ?? ''),
     clearPreviewToken: () => setPreviewToken(''),
     toggleRawJson: async () => {
-      if (!rawEditable) {
-        const confirmEdit = await baseCommandContext.confirm?.({
-          header: 'Enable Raw JSON Editing',
-          message: 'Enable raw JSON editing? This bypasses visual editors.',
-          acceptLabel: 'Enable',
-          rejectLabel: 'Cancel'
-        });
-        if (!confirmEdit) {
-          return;
-        }
-      }
       setRawEditable((prev) => !prev);
     },
     openAskAi: () => setAiDialogOpen(true),
@@ -2349,6 +2368,7 @@ export function ContentPagesPage() {
                 componentMap={componentMap}
                 selectedComponentId={selectedComponentId}
                 selectedComponentSource={componentSourceResolver}
+                componentTypeLabelResolver={(typeId) => resolvedComponentRegistryMap.get(typeId)?.label ?? null}
                 onSelect={(id) => {
                   setSelectedComponentId(id);
                   setSelectedFieldPath(`components.${id}`);
@@ -2370,7 +2390,7 @@ export function ContentPagesPage() {
                     setStatus(`Component type \"${componentTypeId}\" is restricted in area \"${area}\".`);
                     return;
                   }
-                  const entry = getComponentRegistryEntry(componentTypeId);
+                  const entry = resolvedComponentRegistryMap.get(componentTypeId) ?? getComponentRegistryEntry(componentTypeId);
                   if (!entry) {
                     return;
                   }
@@ -2391,6 +2411,9 @@ export function ContentPagesPage() {
                       <ComponentInspector
                         component={selectedComponent}
                         siteId={siteId}
+                        registryEntry={
+                          selectedComponent ? resolvedComponentRegistryMap.get(selectedComponent.type) ?? null : null
+                        }
                         selectedFieldPath={selectedFieldPath}
                         onSelectFieldPath={(path) => {
                           setSelectedFieldPath(path);
@@ -2691,23 +2714,7 @@ export function ContentPagesPage() {
               <Button
                 label={rawEditable ? 'Lock JSON Editing' : 'Enable JSON Editing'}
                 severity={rawEditable ? 'danger' : 'secondary'}
-                onClick={() => {
-                  const toggle = async () => {
-                    if (!rawEditable) {
-                      const confirmEdit = await confirm?.({
-                        header: 'Enable Raw JSON Editing',
-                        message: 'Enable raw JSON editing? This bypasses visual editors.',
-                        acceptLabel: 'Enable',
-                        rejectLabel: 'Cancel'
-                      });
-                      if (!confirmEdit) {
-                        return;
-                      }
-                    }
-                    setRawEditable((prev) => !prev);
-                  };
-                  toggle().catch(() => undefined);
-                }}
+                onClick={() => setRawEditable((prev) => !prev)}
               />
             </div>
             <div className="form-row"><label>Fields JSON</label><InputTextarea rows={5} value={JSON.stringify(fields, null, 2)} readOnly={!rawEditable} onChange={(event) => {
@@ -2738,10 +2745,8 @@ export function ContentPagesPage() {
           <Button label="Web" size="small" text={previewDevice !== 'web'} onClick={() => setPreviewDevice('web')} />
           <Button label="Tablet" size="small" text={previewDevice !== 'tablet'} onClick={() => setPreviewDevice('tablet')} />
           <Button label="Mobile" size="small" text={previewDevice !== 'mobile'} onClick={() => setPreviewDevice('mobile')} />
-          <div className="inline-actions">
-            <InputSwitch checked={inlineEdit} onChange={(event) => setInlineEdit(Boolean(event.value))} disabled={!canInlineEdit} />
-            <small className={canInlineEdit ? '' : 'muted'}>Inline edit</small>
-          </div>
+          {!canInlineEdit ? <small className="muted">Inline editing unavailable for published-only state</small> : null}
+          {inlineSaveError ? <small className="error-text">Inline save failed: {inlineSaveError}</small> : null}
           <Button text icon="pi pi-refresh" label="Reload" onClick={() => setPreviewReloadKey((prev) => prev + 1)} disabled={!previewIframeUrl} />
         </div>
       </div>
@@ -2766,7 +2771,7 @@ export function ContentPagesPage() {
                 if (selectedComponentId) {
                   sendPreviewMessage({ type: 'CMS_SCROLL_TO', componentId: selectedComponentId });
                 }
-                sendPreviewMessage({ type: 'CMS_INLINE_MODE', enabled: inlineEdit && canInlineEdit });
+                sendPreviewMessage({ type: 'CMS_INLINE_MODE', enabled: canInlineEdit });
               }}
             />
           </div>
@@ -2940,7 +2945,8 @@ export function ContentPagesPage() {
                           />
                         );
                       }}
-                      style={{ width: '7rem' }}
+                      headerClassName="w-7rem"
+                      bodyClassName="w-7rem"
                     />
                     <Column
                       header="Actions"
@@ -2969,7 +2975,8 @@ export function ContentPagesPage() {
                           </div>
                         );
                       }}
-                      style={{ width: '12rem' }}
+                      headerClassName="w-12rem"
+                      bodyClassName="w-12rem"
                     />
                   </TreeTable>
                 </>
@@ -2992,7 +2999,7 @@ export function ContentPagesPage() {
           </SplitterPanel>
         </Splitter>
       </WorkspaceBody>
-      <Dialog header="Add Component" visible={showAddComponent} onHide={() => setShowAddComponent(false)} style={{ width: '30rem' }}>
+      <Dialog header="Add Component" visible={showAddComponent} onHide={() => setShowAddComponent(false)} className="w-11 md:w-8 lg:w-6 xl:w-4">
         <div className="form-row">
           <label>Component Type</label>
           <Dropdown
@@ -3041,7 +3048,7 @@ export function ContentPagesPage() {
         header="Select Form"
         visible={Boolean(onPageFormPicker?.visible)}
         onHide={() => setOnPageFormPicker(null)}
-        style={{ width: '34rem' }}
+        className="w-11 md:w-8 lg:w-6 xl:w-5"
       >
         <div className="form-row">
           <label>Form</label>
@@ -3062,7 +3069,7 @@ export function ContentPagesPage() {
           />
         </div>
       </Dialog>
-      <Dialog header="Ask AI" visible={aiDialogOpen} onHide={() => setAiDialogOpen(false)} style={{ width: '42rem' }}>
+      <Dialog header="Ask AI" visible={aiDialogOpen} onHide={() => setAiDialogOpen(false)} className="w-11 lg:w-9 xl:w-8">
         <div className="form-grid">
           <div className="form-row">
             <label>Mode</label>

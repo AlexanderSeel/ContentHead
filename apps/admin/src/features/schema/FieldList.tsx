@@ -39,7 +39,7 @@ export function FieldList({
         }
       }}
     >
-      <Column rowReorder style={{ width: '2.5rem' }} />
+      <Column rowReorder headerClassName="w-3rem" bodyClassName="w-3rem" />
       <Column field="key" header="Key" />
       <Column field="label" header="Label" />
       <Column field="type" header="Type" />

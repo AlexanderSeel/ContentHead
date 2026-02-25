@@ -9,7 +9,7 @@
     "start": "next start -p 3000",
     "codegen": "graphql-codegen --config codegen.ts",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"No tests yet\"",
+    "test": "vitest run",
     "lint": "next lint"
   },
   "dependencies": {

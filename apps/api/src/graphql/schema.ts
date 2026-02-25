@@ -486,7 +486,11 @@ ComponentTypeSettingRef.implement({
     siteId: t.exposeInt('siteId'),
     componentTypeId: t.exposeString('componentTypeId'),
     enabled: t.exposeBoolean('enabled'),
+    label: t.exposeString('label', { nullable: true }),
     groupName: t.exposeString('groupName', { nullable: true }),
+    schemaJson: t.exposeString('schemaJson', { nullable: true }),
+    uiMetaJson: t.exposeString('uiMetaJson', { nullable: true }),
+    defaultPropsJson: t.exposeString('defaultPropsJson', { nullable: true }),
     updatedAt: t.exposeString('updatedAt'),
     updatedBy: t.exposeString('updatedBy')
   })
@@ -2020,7 +2024,11 @@ builder.mutationType({
         siteId: t.arg.int({ required: true }),
         componentTypeId: t.arg.string({ required: true }),
         enabled: t.arg.boolean({ required: true }),
+        label: t.arg.string({ required: false }),
         groupName: t.arg.string({ required: false }),
+        schemaJson: t.arg.string({ required: false }),
+        uiMetaJson: t.arg.string({ required: false }),
+        defaultPropsJson: t.arg.string({ required: false }),
         by: t.arg.string({ required: false })
       },
       resolve: async (
@@ -2029,7 +2037,11 @@ builder.mutationType({
           siteId: number;
           componentTypeId: string;
           enabled: boolean;
+          label?: string | null | undefined;
           groupName?: string | null | undefined;
+          schemaJson?: string | null | undefined;
+          uiMetaJson?: string | null | undefined;
+          defaultPropsJson?: string | null | undefined;
           by?: string | null | undefined;
         },
         ctx
@@ -2038,7 +2050,11 @@ builder.mutationType({
           siteId: args.siteId,
           componentTypeId: args.componentTypeId,
           enabled: args.enabled,
+          label: args.label,
           groupName: args.groupName,
+          schemaJson: args.schemaJson,
+          uiMetaJson: args.uiMetaJson,
+          defaultPropsJson: args.defaultPropsJson,
           by: args.by ?? ctx.currentUser?.username ?? 'system'
         })
     }),

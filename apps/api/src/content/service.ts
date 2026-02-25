@@ -23,7 +23,11 @@ export type ComponentTypeSettingRecord = {
   siteId: number;
   componentTypeId: string;
   enabled: boolean;
+  label: string | null;
   groupName: string | null;
+  schemaJson: string | null;
+  uiMetaJson: string | null;
+  defaultPropsJson: string | null;
   updatedAt: string;
   updatedBy: string;
 };
@@ -790,11 +794,189 @@ WHERE id = ?
   return getContentType(db, input.id);
 }
 
+type ComponentPreset = {
+  componentTypeId: string;
+  label: string;
+  groupName: string;
+  enabled: boolean;
+  schema: Array<{
+    key: string;
+    label: string;
+    type: string;
+    required?: boolean;
+    defaultValue?: unknown;
+    control?: string;
+    itemLabelKey?: string;
+    fields?: Array<{ key: string; label: string; type: string; required?: boolean; defaultValue?: unknown; control?: string }>;
+  }>;
+  defaultProps: Record<string, unknown>;
+};
+
+const COMPONENT_PRESETS: ComponentPreset[] = [
+  {
+    componentTypeId: 'hero',
+    label: 'Hero',
+    groupName: 'Marketing',
+    enabled: true,
+    schema: [
+      { key: 'title', label: 'Title', type: 'string', required: true, defaultValue: 'Ship faster with ContentHead' },
+      { key: 'subtitle', label: 'Subtitle', type: 'string', defaultValue: 'Compose pages visually and publish with confidence.' },
+      { key: 'primaryCta', label: 'Primary CTA', type: 'link', control: 'LinkPicker' },
+      { key: 'secondaryCta', label: 'Secondary CTA', type: 'link', control: 'LinkPicker' },
+      { key: 'backgroundAssetRef', label: 'Background Asset', type: 'asset', control: 'AssetPicker' }
+    ],
+    defaultProps: {
+      title: 'Ship faster with ContentHead',
+      subtitle: 'Compose pages visually and publish with confidence.'
+    }
+  },
+  {
+    componentTypeId: 'feature_grid',
+    label: 'Feature Grid',
+    groupName: 'Marketing',
+    enabled: true,
+    schema: [
+      { key: 'title', label: 'Title', type: 'string', defaultValue: 'Why teams choose ContentHead' },
+      {
+        key: 'items',
+        label: 'Items',
+        type: 'objectList',
+        itemLabelKey: 'title',
+        fields: [
+          { key: 'icon', label: 'Icon', type: 'string', defaultValue: 'pi-bolt' },
+          { key: 'title', label: 'Title', type: 'string', required: true },
+          { key: 'description', label: 'Description', type: 'string' }
+        ]
+      }
+    ],
+    defaultProps: {
+      title: 'Why teams choose ContentHead',
+      items: [
+        { icon: 'pi-bolt', title: 'Fast authoring', description: 'Live preview and on-page editing for rapid iteration.' },
+        { icon: 'pi-globe', title: 'Market ready', description: 'Built-in market and locale routing with overrides.' },
+        { icon: 'pi-sliders-h', title: 'Variants', description: 'Personalize with variant sets and deterministic rules.' }
+      ]
+    }
+  },
+  {
+    componentTypeId: 'image_text',
+    label: 'Image + Text',
+    groupName: 'Marketing',
+    enabled: true,
+    schema: [
+      { key: 'title', label: 'Title', type: 'string', required: true },
+      { key: 'body', label: 'Body', type: 'string' },
+      { key: 'imageAssetRef', label: 'Image Asset', type: 'asset', control: 'AssetPicker' },
+      { key: 'invert', label: 'Invert Layout', type: 'boolean', defaultValue: false },
+      { key: 'cta', label: 'CTA', type: 'link', control: 'LinkPicker' }
+    ],
+    defaultProps: { title: 'Composable sections', body: 'Use reusable blocks with field-level validation.' }
+  },
+  {
+    componentTypeId: 'pricing',
+    label: 'Pricing',
+    groupName: 'Marketing',
+    enabled: true,
+    schema: [
+      { key: 'title', label: 'Title', type: 'string', defaultValue: 'Pricing' },
+      { key: 'tiers', label: 'Tiers', type: 'list', control: 'MultiSelect' }
+    ],
+    defaultProps: { title: 'Pricing', tiers: [] }
+  },
+  {
+    componentTypeId: 'faq',
+    label: 'FAQ',
+    groupName: 'Marketing',
+    enabled: true,
+    schema: [
+      { key: 'title', label: 'Title', type: 'string', defaultValue: 'Frequently asked questions' },
+      { key: 'items', label: 'Items', type: 'list', control: 'MultiSelect' }
+    ],
+    defaultProps: { title: 'Frequently asked questions', items: [] }
+  },
+  {
+    componentTypeId: 'newsletter_form',
+    label: 'Newsletter Form',
+    groupName: 'Forms',
+    enabled: true,
+    schema: [
+      { key: 'title', label: 'Title', type: 'string' },
+      { key: 'description', label: 'Description', type: 'string' },
+      { key: 'formId', label: 'Form', type: 'formRef' },
+      { key: 'submitLabel', label: 'Submit Label', type: 'string' }
+    ],
+    defaultProps: { title: 'Stay in the loop', description: 'Get monthly updates.', submitLabel: 'Subscribe' }
+  },
+  {
+    componentTypeId: 'footer',
+    label: 'Footer',
+    groupName: 'Layout',
+    enabled: true,
+    schema: [
+      { key: 'copyright', label: 'Copyright', type: 'string' },
+      { key: 'linkGroups', label: 'Link Groups', type: 'list', control: 'MultiSelect' },
+      { key: 'socialLinks', label: 'Social Links', type: 'list', control: 'MultiSelect' }
+    ],
+    defaultProps: { copyright: '© ContentHead', linkGroups: [], socialLinks: [] }
+  },
+  {
+    componentTypeId: 'text_block',
+    label: 'Text Block',
+    groupName: 'Content',
+    enabled: true,
+    schema: [
+      { key: 'body', label: 'Body', type: 'richtext', control: 'Editor', required: true, defaultValue: '<p>Lorem ipsum</p>' },
+      { key: 'columns', label: 'Columns', type: 'number', defaultValue: 1 }
+    ],
+    defaultProps: { body: '<p>Lorem ipsum</p>', columns: 1 }
+  },
+  {
+    componentTypeId: 'cta',
+    label: 'CTA Button',
+    groupName: 'Content',
+    enabled: true,
+    schema: [
+      { key: 'text', label: 'Label', type: 'string', required: true, defaultValue: 'Learn more' },
+      { key: 'href', label: 'URL', type: 'string', required: true, defaultValue: '/learn-more' },
+      { key: 'style', label: 'Style', type: 'select', control: 'Dropdown', defaultValue: 'primary' }
+    ],
+    defaultProps: { text: 'Learn more', href: '/learn-more', style: 'primary' }
+  }
+];
+
+async function ensureComponentTypePresets(db: DbClient, siteId: number): Promise<void> {
+  for (const preset of COMPONENT_PRESETS) {
+    const exists = await db.get<{ id: string }>(
+      `
+SELECT component_type_id as id
+FROM component_type_settings
+WHERE site_id = ? AND component_type_id = ?
+`,
+      [siteId, preset.componentTypeId]
+    );
+    if (exists?.id) {
+      continue;
+    }
+    await upsertComponentTypeSetting(db, {
+      siteId,
+      componentTypeId: preset.componentTypeId,
+      enabled: preset.enabled,
+      label: preset.label,
+      groupName: preset.groupName,
+      schemaJson: JSON.stringify(preset.schema),
+      uiMetaJson: null,
+      defaultPropsJson: JSON.stringify(preset.defaultProps),
+      by: 'system'
+    });
+  }
+}
+
 export async function listComponentTypeSettings(
   db: DbClient,
   siteId: number
 ): Promise<ComponentTypeSettingRecord[]> {
   await ensureComponentTypeSettingsTable(db);
+  await ensureComponentTypePresets(db, siteId);
   try {
     return await db.all<ComponentTypeSettingRecord>(
       `
@@ -802,7 +984,11 @@ SELECT
   site_id as siteId,
   component_type_id as componentTypeId,
   enabled,
+  label,
   group_name as groupName,
+  schema_json as schemaJson,
+  ui_meta_json as uiMetaJson,
+  default_props_json as defaultPropsJson,
   updated_at as updatedAt,
   updated_by as updatedBy
 FROM component_type_settings
@@ -819,7 +1005,11 @@ SELECT
   site_id as siteId,
   component_type_id as componentTypeId,
   enabled,
+  NULL as label,
   NULL as groupName,
+  NULL as schemaJson,
+  NULL as uiMetaJson,
+  NULL as defaultPropsJson,
   CAST(current_timestamp AS VARCHAR) as updatedAt,
   'system' as updatedBy
 FROM component_type_settings
@@ -836,7 +1026,11 @@ SELECT
   site_id as siteId,
   component_type as componentTypeId,
   enabled,
+  NULL as label,
   NULL as groupName,
+  NULL as schemaJson,
+  NULL as uiMetaJson,
+  NULL as defaultPropsJson,
   CAST(current_timestamp AS VARCHAR) as updatedAt,
   'system' as updatedBy
 FROM component_type_settings
@@ -858,7 +1052,11 @@ export async function upsertComponentTypeSetting(
     siteId: number;
     componentTypeId: string;
     enabled: boolean;
+    label?: string | null | undefined;
     groupName?: string | null | undefined;
+    schemaJson?: string | null | undefined;
+    uiMetaJson?: string | null | undefined;
+    defaultPropsJson?: string | null | undefined;
     by: string;
   }
 ): Promise<ComponentTypeSettingRecord> {
@@ -884,13 +1082,28 @@ INSERT INTO component_type_settings(
   site_id,
   component_type_id,
   enabled,
+  label,
   group_name,
+  schema_json,
+  ui_meta_json,
+  default_props_json,
   updated_at,
   updated_by
 )
-VALUES (?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `,
-    [input.siteId, normalizedTypeId, input.enabled, input.groupName ?? null, updatedAt, input.by]
+    [
+      input.siteId,
+      normalizedTypeId,
+      input.enabled,
+      input.label ?? null,
+      input.groupName ?? null,
+      input.schemaJson ?? null,
+      input.uiMetaJson ?? null,
+      input.defaultPropsJson ?? null,
+      updatedAt,
+      input.by
+    ]
   );
 
   const row = await db.get<ComponentTypeSettingRecord>(
@@ -899,7 +1112,11 @@ SELECT
   site_id as siteId,
   component_type_id as componentTypeId,
   enabled,
+  label,
   group_name as groupName,
+  schema_json as schemaJson,
+  ui_meta_json as uiMetaJson,
+  default_props_json as defaultPropsJson,
   updated_at as updatedAt,
   updated_by as updatedBy
 FROM component_type_settings
@@ -925,7 +1142,11 @@ CREATE TABLE IF NOT EXISTS component_type_settings (
   site_id INTEGER,
   component_type_id VARCHAR,
   enabled BOOLEAN DEFAULT TRUE,
+  label VARCHAR,
   group_name VARCHAR,
+  schema_json VARCHAR,
+  ui_meta_json VARCHAR,
+  default_props_json VARCHAR,
   updated_at TIMESTAMP,
   updated_by VARCHAR
 );
@@ -938,7 +1159,11 @@ CREATE TABLE IF NOT EXISTS component_type_settings (
   const alters = [
     'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS component_type_id VARCHAR',
     'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT TRUE',
+    'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS label VARCHAR',
     'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS group_name VARCHAR',
+    'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS schema_json VARCHAR',
+    'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS ui_meta_json VARCHAR',
+    'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS default_props_json VARCHAR',
     'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP',
     'ALTER TABLE component_type_settings ADD COLUMN IF NOT EXISTS updated_by VARCHAR'
   ];

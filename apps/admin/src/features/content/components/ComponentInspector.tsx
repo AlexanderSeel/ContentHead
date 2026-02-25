@@ -10,7 +10,12 @@ import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 
-import { type ComponentUiField, getComponentRegistryEntry, validateComponentProps } from './componentRegistry';
+import {
+  type ComponentUiField,
+  type ResolvedComponentRegistryEntry,
+  getComponentRegistryEntry,
+  validateComponentProps
+} from './componentRegistry';
 import { useAuth } from '../../../app/AuthContext';
 import { createAdminSdk } from '../../../lib/sdk';
 import { ContentLinkEditor, ContentLinkListEditor } from '../fieldRenderers/ContentLinkEditors';
@@ -26,12 +31,14 @@ type ComponentRecord = {
 export function ComponentInspector({
   component,
   siteId,
+  registryEntry,
   selectedFieldPath,
   onSelectFieldPath,
   onChange
 }: {
   component: ComponentRecord | null;
   siteId: number;
+  registryEntry?: ResolvedComponentRegistryEntry | null;
   selectedFieldPath?: string | null;
   onSelectFieldPath?: (value: string) => void;
   onChange: (next: ComponentRecord) => void;
@@ -197,7 +204,7 @@ export function ComponentInspector({
           header="Edit item"
           visible={editingIndex != null}
           onHide={() => setEditingIndex(null)}
-          style={{ width: 'min(48rem, 95vw)' }}
+          className="w-11 lg:w-9 xl:w-8"
         >
           <div className="form-row">
             {fields.map((field) => (
@@ -334,7 +341,7 @@ export function ComponentInspector({
     return <p className="muted">Select a component to edit props.</p>;
   }
 
-  const entry = getComponentRegistryEntry(component.type);
+  const entry = registryEntry ?? getComponentRegistryEntry(component.type);
   if (!entry) {
     return <p className="error-text">Unknown component type: {component.type}</p>;
   }

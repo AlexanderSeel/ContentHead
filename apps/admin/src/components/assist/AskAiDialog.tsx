@@ -89,7 +89,7 @@ export function AskAiDialog({
   };
 
   return (
-    <Dialog header="Ask AI" visible={visible} onHide={onHide} style={{ width: '46rem' }}>
+    <Dialog header="Ask AI" visible={visible} onHide={onHide} className="w-11 lg:w-9 xl:w-8">
       <div className="form-grid">
         <div className="form-row">
           <label>Context</label>

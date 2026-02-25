@@ -54,7 +54,7 @@ export function ContentTypeList({
           }
         }}
       >
-        <Column field="id" header="ID" style={{ width: '5rem' }} />
+        <Column field="id" header="ID" headerClassName="w-5rem" bodyClassName="w-5rem" />
         <Column field="name" header="Name" />
       </DataTable>
     </div>

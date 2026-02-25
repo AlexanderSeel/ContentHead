@@ -21,6 +21,9 @@ export type ComponentUiField = {
   options?: Array<{ label: string; value: string }>;
   fields?: ComponentUiField[];
   itemLabelKey?: string;
+  required?: boolean;
+  defaultValue?: unknown;
+  control?: string;
 };
 
 export type ComponentRegistryEntry = {
@@ -36,7 +39,11 @@ export type ComponentRegistryEntry = {
 export type ComponentTypeSetting = {
   componentTypeId: string;
   enabled: boolean;
+  label?: string | null;
   groupName?: string | null;
+  schemaJson?: string | null;
+  uiMetaJson?: string | null;
+  defaultPropsJson?: string | null;
 };
 
 export type ResolvedComponentRegistryEntry = ComponentRegistryEntry & {
@@ -44,6 +51,141 @@ export type ResolvedComponentRegistryEntry = ComponentRegistryEntry & {
   groupName: string;
   propsSchemaJson: string;
 };
+
+type PersistedComponentField = {
+  key?: unknown;
+  label?: unknown;
+  type?: unknown;
+  options?: unknown;
+  fields?: unknown;
+  itemLabelKey?: unknown;
+  required?: unknown;
+  defaultValue?: unknown;
+  control?: unknown;
+};
+
+function toLegacyFieldType(rawType: string): ComponentUiField['type'] {
+  const normalized = rawType.trim().toLowerCase();
+  if (normalized === 'string') {
+    return 'text';
+  }
+  if (normalized === 'list') {
+    return 'stringList';
+  }
+  if (normalized === 'link') {
+    return 'contentLink';
+  }
+  if (normalized === 'asset') {
+    return 'assetRef';
+  }
+  if (normalized === 'formref') {
+    return 'formRef';
+  }
+  if (normalized === 'object' || normalized === 'subtype' || normalized === 'complex') {
+    return 'objectList';
+  }
+  if (
+    normalized === 'text' ||
+    normalized === 'number' ||
+    normalized === 'select' ||
+    normalized === 'boolean' ||
+    normalized === 'multiline' ||
+    normalized === 'richtext' ||
+    normalized === 'stringlist' ||
+    normalized === 'assetref' ||
+    normalized === 'assetlist' ||
+    normalized === 'contentlink' ||
+    normalized === 'contentlinklist' ||
+    normalized === 'formref' ||
+    normalized === 'objectlist' ||
+    normalized === 'json'
+  ) {
+    return normalized as ComponentUiField['type'];
+  }
+  return 'text';
+}
+
+function parsePersistedField(entry: PersistedComponentField): ComponentUiField | null {
+  const key = typeof entry.key === 'string' ? entry.key.trim() : '';
+  if (!key) {
+    return null;
+  }
+  const label = typeof entry.label === 'string' && entry.label.trim() ? entry.label : key;
+  const type = toLegacyFieldType(typeof entry.type === 'string' ? entry.type : 'text');
+  const options = Array.isArray(entry.options)
+    ? entry.options
+        .filter((option) => option && typeof option === 'object')
+        .map((option) => {
+          const item = option as Record<string, unknown>;
+          return {
+            label: String(item.label ?? item.value ?? ''),
+            value: String(item.value ?? '')
+          };
+        })
+        .filter((option) => option.value)
+    : undefined;
+  const nestedFields = Array.isArray(entry.fields)
+    ? entry.fields
+        .filter((field) => field && typeof field === 'object' && !Array.isArray(field))
+        .map((field) => parsePersistedField(field as PersistedComponentField))
+        .filter((field): field is ComponentUiField => Boolean(field))
+    : undefined;
+  return {
+    key,
+    label,
+    type,
+    ...(options && options.length > 0 ? { options } : {}),
+    ...(nestedFields && nestedFields.length > 0 ? { fields: nestedFields } : {}),
+    ...(typeof entry.itemLabelKey === 'string' && entry.itemLabelKey.trim() ? { itemLabelKey: entry.itemLabelKey.trim() } : {}),
+    ...(typeof entry.required === 'boolean' ? { required: entry.required } : {}),
+    ...('defaultValue' in entry ? { defaultValue: entry.defaultValue } : {}),
+    ...(typeof entry.control === 'string' && entry.control.trim() ? { control: entry.control } : {})
+  } as ComponentUiField;
+}
+
+function parsePersistedFields(value: string | null | undefined): ComponentUiField[] | null {
+  if (!value || !value.trim()) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) {
+      return null;
+    }
+    return parsed
+      .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
+      .map((entry) => parsePersistedField(entry as PersistedComponentField))
+      .filter((entry): entry is ComponentUiField => Boolean(entry));
+  } catch {
+    return null;
+  }
+}
+
+function parseDefaultProps(value: string | null | undefined): Record<string, unknown> | null {
+  if (!value || !value.trim()) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function propsSchemaFromFields(fields: ComponentUiField[]) {
+  return fields.map((field) => ({
+    key: field.key,
+    label: field.label,
+    type: field.type,
+    required: Boolean(field.required),
+    ...(field.control ? { control: field.control } : {}),
+    ...('defaultValue' in field ? { defaultValue: field.defaultValue } : {})
+  }));
+}
 
 const contentLinkSchema = z.object({
   kind: z.enum(['internal', 'external']),
@@ -316,15 +458,29 @@ export function resolveComponentRegistry(settings: ComponentTypeSetting[]): Reso
     const setting = settingsMap.get(entry.id);
     const enabled = setting?.enabled ?? true;
     const groupName = setting?.groupName?.trim() || 'General';
-    const propsSchema = entry.fields.map((field) => ({
-      key: field.key,
-      label: field.label,
-      type: field.type
-    }));
+    const overrideFields = parsePersistedFields(setting?.schemaJson);
+    const fields = overrideFields && overrideFields.length > 0 ? overrideFields : entry.fields;
+    const persistedDefaultProps = parseDefaultProps(setting?.defaultPropsJson);
+    const defaultProps =
+      persistedDefaultProps ??
+      (overrideFields && overrideFields.length > 0
+        ? overrideFields.reduce<Record<string, unknown>>((acc, field) => {
+            if ('defaultValue' in field) {
+              acc[field.key] = field.defaultValue;
+            } else if (entry.defaultProps[field.key] !== undefined) {
+              acc[field.key] = entry.defaultProps[field.key];
+            }
+            return acc;
+          }, {})
+        : entry.defaultProps);
+    const propsSchema = propsSchemaFromFields(fields);
 
     return {
       ...entry,
-      description: entry.description ?? `${entry.label} component`,
+      label: setting?.label?.trim() || entry.label,
+      fields,
+      defaultProps,
+      description: entry.description ?? `${setting?.label?.trim() || entry.label} component`,
       enabled,
       groupName,
       propsSchemaJson: JSON.stringify(propsSchema, null, 2)

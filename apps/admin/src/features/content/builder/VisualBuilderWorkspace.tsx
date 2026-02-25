@@ -17,6 +17,7 @@ export function VisualBuilderWorkspace({
   componentMap,
   selectedComponentId,
   selectedComponentSource,
+  componentTypeLabelResolver,
   onSelect,
   onAdd,
   onMove,
@@ -30,6 +31,7 @@ export function VisualBuilderWorkspace({
   componentMap: Record<string, ComponentRecord>;
   selectedComponentId: string | null;
   selectedComponentSource?: (id: string) => 'template' | 'override' | null;
+  componentTypeLabelResolver?: (typeId: string) => string | null;
   onSelect: (id: string) => void;
   onAdd: (componentTypeId: string, areaName?: string) => void;
   onMove: (id: string, direction: -1 | 1) => void;
@@ -79,6 +81,7 @@ export function VisualBuilderWorkspace({
             onDuplicate={onDuplicate}
             onDelete={onDelete}
             {...(selectedComponentSource ? { sourceResolver: selectedComponentSource } : {})}
+            {...(componentTypeLabelResolver ? { labelResolver: componentTypeLabelResolver } : {})}
           />
         </div>
       )}

@@ -445,7 +445,7 @@ export function ContentTypesPage() {
         </Splitter>
       </WorkspaceBody>
 
-      <Dialog header="Add Field" visible={showAddField} onHide={() => setShowAddField(false)} style={{ width: '32rem' }}>
+      <Dialog header="Add Field" visible={showAddField} onHide={() => setShowAddField(false)} className="w-11 md:w-8 lg:w-6 xl:w-4">
         <div className="form-row">
           <label>Label</label>
           <InputText
