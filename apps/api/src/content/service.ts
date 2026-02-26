@@ -1668,12 +1668,14 @@ export async function movePage(db: DbClient, input: {
 }): Promise<ContentItemRecord> {
   const item = await getContentItem(db, input.pageId);
   const newParentId = input.newParentId ?? null;
+  const parentChanged = (item.parentId ?? null) !== newParentId;
 
   await ensureValidParent(db, item.siteId, item.id, newParentId);
 
-  const siblings = await db.all<{ id: number }>(
+  const siblings = await db.all<{ id: number; sortOrder: number }>(
     `
 SELECT id
+     , COALESCE(sort_order, 0) as sortOrder
 FROM content_items
 WHERE site_id = ?
   AND id <> ?
@@ -1690,18 +1692,49 @@ ORDER BY COALESCE(sort_order, 0), id
   const insertIndex = Math.max(0, Math.min(siblings.length, insertIndexRaw));
   const orderedIds = siblings.map((entry) => entry.id);
   orderedIds.splice(insertIndex, 0, item.id);
+  const currentSortById = new Map<number, number>(siblings.map((entry) => [entry.id, entry.sortOrder]));
+  currentSortById.set(item.id, item.sortOrder ?? 0);
+
+  if (!parentChanged) {
+    const existingOrderRows = await db.all<{ id: number }>(
+      `
+SELECT id
+FROM content_items
+WHERE site_id = ?
+  AND (
+    (parent_id IS NULL AND ? IS NULL)
+    OR parent_id = ?
+  )
+ORDER BY COALESCE(sort_order, 0), id
+`,
+      [item.siteId, newParentId, newParentId]
+    );
+    const existingOrder = existingOrderRows.map((entry) => entry.id);
+    const isNoop =
+      existingOrder.length === orderedIds.length &&
+      existingOrder.every((id, index) => id === orderedIds[index]);
+    if (isNoop) {
+      return item;
+    }
+  }
 
   await db.run('BEGIN TRANSACTION');
   try {
-    await db.run('UPDATE content_items SET parent_id = ? WHERE id = ?', [newParentId, item.id]);
+    if (parentChanged) {
+      await db.run('UPDATE content_items SET parent_id = ? WHERE id = ?', [newParentId, item.id]);
+    }
     for (let index = 0; index < orderedIds.length; index += 1) {
-      await db.run('UPDATE content_items SET sort_order = ? WHERE id = ?', [index, orderedIds[index]]);
+      const id = orderedIds[index]!;
+      if ((currentSortById.get(id) ?? 0) !== index) {
+        await db.run('UPDATE content_items SET sort_order = ? WHERE id = ?', [index, id]);
+      }
     }
 
-    if ((item.parentId ?? null) !== newParentId) {
-      const previousSiblings = await db.all<{ id: number }>(
+    if (parentChanged) {
+      const previousSiblings = await db.all<{ id: number; sortOrder: number }>(
         `
 SELECT id
+     , COALESCE(sort_order, 0) as sortOrder
 FROM content_items
 WHERE site_id = ?
   AND (
@@ -1713,7 +1746,10 @@ ORDER BY COALESCE(sort_order, 0), id
         [item.siteId, item.parentId ?? null, item.parentId ?? null]
       );
       for (let index = 0; index < previousSiblings.length; index += 1) {
-        await db.run('UPDATE content_items SET sort_order = ? WHERE id = ?', [index, previousSiblings[index]!.id]);
+        const sibling = previousSiblings[index]!;
+        if (sibling.sortOrder !== index) {
+          await db.run('UPDATE content_items SET sort_order = ? WHERE id = ?', [index, sibling.id]);
+        }
       }
     }
 

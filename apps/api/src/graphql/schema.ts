@@ -1492,8 +1492,7 @@ ORDER BY 1
     listContentTypes: t.field({
       type: [ContentTypeRef],
       args: { siteId: t.arg.int({ required: true }) },
-      resolve: async (_root, args: { siteId: number }, ctx) =>
-        requestCache.getOrSet(cacheKey('types', [args.siteId]), 120_000, () => listContentTypes(ctx.db, args.siteId))
+      resolve: async (_root, args: { siteId: number }, ctx) => listContentTypes(ctx.db, args.siteId)
     }),
     listComponentTypeSettings: t.field({
       type: [ComponentTypeSettingRef],

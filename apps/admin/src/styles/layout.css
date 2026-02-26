@@ -629,6 +629,47 @@ body {
   justify-content: space-between;
   gap: 0.5rem;
   min-width: 0;
+  position: relative;
+}
+
+.content-tree-node-depth {
+  flex: 0 0 auto;
+  height: 1rem;
+  border-radius: 999px;
+  opacity: 0.7;
+  background-image: repeating-linear-gradient(
+    to right,
+    color-mix(in srgb, var(--surface-border), transparent 8%) 0 1px,
+    transparent 1px 7px
+  );
+}
+
+.content-tree-node-depth-0 {
+  width: 0;
+}
+
+.content-tree-node-depth-1 {
+  width: 0.45rem;
+}
+
+.content-tree-node-depth-2 {
+  width: 0.9rem;
+}
+
+.content-tree-node-depth-3 {
+  width: 1.35rem;
+}
+
+.content-tree-node-depth-4 {
+  width: 1.8rem;
+}
+
+.content-tree-node-depth-5 {
+  width: 2.25rem;
+}
+
+.content-tree-node-depth-6 {
+  width: 2.7rem;
 }
 
 .content-tree-node-title {
@@ -661,10 +702,26 @@ body {
   justify-content: flex-end;
   flex-wrap: nowrap;
   gap: 0.2rem;
+  opacity: 0.78;
+  transition: opacity 0.14s ease;
 }
 
 .content-tree-row-actions .p-button {
   flex: 0 0 auto;
+}
+
+.content-tree-row-actions .content-tree-action-btn.p-button.p-button-text {
+  color: var(--text-color-secondary);
+}
+
+.content-pages-tree .p-treetable-tbody > tr:hover .content-tree-row-actions,
+.content-pages-tree .p-treetable-tbody > tr.p-highlight .content-tree-row-actions {
+  opacity: 1;
+}
+
+.content-pages-tree .p-treetable-tbody > tr.p-highlight .content-tree-action-btn.p-button.p-button-text {
+  color: var(--text-color);
+  background: color-mix(in srgb, var(--surface-card), transparent 30%);
 }
 
 .cms-left-pane-collapsed {

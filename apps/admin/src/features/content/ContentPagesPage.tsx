@@ -171,6 +171,7 @@ type TreeRow = {
   status: 'Draft' | 'Published' | 'New';
   parentId: number | null;
   sortOrder: number;
+  depth: number;
 };
 
 type ContentPageHeaderCommandContext = CommandContext & {
@@ -914,7 +915,7 @@ export function ContentPagesPage() {
   }, [pageTree, treeFilter]);
 
   const treeNodes = useMemo<TreeNode[]>(() => {
-    const toNode = (entry: PageTreeNodeDto): TreeNode => ({
+    const toNode = (entry: PageTreeNodeDto, depth: number): TreeNode => ({
       key: String(entry.id),
       data: {
         routeId: String(entry.route?.id ?? ''),
@@ -923,12 +924,13 @@ export function ContentPagesPage() {
         title: entry.title,
         status: entry.status,
         parentId: entry.parentId ?? null,
-        sortOrder: entry.sortOrder
+        sortOrder: entry.sortOrder,
+        depth
       } satisfies TreeRow,
-      children: (entry.children ?? []).map(toNode)
+      children: (entry.children ?? []).map((child) => toNode(child, depth + 1))
     });
 
-    return filteredPageTree.map(toNode);
+    return filteredPageTree.map((entry) => toNode(entry, 0));
   }, [filteredPageTree]);
 
   const selectedRouteKey = useMemo(() => {
@@ -2276,6 +2278,7 @@ export function ContentPagesPage() {
       if (selectedItemId) {
         if (!options.silent) {
           await loadItem(selectedItemId);
+          await refresh();
         }
         if (options.refreshPreview !== false) {
           setPreviewReloadKey((prev) => prev + 1);
@@ -3735,7 +3738,8 @@ export function ContentPagesPage() {
                         title: String(row.title ?? `Item #${row.contentItemId}`),
                         status: (row.status as TreeRow['status']) ?? 'New',
                         parentId: typeof row.parentId === 'number' ? row.parentId : null,
-                        sortOrder: typeof row.sortOrder === 'number' ? row.sortOrder : 0
+                        sortOrder: typeof row.sortOrder === 'number' ? row.sortOrder : 0,
+                        depth: typeof row.depth === 'number' ? row.depth : 0
                       };
                       setTreeContextRow(normalizedRow);
                       setTreeContextSelectionKey(String(event.node?.key ?? ''));
@@ -3755,8 +3759,10 @@ export function ContentPagesPage() {
                       expander
                       body={(node: TreeNode) => {
                         const row = node.data as TreeRow;
+                        const depth = Math.max(0, Math.min(6, row.depth ?? 0));
                         return (
                           <div className="content-tree-node-row">
+                            <span className={`content-tree-node-depth content-tree-node-depth-${depth}`} aria-hidden />
                             <span className="content-tree-node-title">{row.title}</span>
                             {row.slug ? <small className="muted content-tree-node-slug">/{row.slug}</small> : null}
                           </div>
@@ -3804,6 +3810,7 @@ export function ContentPagesPage() {
                               text
                               rounded
                               size="small"
+                              className="content-tree-action-btn"
                               onClick={() => moveRowUp(row).catch((e: unknown) => setStatus(formatErrorMessage(e)))}
                             />
                             <Button
@@ -3811,6 +3818,7 @@ export function ContentPagesPage() {
                               text
                               rounded
                               size="small"
+                              className="content-tree-action-btn"
                               onClick={() => moveRowDown(row).catch((e: unknown) => setStatus(formatErrorMessage(e)))}
                             />
                             <CommandMenuButton
@@ -3819,6 +3827,7 @@ export function ContentPagesPage() {
                               buttonLabel=""
                               buttonIcon="pi pi-ellipsis-h"
                               text
+                              className="content-tree-action-btn"
                             />
                           </div>
                         );
