@@ -202,6 +202,10 @@ export function ContentTypesPage() {
   }, [allowedComponents]);
 
   const selectedField = fields.find((entry) => entry.key === selectedFieldKey) ?? null;
+  const resolvedNewFieldKey = useMemo(
+    () => ensureUniqueFieldKey((newFieldKey || newFieldLabel || '').trim(), fields),
+    [newFieldKey, newFieldLabel, fields]
+  );
   const registryOptions = useMemo(() => {
     return resolveComponentRegistry(componentSettings)
       .filter((entry) => entry.enabled)
@@ -289,7 +293,10 @@ export function ContentTypesPage() {
   };
 
   const addField = () => {
-    const key = ensureUniqueFieldKey(newFieldKey || newFieldLabel, fields);
+    if (!newFieldLabel.trim()) {
+      return;
+    }
+    const key = ensureUniqueFieldKey((newFieldKey || newFieldLabel || '').trim(), fields);
     const next: ContentFieldDef = {
       key,
       label: newFieldLabel || key,
@@ -525,8 +532,8 @@ export function ContentTypesPage() {
         </div>
         <div className="form-row">
           <label>Key</label>
-          <InputText value={newFieldKey} onChange={(event) => setNewFieldKey(suggestFieldKey(event.target.value))} />
-          {fields.some((entry) => entry.key === newFieldKey) ? <small className="error-text">Key already exists</small> : null}
+          <InputText value={newFieldKey} onChange={(event) => setNewFieldKey(event.target.value)} placeholder="Auto from label" />
+          <small className="muted">{`Will be saved as: ${resolvedNewFieldKey}`}</small>
         </div>
         <div className="form-row">
           <label>Type</label>
@@ -537,7 +544,7 @@ export function ContentTypesPage() {
         </label>
         <div className="inline-actions mt-3">
           <Button label="Cancel" text onClick={() => setShowAddField(false)} />
-          <Button label="Add" onClick={addField} disabled={!newFieldLabel.trim() || fields.some((entry) => entry.key === newFieldKey)} />
+          <Button label="Add" onClick={addField} disabled={!newFieldLabel.trim()} />
         </div>
       </Dialog>
     </WorkspacePage>
