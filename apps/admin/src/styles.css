@@ -131,18 +131,8 @@
   min-width: 0;
 }
 
-.ch-graphiql .graphiql-editor-tools,
-.ch-graphiql .graphiql-variable-editor {
-  display: none !important;
-}
-
 .graphiql-host .graphiql-response {
   min-width: 0;
-  display: none;
-}
-
-.graphiql-host .graphiql-horizontal-drag-bar {
-  display: none;
 }
 
 .ch-graphiql-explorer-tree {
@@ -161,6 +151,11 @@
   align-items: center;
   gap: 0.5rem;
   flex-wrap: nowrap;
+}
+
+.ch-graphiql-standard {
+  height: 100%;
+  min-height: 0;
 }
 
 .ch-graphiql-page-root,

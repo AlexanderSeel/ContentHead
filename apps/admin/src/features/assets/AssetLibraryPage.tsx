@@ -277,8 +277,9 @@ export function AssetLibraryPage() {
       </WorkspaceToolbar>
       <WorkspaceBody>
         <Splitter className="splitFill asset-library-splitter">
-          <SplitterPanel size={62} minSize={35}>
+          <SplitterPanel size={48} minSize={30}>
             <div className="paneRoot asset-library-pane">
+              <div className="paneHeader asset-library-panel-header">List</div>
               <div className="paneScroll">
                 <ContextMenu ref={contextMenuRef} model={contextItems} />
                 <DataTable
@@ -325,18 +326,32 @@ export function AssetLibraryPage() {
               </div>
             </div>
           </SplitterPanel>
-          <SplitterPanel size={38} minSize={25}>
-            <div className="paneRoot asset-library-pane">
+          <SplitterPanel size={27} minSize={20}>
+            <div className="paneRoot asset-library-pane asset-library-preview-pane">
+              <div className="paneHeader asset-library-panel-header">Preview</div>
               <div className="paneScroll">
                 {!selected ? (
-                  <p className="muted">Select an asset to edit metadata.</p>
+                  <p className="muted asset-library-empty-state">Select an asset to preview.</p>
                 ) : (
-                  <div className="form-row asset-library-meta-form">
+                  <div className="asset-library-preview-stage">
                     <img
                       src={`${apiBase}/assets/${selected.id}`}
                       alt={selected.altText ?? selected.title ?? selected.originalName}
                       className="asset-library-preview-image"
                     />
+                  </div>
+                )}
+              </div>
+            </div>
+          </SplitterPanel>
+          <SplitterPanel size={25} minSize={20}>
+            <div className="paneRoot asset-library-pane">
+              <div className="paneHeader asset-library-panel-header">Properties</div>
+              <div className="paneScroll">
+                {!selected ? (
+                  <p className="muted asset-library-empty-state">Select an asset to edit properties.</p>
+                ) : (
+                  <div className="form-row asset-library-meta-form">
                     <label>Title</label>
                     <InputText value={selected.title ?? ''} onChange={(event) => setSelected({ ...selected, title: event.target.value })} />
                     <label>Alt Text</label>

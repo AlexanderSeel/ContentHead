@@ -215,6 +215,11 @@ body {
   min-width: 0;
 }
 
+.pageBodyFlex > * {
+  min-width: 0;
+  min-height: 0;
+}
+
 .workspace-page {
   border: 1px solid var(--surface-border);
   border-radius: 12px;
@@ -270,6 +275,7 @@ body {
 
 .workspace-body {
   overflow: hidden;
+  min-width: 0;
 }
 
 .pane {
@@ -304,17 +310,28 @@ body {
 
 .db-admin-page .db-admin-pane {
   min-height: 0;
+  min-width: 0;
 }
 
 .db-admin-page .db-admin-pane-scroll {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
 }
 
 .db-admin-page .db-admin-table {
   flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.db-admin-page .db-admin-table.p-datatable {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   min-height: 0;
 }
 
@@ -325,8 +342,41 @@ body {
   min-height: 0;
 }
 
-.db-admin-page .db-admin-table .p-datatable-scrollable-body {
+.db-admin-page .db-admin-table .p-datatable-scrollable-wrapper {
+  display: flex;
+  flex: 1 1 auto;
   min-height: 0;
+}
+
+.db-admin-page .db-admin-table .p-datatable-scrollable-view {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.db-admin-page .db-admin-table .p-datatable-scrollable-body {
+  flex: 1 1 auto;
+  min-height: 0 !important;
+  overflow: auto !important;
+}
+
+.db-admin-page .db-admin-table .p-datatable-table {
+  min-width: 100%;
+}
+
+.db-admin-page .db-admin-table .p-datatable-thead > tr > th,
+.db-admin-page .db-admin-table .p-datatable-tbody > tr > td {
+  white-space: nowrap;
+}
+
+.db-admin-cell-value {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .db-admin-page .db-admin-inspector-tabs {
@@ -352,12 +402,81 @@ body {
   width: 100%;
   height: 100%;
   min-height: 0;
+  min-width: 0;
 }
 
 .split-pane {
   height: 100%;
-  overflow: auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 0.75rem;
+}
+
+.workspace-splitter {
+  border: 1px solid color-mix(in srgb, var(--surface-border), transparent 18%);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.workspace-splitter > .p-splitter-panel {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workspace-panel {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workspace-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 0.55rem;
+  margin-bottom: 0.65rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--surface-border), transparent 28%);
+}
+
+.workspace-panel-header > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-panel-header-actions {
+  flex: 0 0 auto;
+}
+
+.workspace-panel-header-actions.inline-actions {
+  gap: 0.35rem;
+}
+
+.workspace-panel-collapsed {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-color-secondary);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.workflow-designer-section,
+.workflow-designer-split {
+  min-width: 0;
+  min-height: 0;
+}
+
+.workflow-designer-split .react-flow {
+  min-width: 0;
 }
 
 .table-toolbar {
@@ -726,6 +845,17 @@ body {
 .asset-library-pane {
   height: 100%;
   min-height: 0;
+  overflow: hidden;
+}
+
+.asset-library-panel-header {
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--surface-border), transparent 18%);
+  font-weight: 600;
+}
+
+.asset-library-empty-state {
+  margin: 0.65rem;
 }
 
 .asset-library-table {
@@ -769,9 +899,24 @@ body {
   gap: 0.6rem;
 }
 
+.asset-library-preview-pane .paneScroll {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0.6rem;
+}
+
+.asset-library-preview-stage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
 .asset-library-preview-image {
   width: 100%;
-  max-height: min(44vh, 420px);
+  max-height: min(62vh, 760px);
   object-fit: contain;
   border: 1px solid var(--surface-border);
   border-radius: 10px;
@@ -977,6 +1122,7 @@ body {
 
 .p-splitter,
 .p-splitter .p-splitter-panel {
+  min-width: 0;
   min-height: 0;
 }
 
@@ -984,6 +1130,13 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.p-splitter .p-splitter-panel > * {
+  min-width: 0;
+  min-height: 0;
 }
 
 .workspace-density-compact .workspace-header,

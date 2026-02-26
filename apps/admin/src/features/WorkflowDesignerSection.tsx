@@ -30,6 +30,12 @@ type GraphNode = { id: string; type: string; config?: Record<string, unknown> };
 type GraphEdge = { from: string; to: string };
 type GraphPayload = { nodes: GraphNode[]; edges: GraphEdge[] };
 
+const WORKFLOW_PANEL_DEFAULT_SIZES: [number, number, number] = [25, 50, 25];
+const WORKFLOW_PANEL_MIN_SIZES: [number, number, number] = [14, 28, 14];
+const WORKFLOW_PANEL_COLLAPSED_SIZE = 6;
+const WORKFLOW_PANEL_SIZES_STORAGE_KEY = 'contenthead.workflow_designer.panel_sizes';
+const WORKFLOW_PANEL_COLLAPSED_STORAGE_KEY = 'contenthead.workflow_designer.panel_collapsed';
+
 function parseGraph(value: string): GraphPayload {
   try {
     const parsed = JSON.parse(value) as GraphPayload;
@@ -40,6 +46,69 @@ function parseGraph(value: string): GraphPayload {
   } catch {
     return { nodes: [], edges: [] };
   }
+}
+
+function normalizePanelSizes(values: number[]): number[] {
+  const safe = values.map((value) => (Number.isFinite(value) && value > 0 ? value : 0));
+  const sum = safe.reduce((total, value) => total + value, 0);
+  if (sum <= 0) {
+    return [...WORKFLOW_PANEL_DEFAULT_SIZES];
+  }
+  return safe.map((value) => (value / sum) * 100);
+}
+
+function parsePanelSizes(raw: string | null): number[] {
+  if (!raw) {
+    return [...WORKFLOW_PANEL_DEFAULT_SIZES];
+  }
+  try {
+    const parsed = JSON.parse(raw) as number[];
+    if (!Array.isArray(parsed) || parsed.length !== 3) {
+      return [...WORKFLOW_PANEL_DEFAULT_SIZES];
+    }
+    return normalizePanelSizes(parsed);
+  } catch {
+    return [...WORKFLOW_PANEL_DEFAULT_SIZES];
+  }
+}
+
+function parseCollapsedPanels(raw: string | null): boolean[] {
+  if (!raw) {
+    return [false, false, false];
+  }
+  try {
+    const parsed = JSON.parse(raw) as boolean[];
+    if (!Array.isArray(parsed) || parsed.length !== 3) {
+      return [false, false, false];
+    }
+    const cast = parsed.map((value) => Boolean(value));
+    return cast.every(Boolean) ? [false, false, false] : cast;
+  } catch {
+    return [false, false, false];
+  }
+}
+
+function buildPanelSizes(base: number[], collapsed: boolean[]): number[] {
+  const hiddenCount = collapsed.filter(Boolean).length;
+  if (hiddenCount === 0) {
+    return normalizePanelSizes(base);
+  }
+  const visibleIndexes = collapsed.map((value, index) => (!value ? index : -1)).filter((value) => value >= 0);
+  if (visibleIndexes.length === 0) {
+    return [...WORKFLOW_PANEL_DEFAULT_SIZES];
+  }
+
+  const collapsedTotal = hiddenCount * WORKFLOW_PANEL_COLLAPSED_SIZE;
+  const visibleTotal = Math.max(100 - collapsedTotal, 1);
+  const visibleBase = visibleIndexes.reduce((total, index) => total + (base[index] ?? 0), 0) || visibleIndexes.length;
+
+  return collapsed.map((isCollapsed, index) => {
+    if (isCollapsed) {
+      return WORKFLOW_PANEL_COLLAPSED_SIZE;
+    }
+    const share = (base[index] ?? 0) / visibleBase;
+    return Math.max(share * visibleTotal, WORKFLOW_PANEL_COLLAPSED_SIZE);
+  });
 }
 
 function autoLayout(nodes: GraphNode[]): Node[] {
@@ -80,6 +149,20 @@ export function WorkflowDesignerSection({
     JSON.stringify({ siteId, contentItemId: selectedItemId, variantSetId: selectedVariantSetId, marketCode: market, localeCode: locale }, null, 2)
   );
   const [advancedTabs, setAdvancedTabs] = useState<number[] | number | null>([]);
+  const [panelBaseSizes, setPanelBaseSizes] = useState<number[]>(() => {
+    try {
+      return parsePanelSizes(window.localStorage.getItem(WORKFLOW_PANEL_SIZES_STORAGE_KEY));
+    } catch {
+      return [...WORKFLOW_PANEL_DEFAULT_SIZES];
+    }
+  });
+  const [collapsedPanels, setCollapsedPanels] = useState<boolean[]>(() => {
+    try {
+      return parseCollapsedPanels(window.localStorage.getItem(WORKFLOW_PANEL_COLLAPSED_STORAGE_KEY));
+    } catch {
+      return [false, false, false];
+    }
+  });
 
   const selectedNode = graphNodes.find((entry) => entry.id === selectedNodeId) ?? null;
 
@@ -100,6 +183,7 @@ export function WorkflowDesignerSection({
     () => graphEdges.map((edge) => ({ id: `${edge.from}-${edge.to}`, source: edge.from, target: edge.to })),
     [graphEdges]
   );
+  const panelSizes = useMemo(() => buildPanelSizes(panelBaseSizes, collapsedPanels), [panelBaseSizes, collapsedPanels]);
 
   const refreshDefinitions = async () => {
     const res = await sdk.listWorkflowDefinitions();
@@ -116,6 +200,14 @@ export function WorkflowDesignerSection({
   useEffect(() => {
     setRunContextJson(JSON.stringify({ siteId, contentItemId: selectedItemId, variantSetId: selectedVariantSetId, marketCode: market, localeCode: locale }, null, 2));
   }, [siteId, selectedItemId, selectedVariantSetId, market, locale]);
+
+  useEffect(() => {
+    window.localStorage.setItem(WORKFLOW_PANEL_SIZES_STORAGE_KEY, JSON.stringify(panelBaseSizes));
+  }, [panelBaseSizes]);
+
+  useEffect(() => {
+    window.localStorage.setItem(WORKFLOW_PANEL_COLLAPSED_STORAGE_KEY, JSON.stringify(collapsedPanels));
+  }, [collapsedPanels]);
 
   const saveDefinition = async () => {
     const graphJson = JSON.stringify({ nodes: graphNodes, edges: graphEdges });
@@ -173,105 +265,168 @@ export function WorkflowDesignerSection({
     navigate('/workflows/runs');
   };
 
+  const togglePanelCollapsed = (index: number) => {
+    setCollapsedPanels((current) => {
+      const next = current.map((value, currentIndex) => (currentIndex === index ? !value : value));
+      if (next.every(Boolean)) {
+        return current;
+      }
+      return next;
+    });
+  };
+
   return (
-    <section className="pageRoot">
-      <div className="pageBodyFlex splitFill">
-        <Splitter className="splitFill">
-          <SplitterPanel size={22} minSize={16}>
-            <div className="paneRoot split-pane">
-              <h3>Definitions</h3>
-              <div className="paneScroll">
-              <div className="form-row">
-                <Dropdown
-                  value={definitionId}
-                  options={definitions.map((entry) => ({ label: `${entry.name} v${entry.version}`, value: entry.id }))}
-                  onChange={(event) => {
-                    const id = Number(event.value);
-                    const picked = definitions.find((entry) => entry.id === id);
-                    if (!picked) {
-                      return;
-                    }
-                    setDefinitionId(id);
-                    setDefinitionName(picked.name);
-                    setDefinitionVersion(picked.version);
-                    setInputSchemaJson(picked.inputSchemaJson);
-                    setPermissionsJson(picked.permissionsJson);
-                    const graph = parseGraph(picked.graphJson);
-                    setGraphNodes(graph.nodes);
-                    setGraphEdges(graph.edges);
-                  }}
-                  placeholder="Select workflow"
+    <section className="splitFill workflow-designer-section">
+      <Splitter
+        className="splitFill workspace-splitter workflow-designer-split"
+        onResizeEnd={(event) => {
+          const next = (event.sizes as number[]) ?? [];
+          if (collapsedPanels.some(Boolean) || next.length !== 3) {
+            return;
+          }
+          setPanelBaseSizes(normalizePanelSizes(next));
+        }}
+      >
+        <SplitterPanel size={panelSizes[0] ?? WORKFLOW_PANEL_DEFAULT_SIZES[0]} minSize={collapsedPanels[0] ? WORKFLOW_PANEL_COLLAPSED_SIZE : WORKFLOW_PANEL_MIN_SIZES[0]}>
+          <div className="paneRoot split-pane workspace-panel">
+            <div className="workspace-panel-header">
+              <strong>Definitions</strong>
+              <div className="workspace-panel-header-actions">
+                <Button
+                  text
+                  size="small"
+                  icon={collapsedPanels[0] ? 'pi pi-angle-right' : 'pi pi-angle-left'}
+                  aria-label={collapsedPanels[0] ? 'Expand definitions panel' : 'Collapse definitions panel'}
+                  tooltip={collapsedPanels[0] ? 'Expand definitions panel' : 'Collapse definitions panel'}
+                  onClick={() => togglePanelCollapsed(0)}
                 />
               </div>
-              <div className="form-row">
-                <InputText value={definitionName} onChange={(event) => setDefinitionName(event.target.value)} placeholder="Workflow name" />
-                <InputNumber value={definitionVersion} min={1} onValueChange={(event) => setDefinitionVersion(event.value ?? 1)} />
-              </div>
-              <div className="inline-actions">
-                <Button label="Save" onClick={() => saveDefinition().catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
-              </div>
-
-              <h4>Node Palette</h4>
-              <Accordion multiple activeIndex={[0]}>
-                <AccordionTab header="All Nodes">
-                  <div className="sample-list">
-                    {nodeRegistry.map((entry) => (
-                      <Button key={entry.type} text icon={entry.icon} label={entry.label} onClick={() => addNode(entry.type)} />
-                    ))}
-                  </div>
-                </AccordionTab>
-              </Accordion>
-
-              <Accordion multiple activeIndex={advancedTabs} onTabChange={(event) => setAdvancedTabs(event.index)}>
-                <AccordionTab header="Advanced: Input Schema JSON">
-                  <InputTextarea rows={4} value={inputSchemaJson} onChange={(event) => setInputSchemaJson(event.target.value)} />
-                </AccordionTab>
-                <AccordionTab header="Advanced: Permissions JSON">
-                  <InputTextarea rows={4} value={permissionsJson} onChange={(event) => setPermissionsJson(event.target.value)} />
-                </AccordionTab>
-                <AccordionTab header="Run Context JSON">
-                  <InputTextarea rows={4} value={runContextJson} onChange={(event) => setRunContextJson(event.target.value)} />
-                </AccordionTab>
-              </Accordion>
-              </div>
             </div>
-          </SplitterPanel>
-
-          <SplitterPanel size={54} minSize={30}>
-            <div className="paneRoot split-pane">
-              <div className="inline-actions justify-content-between">
-                <h3 className="m-0">Canvas</h3>
-                <div className="inline-actions">
-                  <Button label="Auto-layout" text onClick={() => setGraphNodes((prev) => [...prev])} />
-                  <Button label="Run This Workflow" severity="success" onClick={() => startRun().catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
-                </div>
-              </div>
+            {collapsedPanels[0] ? (
+              <div className="workspace-panel-collapsed">Definitions</div>
+            ) : (
               <div className="paneScroll">
-                <ReactFlow
-                  nodes={flowNodes}
-                  edges={flowEdges}
-                  fitView
-                  snapToGrid
-                  snapGrid={[20, 20]}
-                  onNodeClick={(_event, node) => setSelectedNodeId(node.id)}
-                  onConnect={onConnect}
-                  onEdgesChange={() => undefined}
-                  onNodesChange={() => undefined}
-                >
-                  <Background />
-                  <Controls />
-                  <MiniMap />
-                </ReactFlow>
+                <div className="form-row">
+                  <Dropdown
+                    value={definitionId}
+                    options={definitions.map((entry) => ({ label: `${entry.name} v${entry.version}`, value: entry.id }))}
+                    onChange={(event) => {
+                      const id = Number(event.value);
+                      const picked = definitions.find((entry) => entry.id === id);
+                      if (!picked) {
+                        return;
+                      }
+                      setDefinitionId(id);
+                      setDefinitionName(picked.name);
+                      setDefinitionVersion(picked.version);
+                      setInputSchemaJson(picked.inputSchemaJson);
+                      setPermissionsJson(picked.permissionsJson);
+                      const graph = parseGraph(picked.graphJson);
+                      setGraphNodes(graph.nodes);
+                      setGraphEdges(graph.edges);
+                    }}
+                    placeholder="Select workflow"
+                  />
+                </div>
+                <div className="form-row">
+                  <InputText value={definitionName} onChange={(event) => setDefinitionName(event.target.value)} placeholder="Workflow name" />
+                  <InputNumber value={definitionVersion} min={1} onValueChange={(event) => setDefinitionVersion(event.value ?? 1)} />
+                </div>
+                <div className="inline-actions">
+                  <Button label="Save" onClick={() => saveDefinition().catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
+                </div>
+
+                <h4>Node Palette</h4>
+                <Accordion multiple activeIndex={[0]}>
+                  <AccordionTab header="All Nodes">
+                    <div className="sample-list">
+                      {nodeRegistry.map((entry) => (
+                        <Button key={entry.type} text icon={entry.icon} label={entry.label} onClick={() => addNode(entry.type)} />
+                      ))}
+                    </div>
+                  </AccordionTab>
+                </Accordion>
+
+                <Accordion multiple activeIndex={advancedTabs} onTabChange={(event) => setAdvancedTabs(event.index)}>
+                  <AccordionTab header="Advanced: Input Schema JSON">
+                    <InputTextarea rows={4} value={inputSchemaJson} onChange={(event) => setInputSchemaJson(event.target.value)} />
+                  </AccordionTab>
+                  <AccordionTab header="Advanced: Permissions JSON">
+                    <InputTextarea rows={4} value={permissionsJson} onChange={(event) => setPermissionsJson(event.target.value)} />
+                  </AccordionTab>
+                  <AccordionTab header="Run Context JSON">
+                    <InputTextarea rows={4} value={runContextJson} onChange={(event) => setRunContextJson(event.target.value)} />
+                  </AccordionTab>
+                </Accordion>
               </div>
-              <div className="inline-actions">
-                <Button label="Remove Node" severity="danger" disabled={!selectedNodeId} onClick={removeSelectedNode} />
+            )}
+          </div>
+        </SplitterPanel>
+
+        <SplitterPanel size={panelSizes[1] ?? WORKFLOW_PANEL_DEFAULT_SIZES[1]} minSize={collapsedPanels[1] ? WORKFLOW_PANEL_COLLAPSED_SIZE : WORKFLOW_PANEL_MIN_SIZES[1]}>
+          <div className="paneRoot split-pane workspace-panel">
+            <div className="workspace-panel-header">
+              <strong>Canvas</strong>
+              <div className="inline-actions workspace-panel-header-actions">
+                <Button label="Auto-layout" text onClick={() => setGraphNodes((prev) => [...prev])} />
+                <Button label="Run This Workflow" severity="success" onClick={() => startRun().catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
+                <Button
+                  text
+                  size="small"
+                  icon={collapsedPanels[1] ? 'pi pi-angle-right' : 'pi pi-angle-left'}
+                  aria-label={collapsedPanels[1] ? 'Expand canvas panel' : 'Collapse canvas panel'}
+                  tooltip={collapsedPanels[1] ? 'Expand canvas panel' : 'Collapse canvas panel'}
+                  onClick={() => togglePanelCollapsed(1)}
+                />
               </div>
             </div>
-          </SplitterPanel>
+            {collapsedPanels[1] ? (
+              <div className="workspace-panel-collapsed">Canvas</div>
+            ) : (
+              <>
+                <div className="paneScroll">
+                  <ReactFlow
+                    nodes={flowNodes}
+                    edges={flowEdges}
+                    fitView
+                    snapToGrid
+                    snapGrid={[20, 20]}
+                    onNodeClick={(_event, node) => setSelectedNodeId(node.id)}
+                    onConnect={onConnect}
+                    onEdgesChange={() => undefined}
+                    onNodesChange={() => undefined}
+                  >
+                    <Background />
+                    <Controls />
+                    <MiniMap />
+                  </ReactFlow>
+                </div>
+                <div className="inline-actions">
+                  <Button label="Remove Node" severity="danger" disabled={!selectedNodeId} onClick={removeSelectedNode} />
+                </div>
+              </>
+            )}
+          </div>
+        </SplitterPanel>
 
-          <SplitterPanel size={24} minSize={18}>
-            <div className="paneRoot split-pane">
-              <h3>Inspector</h3>
+        <SplitterPanel size={panelSizes[2] ?? WORKFLOW_PANEL_DEFAULT_SIZES[2]} minSize={collapsedPanels[2] ? WORKFLOW_PANEL_COLLAPSED_SIZE : WORKFLOW_PANEL_MIN_SIZES[2]}>
+          <div className="paneRoot split-pane workspace-panel">
+            <div className="workspace-panel-header">
+              <strong>Inspector</strong>
+              <div className="workspace-panel-header-actions">
+                <Button
+                  text
+                  size="small"
+                  icon={collapsedPanels[2] ? 'pi pi-angle-left' : 'pi pi-angle-right'}
+                  aria-label={collapsedPanels[2] ? 'Expand inspector panel' : 'Collapse inspector panel'}
+                  tooltip={collapsedPanels[2] ? 'Expand inspector panel' : 'Collapse inspector panel'}
+                  onClick={() => togglePanelCollapsed(2)}
+                />
+              </div>
+            </div>
+            {collapsedPanels[2] ? (
+              <div className="workspace-panel-collapsed">Inspector</div>
+            ) : (
               <div className="paneScroll">
                 <NodeInspector
                   node={selectedNode}
@@ -287,10 +442,10 @@ export function WorkflowDesignerSection({
                   }}
                 />
               </div>
-            </div>
-          </SplitterPanel>
-        </Splitter>
-      </div>
+            )}
+          </div>
+        </SplitterPanel>
+      </Splitter>
     </section>
   );
 }

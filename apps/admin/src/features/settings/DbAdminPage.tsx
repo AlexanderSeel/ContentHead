@@ -156,6 +156,75 @@ const FILTER_OPS = [
   { label: 'Not Null', value: 'not_null' }
 ];
 
+const DB_ADMIN_PANEL_DEFAULT_SIZES: [number, number, number] = [25, 50, 25];
+const DB_ADMIN_PANEL_MIN_SIZES: [number, number, number] = [14, 24, 14];
+const DB_ADMIN_PANEL_COLLAPSED_SIZE = 6;
+const DB_ADMIN_PANEL_SIZES_STORAGE_KEY = 'contenthead.db_admin.panel_sizes';
+const DB_ADMIN_PANEL_COLLAPSED_STORAGE_KEY = 'contenthead.db_admin.panel_collapsed';
+
+function normalizePanelSizes(values: number[]): number[] {
+  const safe = values.map((value) => (Number.isFinite(value) && value > 0 ? value : 0));
+  const sum = safe.reduce((total, value) => total + value, 0);
+  if (sum <= 0) {
+    return [...DB_ADMIN_PANEL_DEFAULT_SIZES];
+  }
+  return safe.map((value) => (value / sum) * 100);
+}
+
+function parsePanelSizes(raw: string | null): number[] {
+  if (!raw) {
+    return [...DB_ADMIN_PANEL_DEFAULT_SIZES];
+  }
+  try {
+    const parsed = JSON.parse(raw) as number[];
+    if (!Array.isArray(parsed) || parsed.length !== 3) {
+      return [...DB_ADMIN_PANEL_DEFAULT_SIZES];
+    }
+    return normalizePanelSizes(parsed);
+  } catch {
+    return [...DB_ADMIN_PANEL_DEFAULT_SIZES];
+  }
+}
+
+function parseCollapsedPanels(raw: string | null): boolean[] {
+  if (!raw) {
+    return [false, false, false];
+  }
+  try {
+    const parsed = JSON.parse(raw) as boolean[];
+    if (!Array.isArray(parsed) || parsed.length !== 3) {
+      return [false, false, false];
+    }
+    const cast = parsed.map((value) => Boolean(value));
+    return cast.every(Boolean) ? [false, false, false] : cast;
+  } catch {
+    return [false, false, false];
+  }
+}
+
+function buildPanelSizes(base: number[], collapsed: boolean[]): number[] {
+  const hiddenCount = collapsed.filter(Boolean).length;
+  if (hiddenCount === 0) {
+    return normalizePanelSizes(base);
+  }
+  const visibleIndexes = collapsed.map((value, index) => (!value ? index : -1)).filter((value) => value >= 0);
+  if (visibleIndexes.length === 0) {
+    return [...DB_ADMIN_PANEL_DEFAULT_SIZES];
+  }
+
+  const collapsedTotal = hiddenCount * DB_ADMIN_PANEL_COLLAPSED_SIZE;
+  const visibleTotal = Math.max(100 - collapsedTotal, 1);
+  const visibleBase = visibleIndexes.reduce((total, index) => total + (base[index] ?? 0), 0) || visibleIndexes.length;
+
+  return collapsed.map((isCollapsed, index) => {
+    if (isCollapsed) {
+      return DB_ADMIN_PANEL_COLLAPSED_SIZE;
+    }
+    const share = (base[index] ?? 0) / visibleBase;
+    return Math.max(share * visibleTotal, DB_ADMIN_PANEL_COLLAPSED_SIZE);
+  });
+}
+
 function downloadBlob(filename: string, payload: Blob) {
   const url = URL.createObjectURL(payload);
   const anchor = document.createElement('a');
@@ -276,6 +345,20 @@ export function DbAdminPage() {
   const [sqlConfirm, setSqlConfirm] = useState('');
   const [sqlResult, setSqlResult] = useState<DbAdminSqlResult | null>(null);
   const [sqlAdvancedTabs, setSqlAdvancedTabs] = useState<number[] | number | null>([]);
+  const [panelBaseSizes, setPanelBaseSizes] = useState<number[]>(() => {
+    try {
+      return parsePanelSizes(window.localStorage.getItem(DB_ADMIN_PANEL_SIZES_STORAGE_KEY));
+    } catch {
+      return [...DB_ADMIN_PANEL_DEFAULT_SIZES];
+    }
+  });
+  const [collapsedPanels, setCollapsedPanels] = useState<boolean[]>(() => {
+    try {
+      return parseCollapsedPanels(window.localStorage.getItem(DB_ADMIN_PANEL_COLLAPSED_STORAGE_KEY));
+    } catch {
+      return [false, false, false];
+    }
+  });
 
   const tableRows = useMemo(() => {
     const search = tableSearch.trim().toLowerCase();
@@ -303,6 +386,7 @@ export function DbAdminPage() {
       visibleColumns.some((column) => String(row[column.name] ?? '').toLowerCase().includes(query))
     );
   }, [globalRowSearch, rows, visibleColumns]);
+  const panelSizes = useMemo(() => buildPanelSizes(panelBaseSizes, collapsedPanels), [panelBaseSizes, collapsedPanels]);
 
   const parseErrorCode = (error: unknown): string => {
     const candidate = error as {
@@ -447,6 +531,14 @@ export function DbAdminPage() {
   }, [limit, offset, sort, filterColumn, filterOp, filterValue]);
 
   useEffect(() => {
+    window.localStorage.setItem(DB_ADMIN_PANEL_SIZES_STORAGE_KEY, JSON.stringify(panelBaseSizes));
+  }, [panelBaseSizes]);
+
+  useEffect(() => {
+    window.localStorage.setItem(DB_ADMIN_PANEL_COLLAPSED_STORAGE_KEY, JSON.stringify(collapsedPanels));
+  }, [collapsedPanels]);
+
+  useEffect(() => {
     if (!activeRow || !tableInfo) {
       setDraftRow({});
       return;
@@ -570,10 +662,11 @@ export function DbAdminPage() {
     if (value === null || value === undefined) {
       return <span className="muted">null</span>;
     }
+    const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
     if (typeof value === 'object') {
-      return <code>{JSON.stringify(value)}</code>;
+      return <code className="db-admin-cell-value" title={text}>{text}</code>;
     }
-    return String(value);
+    return <span className="db-admin-cell-value" title={text}>{text}</span>;
   };
 
   const renderEditor = (column: DbAdminColumn) => {
@@ -654,6 +747,15 @@ export function DbAdminPage() {
 
   const sqlRows = useMemo(() => parseRows(sqlResult?.rowsJson ?? '[]', []), [sqlResult]);
   const sqlColumns = sqlResult?.columns ?? (sqlRows[0] ? Object.keys(sqlRows[0]).filter((key) => key !== '__rowKey') : []);
+  const togglePanelCollapsed = (index: number) => {
+    setCollapsedPanels((current) => {
+      const next = current.map((value, currentIndex) => (currentIndex === index ? !value : value));
+      if (next.every(Boolean)) {
+        return current;
+      }
+      return next;
+    });
+  };
   const headerContext: DbAdminHeaderContext = {
     route: location.pathname,
     siteId: null,
@@ -702,6 +804,31 @@ export function DbAdminPage() {
             <Button label="New Row" onClick={startNewRow} disabled={!tableInfo} />
           </>
         )}
+        modeToggle={(
+          <>
+            <Button
+              text
+              size="small"
+              label={collapsedPanels[0] ? 'Show tables' : 'Hide tables'}
+              icon={collapsedPanels[0] ? 'pi pi-eye' : 'pi pi-eye-slash'}
+              onClick={() => togglePanelCollapsed(0)}
+            />
+            <Button
+              text
+              size="small"
+              label={collapsedPanels[1] ? 'Show rows' : 'Hide rows'}
+              icon={collapsedPanels[1] ? 'pi pi-eye' : 'pi pi-eye-slash'}
+              onClick={() => togglePanelCollapsed(1)}
+            />
+            <Button
+              text
+              size="small"
+              label={collapsedPanels[2] ? 'Show inspector' : 'Hide inspector'}
+              icon={collapsedPanels[2] ? 'pi pi-eye' : 'pi pi-eye-slash'}
+              onClick={() => togglePanelCollapsed(2)}
+            />
+          </>
+        )}
         overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
       <WorkspaceToolbar defaultExpanded>
@@ -737,103 +864,176 @@ export function DbAdminPage() {
         ) : forbiddenMessage ? (
           <ForbiddenState title="DB Admin unavailable" reason={forbiddenMessage} />
         ) : (
-        <Splitter className="splitFill db-admin-split">
-          <SplitterPanel size={22} minSize={16}>
-            <div className="paneRoot db-admin-pane">
-              <div className="paneScroll db-admin-pane-scroll">
-                <DataTable
-                  value={tableRows}
-                  size="small"
-                  loading={tablesLoading}
-                  scrollable
-                  scrollHeight="flex"
-                  className="db-admin-table"
-                  selectionMode="single"
-                  selection={selectedTableRow}
-                  onSelectionChange={(event) => setSelectedTable((event.value as DbAdminTableListItem | null)?.name ?? null)}
-                >
-                  <Column field="name" header="Tables" />
-                  <Column field="schema" header="Schema" />
-                  <Column field="rowCount" header="Rows" body={(row: DbAdminTableListItem) => row.rowCount ?? '-'} />
-                </DataTable>
-              </div>
-            </div>
-          </SplitterPanel>
-          <SplitterPanel size={48} minSize={28}>
-            <div className="paneRoot db-admin-pane">
-              <div className="paneScroll db-admin-pane-scroll">
-                <DataTable
-                  value={visibleRows}
-                  size="small"
-                  loading={rowsLoading}
-                  scrollable
-                  scrollHeight="flex"
-                  className="db-admin-table"
-                  dataKey="__rowKey"
-                  selectionMode="multiple"
-                  selection={selectedRows}
-                  onSelectionChange={(event) => setSelectedRows(Array.isArray(event.value) ? (event.value as RowRecord[]) : [])}
-                  onRowClick={(event) => setActiveRow(event.data as RowRecord)}
-                  paginator
-                  lazy
-                  rows={limit}
-                  first={offset}
-                  totalRecords={totalRows}
-                  onPage={(event) => {
-                    setLimit(event.rows ?? limit);
-                    setOffset(event.first ?? 0);
-                  }}
-                  sortField={sort?.column}
-                  sortOrder={sort ? (sort.direction === 'DESC' ? -1 : 1) : 0}
-                  onSort={(event) => {
-                    if (!event.sortField) {
-                      setSort(null);
-                      return;
-                    }
-                    setSort({
-                      column: event.sortField as string,
-                      direction: event.sortOrder === -1 ? 'DESC' : 'ASC'
-                    });
-                  }}
-                >
-                  <Column selectionMode="multiple" headerClassName="w-3rem" bodyClassName="w-3rem" />
-                  <Column
-                    header=""
-                    body={(row) => {
-                      const commandContext: DbAdminRowCommandContext = {
-                        route: location.pathname,
-                        siteId: null,
-                        selectedContentItemId: null,
-                        row: row as RowRecord,
-                        inspectRow: (next) => {
-                          setActiveRow(next);
-                          setEditMode('edit');
-                        },
-                        deleteRowByContext: async (next) => {
-                          await deleteRow(next);
-                          if (selectedTable) {
-                            await loadRows(selectedTable);
-                          }
-                        },
-                        confirm: ui.confirm
-                      };
-                      const commands = commandRegistry.getCommands(commandContext, 'rowOverflow');
-                      return <CommandMenuButton commands={commands} context={commandContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />;
-                    }}
-                    headerClassName="w-3rem"
-                    bodyClassName="w-3rem"
+        <Splitter
+          className="splitFill workspace-splitter db-admin-split"
+          onResizeEnd={(event) => {
+            const next = (event.sizes as number[]) ?? [];
+            if (collapsedPanels.some(Boolean) || next.length !== 3) {
+              return;
+            }
+            setPanelBaseSizes(normalizePanelSizes(next));
+          }}
+        >
+          <SplitterPanel size={panelSizes[0] ?? DB_ADMIN_PANEL_DEFAULT_SIZES[0]} minSize={collapsedPanels[0] ? DB_ADMIN_PANEL_COLLAPSED_SIZE : DB_ADMIN_PANEL_MIN_SIZES[0]}>
+            <div className="paneRoot db-admin-pane workspace-panel">
+              <div className="workspace-panel-header">
+                <strong>Tables</strong>
+                <div className="workspace-panel-header-actions">
+                  <Button
+                    text
+                    size="small"
+                    icon={collapsedPanels[0] ? 'pi pi-angle-right' : 'pi pi-angle-left'}
+                    aria-label={collapsedPanels[0] ? 'Expand tables panel' : 'Collapse tables panel'}
+                    tooltip={collapsedPanels[0] ? 'Expand tables panel' : 'Collapse tables panel'}
+                    onClick={() => togglePanelCollapsed(0)}
                   />
-                  {visibleColumns.map((column) => (
-                    <Column key={column.name} field={column.name} header={column.name} body={(row) => renderCell((row as RowRecord)[column.name])} sortable />
-                  ))}
-                </DataTable>
+                </div>
               </div>
+              {collapsedPanels[0] ? (
+                <div className="workspace-panel-collapsed">Tables</div>
+              ) : (
+                <div className="paneScroll db-admin-pane-scroll">
+                  <DataTable
+                    value={tableRows}
+                    size="small"
+                    loading={tablesLoading}
+                    scrollable
+                    scrollHeight="flex"
+                    style={{ height: '100%' }}
+                    tableStyle={{ minWidth: '22rem' }}
+                    className="db-admin-table"
+                    selectionMode="single"
+                    selection={selectedTableRow}
+                    onSelectionChange={(event) => setSelectedTable((event.value as DbAdminTableListItem | null)?.name ?? null)}
+                  >
+                    <Column field="name" header="Tables" style={{ minWidth: '11rem' }} />
+                    <Column field="schema" header="Schema" style={{ minWidth: '5.5rem' }} />
+                    <Column field="rowCount" header="Rows" body={(row: DbAdminTableListItem) => row.rowCount ?? '-'} style={{ minWidth: '4.5rem' }} />
+                  </DataTable>
+                </div>
+              )}
             </div>
           </SplitterPanel>
-          <SplitterPanel size={30} minSize={20}>
-            <div className="paneRoot db-admin-pane">
-              <div className="paneScroll db-admin-pane-scroll">
-                <TabView className="db-admin-inspector-tabs">
+          <SplitterPanel size={panelSizes[1] ?? DB_ADMIN_PANEL_DEFAULT_SIZES[1]} minSize={collapsedPanels[1] ? DB_ADMIN_PANEL_COLLAPSED_SIZE : DB_ADMIN_PANEL_MIN_SIZES[1]}>
+            <div className="paneRoot db-admin-pane workspace-panel">
+              <div className="workspace-panel-header">
+                <strong>Rows</strong>
+                <div className="workspace-panel-header-actions">
+                  <Button
+                    text
+                    size="small"
+                    icon={collapsedPanels[1] ? 'pi pi-angle-right' : 'pi pi-angle-left'}
+                    aria-label={collapsedPanels[1] ? 'Expand rows panel' : 'Collapse rows panel'}
+                    tooltip={collapsedPanels[1] ? 'Expand rows panel' : 'Collapse rows panel'}
+                    onClick={() => togglePanelCollapsed(1)}
+                  />
+                </div>
+              </div>
+              {collapsedPanels[1] ? (
+                <div className="workspace-panel-collapsed">Rows</div>
+              ) : (
+                <div className="paneScroll db-admin-pane-scroll">
+                  <DataTable
+                    value={visibleRows}
+                    size="small"
+                    loading={rowsLoading}
+                    scrollable
+                    scrollHeight="flex"
+                    style={{ height: '100%' }}
+                    tableStyle={{ minWidth: '100%', width: 'max-content' }}
+                    className="db-admin-table"
+                    dataKey="__rowKey"
+                    selectionMode="multiple"
+                    selection={selectedRows}
+                    resizableColumns
+                    columnResizeMode="expand"
+                    onSelectionChange={(event) => setSelectedRows(Array.isArray(event.value) ? (event.value as RowRecord[]) : [])}
+                    onRowClick={(event) => setActiveRow(event.data as RowRecord)}
+                    paginator
+                    lazy
+                    rows={limit}
+                    first={offset}
+                    totalRecords={totalRows}
+                    onPage={(event) => {
+                      setLimit(event.rows ?? limit);
+                      setOffset(event.first ?? 0);
+                    }}
+                    sortField={sort?.column}
+                    sortOrder={sort ? (sort.direction === 'DESC' ? -1 : 1) : 0}
+                    onSort={(event) => {
+                      if (!event.sortField) {
+                        setSort(null);
+                        return;
+                      }
+                      setSort({
+                        column: event.sortField as string,
+                        direction: event.sortOrder === -1 ? 'DESC' : 'ASC'
+                      });
+                    }}
+                  >
+                    <Column selectionMode="multiple" headerClassName="w-3rem" bodyClassName="w-3rem" style={{ width: '3rem', minWidth: '3rem' }} />
+                    <Column
+                      header=""
+                      body={(row) => {
+                        const commandContext: DbAdminRowCommandContext = {
+                          route: location.pathname,
+                          siteId: null,
+                          selectedContentItemId: null,
+                          row: row as RowRecord,
+                          inspectRow: (next) => {
+                            setActiveRow(next);
+                            setEditMode('edit');
+                          },
+                          deleteRowByContext: async (next) => {
+                            await deleteRow(next);
+                            if (selectedTable) {
+                              await loadRows(selectedTable);
+                            }
+                          },
+                          confirm: ui.confirm
+                        };
+                        const commands = commandRegistry.getCommands(commandContext, 'rowOverflow');
+                        return <CommandMenuButton commands={commands} context={commandContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />;
+                      }}
+                      headerClassName="w-3rem"
+                      bodyClassName="w-3rem"
+                      style={{ width: '3rem', minWidth: '3rem' }}
+                    />
+                    {visibleColumns.map((column) => (
+                      <Column
+                        key={column.name}
+                        field={column.name}
+                        header={column.name}
+                        body={(row) => renderCell((row as RowRecord)[column.name])}
+                        sortable
+                        style={{ minWidth: /(json|description|content|body)/i.test(column.name) ? '18rem' : '12rem' }}
+                      />
+                    ))}
+                  </DataTable>
+                </div>
+              )}
+            </div>
+          </SplitterPanel>
+          <SplitterPanel size={panelSizes[2] ?? DB_ADMIN_PANEL_DEFAULT_SIZES[2]} minSize={collapsedPanels[2] ? DB_ADMIN_PANEL_COLLAPSED_SIZE : DB_ADMIN_PANEL_MIN_SIZES[2]}>
+            <div className="paneRoot db-admin-pane workspace-panel">
+              <div className="workspace-panel-header">
+                <strong>Inspector</strong>
+                <div className="workspace-panel-header-actions">
+                  <Button
+                    text
+                    size="small"
+                    icon={collapsedPanels[2] ? 'pi pi-angle-left' : 'pi pi-angle-right'}
+                    aria-label={collapsedPanels[2] ? 'Expand inspector panel' : 'Collapse inspector panel'}
+                    tooltip={collapsedPanels[2] ? 'Expand inspector panel' : 'Collapse inspector panel'}
+                    onClick={() => togglePanelCollapsed(2)}
+                  />
+                </div>
+              </div>
+              {collapsedPanels[2] ? (
+                <div className="workspace-panel-collapsed">Inspector</div>
+              ) : (
+                <div className="paneScroll db-admin-pane-scroll">
+                  <TabView className="db-admin-inspector-tabs">
                   <TabPanel header="Inspector">
                     {!tableInfo ? (
                       <p className="muted">Select a table to inspect rows.</p>
@@ -971,8 +1171,9 @@ export function DbAdminPage() {
                       </AccordionTab>
                     </Accordion>
                   </TabPanel>
-                </TabView>
-              </div>
+                  </TabView>
+                </div>
+              )}
             </div>
           </SplitterPanel>
         </Splitter>
