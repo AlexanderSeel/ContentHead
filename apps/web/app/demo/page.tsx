@@ -107,16 +107,29 @@ export default async function DemoPage({
   const payload = result.getPageByRoute;
   const version = payload?.selectedVersion;
   const base = payload?.base;
-  const siteRes = await sdk.getSite({ siteId });
-  const urlPattern = siteRes.getSite?.urlPattern ?? '/{market}/{locale}';
   if (!payload || !version || !base) {
     notFound();
+  }
+  let urlPattern = '/{market}/{locale}';
+  try {
+    const siteRes = await sdk.getSite({ siteId });
+    urlPattern = siteRes.getSite?.urlPattern ?? '/{market}/{locale}';
+  } catch {
+    // Public demo rendering can proceed without site lookup auth.
+    // Fallback keeps route generation deterministic.
+    urlPattern = '/{market}/{locale}';
   }
 
   const parsedComponentData = parseComponentData(version.compositionJson ?? '{}', version.componentsJson ?? '{}');
   const composition = parsedComponentData.composition;
   const components = parsedComponentData.components;
   const fields = JSON.parse(version.fieldsJson ?? '{}') as Record<string, unknown>;
+  let fieldDefs: Array<{ key: string; type: string; uiConfig?: Record<string, unknown> | null }> = [];
+  try {
+    fieldDefs = JSON.parse(base.contentType?.fieldsJson ?? '[]') as Array<{ key: string; type: string; uiConfig?: Record<string, unknown> | null }>;
+  } catch {
+    fieldDefs = [];
+  }
   const apiBaseUrl = (process.env.API_URL ?? 'http://localhost:4000/graphql').replace('/graphql', '');
 
   const assetIds = new Set<number>();
@@ -190,10 +203,12 @@ export default async function DemoPage({
 
   return (
     <>
-      <p className="cms-top-meta">
-        Mode: {base.mode} | Site: {siteId} | Market/Locale: {marketCode}/{localeCode} | Variant:{' '}
-        {payload.selectedVariant?.key ?? 'none'} | Reason: {payload.selectionReason}
-      </p>
+      {cmsBridge ? (
+        <p className="cms-top-meta">
+          Mode: {base.mode} | Site: {siteId} | Market/Locale: {marketCode}/{localeCode} | Variant:{' '}
+          {payload.selectedVariant?.key ?? 'none'} | Reason: {payload.selectionReason}
+        </p>
+      ) : null}
       <CmsRendererClient
         siteId={siteId}
         marketCode={marketCode}
@@ -203,6 +218,7 @@ export default async function DemoPage({
         contentItemId={base.contentItem?.id ?? 0}
         versionId={version.id ?? 0}
         fields={fields}
+        fieldDefs={fieldDefs}
         composition={composition}
         components={components}
         forms={forms}

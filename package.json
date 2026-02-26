@@ -5,6 +5,10 @@
   "packageManager": "pnpm@10.6.0",
   "scripts": {
     "dev": "concurrently --kill-others --kill-others-on-fail -n api,admin,web -c blue,green,yellow \"pnpm --filter @contenthead/api dev\" \"pnpm --filter @contenthead/admin dev\" \"pnpm --filter @contenthead/web dev\"",
+    "start": "pnpm dev",
+    "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-stop.ps1",
+    "restart": "pnpm run restart:full",
+    "restart:full": "pnpm run stop && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/clean-web-cache.ps1 && pnpm dev",
     "dev:kill": "taskkill /F /T /IM node.exe",
     "schema": "pnpm --filter @contenthead/api schema:export",
     "codegen": "pnpm --filter @contenthead/admin codegen && pnpm --filter @contenthead/web codegen && pnpm --filter @contenthead/sdk codegen",

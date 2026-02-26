@@ -500,6 +500,63 @@ export function getComponentRegistryEntry(id: string): ComponentRegistryEntry | 
   return componentRegistry.find((entry) => entry.id === id) ?? null;
 }
 
+const STRUCTURED_FIELD_TYPES = new Set<ComponentUiField['type']>([
+  'assetRef',
+  'assetList',
+  'contentLink',
+  'contentLinkList',
+  'formRef',
+  'componentRef',
+  'objectRef',
+  'objectList',
+  'json'
+]);
+
+function reconcileFieldList(
+  overrideFields: ComponentUiField[] | null | undefined,
+  canonicalFields: ComponentUiField[]
+): ComponentUiField[] {
+  if (!overrideFields || overrideFields.length === 0) {
+    return canonicalFields;
+  }
+
+  const canonicalByKey = new Map(canonicalFields.map((field) => [field.key, field]));
+  const merged = overrideFields.map((field) => {
+    const canonical = canonicalByKey.get(field.key);
+    if (!canonical) {
+      return field;
+    }
+
+    // Root cause fix: persisted schema overrides could downgrade structured props to text,
+    // which made the inspector render "[object Object]" instead of specialized editors.
+    const forceCanonicalType = STRUCTURED_FIELD_TYPES.has(canonical.type) && field.type !== canonical.type;
+    const nextType = forceCanonicalType ? canonical.type : field.type;
+    const nextFields =
+      nextType === 'objectList'
+        ? reconcileFieldList(field.fields, canonical.fields ?? [])
+        : Array.isArray(field.fields) && field.fields.length > 0
+          ? field.fields
+          : canonical.fields;
+
+    return {
+      ...field,
+      type: nextType,
+      ...(nextFields && nextFields.length > 0 ? { fields: nextFields } : {}),
+      ...(nextType === 'objectList'
+        ? { itemLabelKey: field.itemLabelKey ?? canonical.itemLabelKey }
+        : {}),
+      ...(nextType === 'componentRef' || nextType === 'objectRef'
+        ? { refComponentTypes: field.refComponentTypes ?? canonical.refComponentTypes }
+        : {}),
+      ...(nextType === 'select' ? { options: field.options ?? canonical.options } : {})
+    };
+  });
+
+  const existingKeys = new Set(merged.map((field) => field.key));
+  const missingCanonicalFields = canonicalFields.filter((field) => !existingKeys.has(field.key));
+  return [...merged, ...missingCanonicalFields];
+}
+
 export function resolveComponentRegistry(settings: ComponentTypeSetting[]): ResolvedComponentRegistryEntry[] {
   const settingsMap = new Map(settings.map((entry) => [entry.componentTypeId, entry]));
   return componentRegistry.map((entry) => {
@@ -507,27 +564,12 @@ export function resolveComponentRegistry(settings: ComponentTypeSetting[]): Reso
     const enabled = setting?.enabled ?? true;
     const groupName = setting?.groupName?.trim() || 'General';
     const overrideFields = parsePersistedFields(setting?.schemaJson);
-    let fields = overrideFields && overrideFields.length > 0 ? overrideFields : entry.fields;
-    const canonicalByKey = new Map(entry.fields.map((field) => [field.key, field]));
-    fields = fields.map((field) => {
-      const canonical = canonicalByKey.get(field.key);
-      if (!canonical) {
-        return field;
-      }
-      // Repair stale overrides where structured fields were accidentally downgraded to plain text.
-      const downgraded =
-        (field.type === 'text' || field.type === 'multiline') &&
-        (canonical.type === 'objectList' || canonical.type === 'componentRef' || canonical.type === 'objectRef');
-      if (downgraded) {
-        return canonical;
-      }
-      return field;
-    });
+    const fields = reconcileFieldList(overrideFields, entry.fields);
     const persistedDefaultProps = parseDefaultProps(setting?.defaultPropsJson);
     const defaultProps =
       persistedDefaultProps ??
-      (overrideFields && overrideFields.length > 0
-        ? overrideFields.reduce<Record<string, unknown>>((acc, field) => {
+      (fields.length > 0
+        ? fields.reduce<Record<string, unknown>>((acc, field) => {
             if ('defaultValue' in field) {
               acc[field.key] = field.defaultValue;
             } else if (entry.defaultProps[field.key] !== undefined) {

@@ -1,19 +1,22 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
+import { Checkbox } from 'primereact/checkbox';
 
 import { createAdminSdk } from '../../../lib/sdk';
 import { getApiBaseUrl } from '../../../lib/api';
 import { AssetPickerButton } from '../../../ui/atoms';
+import { AssetImageEditorDialog } from '../../assets/AssetImageEditorDialog';
 
 type AssetRow = {
   id: number;
   originalName: string;
   title?: string | null;
   altText?: string | null;
+  renditionPresets?: Array<{ id: string; name: string; width: number; height: number }>;
 };
 
 function AssetPreview({ id }: { id: number }) {
@@ -35,11 +38,12 @@ export function AssetRefEditor({
 }: {
   token: string | null;
   siteId: number;
-  value: number | { assetId: number | null; renditionKind?: string; fitMode?: string; customWidth?: number } | null;
-  onChange: (value: number | { assetId: number | null; renditionKind?: string; fitMode?: string; customWidth?: number } | null) => void;
+  value: number | { assetId: number | null; renditionKind?: string; fitMode?: string; customWidth?: number; presetId?: string; showPois?: boolean } | null;
+  onChange: (value: number | { assetId: number | null; renditionKind?: string; fitMode?: string; customWidth?: number; presetId?: string; showPois?: boolean } | null) => void;
 }) {
   const sdk = useMemo(() => createAdminSdk(token), [token]);
   const [asset, setAsset] = useState<AssetRow | null>(null);
+  const [imageEditorAssetId, setImageEditorAssetId] = useState<number | null>(null);
   const selection = typeof value === 'number' ? { assetId: value } : (value ?? { assetId: null });
   const selectedId = selection.assetId ?? null;
 
@@ -51,6 +55,16 @@ export function AssetRefEditor({
     const res = await sdk.getAsset({ id });
     setAsset((res.getAsset as AssetRow | null) ?? null);
   };
+
+  useEffect(() => {
+    load(selectedId).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+
+  const presetOptions = (asset?.renditionPresets ?? []).map((entry) => ({
+    label: `${entry.name} (${entry.width}x${entry.height})`,
+    value: entry.id
+  }));
 
   return (
     <div className="form-row">
@@ -76,6 +90,7 @@ export function AssetRefEditor({
             }}
             disabled={!selectedId}
           />
+          <Button text label="Edit image" onClick={() => selectedId && setImageEditorAssetId(selectedId)} disabled={!selectedId} />
         </div>
         {selectedId ? (
           <div className="inline-actions asset-ref-selected">
@@ -119,7 +134,46 @@ export function AssetRefEditor({
           max={2400}
           useGrouping={false}
         />
+        <Dropdown
+          value={selection.presetId ?? null}
+          options={presetOptions}
+          onChange={(event) => {
+            const next = { ...selection } as {
+              assetId: number | null;
+              renditionKind?: string;
+              fitMode?: string;
+              customWidth?: number;
+              presetId?: string;
+              showPois?: boolean;
+            };
+            if (event.value) {
+              next.presetId = String(event.value);
+            } else {
+              delete next.presetId;
+            }
+            onChange(next);
+          }}
+          placeholder="Preset"
+          showClear
+          disabled={!selectedId || presetOptions.length === 0}
+        />
+        <label>
+          <Checkbox
+            checked={Boolean(selection.showPois)}
+            onChange={(event) => onChange({ ...selection, showPois: Boolean(event.checked) })}
+            disabled={!selectedId}
+          />{' '}
+          Show POIs
+        </label>
       </div>
+      <AssetImageEditorDialog
+        visible={imageEditorAssetId != null}
+        assetId={imageEditorAssetId}
+        token={token}
+        siteId={siteId}
+        onHide={() => setImageEditorAssetId(null)}
+        onSaved={() => load(selectedId).catch(() => undefined)}
+      />
     </div>
   );
 }

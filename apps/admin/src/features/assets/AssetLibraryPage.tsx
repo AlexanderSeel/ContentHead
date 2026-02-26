@@ -21,6 +21,7 @@ import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
 import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
+import { AssetImageEditorDialog } from './AssetImageEditorDialog';
 
 type AssetRow = {
   id: number;
@@ -39,6 +40,7 @@ type AssetsHeaderContext = CommandContext & {
 type AssetsRowContext = CommandContext & {
   row: AssetRow;
   editRow: (row: AssetRow) => void;
+  editImage: (row: AssetRow) => void;
   copyAssetUrl: (row: AssetRow) => Promise<void>;
   deleteRow: (row: AssetRow) => Promise<void>;
 };
@@ -82,6 +84,13 @@ const assetsRowCommands: Command<AssetsRowContext>[] = [
     run: (ctx) => ctx.copyAssetUrl(ctx.row)
   },
   {
+    id: 'assets.row.edit-image',
+    label: 'Edit image',
+    icon: 'pi pi-image',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/assets'),
+    run: (ctx) => ctx.editImage(ctx.row)
+  },
+  {
     id: 'assets.row.delete',
     label: 'Delete',
     icon: 'pi pi-trash',
@@ -123,6 +132,7 @@ export function AssetLibraryPage() {
   const [status, setStatus] = useState('');
   const [forbiddenReason, setForbiddenReason] = useState('');
   const [contextAsset, setContextAsset] = useState<AssetRow | null>(null);
+  const [imageEditorAssetId, setImageEditorAssetId] = useState<number | null>(null);
   const contextMenuRef = useRef<ContextMenu>(null);
 
   const handleError = (error: unknown) => {
@@ -224,6 +234,7 @@ export function AssetLibraryPage() {
     ...baseContext,
     row,
     editRow: setSelected,
+    editImage: (entry) => setImageEditorAssetId(entry.id),
     copyAssetUrl: async (entry) => {
       await navigator.clipboard.writeText(`${apiBase}/assets/${entry.id}`);
       toast({ severity: 'success', summary: 'Asset URL copied' });
@@ -265,16 +276,20 @@ export function AssetLibraryPage() {
         <InputText value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search assets" />
       </WorkspaceToolbar>
       <WorkspaceBody>
-        <Splitter className="splitFill">
+        <Splitter className="splitFill asset-library-splitter">
           <SplitterPanel size={62} minSize={35}>
-            <div className="paneRoot">
+            <div className="paneRoot asset-library-pane">
               <div className="paneScroll">
                 <ContextMenu ref={contextMenuRef} model={contextItems} />
                 <DataTable
+                  className="asset-library-table"
                   value={assets}
                   size="small"
+                  scrollable
+                  scrollHeight="flex"
                   selectionMode="single"
                   selection={selected}
+                  rowClassName={(row: AssetRow) => (row.id === selected?.id ? 'asset-library-row-selected' : '')}
                   onSelectionChange={(event) => setSelected((event.value as AssetRow) ?? null)}
                   onContextMenu={(event) => {
                     setContextAsset(event.data as AssetRow);
@@ -295,23 +310,32 @@ export function AssetLibraryPage() {
                   <Column field="title" header="Title" />
                   <Column
                     header="Actions"
-                    body={(row: AssetRow) => <CommandMenuButton commands={commandRegistry.getCommands(rowContextFor(row), 'rowOverflow')} context={rowContextFor(row)} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
+                    body={(row: AssetRow) => (
+                      <CommandMenuButton
+                        commands={commandRegistry.getCommands(rowContextFor(row), 'rowOverflow')}
+                        context={rowContextFor(row)}
+                        className="asset-library-row-menu"
+                        buttonLabel="Actions"
+                        buttonIcon="pi pi-ellipsis-h"
+                        text={false}
+                      />
+                    )}
                   />
                 </DataTable>
               </div>
             </div>
           </SplitterPanel>
           <SplitterPanel size={38} minSize={25}>
-            <div className="paneRoot">
+            <div className="paneRoot asset-library-pane">
               <div className="paneScroll">
                 {!selected ? (
                   <p className="muted">Select an asset to edit metadata.</p>
                 ) : (
-                  <div className="form-row">
+                  <div className="form-row asset-library-meta-form">
                     <img
                       src={`${apiBase}/assets/${selected.id}`}
                       alt={selected.altText ?? selected.title ?? selected.originalName}
-                      className="w-full border-round object-cover"
+                      className="asset-library-preview-image"
                     />
                     <label>Title</label>
                     <InputText value={selected.title ?? ''} onChange={(event) => setSelected({ ...selected, title: event.target.value })} />
@@ -322,6 +346,7 @@ export function AssetLibraryPage() {
                     <label>Tags</label>
                     <Chips value={parseTags(selected.tagsJson)} onChange={(event) => setSelected({ ...selected, tagsJson: JSON.stringify(event.value ?? []) })} separator="," />
                     <div className="inline-actions">
+                      <Button label="Edit image" text onClick={() => setImageEditorAssetId(selected.id)} />
                       <Button label="Save metadata" onClick={() => saveMetadata().catch(() => undefined)} loading={saving} />
                       <Button
                         label="Delete"
@@ -343,6 +368,14 @@ export function AssetLibraryPage() {
       </WorkspaceBody>
           {uploading ? <div className="status-panel">Uploading files...</div> : null}
           {status ? <div className="status-panel" role="alert">{status}</div> : null}
+          <AssetImageEditorDialog
+            visible={imageEditorAssetId != null}
+            assetId={imageEditorAssetId}
+            token={token}
+            siteId={siteId}
+            onHide={() => setImageEditorAssetId(null)}
+            onSaved={() => refresh().catch(() => undefined)}
+          />
         </>
       )}
     </WorkspacePage>

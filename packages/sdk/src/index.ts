@@ -101,6 +101,8 @@ export function createSdk(options: CreateSdkOptions) {
       execute<G.UpdateDraftVersionMutation>(G.UpdateDraftVersionDocument, variables, requestOptions),
     publishVersion: (variables: G.PublishVersionMutationVariables, requestOptions?: RequestOptions) =>
       execute<G.PublishVersionMutation>(G.PublishVersionDocument, variables, requestOptions),
+    archiveVersion: (variables: G.ArchiveVersionMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.ArchiveVersionMutation>(G.ArchiveVersionDocument, variables, requestOptions),
     listVersions: (variables: G.ListVersionsQueryVariables, requestOptions?: RequestOptions) =>
       execute<G.ListVersionsQuery>(G.ListVersionsDocument, variables, requestOptions),
     diffVersions: (variables: G.DiffVersionsQueryVariables, requestOptions?: RequestOptions) =>
@@ -143,6 +145,29 @@ export function createSdk(options: CreateSdkOptions) {
       variables: G.UpdateAssetMetadataMutationVariables,
       requestOptions?: RequestOptions
     ) => execute<G.UpdateAssetMetadataMutation>(G.UpdateAssetMetadataDocument, variables, requestOptions),
+    updateAssetFocalPoint: (
+      variables: G.UpdateAssetFocalPointMutationVariables,
+      requestOptions?: RequestOptions
+    ) => execute<G.UpdateAssetFocalPointMutation>(G.UpdateAssetFocalPointDocument, variables, requestOptions),
+    upsertAssetPois: (variables: G.UpsertAssetPoisMutationVariables, requestOptions?: RequestOptions) =>
+      execute<G.UpsertAssetPoisMutation>(G.UpsertAssetPoisDocument, variables, requestOptions),
+    upsertAssetRenditionPresets: (
+      variables: G.UpsertAssetRenditionPresetsMutationVariables,
+      requestOptions?: RequestOptions
+    ) =>
+      execute<G.UpsertAssetRenditionPresetsMutation>(
+        G.UpsertAssetRenditionPresetsDocument,
+        variables,
+        requestOptions
+      ),
+    generateAssetRendition: (
+      variables: G.GenerateAssetRenditionMutationVariables,
+      requestOptions?: RequestOptions
+    ) => execute<G.GenerateAssetRenditionMutation>(G.GenerateAssetRenditionDocument, variables, requestOptions),
+    deleteAssetRendition: (
+      variables: G.DeleteAssetRenditionMutationVariables,
+      requestOptions?: RequestOptions
+    ) => execute<G.DeleteAssetRenditionMutation>(G.DeleteAssetRenditionDocument, variables, requestOptions),
     deleteAsset: (variables: G.DeleteAssetMutationVariables, requestOptions?: RequestOptions) =>
       execute<G.DeleteAssetMutation>(G.DeleteAssetDocument, variables, requestOptions),
     listConnectors: (variables: G.ListConnectorsQueryVariables, requestOptions?: RequestOptions) =>

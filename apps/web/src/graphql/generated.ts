@@ -35,17 +35,27 @@ export type Asset = {
   createdAt?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Scalars['String']['output']>;
   filename?: Maybe<Scalars['String']['output']>;
+  focalPoint?: Maybe<AssetFocalPoint>;
   folderId?: Maybe<Scalars['Int']['output']>;
   height?: Maybe<Scalars['Int']['output']>;
   id?: Maybe<Scalars['Int']['output']>;
   mimeType?: Maybe<Scalars['String']['output']>;
   originalName?: Maybe<Scalars['String']['output']>;
+  pois?: Maybe<Array<AssetPoi>>;
+  renditionPresets?: Maybe<Array<AssetRenditionPreset>>;
+  renditions?: Maybe<Array<AssetRendition>>;
   siteId?: Maybe<Scalars['Int']['output']>;
   storagePath?: Maybe<Scalars['String']['output']>;
   tagsJson?: Maybe<Scalars['String']['output']>;
   title?: Maybe<Scalars['String']['output']>;
   updatedAt?: Maybe<Scalars['String']['output']>;
   width?: Maybe<Scalars['Int']['output']>;
+};
+
+export type AssetFocalPoint = {
+  __typename?: 'AssetFocalPoint';
+  x?: Maybe<Scalars['Float']['output']>;
+  y?: Maybe<Scalars['Float']['output']>;
 };
 
 export type AssetFolder = {
@@ -63,6 +73,123 @@ export type AssetList = {
   __typename?: 'AssetList';
   items?: Maybe<Array<Asset>>;
   total?: Maybe<Scalars['Int']['output']>;
+};
+
+export type AssetPoi = {
+  __typename?: 'AssetPoi';
+  id?: Maybe<Scalars['String']['output']>;
+  label?: Maybe<Scalars['String']['output']>;
+  link?: Maybe<AssetPoiLink>;
+  style?: Maybe<AssetPoiStyle>;
+  visible?: Maybe<Scalars['Boolean']['output']>;
+  x?: Maybe<Scalars['Float']['output']>;
+  y?: Maybe<Scalars['Float']['output']>;
+};
+
+export type AssetPoiInput = {
+  id: Scalars['String']['input'];
+  label?: InputMaybe<Scalars['String']['input']>;
+  link?: InputMaybe<AssetPoiLinkInput>;
+  style?: InputMaybe<AssetPoiStyleInput>;
+  visible?: InputMaybe<Scalars['Boolean']['input']>;
+  x: Scalars['Float']['input'];
+  y: Scalars['Float']['input'];
+};
+
+export type AssetPoiLink = {
+  __typename?: 'AssetPoiLink';
+  anchor?: Maybe<Scalars['String']['output']>;
+  contentItemId?: Maybe<Scalars['Int']['output']>;
+  kind?: Maybe<Scalars['String']['output']>;
+  routeSlug?: Maybe<Scalars['String']['output']>;
+  target?: Maybe<Scalars['String']['output']>;
+  text?: Maybe<Scalars['String']['output']>;
+  url?: Maybe<Scalars['String']['output']>;
+};
+
+export type AssetPoiLinkInput = {
+  anchor?: InputMaybe<Scalars['String']['input']>;
+  contentItemId?: InputMaybe<Scalars['Int']['input']>;
+  kind: Scalars['String']['input'];
+  routeSlug?: InputMaybe<Scalars['String']['input']>;
+  target?: InputMaybe<Scalars['String']['input']>;
+  text?: InputMaybe<Scalars['String']['input']>;
+  url?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type AssetPoiStyle = {
+  __typename?: 'AssetPoiStyle';
+  color?: Maybe<Scalars['String']['output']>;
+  icon?: Maybe<Scalars['String']['output']>;
+  size?: Maybe<Scalars['Float']['output']>;
+};
+
+export type AssetPoiStyleInput = {
+  color?: InputMaybe<Scalars['String']['input']>;
+  icon?: InputMaybe<Scalars['String']['input']>;
+  size?: InputMaybe<Scalars['Float']['input']>;
+};
+
+export type AssetRendition = {
+  __typename?: 'AssetRendition';
+  assetId?: Maybe<Scalars['Int']['output']>;
+  bytes?: Maybe<Scalars['Int']['output']>;
+  createdAt?: Maybe<Scalars['String']['output']>;
+  cropJson?: Maybe<Scalars['String']['output']>;
+  fitMode?: Maybe<Scalars['String']['output']>;
+  focalX?: Maybe<Scalars['Float']['output']>;
+  focalY?: Maybe<Scalars['Float']['output']>;
+  format?: Maybe<Scalars['String']['output']>;
+  height?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
+  kind?: Maybe<Scalars['String']['output']>;
+  mode?: Maybe<Scalars['String']['output']>;
+  presetId?: Maybe<Scalars['String']['output']>;
+  quality?: Maybe<Scalars['Int']['output']>;
+  storagePath?: Maybe<Scalars['String']['output']>;
+  width?: Maybe<Scalars['Int']['output']>;
+};
+
+export type AssetRenditionCrop = {
+  __typename?: 'AssetRenditionCrop';
+  h?: Maybe<Scalars['Float']['output']>;
+  w?: Maybe<Scalars['Float']['output']>;
+  x?: Maybe<Scalars['Float']['output']>;
+  y?: Maybe<Scalars['Float']['output']>;
+};
+
+export type AssetRenditionCropInput = {
+  h: Scalars['Float']['input'];
+  w: Scalars['Float']['input'];
+  x: Scalars['Float']['input'];
+  y: Scalars['Float']['input'];
+};
+
+export type AssetRenditionPreset = {
+  __typename?: 'AssetRenditionPreset';
+  background?: Maybe<Scalars['String']['output']>;
+  crop?: Maybe<AssetRenditionCrop>;
+  format?: Maybe<Scalars['String']['output']>;
+  height?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  mode?: Maybe<Scalars['String']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  quality?: Maybe<Scalars['Int']['output']>;
+  useFocalPoint?: Maybe<Scalars['Boolean']['output']>;
+  width?: Maybe<Scalars['Int']['output']>;
+};
+
+export type AssetRenditionPresetInput = {
+  background?: InputMaybe<Scalars['String']['input']>;
+  crop?: InputMaybe<AssetRenditionCropInput>;
+  format?: InputMaybe<Scalars['String']['input']>;
+  height: Scalars['Int']['input'];
+  id: Scalars['String']['input'];
+  mode: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  quality?: InputMaybe<Scalars['Int']['input']>;
+  useFocalPoint?: InputMaybe<Scalars['Boolean']['input']>;
+  width: Scalars['Int']['input'];
 };
 
 export type AuthPayload = {
@@ -395,6 +522,7 @@ export type Mutation = {
   aiTranslateVersion?: Maybe<AiContentResult>;
   approveStep?: Maybe<WorkflowRun>;
   archiveContentItem?: Maybe<ContentItem>;
+  archiveVersion?: Maybe<ContentVersion>;
   createAssetFolder?: Maybe<AssetFolder>;
   createChildPage?: Maybe<ContentItem>;
   createContentItem?: Maybe<ContentItem>;
@@ -407,6 +535,7 @@ export type Mutation = {
   dbAdminSql?: Maybe<DbAdminSqlResult>;
   dbAdminUpdate?: Maybe<DbAdminMutationResult>;
   deleteAsset?: Maybe<Scalars['Boolean']['output']>;
+  deleteAssetRendition?: Maybe<Scalars['Boolean']['output']>;
   deleteConnector?: Maybe<Scalars['Boolean']['output']>;
   deleteContentType?: Maybe<Scalars['Boolean']['output']>;
   deleteForm?: Maybe<Scalars['Boolean']['output']>;
@@ -421,6 +550,7 @@ export type Mutation = {
   deleteVariantSet?: Maybe<Scalars['Boolean']['output']>;
   deleteVisitorGroup?: Maybe<Scalars['Boolean']['output']>;
   deleteWorkflowDefinition?: Maybe<Scalars['Boolean']['output']>;
+  generateAssetRendition?: Maybe<AssetRendition>;
   issuePreviewToken?: Maybe<PreviewTokenPayload>;
   login?: Maybe<AuthPayload>;
   moveComponent?: Maybe<ContentVersion>;
@@ -444,6 +574,7 @@ export type Mutation = {
   startWorkflowRun?: Maybe<WorkflowRun>;
   submitForm?: Maybe<FormSubmission>;
   testConnector?: Maybe<Scalars['String']['output']>;
+  updateAssetFocalPoint?: Maybe<Asset>;
   updateAssetMetadata?: Maybe<Asset>;
   updateComponentProps?: Maybe<ContentVersion>;
   updateContentType?: Maybe<ContentType>;
@@ -451,6 +582,8 @@ export type Mutation = {
   updateInternalUser?: Maybe<InternalUser>;
   updateSubmissionStatus?: Maybe<FormSubmission>;
   updateTemplate?: Maybe<Template>;
+  upsertAssetPois?: Maybe<Asset>;
+  upsertAssetRenditionPresets?: Maybe<Asset>;
   upsertComponentTypeSetting?: Maybe<ComponentTypeSetting>;
   upsertConnector?: Maybe<Connector>;
   upsertForm?: Maybe<Form>;
@@ -525,6 +658,12 @@ export type MutationApproveStepArgs = {
 export type MutationArchiveContentItemArgs = {
   archived: Scalars['Boolean']['input'];
   id: Scalars['Int']['input'];
+};
+
+
+export type MutationArchiveVersionArgs = {
+  by?: InputMaybe<Scalars['String']['input']>;
+  versionId: Scalars['Int']['input'];
 };
 
 
@@ -633,6 +772,12 @@ export type MutationDeleteAssetArgs = {
 };
 
 
+export type MutationDeleteAssetRenditionArgs = {
+  assetId: Scalars['Int']['input'];
+  renditionId: Scalars['Int']['input'];
+};
+
+
 export type MutationDeleteConnectorArgs = {
   id: Scalars['Int']['input'];
 };
@@ -700,6 +845,12 @@ export type MutationDeleteVisitorGroupArgs = {
 
 export type MutationDeleteWorkflowDefinitionArgs = {
   id: Scalars['Int']['input'];
+};
+
+
+export type MutationGenerateAssetRenditionArgs = {
+  assetId: Scalars['Int']['input'];
+  presetId: Scalars['String']['input'];
 };
 
 
@@ -854,6 +1005,14 @@ export type MutationTestConnectorArgs = {
 };
 
 
+export type MutationUpdateAssetFocalPointArgs = {
+  assetId: Scalars['Int']['input'];
+  by?: InputMaybe<Scalars['String']['input']>;
+  x: Scalars['Float']['input'];
+  y: Scalars['Float']['input'];
+};
+
+
 export type MutationUpdateAssetMetadataArgs = {
   altText?: InputMaybe<Scalars['String']['input']>;
   by?: InputMaybe<Scalars['String']['input']>;
@@ -908,6 +1067,20 @@ export type MutationUpdateTemplateArgs = {
   constraintsJson: Scalars['String']['input'];
   id: Scalars['Int']['input'];
   name: Scalars['String']['input'];
+};
+
+
+export type MutationUpsertAssetPoisArgs = {
+  assetId: Scalars['Int']['input'];
+  by?: InputMaybe<Scalars['String']['input']>;
+  pois: Array<AssetPoiInput>;
+};
+
+
+export type MutationUpsertAssetRenditionPresetsArgs = {
+  assetId: Scalars['Int']['input'];
+  by?: InputMaybe<Scalars['String']['input']>;
+  presets: Array<AssetRenditionPresetInput>;
 };
 
 

@@ -36,14 +36,16 @@ export function toTieredMenuItems<TContext extends CommandContext>(commands: Com
     return [];
   }
 
-  if (groups.length === 1) {
-    return groups[0]![1].map((command) => toMenuItem(command, context));
-  }
-
-  return groups.map(([group, groupCommands]) => ({
-    label: group,
-    items: groupCommands.map((command) => toMenuItem(command, context))
-  }));
+  // Flatten grouped commands so row menus remain directly actionable even in tight layouts.
+  // Group boundaries are represented with separators instead of nested submenus.
+  const items: MenuItem[] = [];
+  groups.forEach(([, groupCommands], groupIndex) => {
+    if (groupIndex > 0 && groupCommands.length > 0) {
+      items.push({ separator: true });
+    }
+    items.push(...groupCommands.map((command) => toMenuItem(command, context)));
+  });
+  return items;
 }
 
 function toMenuItem<TContext extends CommandContext>(command: Command<TContext>, context: TContext): MenuItem {

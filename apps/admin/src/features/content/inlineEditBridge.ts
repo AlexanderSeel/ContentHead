@@ -9,6 +9,7 @@ export type InlineSaveRequest = {
   force: boolean;
   delay: number;
   fieldPath: string;
+  editTargetId?: string;
 };
 
 export type HandleInlineEditPatchOptions = {
@@ -41,7 +42,9 @@ export function handleInlineEditPatchMessage(options: HandleInlineEditPatchOptio
   applied: boolean;
   reason?: 'missing_draft' | 'content_item_mismatch' | 'invalid_path' | 'apply_failed';
   fieldPath?: string;
+  editTargetId?: string;
 } {
+  const editTargetId = typeof options.message.editTargetId === 'string' ? options.message.editTargetId : undefined;
   if (!options.hasDraft) {
     return { handled: false, applied: false, reason: 'missing_draft' };
   }
@@ -59,21 +62,22 @@ export function handleInlineEditPatchMessage(options: HandleInlineEditPatchOptio
     propPath: options.message.propPath
   });
   if (!fieldPath) {
-    return { handled: false, applied: false, reason: 'invalid_path' };
+    return { handled: false, applied: false, reason: 'invalid_path', ...(editTargetId ? { editTargetId } : {}) };
   }
 
   if (typeof options.message.value !== 'string') {
-    return { handled: false, applied: false, reason: 'invalid_path' };
+    return { handled: false, applied: false, reason: 'invalid_path', ...(editTargetId ? { editTargetId } : {}) };
   }
   const applied = options.applyValueByPath(fieldPath, options.message.value);
   if (!applied) {
-    return { handled: true, applied: false, reason: 'apply_failed', fieldPath };
+    return { handled: true, applied: false, reason: 'apply_failed', fieldPath, ...(editTargetId ? { editTargetId } : {}) };
   }
 
   options.scheduleSave({
     force: options.message.type === 'CMS_INLINE_EDIT_COMMIT',
     delay: options.message.type === 'CMS_INLINE_EDIT_COMMIT' ? 20 : 900,
-    fieldPath
+    fieldPath,
+    ...(editTargetId ? { editTargetId } : {})
   });
-  return { handled: true, applied: true, fieldPath };
+  return { handled: true, applied: true, fieldPath, ...(editTargetId ? { editTargetId } : {}) };
 }

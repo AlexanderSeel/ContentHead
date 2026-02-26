@@ -7,8 +7,10 @@ import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 
-import { createAdminSdk } from '../../lib/sdk';
-import { getApiBaseUrl } from '../../lib/api';
+import { createSdk } from '@contenthead/sdk';
+import { formatErrorMessage } from '../../lib/graphqlErrorUi';
+import { getApiBaseUrl, getApiGraphqlUrl } from '../../lib/api';
+import { AssetImageEditorDialog } from '../../features/assets/AssetImageEditorDialog';
 
 type AssetRow = {
   id: number;
@@ -66,21 +68,45 @@ export function AssetPickerDialog({
   onHide: () => void;
   onApply: (assetIds: number[]) => void;
 }) {
-  const sdk = useMemo(() => createAdminSdk(token), [token]);
+  const sdk = useMemo(
+    () =>
+      createSdk({
+        endpoint: getApiGraphqlUrl(),
+        headersProvider: async () => (token ? { authorization: `Bearer ${token}` } : undefined)
+      }),
+    [token]
+  );
   const [search, setSearch] = useState('');
   const [folders, setFolders] = useState<FolderRow[]>([]);
   const [assets, setAssets] = useState<AssetRow[]>([]);
+  const [loadError, setLoadError] = useState('');
   const [activeFolderId, setActiveFolderId] = useState<number | null>(null);
   const [draftSelection, setDraftSelection] = useState<number[]>(selected);
   const [focusedAsset, setFocusedAsset] = useState<AssetRow | null>(null);
+  const [imageEditorAssetId, setImageEditorAssetId] = useState<number | null>(null);
 
   const refresh = async () => {
-    const [assetRes, folderRes] = await Promise.all([
+    const [assetRes, folderRes] = await Promise.allSettled([
       sdk.listAssets({ siteId, limit: 200, offset: 0, search: search || null, folderId: activeFolderId, tags: null }),
       sdk.listAssetFolders({ siteId })
     ]);
-    setAssets((assetRes.listAssets?.items ?? []) as AssetRow[]);
-    setFolders((folderRes.listAssetFolders ?? []) as FolderRow[]);
+
+    const errors: string[] = [];
+    if (assetRes.status === 'fulfilled') {
+      setAssets((assetRes.value.listAssets?.items ?? []) as AssetRow[]);
+    } else {
+      setAssets([]);
+      errors.push(`Assets: ${formatErrorMessage(assetRes.reason)}`);
+    }
+
+    if (folderRes.status === 'fulfilled') {
+      setFolders((folderRes.value.listAssetFolders ?? []) as FolderRow[]);
+    } else {
+      setFolders([]);
+      errors.push(`Folders: ${formatErrorMessage(folderRes.reason)}`);
+    }
+
+    setLoadError(errors.join(' '));
   };
 
   useEffect(() => {
@@ -88,10 +114,7 @@ export function AssetPickerDialog({
       return;
     }
     setDraftSelection(selected);
-    refresh().catch(() => {
-      setAssets([]);
-      setFolders([]);
-    });
+    refresh().catch((error: unknown) => setLoadError(`Unable to load assets. ${formatErrorMessage(error)}`));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, siteId, activeFolderId, search]);
 
@@ -164,6 +187,7 @@ export function AssetPickerDialog({
             <Column field="originalName" header="Name" />
             <Column field="title" header="Title" />
           </DataTable>
+          {loadError ? <small className="error-text">{loadError}</small> : null}
         </div>
 
         <div className="content-card p-3 col-12 xl:col-4">
@@ -178,6 +202,7 @@ export function AssetPickerDialog({
               <small>{focusedAsset.title || 'No title'}</small>
               <small>{focusedAsset.altText || 'No alt text'}</small>
               <small>{focusedAsset.description || 'No description'}</small>
+              <Button text label="Edit image" onClick={() => setImageEditorAssetId(focusedAsset.id)} />
             </div>
           ) : (
             <p className="muted">Select an asset for preview.</p>
@@ -195,6 +220,14 @@ export function AssetPickerDialog({
           disabled={draftSelection.length === 0}
         />
       </div>
+      <AssetImageEditorDialog
+        visible={imageEditorAssetId != null}
+        assetId={imageEditorAssetId}
+        token={token}
+        siteId={siteId}
+        onHide={() => setImageEditorAssetId(null)}
+        onSaved={() => refresh().catch(() => undefined)}
+      />
     </Dialog>
   );
 }

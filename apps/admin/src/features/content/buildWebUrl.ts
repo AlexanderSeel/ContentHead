@@ -10,6 +10,7 @@ type BuildWebUrlParams = {
   slug: string;
   previewToken?: string | null | undefined;
   authToken?: string | null | undefined;
+  apiUrl?: string | null | undefined;
   versionId?: number | null | undefined;
   previewMode: 'draft' | 'published';
   cmsBridge?: boolean;
@@ -33,6 +34,9 @@ export function buildWebUrl(params: BuildWebUrlParams): string {
     if (params.authToken) {
       query.set('authToken', params.authToken);
     }
+    if (params.apiUrl) {
+      query.set('apiUrl', params.apiUrl);
+    }
     if (params.cmsBridge) {
       query.set('cmsBridge', '1');
     }
@@ -49,6 +53,9 @@ export function buildWebUrl(params: BuildWebUrlParams): string {
   }
   if (params.authToken) {
     query.set('authToken', params.authToken);
+  }
+  if (params.apiUrl) {
+    query.set('apiUrl', params.apiUrl);
   }
   if (params.versionId) {
     query.set('versionId', String(params.versionId));

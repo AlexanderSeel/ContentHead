@@ -17,6 +17,7 @@ import { Tag } from 'primereact/tag';
 import { MultiSelect } from 'primereact/multiselect';
 
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
+import { getApiGraphqlUrl } from '../../lib/api';
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
@@ -45,10 +46,12 @@ import {
   componentRegistry,
   getComponentRegistryEntry,
   resolveComponentRegistry,
-  type ComponentTypeSetting
+  type ComponentTypeSetting,
+  type ComponentUiField
 } from './components/componentRegistry';
 import type { CmsActionId, CmsBridgeMessage, CmsActionsMessage, CmsActionRequestMessage } from './previewBridge';
-import { handleInlineEditPatchMessage, resolveInlineEditFieldPath } from './inlineEditBridge';
+import { handleInlineEditPatchMessage } from './inlineEditBridge';
+import { recordPreviewDiagnostics } from './previewDiagnostics';
 import { extensionInspectorPanels } from '../../extensions/core/registry';
 import { InspectorSection } from '../../ui/molecules';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
@@ -74,7 +77,18 @@ type CItem = {
   currentDraftVersionId?: number | null;
   currentPublishedVersionId?: number | null;
 };
-type CVersion = { id: number; versionNumber: number; fieldsJson: string; compositionJson: string; componentsJson: string; metadataJson: string; state: string; comment?: string | null };
+type CVersion = {
+  id: number;
+  versionNumber: number;
+  fieldsJson: string;
+  compositionJson: string;
+  componentsJson: string;
+  metadataJson: string;
+  state: string;
+  comment?: string | null;
+  createdAt?: string | null;
+  createdBy?: string | null;
+};
 type CRoute = { id: number; contentItemId: number; marketCode: string; localeCode: string; slug: string; isCanonical: boolean };
 type PageTreeNodeDto = {
   id: number;
@@ -117,9 +131,32 @@ type OnPageActionItem = { id: CmsActionId; label: string; primary?: boolean };
 type OnPageTarget = {
   contentItemId: number;
   versionId: number;
+  editTargetId?: string | null;
+  editKind?: 'text' | 'richtext' | 'link' | 'asset' | 'list' | null;
+  editMeta?: string | null;
   componentId: string | null;
   fieldPath: string | null;
   targetType: OnPageTargetType;
+};
+
+type OnPageListMode = 'object' | 'string' | 'number' | 'boolean' | 'json';
+
+type OnPageListDialogState = {
+  visible: boolean;
+  path: string;
+  items: unknown[];
+  draftJson: string;
+  mode: OnPageListMode;
+  objectKeys: string[];
+  itemFields: ComponentUiField[];
+};
+
+type OnPageListItemEditorState = {
+  index: number;
+  mode: Exclude<OnPageListMode, 'json'>;
+  value: unknown;
+  objectKeys: string[];
+  itemFields: ComponentUiField[];
 };
 
 type AiMode = 'copy' | 'props' | 'translate';
@@ -296,19 +333,36 @@ function fieldPathToKey(path: string | null): string | null {
 }
 
 function parseComponentFieldPath(path: string | null): { componentId: string; key: string } | null {
+  const parsed = parseComponentPath(path);
+  if (!parsed?.propPath) {
+    return null;
+  }
+  return { componentId: parsed.componentId, key: parsed.propPath };
+}
+
+function parseComponentPath(path: string | null): { componentId: string; propPath: string | null } | null {
   if (!path || !path.startsWith('components.')) {
     return null;
   }
   const parts = path.split('.');
+  const componentId = parts[1];
+  if (!componentId) {
+    return null;
+  }
+  if (parts.length === 2) {
+    return { componentId, propPath: null };
+  }
+  if (parts.length === 3 && parts[2] === 'props') {
+    return { componentId, propPath: null };
+  }
   if (parts.length < 4 || parts[2] !== 'props') {
     return null;
   }
-  const componentId = parts[1];
   const key = parts.slice(3).join('.');
-  if (!componentId || !key) {
+  if (!key) {
     return null;
   }
-  return { componentId, key };
+  return { componentId, propPath: key };
 }
 
 function setNestedValue<T>(input: T, path: string, value: unknown): T {
@@ -344,6 +398,24 @@ function setNestedValue<T>(input: T, path: string, value: unknown): T {
   const lastKey: string | number = /^\d+$/.test(lastRaw) ? Number(lastRaw) : lastRaw;
   cursor[lastKey] = value;
   return clone as T;
+}
+
+function looksLikeContentLinkValue(value: unknown): value is Partial<ContentLinkValue> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  const kind = candidate.kind;
+  if (kind === 'internal' || kind === 'external') {
+    return true;
+  }
+  return (
+    typeof candidate.url === 'string' ||
+    typeof candidate.text === 'string' ||
+    typeof candidate.target === 'string' ||
+    typeof candidate.contentItemId === 'number' ||
+    typeof candidate.routeSlug === 'string'
+  );
 }
 
 function sanitizeForAttribute(value: string): string {
@@ -658,6 +730,7 @@ export function ContentPagesPage() {
   const [routes, setRoutes] = useState<CRoute[]>([]);
   const [pageTree, setPageTree] = useState<PageTreeNodeDto[]>([]);
   const [versions, setVersions] = useState<CVersion[]>([]);
+  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
   const [draft, setDraft] = useState<CVersion | null>(null);
   const [fields, setFields] = useState<Record<string, unknown>>({});
   const [compositionJson, setCompositionJson] = useState('{"areas":[{"name":"main","components":[]}]}');
@@ -708,6 +781,7 @@ export function ContentPagesPage() {
   const [rawEditable, setRawEditable] = useState(false);
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
   const [selectedFieldPath, setSelectedFieldPath] = useState<string | null>(null);
+  const [selectedEditTargetId, setSelectedEditTargetId] = useState<string | null>(null);
   const [showAddComponent, setShowAddComponent] = useState(false);
   const [newComponentType, setNewComponentType] = useState(componentRegistry[0]?.id ?? 'hero');
   const [newComponentArea, setNewComponentArea] = useState('main');
@@ -731,6 +805,8 @@ export function ContentPagesPage() {
   const [onPageAssetPicker, setOnPageAssetPicker] = useState<{ visible: boolean; path: string; multiple: boolean; selected: number[] } | null>(null);
   const [onPageLinkPicker, setOnPageLinkPicker] = useState<{ visible: boolean; path: string; value: ContentLinkValue | null } | null>(null);
   const [onPageFormPicker, setOnPageFormPicker] = useState<{ visible: boolean; path: string; value: number | null } | null>(null);
+  const [onPageListDialog, setOnPageListDialog] = useState<OnPageListDialogState | null>(null);
+  const [onPageListItemEditor, setOnPageListItemEditor] = useState<OnPageListItemEditorState | null>(null);
   const [formOptions, setFormOptions] = useState<FormListRow[]>([]);
 
   useEffect(() => {
@@ -767,6 +843,7 @@ export function ContentPagesPage() {
   const lastSavedRef = useRef<string>('');
   const saveInFlightRef = useRef(false);
   const pendingSaveRef = useRef(false);
+  const inlineBridgeSaveRef = useRef(false);
 
   const selectedType = useMemo(() => {
     const item = items.find((entry) => entry.id === selectedItemId);
@@ -1034,7 +1111,26 @@ export function ContentPagesPage() {
     return fieldDef?.type ?? null;
   };
 
-  const resolveOnPageTargetType = (fieldPath: string | null, componentId: string | null): OnPageTargetType => {
+  const resolveOnPageTargetType = (
+    fieldPath: string | null,
+    componentId: string | null,
+    editKind?: string | null
+  ): OnPageTargetType => {
+    if (editKind === 'text') {
+      return 'text';
+    }
+    if (editKind === 'richtext') {
+      return 'richtext';
+    }
+    if (editKind === 'asset') {
+      return 'asset';
+    }
+    if (editKind === 'link') {
+      return 'link';
+    }
+    if (editKind === 'list') {
+      return componentId && !fieldPath ? 'component' : 'unknown';
+    }
     if (!fieldPath && componentId) {
       return 'component';
     }
@@ -1060,10 +1156,179 @@ export function ContentPagesPage() {
     return componentId && !fieldPath ? 'component' : 'unknown';
   };
 
+  const readCurrentValueByPath = (fieldPath: string): unknown => {
+    if (fieldPath.startsWith('fields.')) {
+      return fields[fieldPathToKey(fieldPath) ?? ''];
+    }
+    const parsedFieldPath = parseComponentFieldPath(fieldPath);
+    if (parsedFieldPath) {
+      const component = componentMap[parsedFieldPath.componentId];
+      return getNestedValue(component?.props ?? {}, parsedFieldPath.key);
+    }
+    const parsedComponentPath = parseComponentPath(fieldPath);
+    if (parsedComponentPath && parsedComponentPath.propPath == null) {
+      return componentMap[parsedComponentPath.componentId]?.props ?? null;
+    }
+    return null;
+  };
+
+  const findFirstArrayPath = (value: unknown, prefix = ''): string | null => {
+    if (Array.isArray(value)) {
+      return prefix || null;
+    }
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      const nextPrefix = prefix ? `${prefix}.${key}` : key;
+      if (Array.isArray(entry)) {
+        return nextPrefix;
+      }
+      const nested = findFirstArrayPath(entry, nextPrefix);
+      if (nested) {
+        return nested;
+      }
+    }
+    return null;
+  };
+
+  const resolveNearestArrayPath = (fieldPath: string, componentId: string | null): string => {
+    let candidate = fieldPath;
+    let current = readCurrentValueByPath(candidate);
+    if (Array.isArray(current)) {
+      return candidate;
+    }
+    while (candidate.includes('.')) {
+      candidate = candidate.slice(0, candidate.lastIndexOf('.'));
+      current = readCurrentValueByPath(candidate);
+      if (Array.isArray(current)) {
+        return candidate;
+      }
+    }
+
+    const parsedComponentPath = parseComponentPath(fieldPath);
+    const resolvedComponentId = componentId ?? parsedComponentPath?.componentId ?? null;
+    if (!resolvedComponentId) {
+      return fieldPath;
+    }
+    const component = componentMap[resolvedComponentId];
+    if (!component) {
+      return fieldPath;
+    }
+    const registryEntry = resolvedComponentRegistryMap.get(component.type) ?? getComponentRegistryEntry(component.type);
+    const listField = registryEntry?.fields.find(
+      (entry) =>
+        entry.type === 'objectList' ||
+        entry.type === 'stringList' ||
+        entry.type === 'assetList' ||
+        entry.type === 'contentLinkList'
+    );
+    if (listField) {
+      const registryPath = `components.${resolvedComponentId}.props.${listField.key}`;
+      if (Array.isArray(readCurrentValueByPath(registryPath))) {
+        return registryPath;
+      }
+    }
+
+    const fallbackPath = findFirstArrayPath(component.props ?? {});
+    if (fallbackPath) {
+      return `components.${resolvedComponentId}.props.${fallbackPath}`;
+    }
+    return fieldPath;
+  };
+
+  const resolveComponentFieldByPath = (fieldPath: string): ComponentUiField | null => {
+    const parsed = parseComponentFieldPath(fieldPath);
+    if (!parsed) {
+      return null;
+    }
+    const component = componentMap[parsed.componentId];
+    if (!component) {
+      return null;
+    }
+    const entry = resolvedComponentRegistryMap.get(component.type) ?? getComponentRegistryEntry(component.type);
+    if (!entry) {
+      return null;
+    }
+
+    const segments = parsed.key.split('.').filter(Boolean);
+    let fieldsCursor: ComponentUiField[] = entry.fields;
+    let current: ComponentUiField | null = null;
+
+    for (const segment of segments) {
+      if (/^\d+$/.test(segment)) {
+        if (current?.type === 'objectList' && Array.isArray(current.fields) && current.fields.length > 0) {
+          fieldsCursor = current.fields;
+          current = null;
+        }
+        continue;
+      }
+      const next = fieldsCursor.find((field) => field.key === segment) ?? null;
+      if (!next) {
+        return null;
+      }
+      current = next;
+      fieldsCursor = next.type === 'objectList' && Array.isArray(next.fields) ? next.fields : [];
+    }
+
+    return current;
+  };
+
+  const inferObjectKeysFromItems = (items: unknown[]): string[] => {
+    const keySet = new Set<string>();
+    for (const item of items) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        continue;
+      }
+      Object.keys(item).forEach((key) => keySet.add(key));
+    }
+    return Array.from(keySet);
+  };
+
+  const inferListMode = (items: unknown[], itemFields: ComponentUiField[], objectKeys: string[]): OnPageListMode => {
+    if (itemFields.length > 0) {
+      return 'object';
+    }
+    if (items.length === 0) {
+      return objectKeys.length > 0 ? 'object' : 'json';
+    }
+    if (items.every((item) => typeof item === 'string')) {
+      return 'string';
+    }
+    if (items.every((item) => typeof item === 'number')) {
+      return 'number';
+    }
+    if (items.every((item) => typeof item === 'boolean')) {
+      return 'boolean';
+    }
+    if (items.every((item) => item && typeof item === 'object' && !Array.isArray(item))) {
+      return objectKeys.length > 0 ? 'object' : 'json';
+    }
+    return 'json';
+  };
+
+  const buildOnPageListDialogState = (path: string, items: unknown[]): OnPageListDialogState => {
+    const listField = resolveComponentFieldByPath(path);
+    const itemFields = listField?.type === 'objectList' && Array.isArray(listField.fields) ? listField.fields : [];
+    const objectKeys = itemFields.length > 0 ? itemFields.map((field) => field.key) : inferObjectKeysFromItems(items);
+    const mode = inferListMode(items, itemFields, objectKeys);
+    return {
+      visible: true,
+      path,
+      items,
+      draftJson: JSON.stringify(items, null, 2),
+      mode,
+      objectKeys,
+      itemFields
+    };
+  };
+
   const resolveOnPageActions = (target: OnPageTarget): OnPageActionItem[] => {
     const actions: OnPageActionItem[] = [];
     const isComponentRoot = Boolean(target.componentId) && (!target.fieldPath || target.fieldPath === `components.${target.componentId}`);
     const canMutate = draft != null && draft.state !== 'PUBLISHED';
+    const fieldType = resolvePathFieldType(target.fieldPath);
+    const isLinkListField = fieldType === 'contentLinkList';
     const push = (id: CmsActionId, label: string, primary = false) => {
       if (!actions.some((entry) => entry.id === id)) {
         actions.push({ id, label, primary });
@@ -1076,8 +1341,26 @@ export function ContentPagesPage() {
     if (target.targetType === 'text' || target.targetType === 'richtext') {
       push('clear', 'Clear');
     }
-    if (target.targetType === 'asset' || target.targetType === 'link' || target.targetType === 'form') {
+    if (target.targetType === 'asset' || target.targetType === 'form') {
       push('replace', 'Replace', true);
+    }
+    if (target.targetType === 'asset') {
+      push('clear', 'Clear');
+    }
+    if (target.targetType === 'link') {
+      if (isLinkListField) {
+        push('manage_items', 'Manage Items', true);
+      } else {
+        push('replace', 'Replace', true);
+        push('open', 'Open');
+        push('unlink', 'Unlink');
+      }
+    }
+    if (target.editKind === 'list') {
+      const listPath = target.fieldPath ? resolveNearestArrayPath(target.fieldPath, target.componentId) : null;
+      if (listPath && Array.isArray(readCurrentValueByPath(listPath))) {
+        push('manage_items', 'Manage Items', true);
+      }
     }
     if (isComponentRoot) {
       push('duplicate', 'Duplicate');
@@ -1095,6 +1378,11 @@ export function ContentPagesPage() {
     const item = items.find((entry) => entry.id === selectedItemId);
     return getItemStatus(item);
   }, [items, selectedItemId]);
+
+  const selectedVersion = useMemo(
+    () => versions.find((entry) => entry.id === selectedVersionId) ?? null,
+    [versions, selectedVersionId]
+  );
 
   const canInlineEdit = Boolean(draft) && draft?.state !== 'PUBLISHED';
 
@@ -1114,6 +1402,7 @@ export function ContentPagesPage() {
         slug: activeRoute.slug,
         previewToken,
         authToken: token ?? undefined,
+        apiUrl: getApiGraphqlUrl(),
         versionId: draft?.id,
         previewMode,
         cmsBridge: true,
@@ -1126,6 +1415,11 @@ export function ContentPagesPage() {
     if (!target) {
       return;
     }
+    recordPreviewDiagnostics({
+      direction: 'to_preview',
+      event: message.type,
+      payload: message
+    });
     target.postMessage(message, '*');
   };
 
@@ -1138,22 +1432,58 @@ export function ContentPagesPage() {
     }, delay);
   };
 
-  const scheduleInlineSave = (request: { force: boolean; delay: number; fieldPath: string }) => {
+  const scheduleInlineSave = (request: { force: boolean; delay: number; fieldPath: string; editTargetId?: string }) => {
     if (inlineSaveTimerRef.current) {
       window.clearTimeout(inlineSaveTimerRef.current);
     }
     inlineSaveTimerRef.current = window.setTimeout(() => {
+      inlineBridgeSaveRef.current = true;
       saveDraft({ force: request.force, silent: true, refreshPreview: false })
-        .then(() => setInlineSaveError(''))
+        .then(() => {
+          setInlineSaveError('');
+          recordPreviewDiagnostics({
+            direction: 'save',
+            event: request.force ? 'INLINE_COMMIT_SAVE' : 'INLINE_PATCH_SAVE',
+            ok: true,
+            payload: request
+          });
+          if (request.force) {
+            sendPreviewMessage({
+              type: 'CMS_ACTION_RESULT',
+              ok: true,
+              requestType: 'inline_commit',
+              editTargetId: request.editTargetId,
+              fieldPath: request.fieldPath
+            });
+          }
+        })
         .catch((error: unknown) => {
           const message = formatErrorMessage(error);
           setInlineSaveError(message);
+          recordPreviewDiagnostics({
+            direction: 'save',
+            event: request.force ? 'INLINE_COMMIT_SAVE' : 'INLINE_PATCH_SAVE',
+            ok: false,
+            payload: { ...request, message }
+          });
+          sendPreviewMessage({
+            type: 'CMS_ACTION_RESULT',
+            ok: false,
+            requestType: request.force ? 'inline_commit' : 'inline_patch',
+            editTargetId: request.editTargetId,
+            fieldPath: request.fieldPath,
+            message
+          });
           sendPreviewMessage({
             type: 'CMS_INLINE_EDIT_ERROR',
+            editTargetId: request.editTargetId,
             fieldPath: request.fieldPath,
             message
           });
           setStatus(message);
+        })
+        .finally(() => {
+          inlineBridgeSaveRef.current = false;
         });
     }, request.delay);
   };
@@ -1248,21 +1578,24 @@ export function ContentPagesPage() {
   };
 
   const resolveOnPageTarget = (
-    message: Pick<CmsActionRequestMessage, 'contentItemId' | 'versionId' | 'componentId' | 'fieldPath' | 'propPath'>
+    message: Pick<
+      CmsActionRequestMessage,
+      'contentItemId' | 'versionId' | 'componentId' | 'fieldPath' | 'editTargetId' | 'editKind' | 'editMeta'
+    >
   ): OnPageTarget | null => {
     if (!selectedItemId || Number(message.contentItemId) !== selectedItemId) {
       return null;
     }
     const componentId = typeof message.componentId === 'string' ? message.componentId : null;
-    const fieldPath = resolveInlineEditFieldPath({
-      fieldPath: typeof message.fieldPath === 'string' ? message.fieldPath : null,
-      componentId,
-      propPath: typeof message.propPath === 'string' ? message.propPath : null
-    });
-    const targetType = resolveOnPageTargetType(fieldPath, componentId);
+    const fieldPath = typeof message.fieldPath === 'string' ? message.fieldPath : null;
+    const editKind = typeof message.editKind === 'string' ? message.editKind : null;
+    const targetType = resolveOnPageTargetType(fieldPath, componentId, editKind);
     return {
       contentItemId: Number(message.contentItemId),
       versionId: Number(message.versionId),
+      editTargetId: typeof message.editTargetId === 'string' ? message.editTargetId : null,
+      editKind,
+      editMeta: typeof message.editMeta === 'string' ? message.editMeta : null,
       componentId,
       fieldPath,
       targetType
@@ -1274,6 +1607,7 @@ export function ContentPagesPage() {
       type: 'CMS_ACTIONS',
       contentItemId: target?.contentItemId ?? selectedItemId ?? 0,
       versionId: target?.versionId ?? (draft?.id ?? 0),
+      editTargetId: target?.editTargetId ?? undefined,
       componentId: target?.componentId ?? undefined,
       fieldPath: target?.fieldPath ?? undefined,
       targetType: target?.targetType ?? 'unknown',
@@ -1288,6 +1622,41 @@ export function ContentPagesPage() {
       return;
     }
 
+    if (request.action === 'open' && target.fieldPath) {
+      const current = readCurrentValueByPath(target.fieldPath);
+      let href = '';
+      if (current && typeof current === 'object' && !Array.isArray(current)) {
+        const link = current as ContentLinkValue;
+        href = link.url ?? '';
+      } else if (Array.isArray(current) && current[0] && typeof current[0] === 'object') {
+        const link = current[0] as ContentLinkValue;
+        href = link.url ?? '';
+      }
+      if (href.trim()) {
+        window.open(href, '_blank', 'noopener,noreferrer');
+        sendPreviewMessage({
+          type: 'CMS_ACTION_RESULT',
+          ok: true,
+          requestType: 'action',
+          editTargetId: target.editTargetId ?? undefined,
+          fieldPath: target.fieldPath,
+          componentId: target.componentId ?? undefined,
+          message: 'Opened link'
+        });
+      } else {
+        sendPreviewMessage({
+          type: 'CMS_ACTION_RESULT',
+          ok: false,
+          requestType: 'action',
+          editTargetId: target.editTargetId ?? undefined,
+          fieldPath: target.fieldPath,
+          componentId: target.componentId ?? undefined,
+          message: 'No link URL configured'
+        });
+      }
+      return;
+    }
+
     if (!draft || draft.state === 'PUBLISHED') {
       return;
     }
@@ -1298,16 +1667,7 @@ export function ContentPagesPage() {
         setSelectedComponentId(target.componentId);
       }
       if (target.targetType === 'asset') {
-        const current = target.fieldPath.startsWith('fields.')
-          ? fields[fieldPathToKey(target.fieldPath) ?? '']
-          : (() => {
-              const parsed = parseComponentFieldPath(target.fieldPath);
-              if (!parsed) {
-                return null;
-              }
-              const component = componentMap[parsed.componentId];
-              return getNestedValue(component?.props ?? {}, parsed.key);
-            })();
+        const current = readCurrentValueByPath(target.fieldPath);
         const selected =
           typeof current === 'number'
             ? [current]
@@ -1319,31 +1679,13 @@ export function ContentPagesPage() {
         return;
       }
       if (target.targetType === 'link') {
-        const current = target.fieldPath.startsWith('fields.')
-          ? fields[fieldPathToKey(target.fieldPath) ?? '']
-          : (() => {
-              const parsed = parseComponentFieldPath(target.fieldPath);
-              if (!parsed) {
-                return null;
-              }
-              const component = componentMap[parsed.componentId];
-              return getNestedValue(component?.props ?? {}, parsed.key);
-            })();
+        const current = readCurrentValueByPath(target.fieldPath);
         const value = current && typeof current === 'object' && !Array.isArray(current) ? (current as ContentLinkValue) : null;
         setOnPageLinkPicker({ visible: true, path: target.fieldPath, value });
         return;
       }
       if (target.targetType === 'form') {
-        const current = target.fieldPath.startsWith('fields.')
-          ? fields[fieldPathToKey(target.fieldPath) ?? '']
-          : (() => {
-              const parsed = parseComponentFieldPath(target.fieldPath);
-              if (!parsed) {
-                return null;
-              }
-              const component = componentMap[parsed.componentId];
-              return getNestedValue(component?.props ?? {}, parsed.key);
-            })();
+        const current = readCurrentValueByPath(target.fieldPath);
         setOnPageFormPicker({
           visible: true,
           path: target.fieldPath,
@@ -1353,8 +1695,58 @@ export function ContentPagesPage() {
       return;
     }
 
+    if (request.action === 'manage_items' && target.fieldPath) {
+      const listPath = resolveNearestArrayPath(target.fieldPath, target.componentId);
+      const current = readCurrentValueByPath(listPath);
+      if (!Array.isArray(current)) {
+        sendPreviewMessage({
+          type: 'CMS_ACTION_RESULT',
+          ok: false,
+          requestType: 'action',
+          editTargetId: target.editTargetId ?? undefined,
+          fieldPath: target.fieldPath,
+          componentId: target.componentId ?? undefined,
+          message: 'No list field resolved for this target'
+        });
+        return;
+      }
+      setOnPageListItemEditor(null);
+      setOnPageListDialog(buildOnPageListDialogState(listPath, [...current]));
+      return;
+    }
+
+    if (request.action === 'unlink' && target.fieldPath) {
+      const current = readCurrentValueByPath(target.fieldPath);
+      const nextValue = Array.isArray(current) ? [] : null;
+      setValueByPath(target.fieldPath, nextValue);
+      sendPreviewMessage({
+        type: 'CMS_ACTION_RESULT',
+        ok: true,
+        requestType: 'action',
+        editTargetId: target.editTargetId ?? undefined,
+        fieldPath: target.fieldPath,
+        componentId: target.componentId ?? undefined,
+        message: 'Link cleared'
+      });
+      return;
+    }
+
     if (request.action === 'clear' && target.fieldPath) {
-      setValueByPath(target.fieldPath, '');
+      const current = readCurrentValueByPath(target.fieldPath);
+      const nextValue =
+        target.targetType === 'asset' || target.targetType === 'link' || target.targetType === 'form'
+          ? Array.isArray(current) ? [] : null
+          : Array.isArray(current) ? [] : '';
+      setValueByPath(target.fieldPath, nextValue);
+      sendPreviewMessage({
+        type: 'CMS_ACTION_RESULT',
+        ok: true,
+        requestType: 'action',
+        editTargetId: target.editTargetId ?? undefined,
+        fieldPath: target.fieldPath,
+        componentId: target.componentId ?? undefined,
+        message: 'Cleared'
+      });
       return;
     }
 
@@ -1370,6 +1762,14 @@ export function ContentPagesPage() {
       setSelectedComponentId(null);
       setSelectedFieldPath(null);
       scheduleDraftSave(true, 50);
+      sendPreviewMessage({
+        type: 'CMS_ACTION_RESULT',
+        ok: true,
+        requestType: 'action',
+        editTargetId: target.editTargetId ?? undefined,
+        componentId: target.componentId ?? undefined,
+        message: 'Component deleted'
+      });
       return;
     }
 
@@ -1392,6 +1792,14 @@ export function ContentPagesPage() {
       setSelectedComponentId(duplicateId);
       setSelectedFieldPath(`components.${duplicateId}`);
       scheduleDraftSave(true, 50);
+      sendPreviewMessage({
+        type: 'CMS_ACTION_RESULT',
+        ok: true,
+        requestType: 'action',
+        editTargetId: target.editTargetId ?? undefined,
+        componentId: duplicateId,
+        message: 'Component duplicated'
+      });
       return;
     }
 
@@ -1401,6 +1809,14 @@ export function ContentPagesPage() {
       setSelectedComponentId(target.componentId);
       setSelectedFieldPath(`components.${target.componentId}`);
       scheduleDraftSave(true, 50);
+      sendPreviewMessage({
+        type: 'CMS_ACTION_RESULT',
+        ok: true,
+        requestType: 'action',
+        editTargetId: target.editTargetId ?? undefined,
+        componentId: target.componentId ?? undefined,
+        message: request.action === 'move_up' ? 'Moved up' : 'Moved down'
+      });
     }
   };
 
@@ -1482,7 +1898,17 @@ export function ContentPagesPage() {
       }
 
       const versionsRes = await sdk.listVersions({ contentItemId: id });
-      setVersions((versionsRes.listVersions ?? []) as CVersion[]);
+      const listedVersions = (versionsRes.listVersions ?? []) as CVersion[];
+      setVersions(listedVersions);
+      setSelectedVersionId((prev) => {
+        if (prev && listedVersions.some((entry) => entry.id === prev)) {
+          return prev;
+        }
+        if (activeVersion && listedVersions.some((entry) => entry.id === activeVersion.id)) {
+          return activeVersion.id;
+        }
+        return listedVersions[0]?.id ?? null;
+      });
       const setsRes = await sdk.listVariantSets({ siteId, contentItemId: id, marketCode, localeCode });
       const sets = (setsRes.listVariantSets ?? []) as VariantSet[];
       setVariantSets(sets);
@@ -1563,14 +1989,23 @@ export function ContentPagesPage() {
     if (!selectedItemId) {
       setDraft(null);
       setVersions([]);
+      setSelectedVersionId(null);
       setVariantSets([]);
       setVariants([]);
       setSelectedComponentId(null);
       setSelectedFieldPath(null);
+      setSelectedEditTargetId(null);
       return;
     }
     loadItem(selectedItemId).catch((error: unknown) => setStatus(formatErrorMessage(error)));
   }, [selectedItemId, siteId, marketCode, localeCode]);
+
+  useEffect(() => {
+    if (!selectedVersion) {
+      return;
+    }
+    setVariantDraft((prev) => ({ ...prev, contentVersionId: selectedVersion.id }));
+  }, [selectedVersion]);
 
   useEffect(() => {
     sdk
@@ -1591,6 +2026,11 @@ export function ContentPagesPage() {
       if (!payload?.type) {
         return;
       }
+      recordPreviewDiagnostics({
+        direction: 'from_preview',
+        event: payload.type,
+        payload
+      });
 
       if (payload.type === 'CMS_ACTION_REQUEST') {
         const request = payload as CmsActionRequestMessage;
@@ -1605,6 +2045,7 @@ export function ContentPagesPage() {
       }
 
       if (payload.type === 'CMS_INLINE_EDIT_PATCH' || payload.type === 'CMS_INLINE_EDIT_COMMIT') {
+        inlineBridgeSaveRef.current = true;
         const result = handleInlineEditPatchMessage({
           selectedItemId,
           hasDraft: Boolean(draft),
@@ -1613,11 +2054,24 @@ export function ContentPagesPage() {
           scheduleSave: scheduleInlineSave
         });
         if (result.handled && !result.applied && result.fieldPath) {
+          inlineBridgeSaveRef.current = false;
           sendPreviewMessage({
             type: 'CMS_INLINE_EDIT_ERROR',
+            editTargetId: result.editTargetId,
             fieldPath: result.fieldPath,
             message: 'Inline change was not applied.'
           });
+          sendPreviewMessage({
+            type: 'CMS_ACTION_RESULT',
+            ok: false,
+            requestType: payload.type === 'CMS_INLINE_EDIT_COMMIT' ? 'inline_commit' : 'inline_patch',
+            editTargetId: result.editTargetId,
+            fieldPath: result.fieldPath,
+            message: 'Inline change was not applied.'
+          });
+        }
+        if (!result.handled) {
+          inlineBridgeSaveRef.current = false;
         }
         return;
       }
@@ -1635,11 +2089,32 @@ export function ContentPagesPage() {
       }
 
       const componentId = typeof payload.componentId === 'string' ? payload.componentId : null;
-      const fieldPath = resolveInlineEditFieldPath({
-        fieldPath: typeof payload.fieldPath === 'string' ? payload.fieldPath : null,
+      const fieldPath = typeof payload.fieldPath === 'string' ? payload.fieldPath : null;
+      const editTargetId = typeof payload.editTargetId === 'string' ? payload.editTargetId : null;
+      const editKind = typeof payload.editKind === 'string' ? payload.editKind : null;
+      const isInlineTextSelection = canInlineEdit && (editKind === 'text' || editKind === 'richtext');
+
+      const targetType = resolveOnPageTargetType(fieldPath, componentId, editKind);
+      const target: OnPageTarget = {
+        contentItemId: selectedItemId,
+        versionId: draft?.id ?? 0,
+        editTargetId,
+        editKind,
+        editMeta: null,
         componentId,
-        propPath: typeof payload.propPath === 'string' ? payload.propPath : null
-      });
+        fieldPath,
+        targetType
+      };
+
+      if (isInlineTextSelection) {
+        // Root cause fix: parent-side React state updates on every CMS_SELECT can steal focus
+        // from the iframe right after the caret appears. For inline text/richtext we avoid
+        // selection state churn and only return available actions.
+        sendOnPageActions(target);
+        return;
+      }
+
+      setSelectedEditTargetId(editTargetId);
 
       if (componentId) {
         setSelectedComponentId(componentId);
@@ -1658,14 +2133,6 @@ export function ContentPagesPage() {
         focusEditorByPath(fieldPath);
       }
 
-      const targetType = resolveOnPageTargetType(fieldPath, componentId);
-      const target: OnPageTarget = {
-        contentItemId: selectedItemId,
-        versionId: draft?.id ?? 0,
-        componentId,
-        fieldPath,
-        targetType
-      };
       sendOnPageActions(target);
     };
 
@@ -1681,12 +2148,16 @@ export function ContentPagesPage() {
     resolveOnPageTargetType,
     sendOnPageActions,
     executeOnPageAction,
+    canInlineEdit,
     scheduleDraftSave,
     scheduleInlineSave
   ]);
 
   useEffect(() => {
     if (!draft || loadingItem) {
+      return;
+    }
+    if (inlineBridgeSaveRef.current) {
       return;
     }
     const snapshot = JSON.stringify({
@@ -1708,6 +2179,7 @@ export function ContentPagesPage() {
 
     sendPreviewMessage({
       type: 'CMS_HIGHLIGHT',
+      editTargetId: selectedEditTargetId ?? undefined,
       componentId: selectedComponentId ?? undefined,
       fieldPath: selectedFieldPath ?? undefined,
       richTextFeatures: resolveRichTextFeatures(selectedFieldPath)
@@ -1716,7 +2188,7 @@ export function ContentPagesPage() {
     if (selectedComponentId) {
       sendPreviewMessage({ type: 'CMS_SCROLL_TO', componentId: selectedComponentId });
     }
-  }, [selectedComponentId, selectedFieldPath, previewIframeUrl, previewReloadKey]);
+  }, [selectedEditTargetId, selectedComponentId, selectedFieldPath, previewIframeUrl, previewReloadKey]);
 
   useEffect(() => {
     if (!previewIframeUrl) {
@@ -1834,6 +2306,96 @@ export function ContentPagesPage() {
     }
   };
 
+  const publishSelectedVersion = async () => {
+    if (!selectedVersion || selectedVersion.state === 'ARCHIVED') {
+      return;
+    }
+    await sdk.publishVersion({
+      versionId: selectedVersion.id,
+      expectedVersionNumber: selectedVersion.versionNumber,
+      by: 'admin'
+    });
+    if (selectedItemId) {
+      await loadItem(selectedItemId);
+      setPreviewReloadKey((prev) => prev + 1);
+      toast({ severity: 'success', summary: `Published v${selectedVersion.versionNumber}` });
+    }
+  };
+
+  const rollbackToSelectedVersion = async () => {
+    if (!selectedItemId || !selectedVersion) {
+      return;
+    }
+    await sdk.rollbackToVersion({
+      contentItemId: selectedItemId,
+      versionId: selectedVersion.id,
+      by: 'admin'
+    });
+    await loadItem(selectedItemId);
+    setPreviewReloadKey((prev) => prev + 1);
+    toast({ severity: 'success', summary: `Loaded v${selectedVersion.versionNumber} into draft` });
+  };
+
+  const archiveSelectedVersion = async () => {
+    if (!selectedVersion || selectedVersion.state === 'ARCHIVED') {
+      return;
+    }
+    await sdk.archiveVersion({ versionId: selectedVersion.id, by: 'admin' });
+    if (selectedItemId) {
+      await loadItem(selectedItemId);
+      toast({ severity: 'success', summary: `Deleted v${selectedVersion.versionNumber}` });
+    }
+  };
+
+  const createVariantFromSelectedVersion = async () => {
+    if (!selectedItemId || !selectedVersion) {
+      return;
+    }
+
+    let targetVariantSetId = variantSetId;
+    if (!targetVariantSetId) {
+      const upserted = await sdk.upsertVariantSet({
+        id: null,
+        siteId,
+        contentItemId: selectedItemId,
+        marketCode,
+        localeCode,
+        active: true,
+        fallbackVariantSetId: null
+      });
+      targetVariantSetId = upserted.upsertVariantSet?.id ?? null;
+      setVariantSetId(targetVariantSetId);
+    }
+
+    if (!targetVariantSetId) {
+      return;
+    }
+
+    const existingKeys = new Set(variants.map((entry) => entry.key));
+    const baseKey = `v${selectedVersion.versionNumber}`;
+    let key = baseKey;
+    let suffix = 2;
+    while (existingKeys.has(key)) {
+      key = `${baseKey}_${suffix}`;
+      suffix += 1;
+    }
+
+    await sdk.upsertVariant({
+      variantSetId: targetVariantSetId,
+      key,
+      priority: 100,
+      state: 'ACTIVE',
+      ruleJson: '{}',
+      trafficAllocation: 100,
+      contentVersionId: selectedVersion.id
+    });
+    if (selectedItemId) {
+      await loadItem(selectedItemId);
+      setCenterTabIndex(4);
+      toast({ severity: 'success', summary: `Variant ${key} created from v${selectedVersion.versionNumber}` });
+    }
+  };
+
   const copyText = async (label: string, value: string) => {
     if (!value.trim()) {
       toast({ severity: 'warn', summary: `${label} is empty.` });
@@ -1859,6 +2421,7 @@ export function ContentPagesPage() {
       slug: targetRoute.slug,
       previewToken,
       authToken: token ?? undefined,
+      apiUrl: getApiGraphqlUrl(),
       versionId: row ? undefined : draft?.id,
       previewMode: draft && draft.state !== 'PUBLISHED' ? 'draft' : 'published',
       cmsBridge: true
@@ -2158,6 +2721,158 @@ export function ContentPagesPage() {
     setOnPageFormPicker(null);
   };
 
+  const applyOnPageListSelection = () => {
+    if (!onPageListDialog) {
+      return;
+    }
+    const source = onPageListDialog.mode === 'json' ? onPageListDialog.draftJson : JSON.stringify(onPageListDialog.items);
+    try {
+      const parsed = JSON.parse(source) as unknown;
+      if (!Array.isArray(parsed)) {
+        setStatus('List dialog expects a JSON array.');
+        return;
+      }
+      setValueByPath(onPageListDialog.path, parsed);
+      setOnPageListItemEditor(null);
+      setOnPageListDialog(null);
+      setStatus('');
+    } catch {
+      setStatus('Invalid list JSON. Keep a valid array structure.');
+    }
+  };
+
+  const setOnPageListItems = (items: unknown[]) => {
+    setOnPageListDialog((prev) => {
+      if (!prev) {
+        return prev;
+      }
+      return {
+        ...prev,
+        items,
+        draftJson: JSON.stringify(items, null, 2)
+      };
+    });
+  };
+
+  const addOnPageListItem = () => {
+    if (!onPageListDialog) {
+      return;
+    }
+    const base = [...onPageListDialog.items];
+    if (onPageListDialog.mode === 'object') {
+      const nextObject: Record<string, unknown> = {};
+      const keys = onPageListDialog.objectKeys.length > 0 ? onPageListDialog.objectKeys : ['value'];
+      keys.forEach((key) => {
+        const field = onPageListDialog.itemFields.find((entry) => entry.key === key);
+        if (field?.type === 'number') {
+          nextObject[key] = 0;
+        } else if (field?.type === 'boolean') {
+          nextObject[key] = false;
+        } else if (field?.type === 'stringList') {
+          nextObject[key] = [];
+        } else {
+          nextObject[key] = '';
+        }
+      });
+      base.push(nextObject);
+      setOnPageListItems(base);
+      return;
+    }
+    if (onPageListDialog.mode === 'number') {
+      base.push(0);
+    } else if (onPageListDialog.mode === 'boolean') {
+      base.push(false);
+    } else {
+      base.push('');
+    }
+    setOnPageListItems(base);
+  };
+
+  const moveOnPageListItem = (index: number, direction: -1 | 1) => {
+    if (!onPageListDialog) {
+      return;
+    }
+    const target = index + direction;
+    if (target < 0 || target >= onPageListDialog.items.length) {
+      return;
+    }
+    const next = [...onPageListDialog.items];
+    const [current] = next.splice(index, 1);
+    next.splice(target, 0, current);
+    setOnPageListItems(next);
+  };
+
+  const removeOnPageListItem = (index: number) => {
+    if (!onPageListDialog) {
+      return;
+    }
+    const next = onPageListDialog.items.filter((_, entryIndex) => entryIndex !== index);
+    setOnPageListItems(next);
+  };
+
+  const openOnPageListItemEditor = (index: number) => {
+    if (!onPageListDialog) {
+      return;
+    }
+    const value = onPageListDialog.items[index];
+    if (onPageListDialog.mode === 'json') {
+      return;
+    }
+    setOnPageListItemEditor({
+      index,
+      mode: onPageListDialog.mode,
+      value:
+        onPageListDialog.mode === 'object' && value && typeof value === 'object' && !Array.isArray(value)
+          ? { ...(value as Record<string, unknown>) }
+          : value,
+      objectKeys: onPageListDialog.objectKeys,
+      itemFields: onPageListDialog.itemFields
+    });
+  };
+
+  const applyOnPageListItemEditor = () => {
+    if (!onPageListDialog || !onPageListItemEditor) {
+      return;
+    }
+    const next = [...onPageListDialog.items];
+    next[onPageListItemEditor.index] = onPageListItemEditor.value;
+    setOnPageListItems(next);
+    setOnPageListItemEditor(null);
+  };
+
+  const setOnPageListObjectFieldValue = (key: string, nextValue: unknown) => {
+    setOnPageListItemEditor((prev) => {
+      if (!prev || !prev.value || typeof prev.value !== 'object' || Array.isArray(prev.value)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        value: {
+          ...(prev.value as Record<string, unknown>),
+          [key]: nextValue
+        }
+      };
+    });
+  };
+
+  const applyOnPageListJsonDraft = () => {
+    if (!onPageListDialog) {
+      return;
+    }
+    try {
+      const parsed = JSON.parse(onPageListDialog.draftJson) as unknown;
+      if (!Array.isArray(parsed)) {
+        setStatus('List dialog expects a JSON array.');
+        return;
+      }
+      setOnPageListDialog(buildOnPageListDialogState(onPageListDialog.path, parsed));
+      setOnPageListItemEditor(null);
+      setStatus('');
+    } catch {
+      setStatus('Invalid list JSON. Keep a valid array structure.');
+    }
+  };
+
   const applyAiSuggestion = () => {
     const key = fieldPathToKey(selectedFieldPath);
     if (aiMode === 'copy' && key) {
@@ -2274,7 +2989,7 @@ export function ContentPagesPage() {
         if (currentLeft > 10) {
           leftPaneExpandedSizeRef.current = currentLeft;
         }
-        const collapsedSizes: number[] = [8, 92];
+        const collapsedSizes: number[] = [4, 96];
         setWorkspaceSizes(collapsedSizes);
         window.localStorage.setItem('content-pages.workspace.sizes', JSON.stringify(collapsedSizes));
       } else {
@@ -2560,16 +3275,47 @@ export function ContentPagesPage() {
             </div>
           </TabPanel>
           <TabPanel header="Versions">
-            <DataTable value={versions} size="small">
-              <Column field="versionNumber" header="Version" />
-              <Column field="state" header="State" />
-              <Column field="comment" header="Comment" />
-              <Column
-                header="Rollback"
-                body={(row: CVersion) => (
-                  <Button text label="Rollback" onClick={() => sdk.rollbackToVersion({ contentItemId: selectedItemId, versionId: row.id, by: 'admin' }).then(() => loadItem(selectedItemId))} />
-                )}
+            <div className="inline-actions mb-2">
+              <Button
+                label="Use Selected As Draft"
+                severity="secondary"
+                onClick={() => rollbackToSelectedVersion().catch((e: unknown) => setStatus(formatErrorMessage(e)))}
+                disabled={!selectedVersion}
               />
+              <Button
+                label="Publish Selected"
+                severity="success"
+                onClick={() => publishSelectedVersion().catch((e: unknown) => setStatus(formatErrorMessage(e)))}
+                disabled={!selectedVersion || selectedVersion.state === 'ARCHIVED'}
+              />
+              <Button
+                label="Create Variant From Selected"
+                severity="secondary"
+                onClick={() => createVariantFromSelectedVersion().catch((e: unknown) => setStatus(formatErrorMessage(e)))}
+                disabled={!selectedVersion}
+              />
+              <Button
+                label="Delete Selected"
+                severity="danger"
+                onClick={() => archiveSelectedVersion().catch((e: unknown) => setStatus(formatErrorMessage(e)))}
+                disabled={!selectedVersion || selectedVersion.state === 'ARCHIVED'}
+              />
+            </div>
+            <DataTable
+              value={versions}
+              size="small"
+              className="cms-version-table"
+              selectionMode="single"
+              selection={selectedVersion}
+              onSelectionChange={(event) => setSelectedVersionId((event.value as CVersion | null)?.id ?? null)}
+              dataKey="id"
+              rowClassName={(row: CVersion) => (selectedVersionId === row.id ? 'cms-version-row-selected' : '')}
+            >
+              <Column field="versionNumber" header="Version" body={(row: CVersion) => `v${row.versionNumber}`} />
+              <Column field="state" header="State" />
+              <Column field="createdAt" header="Created" />
+              <Column field="createdBy" header="By" />
+              <Column field="comment" header="Comment" />
             </DataTable>
           </TabPanel>
           <TabPanel header="Variants">
@@ -2827,6 +3573,7 @@ export function ContentPagesPage() {
               onLoad={() => {
                 sendPreviewMessage({
                   type: 'CMS_HIGHLIGHT',
+                  editTargetId: selectedEditTargetId ?? undefined,
                   componentId: selectedComponentId ?? undefined,
                   fieldPath: selectedFieldPath ?? undefined,
                   richTextFeatures: resolveRichTextFeatures(selectedFieldPath)
@@ -2929,16 +3676,19 @@ export function ContentPagesPage() {
             window.localStorage.setItem('content-pages.workspace.sizes', JSON.stringify(next));
           }}
         >
-          <SplitterPanel size={workspaceSizes[0] ?? 28} minSize={leftPaneCollapsed ? 8 : 20}>
-            <div className="paneRoot paneScroll cms-pane cms-left-pane">
+          <SplitterPanel size={workspaceSizes[0] ?? 28} minSize={leftPaneCollapsed ? 4 : 20}>
+            <div className={`paneRoot paneScroll cms-pane cms-left-pane${leftPaneCollapsed ? ' cms-left-pane-collapsed' : ''}`}>
               <ContextMenu ref={treeContextMenuRef} model={treeContextMenuItems} />
               <div className="inline-actions justify-content-between mb-2">
                 <strong>Page Tree</strong>
                 <Button
-                  label={leftPaneCollapsed ? 'Expand' : 'Collapse'}
+                  label={leftPaneCollapsed ? '' : 'Collapse'}
                   text
                   size="small"
                   icon={leftPaneCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'}
+                  aria-label={leftPaneCollapsed ? 'Expand tree' : 'Collapse tree'}
+                  tooltip={leftPaneCollapsed ? 'Expand tree' : 'Collapse tree'}
+                  tooltipOptions={{ position: 'right' }}
                   onClick={toggleLeftPaneCollapsed}
                 />
               </div>
@@ -2993,8 +3743,8 @@ export function ContentPagesPage() {
                         const row = node.data as TreeRow;
                         return (
                           <div className="content-tree-node-row">
-                            <span>{row.title}</span>
-                            {row.slug ? <small className="muted">/{row.slug}</small> : null}
+                            <span className="content-tree-node-title">{row.title}</span>
+                            {row.slug ? <small className="muted content-tree-node-slug">/{row.slug}</small> : null}
                           </div>
                         );
                       }}
@@ -3034,20 +3784,49 @@ export function ContentPagesPage() {
                         };
                         const rowCommands = commandRegistry.getCommands(rowCommandContext, 'rowOverflow');
                         return (
-                          <div className="inline-actions">
-                            <Button icon="pi pi-arrow-up" text rounded size="small" onClick={() => moveRowUp(row).catch((e: unknown) => setStatus(formatErrorMessage(e)))} />
-                            <Button icon="pi pi-arrow-down" text rounded size="small" onClick={() => moveRowDown(row).catch((e: unknown) => setStatus(formatErrorMessage(e)))} />
-                            <CommandMenuButton commands={rowCommands} context={rowCommandContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />
+                          <div className="inline-actions content-tree-row-actions">
+                            <Button
+                              icon="pi pi-arrow-up"
+                              text
+                              rounded
+                              size="small"
+                              onClick={() => moveRowUp(row).catch((e: unknown) => setStatus(formatErrorMessage(e)))}
+                            />
+                            <Button
+                              icon="pi pi-arrow-down"
+                              text
+                              rounded
+                              size="small"
+                              onClick={() => moveRowDown(row).catch((e: unknown) => setStatus(formatErrorMessage(e)))}
+                            />
+                            <CommandMenuButton
+                              commands={rowCommands}
+                              context={rowCommandContext}
+                              buttonLabel=""
+                              buttonIcon="pi pi-ellipsis-h"
+                              text
+                            />
                           </div>
                         );
                       }}
-                      headerClassName="w-12rem"
-                      bodyClassName="w-12rem"
+                      headerClassName="w-8rem"
+                      bodyClassName="w-8rem"
                     />
                   </TreeTable>
                 </>
               ) : (
-                <small className="muted">Tree panel collapsed.</small>
+                <div className="content-tree-collapsed-placeholder">
+                  <Button
+                    label=""
+                    text
+                    size="small"
+                    icon="pi pi-angle-right"
+                    aria-label="Expand tree"
+                    tooltip="Expand tree"
+                    tooltipOptions={{ position: 'right' }}
+                    onClick={toggleLeftPaneCollapsed}
+                  />
+                </div>
               )}
             </div>
           </SplitterPanel>
@@ -3132,6 +3911,339 @@ export function ContentPagesPage() {
             onClick={() => applyOnPageFormSelection(onPageFormPicker?.value ?? null)}
             disabled={!onPageFormPicker}
           />
+        </div>
+      </Dialog>
+      <Dialog
+        header="Manage List Items"
+        visible={Boolean(onPageListDialog?.visible)}
+        onHide={() => {
+          setOnPageListItemEditor(null);
+          setOnPageListDialog(null);
+        }}
+        className="w-11 md:w-9 lg:w-7 xl:w-6"
+      >
+        <div className="form-row">
+          <label>Field Path</label>
+          <InputText value={onPageListDialog?.path ?? ''} readOnly />
+        </div>
+        {onPageListDialog?.mode === 'json' ? (
+          <div className="form-row">
+            <label>Array JSON</label>
+            <InputTextarea
+              rows={14}
+              value={onPageListDialog?.draftJson ?? '[]'}
+              onChange={(event) =>
+                setOnPageListDialog((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        draftJson: event.target.value
+                      }
+                    : prev
+                )
+              }
+            />
+            <small className="muted">List shape is mixed/unknown. Use JSON fallback.</small>
+          </div>
+        ) : (
+          <>
+            <div className="form-row">
+              <label>Items</label>
+              <DataTable
+                value={(onPageListDialog?.items ?? []).map((item, index) => ({ index, value: item }))}
+                size="small"
+                className="cms-object-list-table"
+              >
+                {onPageListDialog?.mode === 'object' ? (
+                  onPageListDialog.objectKeys.slice(0, 3).map((key) => (
+                    <Column
+                      key={`list-col-${key}`}
+                      header={key}
+                      body={(row: { value: unknown }) => {
+                        const raw = row.value;
+                        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+                          return '';
+                        }
+                        const value = (raw as Record<string, unknown>)[key];
+                        return <span className="cms-cell-ellipsis" title={String(value ?? '')}>{String(value ?? '')}</span>;
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Column
+                    header="Value"
+                    body={(row: { value: unknown }) => {
+                      const value = row.value;
+                      return <span className="cms-cell-ellipsis" title={String(value ?? '')}>{String(value ?? '')}</span>;
+                    }}
+                  />
+                )}
+                <Column
+                  header="Order"
+                  style={{ width: '5.5rem' }}
+                  body={(_row: { value: unknown }, options) => (
+                    <div className="inline-actions">
+                      <Button text icon="pi pi-angle-up" onClick={() => moveOnPageListItem(options.rowIndex, -1)} />
+                      <Button text icon="pi pi-angle-down" onClick={() => moveOnPageListItem(options.rowIndex, 1)} />
+                    </div>
+                  )}
+                />
+                <Column
+                  header="Actions"
+                  style={{ width: '8rem' }}
+                  body={(_row: { value: unknown }, options) => (
+                    <div className="inline-actions">
+                      <Button text label="Edit" onClick={() => openOnPageListItemEditor(options.rowIndex)} />
+                      <Button text severity="danger" label="Remove" onClick={() => removeOnPageListItem(options.rowIndex)} />
+                    </div>
+                  )}
+                />
+              </DataTable>
+            </div>
+            <div className="form-row">
+              <label>Raw JSON (fallback)</label>
+              <InputTextarea
+                rows={8}
+                value={onPageListDialog?.draftJson ?? '[]'}
+                onChange={(event) =>
+                  setOnPageListDialog((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          draftJson: event.target.value
+                        }
+                      : prev
+                  )
+                }
+              />
+              <div className="inline-actions justify-content-end">
+                <Button label="Apply JSON to Table" text onClick={applyOnPageListJsonDraft} />
+              </div>
+            </div>
+          </>
+        )}
+        <div className="inline-actions justify-content-end mt-3">
+          <Button
+            label="Cancel"
+            text
+            onClick={() => {
+              setOnPageListItemEditor(null);
+              setOnPageListDialog(null);
+            }}
+          />
+          <Button
+            label="Add Item"
+            severity="secondary"
+            onClick={addOnPageListItem}
+          />
+          <Button label="Apply" onClick={applyOnPageListSelection} disabled={!onPageListDialog} />
+        </div>
+      </Dialog>
+      <Dialog
+        header="Edit List Item"
+        visible={Boolean(onPageListItemEditor)}
+        onHide={() => setOnPageListItemEditor(null)}
+        className="w-11 md:w-8 lg:w-6"
+      >
+        {onPageListItemEditor?.mode === 'object' ? (
+          <div className="form-row">
+            {onPageListItemEditor.objectKeys.map((key) => {
+              const value =
+                onPageListItemEditor.value && typeof onPageListItemEditor.value === 'object' && !Array.isArray(onPageListItemEditor.value)
+                  ? (onPageListItemEditor.value as Record<string, unknown>)[key]
+                  : '';
+              const field = onPageListItemEditor.itemFields.find((entry) => entry.key === key);
+              const isLinkField = field?.type === 'contentLink' || looksLikeContentLinkValue(value);
+              return (
+                <div className="form-row" key={`list-item-${key}`}>
+                  <label>{field?.label ?? key}</label>
+                  {field?.type === 'boolean' ? (
+                    <Checkbox
+                      checked={Boolean(value)}
+                      onChange={(event) =>
+                        setOnPageListObjectFieldValue(key, Boolean(event.checked))
+                      }
+                    />
+                  ) : field?.type === 'multiline' ? (
+                    <InputTextarea
+                      rows={4}
+                      value={String(value ?? '')}
+                      onChange={(event) =>
+                        setOnPageListObjectFieldValue(key, event.target.value)
+                      }
+                    />
+                  ) : field?.type === 'number' ? (
+                    <InputText
+                      value={String(value ?? '')}
+                      onChange={(event) =>
+                        setOnPageListObjectFieldValue(key, Number.isFinite(Number(event.target.value)) ? Number(event.target.value) : 0)
+                      }
+                    />
+                  ) : field?.type === 'stringList' ? (
+                    <InputTextarea
+                      rows={4}
+                      value={Array.isArray(value) ? value.map((entry) => String(entry)).join('\n') : ''}
+                      onChange={(event) =>
+                        setOnPageListItemEditor((prev) => {
+                          if (!prev || !prev.value || typeof prev.value !== 'object' || Array.isArray(prev.value)) {
+                            return prev;
+                          }
+                          const lines = event.target.value
+                            .split('\n')
+                            .map((line) => line.trim())
+                            .filter(Boolean);
+                          return { ...prev, value: { ...(prev.value as Record<string, unknown>), [key]: lines } };
+                        })
+                      }
+                    />
+                  ) : isLinkField ? (
+                    <div className="form-grid">
+                      {(() => {
+                        const rawLink =
+                          value && typeof value === 'object' && !Array.isArray(value)
+                            ? (value as Partial<ContentLinkValue>)
+                            : {};
+                        const linkKind = rawLink.kind === 'external' ? 'external' : 'internal';
+                        const target = rawLink.target === '_blank' ? '_blank' : '_self';
+                        return (
+                          <>
+                            <Dropdown
+                              value={linkKind}
+                              options={[
+                                { label: 'Internal', value: 'internal' },
+                                { label: 'External', value: 'external' }
+                              ]}
+                              onChange={(event) => {
+                                const nextKind = event.value === 'external' ? 'external' : 'internal';
+                                const nextLink: ContentLinkValue = {
+                                  kind: nextKind,
+                                  ...(typeof rawLink.url === 'string' ? { url: rawLink.url } : {}),
+                                  ...(typeof rawLink.text === 'string' ? { text: rawLink.text } : {}),
+                                  target
+                                };
+                                if (nextKind === 'internal') {
+                                  if (typeof rawLink.contentItemId === 'number') {
+                                    nextLink.contentItemId = rawLink.contentItemId;
+                                  }
+                                  if (typeof rawLink.routeSlug === 'string') {
+                                    nextLink.routeSlug = rawLink.routeSlug;
+                                  }
+                                  if (typeof rawLink.anchor === 'string') {
+                                    nextLink.anchor = rawLink.anchor;
+                                  }
+                                }
+                                setOnPageListObjectFieldValue(key, nextLink);
+                              }}
+                            />
+                            <InputText
+                              value={String(rawLink.text ?? '')}
+                              placeholder="Link text"
+                              onChange={(event) =>
+                                setOnPageListObjectFieldValue(key, {
+                                  kind: linkKind,
+                                  ...(typeof rawLink.url === 'string' ? { url: rawLink.url } : {}),
+                                  ...(event.target.value.trim() ? { text: event.target.value } : {}),
+                                  target,
+                                  ...(typeof rawLink.contentItemId === 'number' ? { contentItemId: rawLink.contentItemId } : {}),
+                                  ...(typeof rawLink.routeSlug === 'string' ? { routeSlug: rawLink.routeSlug } : {}),
+                                  ...(typeof rawLink.anchor === 'string' ? { anchor: rawLink.anchor } : {})
+                                } as ContentLinkValue)
+                              }
+                            />
+                            <InputText
+                              value={String(rawLink.url ?? '')}
+                              placeholder={linkKind === 'external' ? 'https://example.com' : '/path#anchor'}
+                              onChange={(event) =>
+                                setOnPageListObjectFieldValue(key, {
+                                  kind: linkKind,
+                                  ...(event.target.value.trim() ? { url: event.target.value } : {}),
+                                  ...(typeof rawLink.text === 'string' ? { text: rawLink.text } : {}),
+                                  target,
+                                  ...(typeof rawLink.contentItemId === 'number' ? { contentItemId: rawLink.contentItemId } : {}),
+                                  ...(typeof rawLink.routeSlug === 'string' ? { routeSlug: rawLink.routeSlug } : {}),
+                                  ...(typeof rawLink.anchor === 'string' ? { anchor: rawLink.anchor } : {})
+                                } as ContentLinkValue)
+                              }
+                            />
+                            <Dropdown
+                              value={target}
+                              options={[
+                                { label: 'Same tab', value: '_self' },
+                                { label: 'New tab', value: '_blank' }
+                              ]}
+                              onChange={(event) =>
+                                setOnPageListObjectFieldValue(key, {
+                                  kind: linkKind,
+                                  ...(typeof rawLink.url === 'string' ? { url: rawLink.url } : {}),
+                                  ...(typeof rawLink.text === 'string' ? { text: rawLink.text } : {}),
+                                  target: event.value === '_blank' ? '_blank' : '_self',
+                                  ...(typeof rawLink.contentItemId === 'number' ? { contentItemId: rawLink.contentItemId } : {}),
+                                  ...(typeof rawLink.routeSlug === 'string' ? { routeSlug: rawLink.routeSlug } : {}),
+                                  ...(typeof rawLink.anchor === 'string' ? { anchor: rawLink.anchor } : {})
+                                } as ContentLinkValue)
+                              }
+                            />
+                          </>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    value && typeof value === 'object' ? (
+                      <InputTextarea
+                        rows={4}
+                        value={JSON.stringify(value, null, 2)}
+                        onChange={(event) => {
+                          try {
+                            setOnPageListObjectFieldValue(key, JSON.parse(event.target.value));
+                          } catch {
+                            // keep current value while typing invalid JSON
+                          }
+                        }}
+                      />
+                    ) : (
+                      <InputText
+                        value={String(value ?? '')}
+                        onChange={(event) => setOnPageListObjectFieldValue(key, event.target.value)}
+                      />
+                    )
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : onPageListItemEditor?.mode === 'boolean' ? (
+          <div className="form-row">
+            <label>Value</label>
+            <Checkbox
+              checked={Boolean(onPageListItemEditor.value)}
+              onChange={(event) =>
+                setOnPageListItemEditor((prev) => (prev ? { ...prev, value: Boolean(event.checked) } : prev))
+              }
+            />
+          </div>
+        ) : (
+          <div className="form-row">
+            <label>Value</label>
+            <InputText
+              value={String(onPageListItemEditor?.value ?? '')}
+              onChange={(event) =>
+                setOnPageListItemEditor((prev) => {
+                  if (!prev) {
+                    return prev;
+                  }
+                  if (prev.mode === 'number') {
+                    const parsed = Number(event.target.value);
+                    return { ...prev, value: Number.isFinite(parsed) ? parsed : 0 };
+                  }
+                  return { ...prev, value: event.target.value };
+                })
+              }
+            />
+          </div>
+        )}
+        <div className="inline-actions justify-content-end mt-3">
+          <Button label="Cancel" text onClick={() => setOnPageListItemEditor(null)} />
+          <Button label="Apply" onClick={applyOnPageListItemEditor} />
         </div>
       </Dialog>
       <Dialog header="Ask AI" visible={aiDialogOpen} onHide={() => setAiDialogOpen(false)} className="w-11 lg:w-9 xl:w-8">

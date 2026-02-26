@@ -20,7 +20,8 @@ export function JsonSourceEditor({
   onChange,
   readOnly = false,
   height = 220,
-  schema
+  schema,
+  className
 }: {
   editorId: string;
   value: string;
@@ -28,6 +29,7 @@ export function JsonSourceEditor({
   readOnly?: boolean;
   height?: number;
   schema?: Record<string, unknown> | null;
+  className?: string;
 }) {
   const { theme } = useUi();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -35,6 +37,7 @@ export function JsonSourceEditor({
   const modelRef = useRef<Monaco.editor.ITextModel | null>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const changeDisposableRef = useRef<Monaco.IDisposable | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const schemaUri = useMemo(() => `inmemory://schema/${editorId}.schema.json`, [editorId]);
   const modelUri = useMemo(() => `inmemory://model/${editorId}.json`, [editorId]);
 
@@ -66,6 +69,11 @@ export function JsonSourceEditor({
         }
         onChange(modelRef.current.getValue());
       });
+      resizeObserverRef.current = new ResizeObserver(() => {
+        editorRef.current?.layout();
+      });
+      resizeObserverRef.current.observe(containerRef.current);
+      requestAnimationFrame(() => editorRef.current?.layout());
       if (schema && schemaUri) {
         jsonSchemas.set(schemaUri, {
           uri: schemaUri,
@@ -85,6 +93,10 @@ export function JsonSourceEditor({
       if (editorRef.current) {
         editorRef.current.dispose();
         editorRef.current = null;
+      }
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
       }
       if (modelRef.current) {
         modelRef.current.dispose();
@@ -113,5 +125,22 @@ export function JsonSourceEditor({
     }
   }, [theme, value]);
 
-  return <div ref={containerRef} style={{ height, width: '100%', border: '1px solid var(--surface-border)', borderRadius: 6 }} />;
+  return (
+    <div
+      ref={containerRef}
+      className={['ch-json-source-editor', className].filter(Boolean).join(' ')}
+      style={{
+        height,
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+        position: 'relative',
+        isolation: 'isolate',
+        zIndex: 0,
+        overflow: 'hidden',
+        border: '1px solid var(--surface-border)',
+        borderRadius: 6
+      }}
+    />
+  );
 }

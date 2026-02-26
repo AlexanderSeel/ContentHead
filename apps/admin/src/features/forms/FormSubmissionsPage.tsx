@@ -149,7 +149,8 @@ export function FormSubmissionsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selection, setSelection] = useState<SubmissionRow[]>([]);
-  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  // PrimeReact subheader row grouping expects an array expansion model when dataKey !== groupRowsBy.
+  const [expandedRows, setExpandedRows] = useState<SubmissionRow[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [marketFilter, setMarketFilter] = useState('');
@@ -190,7 +191,10 @@ export function FormSubmissionsPage() {
         sortField,
         sortOrder
       });
-      setRows((res.listFormSubmissions?.rows ?? []) as SubmissionRow[]);
+      const nextRows = (res.listFormSubmissions?.rows ?? []) as SubmissionRow[];
+      setRows(nextRows);
+      // Keep grouped submissions visible after each query refresh.
+      setExpandedRows(nextRows);
       setTotal(res.listFormSubmissions?.total ?? 0);
     } finally {
       setLoading(false);
@@ -398,7 +402,9 @@ export function FormSubmissionsPage() {
           groupRowsBy="formId"
           expandableRowGroups
           expandedRows={expandedRows}
-          onRowToggle={(event) => setExpandedRows((event.data as Record<string, boolean>) ?? {})}
+          onRowToggle={(event) => setExpandedRows(Array.isArray(event.data) ? (event.data as SubmissionRow[]) : [])}
+          rowGroupHeaderTemplate={(row: SubmissionRow) => <span>Form #{row.formId}</span>}
+          emptyMessage="No submissions found for the current filters."
           rowExpansionTemplate={(row: SubmissionRow) => {
             let dataPretty = row.dataJson;
             let metaPretty = row.metaJson;

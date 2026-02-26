@@ -17,6 +17,65 @@ query ListAssets($siteId: Int!, $limit: Int, $offset: Int, $search: String, $fol
       description
       tagsJson
       folderId
+      focalPoint {
+        x
+        y
+      }
+      pois {
+        id
+        x
+        y
+        label
+        visible
+        style {
+          color
+          icon
+          size
+        }
+        link {
+          kind
+          url
+          contentItemId
+          routeSlug
+          text
+          target
+          anchor
+        }
+      }
+      renditionPresets {
+        id
+        name
+        mode
+        width
+        height
+        format
+        quality
+        useFocalPoint
+        background
+        crop {
+          x
+          y
+          w
+          h
+        }
+      }
+      renditions {
+        id
+        kind
+        width
+        height
+        fitMode
+        mode
+        presetId
+        cropJson
+        focalX
+        focalY
+        format
+        quality
+        storagePath
+        bytes
+        createdAt
+      }
       createdAt
       updatedAt
     }
@@ -40,6 +99,65 @@ query GetAsset($id: Int!) {
     description
     tagsJson
     folderId
+    focalPoint {
+      x
+      y
+    }
+    pois {
+      id
+      x
+      y
+      label
+      visible
+      style {
+        color
+        icon
+        size
+      }
+      link {
+        kind
+        url
+        contentItemId
+        routeSlug
+        text
+        target
+        anchor
+      }
+    }
+    renditionPresets {
+      id
+      name
+      mode
+      width
+      height
+      format
+      quality
+      useFocalPoint
+      background
+      crop {
+        x
+        y
+        w
+        h
+      }
+    }
+    renditions {
+      id
+      kind
+      width
+      height
+      fitMode
+      mode
+      presetId
+      cropJson
+      focalX
+      focalY
+      format
+      quality
+      storagePath
+      bytes
+      createdAt
+    }
     createdAt
     updatedAt
   }
@@ -95,6 +213,94 @@ mutation UpdateAssetMetadata(
     folderId
     updatedAt
   }
+}
+
+mutation UpdateAssetFocalPoint($assetId: Int!, $x: Float!, $y: Float!, $by: String) {
+  updateAssetFocalPoint(assetId: $assetId, x: $x, y: $y, by: $by) {
+    id
+    focalPoint {
+      x
+      y
+    }
+    updatedAt
+  }
+}
+
+mutation UpsertAssetPois($assetId: Int!, $pois: [AssetPoiInput!]!, $by: String) {
+  upsertAssetPois(assetId: $assetId, pois: $pois, by: $by) {
+    id
+    pois {
+      id
+      x
+      y
+      label
+      visible
+      style {
+        color
+        icon
+        size
+      }
+      link {
+        kind
+        url
+        contentItemId
+        routeSlug
+        text
+        target
+        anchor
+      }
+    }
+    updatedAt
+  }
+}
+
+mutation UpsertAssetRenditionPresets($assetId: Int!, $presets: [AssetRenditionPresetInput!]!, $by: String) {
+  upsertAssetRenditionPresets(assetId: $assetId, presets: $presets, by: $by) {
+    id
+    renditionPresets {
+      id
+      name
+      mode
+      width
+      height
+      format
+      quality
+      useFocalPoint
+      background
+      crop {
+        x
+        y
+        w
+        h
+      }
+    }
+    updatedAt
+  }
+}
+
+mutation GenerateAssetRendition($assetId: Int!, $presetId: String!) {
+  generateAssetRendition(assetId: $assetId, presetId: $presetId) {
+    id
+    assetId
+    kind
+    width
+    height
+    fitMode
+    mode
+    presetId
+    cropJson
+    focalX
+    focalY
+    format
+    quality
+    storagePath
+    bytes
+    createdAt
+  }
+}
+
+mutation DeleteAssetRendition($assetId: Int!, $renditionId: Int!) {
+  deleteAssetRendition(assetId: $assetId, renditionId: $renditionId)
 }
 
 mutation DeleteAsset($id: Int!) {

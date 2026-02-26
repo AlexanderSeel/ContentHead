@@ -14,6 +14,7 @@ import {
   type ResolvedRoute,
   type TemplateRecord,
   archiveContentItem,
+  archiveVersion,
   addComponent,
   createContentItem,
   createContentType,
@@ -123,13 +124,26 @@ import {
 import {
   type AssetFolderRecord,
   type AssetListResult,
+  type AssetPoi,
+  type AssetPoiLink,
+  type AssetRenditionCrop,
+  type AssetRenditionPreset,
+  type AssetRenditionRecord,
   type AssetRecord,
   createAssetFolder,
   deleteAsset,
+  deleteAssetRendition,
+  generateAssetRenditionFromPreset,
   getAsset,
+  listAssetRenditions,
   listAssetFolders,
   listAssets,
-  updateAssetMetadata
+  parseAssetPois,
+  parseAssetRenditionPresets,
+  updateAssetFocalPoint,
+  updateAssetMetadata,
+  upsertAssetPois,
+  upsertAssetRenditionPresets
 } from '../assets/service.js';
 import {
   type DbAdminColumn,
@@ -735,6 +749,153 @@ FormSubmissionListRef.implement({
   })
 });
 
+const AssetFocalPointRef = builder.objectRef<{ x: number; y: number }>('AssetFocalPoint');
+AssetFocalPointRef.implement({
+  fields: (t) => ({
+    x: t.exposeFloat('x'),
+    y: t.exposeFloat('y')
+  })
+});
+
+const AssetPoiLinkRef = builder.objectRef<AssetPoiLink>('AssetPoiLink');
+AssetPoiLinkRef.implement({
+  fields: (t) => ({
+    kind: t.exposeString('kind'),
+    url: t.exposeString('url', { nullable: true }),
+    contentItemId: t.exposeInt('contentItemId', { nullable: true }),
+    routeSlug: t.exposeString('routeSlug', { nullable: true }),
+    text: t.exposeString('text', { nullable: true }),
+    target: t.exposeString('target', { nullable: true }),
+    anchor: t.exposeString('anchor', { nullable: true })
+  })
+});
+
+const AssetPoiStyleRef = builder.objectRef<{ color?: string; icon?: string; size?: number }>('AssetPoiStyle');
+AssetPoiStyleRef.implement({
+  fields: (t) => ({
+    color: t.exposeString('color', { nullable: true }),
+    icon: t.exposeString('icon', { nullable: true }),
+    size: t.exposeFloat('size', { nullable: true })
+  })
+});
+
+const AssetPoiRef = builder.objectRef<AssetPoi>('AssetPoi');
+AssetPoiRef.implement({
+  fields: (t) => ({
+    id: t.exposeString('id'),
+    x: t.exposeFloat('x'),
+    y: t.exposeFloat('y'),
+    label: t.exposeString('label', { nullable: true }),
+    link: t.field({ type: AssetPoiLinkRef, nullable: true, resolve: (parent) => parent.link ?? null }),
+    style: t.field({ type: AssetPoiStyleRef, nullable: true, resolve: (parent) => parent.style ?? null }),
+    visible: t.exposeBoolean('visible', { nullable: true })
+  })
+});
+
+const AssetRenditionCropRef = builder.objectRef<AssetRenditionCrop>('AssetRenditionCrop');
+AssetRenditionCropRef.implement({
+  fields: (t) => ({
+    x: t.exposeFloat('x'),
+    y: t.exposeFloat('y'),
+    w: t.exposeFloat('w'),
+    h: t.exposeFloat('h')
+  })
+});
+
+const AssetRenditionPresetRef = builder.objectRef<AssetRenditionPreset>('AssetRenditionPreset');
+AssetRenditionPresetRef.implement({
+  fields: (t) => ({
+    id: t.exposeString('id'),
+    name: t.exposeString('name'),
+    mode: t.exposeString('mode'),
+    width: t.exposeInt('width'),
+    height: t.exposeInt('height'),
+    quality: t.exposeInt('quality', { nullable: true }),
+    format: t.exposeString('format', { nullable: true }),
+    crop: t.field({ type: AssetRenditionCropRef, nullable: true, resolve: (parent) => parent.crop ?? null }),
+    useFocalPoint: t.exposeBoolean('useFocalPoint', { nullable: true }),
+    background: t.exposeString('background', { nullable: true })
+  })
+});
+
+const AssetRenditionRef = builder.objectRef<AssetRenditionRecord>('AssetRendition');
+AssetRenditionRef.implement({
+  fields: (t) => ({
+    id: t.exposeInt('id'),
+    assetId: t.exposeInt('assetId'),
+    kind: t.exposeString('kind'),
+    width: t.exposeInt('width'),
+    height: t.exposeInt('height'),
+    fitMode: t.exposeString('fitMode'),
+    mode: t.exposeString('mode'),
+    presetId: t.exposeString('presetId', { nullable: true }),
+    cropJson: t.exposeString('cropJson', { nullable: true }),
+    focalX: t.exposeFloat('focalX', { nullable: true }),
+    focalY: t.exposeFloat('focalY', { nullable: true }),
+    format: t.exposeString('format', { nullable: true }),
+    quality: t.exposeInt('quality', { nullable: true }),
+    storagePath: t.exposeString('storagePath'),
+    bytes: t.exposeInt('bytes'),
+    createdAt: t.exposeString('createdAt')
+  })
+});
+
+const AssetPoiLinkInputRef = builder.inputType('AssetPoiLinkInput', {
+  fields: (t) => ({
+    kind: t.string({ required: true }),
+    url: t.string({ required: false }),
+    contentItemId: t.int({ required: false }),
+    routeSlug: t.string({ required: false }),
+    text: t.string({ required: false }),
+    target: t.string({ required: false }),
+    anchor: t.string({ required: false })
+  })
+});
+
+const AssetPoiStyleInputRef = builder.inputType('AssetPoiStyleInput', {
+  fields: (t) => ({
+    color: t.string({ required: false }),
+    icon: t.string({ required: false }),
+    size: t.float({ required: false })
+  })
+});
+
+const AssetPoiInputRef = builder.inputType('AssetPoiInput', {
+  fields: (t) => ({
+    id: t.string({ required: true }),
+    x: t.float({ required: true }),
+    y: t.float({ required: true }),
+    label: t.string({ required: false }),
+    link: t.field({ type: AssetPoiLinkInputRef, required: false }),
+    style: t.field({ type: AssetPoiStyleInputRef, required: false }),
+    visible: t.boolean({ required: false })
+  })
+});
+
+const AssetRenditionCropInputRef = builder.inputType('AssetRenditionCropInput', {
+  fields: (t) => ({
+    x: t.float({ required: true }),
+    y: t.float({ required: true }),
+    w: t.float({ required: true }),
+    h: t.float({ required: true })
+  })
+});
+
+const AssetRenditionPresetInputRef = builder.inputType('AssetRenditionPresetInput', {
+  fields: (t) => ({
+    id: t.string({ required: true }),
+    name: t.string({ required: true }),
+    mode: t.string({ required: true }),
+    width: t.int({ required: true }),
+    height: t.int({ required: true }),
+    quality: t.int({ required: false }),
+    format: t.string({ required: false }),
+    crop: t.field({ type: AssetRenditionCropInputRef, required: false }),
+    useFocalPoint: t.boolean({ required: false }),
+    background: t.string({ required: false })
+  })
+});
+
 const AssetRef = builder.objectRef<AssetRecord>('Asset');
 AssetRef.implement({
   fields: (t) => ({
@@ -753,6 +914,26 @@ AssetRef.implement({
     description: t.exposeString('description', { nullable: true }),
     tagsJson: t.exposeString('tagsJson', { nullable: true }),
     folderId: t.exposeInt('folderId', { nullable: true }),
+    focalPoint: t.field({
+      type: AssetFocalPointRef,
+      nullable: true,
+      resolve: (parent) =>
+        parent.focalX == null || parent.focalY == null
+          ? null
+          : { x: parent.focalX, y: parent.focalY }
+    }),
+    pois: t.field({
+      type: [AssetPoiRef],
+      resolve: (parent) => parseAssetPois(parent)
+    }),
+    renditionPresets: t.field({
+      type: [AssetRenditionPresetRef],
+      resolve: (parent) => parseAssetRenditionPresets(parent)
+    }),
+    renditions: t.field({
+      type: [AssetRenditionRef],
+      resolve: async (parent, _args, ctx) => listAssetRenditions(ctx.db, parent.id)
+    }),
     createdAt: t.exposeString('createdAt'),
     updatedAt: t.exposeString('updatedAt')
   })
@@ -2398,6 +2579,26 @@ builder.mutationType({
         });
       }
     }),
+    archiveVersion: t.field({
+      type: ContentVersionRef,
+      args: {
+        versionId: t.arg.int({ required: true }),
+        by: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { versionId: number; by?: string | null | undefined },
+        ctx
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        const contentItemId = await contentItemIdForVersion(ctx.db, args.versionId);
+        await requirePageAcl(ctx, contentItemId, 'page.delete');
+        return archiveVersion(ctx.db, {
+          versionId: args.versionId,
+          by: args.by ?? ctx.currentUser?.username ?? 'system'
+        });
+      }
+    }),
     rollbackToVersion: t.field({
       type: ContentVersionRef,
       args: {
@@ -2941,6 +3142,95 @@ builder.mutationType({
           ...args,
           by: args.by ?? ctx.currentUser?.username ?? 'system'
         })
+    }),
+    updateAssetFocalPoint: t.field({
+      type: AssetRef,
+      args: {
+        assetId: t.arg.int({ required: true }),
+        x: t.arg.float({ required: true }),
+        y: t.arg.float({ required: true }),
+        by: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { assetId: number; x: number; y: number; by?: string | null | undefined },
+        ctx
+      ) =>
+        updateAssetFocalPoint(ctx.db, {
+          assetId: args.assetId,
+          x: args.x,
+          y: args.y,
+          by: args.by ?? ctx.currentUser?.username ?? 'system'
+        })
+    }),
+    upsertAssetPois: t.field({
+      type: AssetRef,
+      args: {
+        assetId: t.arg.int({ required: true }),
+        pois: t.arg({ type: [AssetPoiInputRef], required: true }),
+        by: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          assetId: number;
+          pois: Array<Record<string, unknown>>;
+          by?: string | null | undefined;
+        },
+        ctx
+      ) =>
+        upsertAssetPois(ctx.db, {
+          assetId: args.assetId,
+          pois: args.pois as unknown as AssetPoi[],
+          by: args.by ?? ctx.currentUser?.username ?? 'system'
+        })
+    }),
+    upsertAssetRenditionPresets: t.field({
+      type: AssetRef,
+      args: {
+        assetId: t.arg.int({ required: true }),
+        presets: t.arg({ type: [AssetRenditionPresetInputRef], required: true }),
+        by: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          assetId: number;
+          presets: Array<Record<string, unknown>>;
+          by?: string | null | undefined;
+        },
+        ctx
+      ) =>
+        upsertAssetRenditionPresets(ctx.db, {
+          assetId: args.assetId,
+          presets: args.presets as unknown as AssetRenditionPreset[],
+          by: args.by ?? ctx.currentUser?.username ?? 'system'
+        })
+    }),
+    generateAssetRendition: t.field({
+      type: AssetRenditionRef,
+      args: {
+        assetId: t.arg.int({ required: true }),
+        presetId: t.arg.string({ required: true })
+      },
+      resolve: async (_root, args: { assetId: number; presetId: string }, ctx) => {
+        if (!ctx.assetStorage) {
+          throw new Error('Asset storage is not configured');
+        }
+        return generateAssetRenditionFromPreset(ctx.db, ctx.assetStorage, args);
+      }
+    }),
+    deleteAssetRendition: t.boolean({
+      args: {
+        assetId: t.arg.int({ required: true }),
+        renditionId: t.arg.int({ required: true })
+      },
+      resolve: async (_root, args: { assetId: number; renditionId: number }, ctx) => {
+        if (!ctx.assetStorage) {
+          throw new Error('Asset storage is not configured');
+        }
+        return deleteAssetRendition(ctx.db, ctx.assetStorage, args);
+      }
     }),
     deleteAsset: t.boolean({
       args: { id: t.arg.int({ required: true }) },

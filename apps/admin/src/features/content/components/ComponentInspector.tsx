@@ -30,6 +30,38 @@ type ComponentRecord = {
 };
 
 const looseObjectJsonSchema: Record<string, unknown> = { type: 'object', additionalProperties: true };
+const looseArrayJsonSchema: Record<string, unknown> = { type: 'array', items: {} };
+
+function coerceObjectListItems(value: unknown, fields: ComponentUiField[]): Record<string, unknown>[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const singleFieldKey = fields.length === 1 ? fields[0]?.key : null;
+  return value
+    .map((entry) => {
+      if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+        return entry as Record<string, unknown>;
+      }
+      if (singleFieldKey && typeof singleFieldKey === 'string') {
+        return { [singleFieldKey]: entry };
+      }
+      return null;
+    })
+    .filter((entry): entry is Record<string, unknown> => Boolean(entry));
+}
+
+function inferObjectListFields(value: unknown): ComponentUiField[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const firstObject = value.find(
+    (entry) => entry && typeof entry === 'object' && !Array.isArray(entry)
+  ) as Record<string, unknown> | undefined;
+  if (!firstObject) {
+    return [];
+  }
+  return Object.keys(firstObject).map((key) => ({ key, label: key, type: 'text' }));
+}
 
 export function ComponentInspector({
   component,
@@ -123,6 +155,13 @@ export function ComponentInspector({
       return Array.isArray(value) ? `${value.length} items` : '0 items';
     }
     if (field.type === 'multiline' || field.type === 'text') {
+      if (value && typeof value === 'object') {
+        try {
+          return JSON.stringify(value);
+        } catch {
+          return '[object]';
+        }
+      }
       return String(value ?? '');
     }
     return value == null ? '' : String(value);
@@ -137,9 +176,7 @@ export function ComponentInspector({
     fields: ComponentUiField[];
     onChangeValue: (next: Record<string, unknown>[]) => void;
   }) {
-    const items = Array.isArray(value)
-      ? value.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object' && !Array.isArray(entry))
-      : [];
+    const items = coerceObjectListItems(value, fields);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [draft, setDraft] = useState<Record<string, unknown>>({});
 
@@ -188,16 +225,33 @@ export function ComponentInspector({
         <div className="inline-actions">
           <Button label="Add item" onClick={() => setEditingIndex(items.length)} />
         </div>
-        <DataTable value={items} size="small">
-          {fields.slice(0, 2).map((field) => (
+        <DataTable value={items} size="small" className="cms-object-list-table">
+          {fields.length > 0 ? (
+            fields.slice(0, 2).map((field) => (
+              <Column
+                key={field.key}
+                header={field.label}
+                body={(row: Record<string, unknown>) => {
+                  const summary = renderFieldSummary(field, row[field.key]);
+                  return <span className="cms-cell-ellipsis" title={summary}>{summary}</span>;
+                }}
+              />
+            ))
+          ) : (
             <Column
-              key={field.key}
-              header={field.label}
-              body={(row: Record<string, unknown>) => renderFieldSummary(field, row[field.key])}
+              header="Item"
+              body={(row: Record<string, unknown>) => {
+                try {
+                  return JSON.stringify(row);
+                } catch {
+                  return '[object]';
+                }
+              }}
             />
-          ))}
+          )}
           <Column
             header="Order"
+            style={{ width: '5.5rem' }}
             body={(_row: Record<string, unknown>, options) => (
               <div className="inline-actions">
                 <Button text icon="pi pi-angle-up" onClick={() => move(options.rowIndex, -1)} />
@@ -207,6 +261,7 @@ export function ComponentInspector({
           />
           <Column
             header="Actions"
+            style={{ width: '7.5rem' }}
             body={(_row: Record<string, unknown>, options) => (
               <div className="inline-actions">
                 <Button text label="Edit" onClick={() => setEditingIndex(options.rowIndex)} />
@@ -249,6 +304,21 @@ export function ComponentInspector({
       Array.isArray(field.refComponentTypes) && field.refComponentTypes.length > 0
         ? availableComponentRefs.filter((entry) => field.refComponentTypes?.includes(entry.type))
         : availableComponentRefs;
+    const renderJsonFallback = (schema: Record<string, unknown>) => (
+      <JsonSourceEditor
+        editorId={`component-prop-json-fallback-${component?.id ?? 'unknown'}-${field.key}`}
+        value={typeof value === 'string' ? value : JSON.stringify(value ?? (schema.type === 'array' ? [] : {}), null, 2)}
+        onChange={(next) => {
+          try {
+            onChangeValue(JSON.parse(next));
+          } catch {
+            // Keep JSON editor permissive while user is typing invalid JSON.
+          }
+        }}
+        height={180}
+        schema={schema}
+      />
+    );
     if (field.type === 'number') {
       return (
         <InputNumber
@@ -367,6 +437,9 @@ export function ComponentInspector({
       );
     }
     if (field.type === 'stringList') {
+      if (Array.isArray(value) && value.some((entry) => typeof entry !== 'string')) {
+        return renderJsonFallback(looseArrayJsonSchema);
+      }
       return (
         <Chips
           value={Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : []}
@@ -386,10 +459,11 @@ export function ComponentInspector({
       );
     }
     if (field.type === 'objectList') {
+      const objectListFields = field.fields && field.fields.length > 0 ? field.fields : inferObjectListFields(value);
       return (
         <ObjectListEditor
           value={value}
-          fields={field.fields ?? []}
+          fields={objectListFields}
           onChangeValue={(next) => onChangeValue(next)}
         />
       );
@@ -412,7 +486,13 @@ export function ComponentInspector({
       );
     }
     if (field.type === 'multiline') {
+      if (value && typeof value === 'object') {
+        return renderJsonFallback(Array.isArray(value) ? looseArrayJsonSchema : looseObjectJsonSchema);
+      }
       return <InputTextarea rows={4} value={String(value ?? '')} onChange={(event) => onChangeValue(event.target.value)} />;
+    }
+    if (value && typeof value === 'object') {
+      return renderJsonFallback(Array.isArray(value) ? looseArrayJsonSchema : looseObjectJsonSchema);
     }
     return <InputText value={String(value ?? '')} onChange={(event) => onChangeValue(event.target.value)} />;
   }

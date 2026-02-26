@@ -546,6 +546,20 @@ mutation PublishVersion($versionId: Int!, $expectedVersionNumber: Int!, $comment
   }
 }
 
+mutation ArchiveVersion($versionId: Int!, $by: String) {
+  archiveVersion(versionId: $versionId, by: $by) {
+    id
+    contentItemId
+    versionNumber
+    state
+    fieldsJson
+    compositionJson
+    componentsJson
+    metadataJson
+    comment
+  }
+}
+
 mutation RollbackToVersion($contentItemId: Int!, $versionId: Int!, $by: String) {
   rollbackToVersion(contentItemId: $contentItemId, versionId: $versionId, by: $by) {
     id

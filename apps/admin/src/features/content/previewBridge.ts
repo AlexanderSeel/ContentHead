@@ -2,6 +2,9 @@ export type CmsSelectMessage = {
   type: 'CMS_SELECT';
   contentItemId: number;
   versionId: number;
+  editTargetId?: string | undefined;
+  editKind?: 'text' | 'richtext' | 'link' | 'asset' | 'list' | undefined;
+  editRole?: 'value' | 'label' | 'item' | undefined;
   componentId?: string | undefined;
   componentType?: string | undefined;
   fieldPath?: string | undefined;
@@ -11,6 +14,7 @@ export type CmsSelectMessage = {
 
 export type CmsHighlightMessage = {
   type: 'CMS_HIGHLIGHT';
+  editTargetId?: string | undefined;
   componentId?: string | undefined;
   fieldPath?: string | undefined;
   richTextFeatures?: string[] | undefined;
@@ -35,6 +39,7 @@ export type CmsInlineEditMode = 'text' | 'richtext';
 export type CmsInlineEditBaseMessage = {
   contentItemId: number;
   versionId: number;
+  editTargetId: string;
   fieldPath?: string | undefined;
   componentId?: string | undefined;
   propPath?: string | undefined;
@@ -54,6 +59,7 @@ export type CmsInlineEditCancelMessage = {
   type: 'CMS_INLINE_EDIT_CANCEL';
   contentItemId: number;
   versionId: number;
+  editTargetId?: string | undefined;
   fieldPath?: string | undefined;
   componentId?: string | undefined;
   propPath?: string | undefined;
@@ -61,6 +67,7 @@ export type CmsInlineEditCancelMessage = {
 
 export type CmsInlineEditErrorMessage = {
   type: 'CMS_INLINE_EDIT_ERROR';
+  editTargetId?: string | undefined;
   fieldPath?: string | undefined;
   componentId?: string | undefined;
   propPath?: string | undefined;
@@ -69,6 +76,9 @@ export type CmsInlineEditErrorMessage = {
 
 export type CmsActionId =
   | 'replace'
+  | 'open'
+  | 'unlink'
+  | 'manage_items'
   | 'clear'
   | 'delete'
   | 'duplicate'
@@ -81,6 +91,10 @@ export type CmsActionRequestMessage = {
   action?: CmsActionId;
   contentItemId: number;
   versionId: number;
+  editTargetId?: string | undefined;
+  editKind?: 'text' | 'richtext' | 'link' | 'asset' | 'list' | undefined;
+  editRole?: 'value' | 'label' | 'item' | undefined;
+  editMeta?: string | undefined;
   componentId?: string | undefined;
   componentType?: string | undefined;
   fieldPath?: string | undefined;
@@ -91,6 +105,7 @@ export type CmsActionsMessage = {
   type: 'CMS_ACTIONS';
   contentItemId: number;
   versionId: number;
+  editTargetId?: string | undefined;
   componentId?: string | undefined;
   fieldPath?: string | undefined;
   targetType?: 'text' | 'richtext' | 'asset' | 'link' | 'form' | 'component' | 'unknown';
@@ -99,6 +114,16 @@ export type CmsActionsMessage = {
     label: string;
     primary?: boolean;
   }>;
+};
+
+export type CmsActionResultMessage = {
+  type: 'CMS_ACTION_RESULT';
+  ok: boolean;
+  requestType: 'inline_patch' | 'inline_commit' | 'action';
+  editTargetId?: string | undefined;
+  fieldPath?: string | undefined;
+  componentId?: string | undefined;
+  message?: string | undefined;
 };
 
 export type CmsBridgeMessage =
@@ -112,4 +137,5 @@ export type CmsBridgeMessage =
   | CmsInlineEditCancelMessage
   | CmsInlineEditErrorMessage
   | CmsActionRequestMessage
-  | CmsActionsMessage;
+  | CmsActionsMessage
+  | CmsActionResultMessage;

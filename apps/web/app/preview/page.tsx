@@ -73,6 +73,15 @@ function parseComponentData(
   };
 }
 
+function resolveApiEndpoint(candidate: string | string[] | undefined): string {
+  const fromQuery = Array.isArray(candidate) ? candidate[0] : candidate;
+  const normalizedQuery = (fromQuery ?? '').trim();
+  if (normalizedQuery) {
+    return normalizedQuery;
+  }
+  return process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql';
+}
+
 export default async function PreviewPage({
   searchParams
 }: {
@@ -89,13 +98,17 @@ export default async function PreviewPage({
   const authToken = (query.authToken as string | undefined) ?? null;
   const cmsBridge = (query.cmsBridge as string | undefined) === '1';
   const inlineEdit = (query.inline as string | undefined) === '1';
+  const apiEndpoint = resolveApiEndpoint(query.apiUrl);
+  const apiBaseUrl = apiEndpoint.endsWith('/graphql')
+    ? apiEndpoint.slice(0, -'/graphql'.length)
+    : apiEndpoint;
 
   if (!Number.isFinite(contentItemId) || contentItemId <= 0) {
     notFound();
   }
 
   const sdk = createSdk({
-    endpoint: process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql',
+    endpoint: apiEndpoint,
     headersProvider: () => (authToken ? { authorization: `Bearer ${authToken}` } : undefined)
   });
   let urlPattern = '/{market}/{locale}';
@@ -107,7 +120,7 @@ export default async function PreviewPage({
       <div style={{ padding: '1rem', fontFamily: 'system-ui, sans-serif' }}>
         <h2 style={{ marginTop: 0 }}>Preview unavailable</h2>
         <p style={{ marginBottom: '0.5rem' }}>
-          Could not connect to API endpoint: <code>{process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql'}</code>
+          Could not connect to API endpoint: <code>{apiEndpoint}</code>
         </p>
         <p style={{ marginTop: 0, opacity: 0.8 }}>
           Ensure API is running and your preview auth token is valid.
@@ -161,7 +174,7 @@ export default async function PreviewPage({
       <div style={{ padding: '1rem', fontFamily: 'system-ui, sans-serif' }}>
         <h2 style={{ marginTop: 0 }}>Preview data fetch failed</h2>
         <p style={{ marginBottom: '0.5rem' }}>
-          Endpoint: <code>{process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql'}</code>
+          Endpoint: <code>{apiEndpoint}</code>
         </p>
         <pre style={{ background: '#f5f5f5', padding: '0.75rem', borderRadius: 6, overflow: 'auto' }}>
           {error instanceof Error ? error.message : 'Unknown fetch error'}
@@ -204,6 +217,7 @@ export default async function PreviewPage({
         components={components}
         cmsBridge={cmsBridge}
         inlineEdit={inlineEdit}
+        apiBaseUrl={apiBaseUrl}
       />
     </>
   );

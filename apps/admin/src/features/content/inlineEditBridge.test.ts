@@ -71,4 +71,38 @@ describe('inlineEditBridge', () => {
       fieldPath: 'components.hero_1.props.subtitle'
     });
   });
+
+  it('passes editTargetId through to save scheduling', () => {
+    const applyValueByPath = vi.fn().mockReturnValue(true);
+    const scheduleSave = vi.fn();
+
+    const result = handleInlineEditPatchMessage({
+      selectedItemId: 42,
+      hasDraft: true,
+      message: {
+        type: 'CMS_INLINE_EDIT_PATCH',
+        contentItemId: 42,
+        versionId: 7,
+        mode: 'text',
+        editTargetId: '42|7|page|fields.title|text|value|0',
+        value: 'Hello',
+        fieldPath: 'fields.title'
+      },
+      applyValueByPath,
+      scheduleSave
+    });
+
+    expect(result).toEqual({
+      handled: true,
+      applied: true,
+      fieldPath: 'fields.title',
+      editTargetId: '42|7|page|fields.title|text|value|0'
+    });
+    expect(scheduleSave).toHaveBeenCalledWith({
+      force: false,
+      delay: 900,
+      fieldPath: 'fields.title',
+      editTargetId: '42|7|page|fields.title|text|value|0'
+    });
+  });
 });

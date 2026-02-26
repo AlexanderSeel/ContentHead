@@ -10,7 +10,8 @@
     "codegen": "graphql-codegen --config codegen.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "next lint"
+    "lint": "next lint",
+    "restart": "pnpm -w run restart"
   },
   "dependencies": {
     "@contenthead/shared": "workspace:*",

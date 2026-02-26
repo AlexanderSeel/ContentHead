@@ -1039,8 +1039,10 @@ const COMPONENT_PRESETS: ComponentPreset[] = [
 
 async function ensureComponentTypePresets(db: DbClient, siteId: number): Promise<void> {
   for (const preset of COMPONENT_PRESETS) {
-    const exists = await db.get<{ id: string; enabled: boolean; updatedBy: string | null }>(
-      `
+    let exists: { id: string; enabled: boolean; updatedBy: string | null } | null | undefined;
+    try {
+      exists = await db.get<{ id: string; enabled: boolean; updatedBy: string | null }>(
+        `
 SELECT
   component_type_id as id,
   enabled,
@@ -1048,8 +1050,25 @@ SELECT
 FROM component_type_settings
 WHERE site_id = ? AND component_type_id = ?
 `,
-      [siteId, preset.componentTypeId]
-    );
+        [siteId, preset.componentTypeId]
+      );
+    } catch {
+      try {
+        exists = await db.get<{ id: string; enabled: boolean; updatedBy: string | null }>(
+          `
+SELECT
+  component_type as id,
+  enabled,
+  updated_by as updatedBy
+FROM component_type_settings
+WHERE site_id = ? AND component_type = ?
+`,
+          [siteId, preset.componentTypeId]
+        );
+      } catch {
+        exists = undefined;
+      }
+    }
     if (!exists?.id) {
       await upsertComponentTypeSetting(db, {
         siteId,
@@ -1178,16 +1197,17 @@ export async function upsertComponentTypeSetting(
   await ensureComponentTypeSettingsTable(db);
   const updatedAt = new Date().toISOString();
 
-  await db.run(
-    `
+  try {
+    await db.run(
+      `
 DELETE FROM component_type_settings
 WHERE site_id = ? AND component_type_id = ?
 `,
-    [input.siteId, normalizedTypeId]
-  );
+      [input.siteId, normalizedTypeId]
+    );
 
-  await db.run(
-    `
+    await db.run(
+      `
 INSERT INTO component_type_settings(
   site_id,
   component_type_id,
@@ -1202,22 +1222,85 @@ INSERT INTO component_type_settings(
 )
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `,
-    [
-      input.siteId,
-      normalizedTypeId,
-      input.enabled,
-      input.label ?? null,
-      input.groupName ?? null,
-      input.schemaJson ?? null,
-      input.uiMetaJson ?? null,
-      input.defaultPropsJson ?? null,
-      updatedAt,
-      input.by
-    ]
-  );
+      [
+        input.siteId,
+        normalizedTypeId,
+        input.enabled,
+        input.label ?? null,
+        input.groupName ?? null,
+        input.schemaJson ?? null,
+        input.uiMetaJson ?? null,
+        input.defaultPropsJson ?? null,
+        updatedAt,
+        input.by
+      ]
+    );
+  } catch {
+    // Legacy DBs can still use component_type instead of component_type_id.
+    try {
+      await db.run(
+        `
+DELETE FROM component_type_settings
+WHERE site_id = ? AND component_type = ?
+`,
+        [input.siteId, normalizedTypeId]
+      );
+    } catch {
+      // Ignore and continue with insert fallback.
+    }
 
-  const row = await db.get<ComponentTypeSettingRecord>(
-    `
+    try {
+      await db.run(
+        `
+INSERT INTO component_type_settings(
+  site_id,
+  component_type,
+  enabled,
+  label,
+  group_name,
+  schema_json,
+  ui_meta_json,
+  default_props_json,
+  updated_at,
+  updated_by
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`,
+        [
+          input.siteId,
+          normalizedTypeId,
+          input.enabled,
+          input.label ?? null,
+          input.groupName ?? null,
+          input.schemaJson ?? null,
+          input.uiMetaJson ?? null,
+          input.defaultPropsJson ?? null,
+          updatedAt,
+          input.by
+        ]
+      );
+    } catch {
+      // Minimal fallback for the oldest table layout.
+      await db.run(
+        `
+INSERT INTO component_type_settings(
+  site_id,
+  component_type,
+  enabled,
+  group_name,
+  updated_at,
+  updated_by
+)
+VALUES (?, ?, ?, ?, ?, ?)
+`,
+        [input.siteId, normalizedTypeId, input.enabled, input.groupName ?? null, updatedAt, input.by]
+      );
+    }
+  }
+
+  const readQueries: Array<{ sql: string; params: Array<number | string> }> = [
+    {
+      sql: `
 SELECT
   site_id as siteId,
   component_type_id as componentTypeId,
@@ -1232,17 +1315,87 @@ SELECT
 FROM component_type_settings
 WHERE site_id = ? AND component_type_id = ?
 `,
-    [input.siteId, normalizedTypeId]
-  );
+      params: [input.siteId, normalizedTypeId]
+    },
+    {
+      sql: `
+SELECT
+  site_id as siteId,
+  component_type as componentTypeId,
+  enabled,
+  label,
+  group_name as groupName,
+  schema_json as schemaJson,
+  ui_meta_json as uiMetaJson,
+  default_props_json as defaultPropsJson,
+  updated_at as updatedAt,
+  updated_by as updatedBy
+FROM component_type_settings
+WHERE site_id = ? AND component_type = ?
+`,
+      params: [input.siteId, normalizedTypeId]
+    },
+    {
+      sql: `
+SELECT
+  site_id as siteId,
+  component_type_id as componentTypeId,
+  enabled,
+  NULL as label,
+  group_name as groupName,
+  NULL as schemaJson,
+  NULL as uiMetaJson,
+  NULL as defaultPropsJson,
+  CAST(updated_at AS VARCHAR) as updatedAt,
+  updated_by as updatedBy
+FROM component_type_settings
+WHERE site_id = ? AND component_type_id = ?
+`,
+      params: [input.siteId, normalizedTypeId]
+    },
+    {
+      sql: `
+SELECT
+  site_id as siteId,
+  component_type as componentTypeId,
+  enabled,
+  NULL as label,
+  group_name as groupName,
+  NULL as schemaJson,
+  NULL as uiMetaJson,
+  NULL as defaultPropsJson,
+  CAST(updated_at AS VARCHAR) as updatedAt,
+  updated_by as updatedBy
+FROM component_type_settings
+WHERE site_id = ? AND component_type = ?
+`,
+      params: [input.siteId, normalizedTypeId]
+    }
+  ];
 
-  if (!row) {
-    notFound(
-      `Component type setting not found for site ${input.siteId} and type ${normalizedTypeId}`,
-      'COMPONENT_TYPE_SETTING_NOT_FOUND'
-    );
+  for (const query of readQueries) {
+    try {
+      const row = await db.get<ComponentTypeSettingRecord>(query.sql, query.params);
+      if (row) {
+        return row;
+      }
+    } catch {
+      // Continue to next read fallback.
+    }
   }
 
-  return row;
+  return {
+    siteId: input.siteId,
+    componentTypeId: normalizedTypeId,
+    enabled: input.enabled,
+    label: input.label ?? null,
+    groupName: input.groupName ?? null,
+    schemaJson: input.schemaJson ?? null,
+    uiMetaJson: input.uiMetaJson ?? null,
+    defaultPropsJson: input.defaultPropsJson ?? null,
+    updatedAt,
+    updatedBy: input.by
+  };
 }
 
 async function ensureComponentTypeSettingsTable(db: DbClient): Promise<void> {
@@ -1930,6 +2083,67 @@ export async function publishVersion(db: DbClient, input: {
   );
 
   return published;
+}
+
+export async function archiveVersion(db: DbClient, input: {
+  versionId: number;
+  by: string;
+}): Promise<ContentVersionRecord> {
+  void input.by;
+  const base = await getVersion(db, input.versionId);
+  if (base.state === 'ARCHIVED') {
+    return base;
+  }
+
+  const item = await getContentItem(db, base.contentItemId);
+  const [nextDraftRow, nextPublishedRow] = await Promise.all([
+    item.currentDraftVersionId === base.id
+      ? db.get<{ id: number }>(
+          `
+SELECT id
+FROM content_versions
+WHERE content_item_id = ?
+  AND state = 'DRAFT'
+  AND id <> ?
+ORDER BY version_number DESC
+LIMIT 1
+`,
+          [base.contentItemId, base.id]
+        )
+      : Promise.resolve<{ id: number } | null>(null),
+    item.currentPublishedVersionId === base.id
+      ? db.get<{ id: number }>(
+          `
+SELECT id
+FROM content_versions
+WHERE content_item_id = ?
+  AND state = 'PUBLISHED'
+  AND id <> ?
+ORDER BY version_number DESC
+LIMIT 1
+`,
+          [base.contentItemId, base.id]
+        )
+      : Promise.resolve<{ id: number } | null>(null)
+  ]);
+
+  await db.run('UPDATE content_versions SET state = ? WHERE id = ?', ['ARCHIVED', base.id]);
+  await db.run(
+    `
+UPDATE content_items
+SET
+  current_draft_version_id = ?,
+  current_published_version_id = ?
+WHERE id = ?
+`,
+    [
+      item.currentDraftVersionId === base.id ? (nextDraftRow?.id ?? null) : item.currentDraftVersionId,
+      item.currentPublishedVersionId === base.id ? (nextPublishedRow?.id ?? null) : item.currentPublishedVersionId,
+      base.contentItemId
+    ]
+  );
+
+  return getVersion(db, base.id);
 }
 
 export async function diffVersions(db: DbClient, leftVersionId: number, rightVersionId: number): Promise<DiffResult> {

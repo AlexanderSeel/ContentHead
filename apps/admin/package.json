@@ -10,7 +10,8 @@
     "codegen": "graphql-codegen --config codegen.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src --ext .ts,.tsx",
+    "restart": "pnpm -w run restart"
   },
   "dependencies": {
     "@contenthead/sdk": "workspace:*",
@@ -18,9 +19,11 @@
     "@graphiql/plugin-explorer": "^5.1.1",
     "@graphiql/react": "^0.37.1",
     "@graphiql/toolkit": "^0.11.3",
+    "@imgly/background-removal": "^1.7.0",
     "graphiql": "^5.2.2",
     "monaco-editor": "0.52.2",
     "monaco-graphql": "^1.7.3",
+    "onnxruntime-web": "1.21.0",
     "primeflex": "^3.3.1",
     "primeicons": "^7.0.0",
     "primereact": "^10.9.2",

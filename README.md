@@ -140,18 +140,29 @@ Content Pages route (`/content/pages`) now uses a full-width CMS workspace:
 
 ## DAM (Digital Asset Management)
 - API:
-  - GraphQL: `listAssets`, `getAsset`, `listAssetFolders`, `createAssetFolder`, `updateAssetMetadata`, `deleteAsset`
+  - GraphQL:
+    - Core: `listAssets`, `getAsset`, `listAssetFolders`, `createAssetFolder`, `updateAssetMetadata`, `deleteAsset`
+    - Image editor: `updateAssetFocalPoint`, `upsertAssetPois`, `upsertAssetRenditionPresets`, `generateAssetRendition`, `deleteAssetRendition`
   - Upload endpoint: `POST /api/assets/upload?siteId=<id>[&folderId=<id>]` (multipart form)
   - Serve original: `GET /assets/:id`
   - Serve rendition: `GET /assets/:id/rendition/:kind` (`thumb|small|medium|large`)
+  - Serve preset rendition: `GET /assets/:id/rendition/preset/:presetId` (or `GET /assets/:id/rendition/:kind?presetId=<presetId>`)
 - Storage:
   - `AssetStorageProvider` interface with `LocalFileStorageProvider`
   - local default path: `apps/api/.data/assets` (configurable via DAM connector / `ASSETS_BASE_PATH`)
-  - image thumbnails generated with `sharp`
+  - image thumbnails and preset renditions generated with `sharp` (cover/contain, focal crop, optional explicit crop)
 - Admin:
   - Asset library page: `/content/assets`
-  - Metadata editing: title, alt text, description, tags
-  - Asset picker in content fields and component props
+  - Visual **Edit Image** workspace (asset library row action + asset picker preview)
+    - Crop & focal point
+    - Rendition presets (sizes, mode, format, quality, optional crop)
+    - POIs/hotspots with per-POI internal/external links
+    - Metadata and collapsed Advanced JSON
+  - Content editing integration:
+    - `assetRef` picker supports `presetId` + `showPois`
+    - quick link: **Edit image**
+- Web:
+  - `CmsImage` helper supports `presetId` and optional POI overlays with keyboard-accessible hotspot links.
 
 ## Connector Settings
 - Generic connector framework (`connectors` table + GraphQL CRUD/test/default operations)

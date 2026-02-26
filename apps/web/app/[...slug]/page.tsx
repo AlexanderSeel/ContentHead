@@ -71,6 +71,15 @@ function parseComponentData(
   };
 }
 
+function resolveApiEndpoint(candidate: string | string[] | undefined): string {
+  const fromQuery = Array.isArray(candidate) ? candidate[0] : candidate;
+  const normalizedQuery = (fromQuery ?? '').trim();
+  if (normalizedQuery) {
+    return normalizedQuery;
+  }
+  return process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql';
+}
+
 export default async function CatchAllPage({
   params,
   searchParams
@@ -85,6 +94,7 @@ export default async function CatchAllPage({
   const siteId = Number((resolvedSearch.siteId as string | undefined) ?? '1');
   const previewToken = (resolvedSearch.previewToken as string | undefined) ?? null;
   const authToken = (resolvedSearch.authToken as string | undefined) ?? null;
+  const apiEndpoint = resolveApiEndpoint(resolvedSearch.apiUrl);
   const preview = ((resolvedSearch.preview as string | undefined) ?? 'false') === 'true';
   const cmsBridge = (resolvedSearch.cmsBridge as string | undefined) === '1';
   const inlineEdit = (resolvedSearch.inline as string | undefined) === '1';
@@ -111,7 +121,7 @@ export default async function CatchAllPage({
   });
 
   const sdk = createSdk({
-    endpoint: process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql',
+    endpoint: apiEndpoint,
     headersProvider: () => (authToken ? { authorization: `Bearer ${authToken}` } : undefined)
   });
   let urlPattern = '/{market}/{locale}';
@@ -123,7 +133,7 @@ export default async function CatchAllPage({
       <div style={{ padding: '1rem', fontFamily: 'system-ui, sans-serif' }}>
         <h2 style={{ marginTop: 0 }}>Website render unavailable</h2>
         <p style={{ marginBottom: '0.5rem' }}>
-          Could not connect to API endpoint: <code>{process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql'}</code>
+          Could not connect to API endpoint: <code>{apiEndpoint}</code>
         </p>
         <pre style={{ background: '#f5f5f5', padding: '0.75rem', borderRadius: 6, overflow: 'auto' }}>
           {error instanceof Error ? error.message : 'Unknown fetch error'}
@@ -161,7 +171,15 @@ export default async function CatchAllPage({
     const composition = parsedComponentData.composition;
     const components = parsedComponentData.components;
     const fields = JSON.parse(version.fieldsJson ?? '{}') as Record<string, unknown>;
-    const apiBaseUrl = (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql').replace('/graphql', '');
+    let fieldDefs: Array<{ key: string; type: string; uiConfig?: Record<string, unknown> | null }> = [];
+    try {
+      fieldDefs = JSON.parse(base.contentType?.fieldsJson ?? '[]') as Array<{ key: string; type: string; uiConfig?: Record<string, unknown> | null }>;
+    } catch {
+      fieldDefs = [];
+    }
+    const apiBaseUrl = apiEndpoint.endsWith('/graphql')
+      ? apiEndpoint.slice(0, -'/graphql'.length)
+      : apiEndpoint;
 
     const componentEntries = Object.values(components ?? {});
     const collectAssetIds = (value: unknown, acc: Set<number>) => {
@@ -233,10 +251,12 @@ export default async function CatchAllPage({
 
     return (
       <>
-        <p className="cms-top-meta">
-          Mode: {base.mode} | Site: {siteId} | Market/Locale: {marketCode}/{localeCode} | Variant:{' '}
-          {payload.selectedVariant?.key ?? 'none'} | Reason: {payload.selectionReason}
-        </p>
+        {cmsBridge ? (
+          <p className="cms-top-meta">
+            Mode: {base.mode} | Site: {siteId} | Market/Locale: {marketCode}/{localeCode} | Variant:{' '}
+            {payload.selectedVariant?.key ?? 'none'} | Reason: {payload.selectionReason}
+          </p>
+        ) : null}
         <CmsRendererClient
           siteId={siteId}
           marketCode={marketCode}
@@ -246,6 +266,7 @@ export default async function CatchAllPage({
           contentItemId={base.contentItem?.id ?? 0}
           versionId={version.id ?? 0}
           fields={fields}
+          fieldDefs={fieldDefs}
           composition={composition}
           components={components}
           forms={forms}
@@ -261,7 +282,7 @@ export default async function CatchAllPage({
       <div style={{ padding: '1rem', fontFamily: 'system-ui, sans-serif' }}>
         <h2 style={{ marginTop: 0 }}>Website render fetch failed</h2>
         <p style={{ marginBottom: '0.5rem' }}>
-          Endpoint: <code>{process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql'}</code>
+          Endpoint: <code>{apiEndpoint}</code>
         </p>
         <pre style={{ background: '#f5f5f5', padding: '0.75rem', borderRadius: 6, overflow: 'auto' }}>
           {error instanceof Error ? error.message : 'Unknown fetch error'}

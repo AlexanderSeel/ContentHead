@@ -8,6 +8,7 @@ import { useGraphqlDiagnostics } from '../../lib/graphqlReliability';
 import { createAdminSdk } from '../../lib/sdk';
 import { readCssVar } from '../../theme/themeManager';
 import { ForbiddenState, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { usePreviewDiagnostics } from '../content/previewDiagnostics';
 
 export function DiagnosticsPage() {
   const { siteId, marketCode, localeCode, error } = useAdminContext();
@@ -15,6 +16,7 @@ export function DiagnosticsPage() {
   const graphqlErrors = useGraphqlDiagnostics();
   const { token } = useAuth();
   const sdk = useMemo(() => createAdminSdk(token), [token]);
+  const previewDiagnostics = usePreviewDiagnostics();
   const [securityInfo, setSecurityInfo] = useState<{ roles: string[]; permissions: string[]; seedStatus: { adminRoleExists: boolean; adminPermissionCoverage: boolean; adminUserHasRole: boolean } } | null>(null);
   const [securityError, setSecurityError] = useState<string | null>(null);
 
@@ -84,6 +86,22 @@ export function DiagnosticsPage() {
                 <div>{entry.message}</div>
                 <small>{new Date(entry.timestamp).toLocaleString()}</small>
                 <pre>{JSON.stringify(entry.variables, null, 2)}</pre>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+      <Card title="Preview Bridge (Last 20)">
+        {previewDiagnostics.length === 0 ? (
+          <div className="status-panel">No preview bridge events captured.</div>
+        ) : (
+          <div className="diagnostics-error-list">
+            {previewDiagnostics.map((entry) => (
+              <div key={`${entry.timestamp}-${entry.direction}-${entry.event}`} className="status-panel diagnostics-error-item">
+                <strong>{entry.event}</strong>
+                <div>{entry.direction}{typeof entry.ok === 'boolean' ? ` | ${entry.ok ? 'ok' : 'error'}` : ''}</div>
+                <small>{new Date(entry.timestamp).toLocaleString()}</small>
+                <pre>{JSON.stringify(entry.payload, null, 2)}</pre>
               </div>
             ))}
           </div>

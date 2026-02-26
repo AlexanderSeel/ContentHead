@@ -7,12 +7,26 @@ import {
   type FormConditionSet,
   type FormEvaluationContext
 } from '@contenthead/shared';
-import { resolveInlineFieldPath, resolveInlineMode, shouldCommit } from '../../src/inlineEditModel';
+import { CmsEditable } from './CmsEditable';
+import { CmsImage as CmsImageView } from './CmsImage';
+import {
+  findEditableWrapper,
+  parseEditMeta,
+  readTargetValue,
+  resolveEditTarget,
+  resolveEditableSelection,
+  shouldCommit,
+  type CmsEditKind,
+  type CmsEditMeta,
+  type CmsInlineEditMode
+} from '../../src/inlineEditEngine';
 
 type ContentLink = {
   kind?: 'internal' | 'external';
   url?: string;
   contentItemId?: number;
+  routeSlug?: string;
+  anchor?: string;
   text?: string;
   target?: '_self' | '_blank';
 };
@@ -51,6 +65,14 @@ type AssetPayload = {
   title?: string | null;
   altText?: string | null;
   description?: string | null;
+  pois?: Array<{
+    id: string;
+    x: number;
+    y: number;
+    label?: string | null;
+    visible?: boolean | null;
+    link?: ContentLink | null;
+  }> | null;
 };
 
 type FieldDef = {
@@ -79,34 +101,27 @@ type CmsRendererClientProps = {
 };
 
 type CmsRect = { top: number; left: number; width: number; height: number };
-type CmsActionId = 'replace' | 'clear' | 'delete' | 'duplicate' | 'move_up' | 'move_down';
+type CmsActionId = 'replace' | 'open' | 'unlink' | 'manage_items' | 'clear' | 'delete' | 'duplicate' | 'move_up' | 'move_down';
 type CmsActionItem = { id: CmsActionId; label: string; primary?: boolean };
 type CmsActionsPayload = {
   type: 'CMS_ACTIONS';
   contentItemId: number;
   versionId: number;
+  editTargetId?: string;
   componentId?: string;
   fieldPath?: string;
   targetType?: 'text' | 'richtext' | 'asset' | 'link' | 'form' | 'component' | 'unknown';
   actions?: CmsActionItem[];
 };
-type CmsInlineEditMode = 'text' | 'richtext';
 type CmsInlineEditPayload = {
   contentItemId: number;
   versionId: number;
+  editTargetId: string;
   fieldPath?: string;
   componentId?: string;
-  propPath?: string;
   mode: CmsInlineEditMode;
   value: string;
 };
-
-function getAnnotatedTarget(element: Element | null): HTMLElement | null {
-  if (!element) {
-    return null;
-  }
-  return element.closest<HTMLElement>('[data-cms-component-id], [data-cms-field-path]');
-}
 
 function toRect(element: HTMLElement): CmsRect {
   const rect = element.getBoundingClientRect();
@@ -134,15 +149,21 @@ function drawOverlay(overlay: HTMLDivElement, element: HTMLElement | null, color
   overlay.style.background = fill;
 }
 
-function findByBridgeSelector(componentId?: string, fieldPath?: string): HTMLElement | null {
+function findByBridgeSelector(editTargetId?: string, componentId?: string, fieldPath?: string): HTMLElement | null {
+  if (editTargetId) {
+    const target = document.querySelector<HTMLElement>(`[data-cms-editable="true"][data-cms-edit-target-id="${editTargetId}"]`);
+    if (target) {
+      return target;
+    }
+  }
   if (fieldPath) {
-    const field = document.querySelector<HTMLElement>(`[data-cms-field-path="${fieldPath}"]`);
+    const field = document.querySelector<HTMLElement>(`[data-cms-editable="true"][data-cms-field-path="${fieldPath}"]`);
     if (field) {
       return field;
     }
   }
   if (componentId) {
-    return document.querySelector<HTMLElement>(`[data-cms-component-id="${componentId}"]`);
+    return document.querySelector<HTMLElement>(`[data-cms-editable="true"][data-cms-component-id="${componentId}"]`);
   }
   return null;
 }
@@ -151,20 +172,12 @@ function normalizeType(type: string): string {
   return type.trim().toLowerCase().replace(/component$/i, '').replace(/\s+/g, '_');
 }
 
-function findDatasetValue(target: HTMLElement, key: string): string | undefined {
-  let current: HTMLElement | null = target;
-  while (current) {
-    const value = current.dataset[key as keyof DOMStringMap];
-    if (value) {
-      return value;
-    }
-    current = current.parentElement;
-  }
-  return undefined;
-}
-
 function focusEditableTarget(target: HTMLElement): void {
+  target.setAttribute('tabindex', '-1');
   target.focus();
+  if (document.activeElement !== target) {
+    target.focus({ preventScroll: true });
+  }
   const selection = window.getSelection();
   if (!selection) {
     return;
@@ -176,17 +189,45 @@ function focusEditableTarget(target: HTMLElement): void {
   selection.addRange(range);
 }
 
+function insertTextAtSelection(target: HTMLElement, text: string): void {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) {
+    target.append(document.createTextNode(text));
+    focusEditableTarget(target);
+    return;
+  }
+  let range = selection.getRangeAt(0);
+  if (!target.contains(range.startContainer)) {
+    focusEditableTarget(target);
+    const refreshed = window.getSelection();
+    if (!refreshed || refreshed.rangeCount === 0) {
+      target.append(document.createTextNode(text));
+      return;
+    }
+    range = refreshed.getRangeAt(0);
+  }
+  range.deleteContents();
+  const node = document.createTextNode(text);
+  range.insertNode(node);
+  range.setStartAfter(node);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
 function emitSelect(target: HTMLElement) {
-  const contentItemId = Number(findDatasetValue(target, 'cmsContentItemId') ?? '0');
-  const versionId = Number(findDatasetValue(target, 'cmsVersionId') ?? '0');
+  const contentItemId = Number(target.dataset.cmsContentItemId ?? '0');
+  const versionId = Number(target.dataset.cmsVersionId ?? '0');
   const payload = {
     type: 'CMS_SELECT',
     contentItemId,
     versionId,
-    componentId: target.dataset.cmsComponentId ?? findDatasetValue(target, 'cmsComponentId'),
-    componentType: target.dataset.cmsComponentType ?? findDatasetValue(target, 'cmsComponentType'),
-    fieldPath: target.dataset.cmsFieldPath ?? findDatasetValue(target, 'cmsFieldPath'),
-    propPath: target.dataset.cmsPropPath ?? findDatasetValue(target, 'cmsPropPath'),
+    editTargetId: target.dataset.cmsEditTargetId,
+    editKind: target.dataset.cmsEditKind,
+    editRole: target.dataset.cmsEditRole,
+    componentId: target.dataset.cmsComponentId,
+    componentType: target.dataset.cmsComponentType,
+    fieldPath: target.dataset.cmsFieldPath,
     rect: toRect(target)
   };
 
@@ -200,8 +241,8 @@ function emitActionRequest(
   target: HTMLElement,
   action?: CmsActionId
 ) {
-  const contentItemId = Number(findDatasetValue(target, 'cmsContentItemId') ?? '0');
-  const versionId = Number(findDatasetValue(target, 'cmsVersionId') ?? '0');
+  const contentItemId = Number(target.dataset.cmsContentItemId ?? '0');
+  const versionId = Number(target.dataset.cmsVersionId ?? '0');
   if (!window.parent || window.parent === window) {
     return;
   }
@@ -212,10 +253,13 @@ function emitActionRequest(
       ...(action ? { action } : {}),
       contentItemId,
       versionId,
-      componentId: target.dataset.cmsComponentId ?? findDatasetValue(target, 'cmsComponentId'),
-      componentType: target.dataset.cmsComponentType ?? findDatasetValue(target, 'cmsComponentType'),
-      fieldPath: target.dataset.cmsFieldPath ?? findDatasetValue(target, 'cmsFieldPath'),
-      propPath: target.dataset.cmsPropPath ?? findDatasetValue(target, 'cmsPropPath')
+      editTargetId: target.dataset.cmsEditTargetId,
+      editKind: target.dataset.cmsEditKind,
+      editRole: target.dataset.cmsEditRole,
+      editMeta: target.dataset.cmsEditMeta,
+      componentId: target.dataset.cmsComponentId,
+      componentType: target.dataset.cmsComponentType,
+      fieldPath: target.dataset.cmsFieldPath
     },
     '*'
   );
@@ -352,83 +396,52 @@ function sanitizeRichTextHtml(
   return root.innerHTML;
 }
 
-function CmsLink({
-  link,
-  className,
-  fieldPath,
-  bridgeAttrs
-}: {
-  link?: ContentLink | null;
-  className?: string;
-  fieldPath?: string;
-  bridgeAttrs?: Record<string, string | number>;
-}) {
-  if (!link) {
-    return null;
-  }
-  return (
-    <a
-      className={className}
-      href={linkHref(link)}
-      target={link.target ?? '_self'}
-      rel={link.target === '_blank' ? 'noreferrer' : undefined}
-      {...(bridgeAttrs ?? {})}
-      {...(fieldPath ? { 'data-cms-field-path': fieldPath } : {})}
-    >
-      {link.text ?? link.url ?? 'Learn more'}
-    </a>
-  );
-}
-
 function CmsImage({
   assetId,
   asset,
   kind,
   fitMode,
   customWidth,
+  presetId,
+  showPois,
   altOverride,
   apiBaseUrl,
-  fieldPath,
-  bridgeAttrs
+  marketCode,
+  localeCode,
+  urlPattern
 }: {
   assetId?: number | null;
   asset?: AssetPayload | null;
   kind?: 'thumb' | 'small' | 'medium' | 'large';
   fitMode?: 'cover' | 'contain';
   customWidth?: number;
+  presetId?: string;
+  showPois?: boolean;
   altOverride?: string;
   apiBaseUrl: string;
-  fieldPath?: string;
-  bridgeAttrs?: Record<string, string | number>;
+  marketCode: string;
+  localeCode: string;
+  urlPattern: string;
 }) {
-  if (!assetId) {
-    return null;
-  }
-  const renditionKind = kind ?? 'original';
-  const params = new URLSearchParams();
-  if (fitMode) {
-    params.set('fit', fitMode);
-  }
-  if (customWidth && customWidth > 0) {
-    params.set('width', String(customWidth));
-  }
-  const suffix = params.toString() ? `?${params.toString()}` : '';
-  const url = renditionKind === 'original'
-    ? `${apiBaseUrl}/assets/${assetId}`
-    : `${apiBaseUrl}/assets/${assetId}/rendition/${renditionKind}${suffix}`;
-  const alt = altOverride ?? asset?.altText ?? asset?.title ?? `Asset ${assetId}`;
   return (
-    <img
-      src={url}
-      alt={alt}
-      loading="lazy"
-      {...(bridgeAttrs ?? {})}
-      {...(fieldPath ? { 'data-cms-field-path': fieldPath } : {})}
+    <CmsImageView
+      assetId={assetId}
+      asset={asset}
+      kind={kind}
+      fitMode={fitMode}
+      customWidth={customWidth}
+      presetId={presetId}
+      showPois={showPois}
+      altOverride={altOverride}
+      apiBaseUrl={apiBaseUrl}
+      marketCode={marketCode}
+      localeCode={localeCode}
+      urlPattern={urlPattern}
     />
   );
 }
 
-function parseAssetRef(value: unknown): { assetId: number | null; kind?: 'thumb' | 'small' | 'medium' | 'large'; fitMode?: 'cover' | 'contain'; customWidth?: number } {
+function parseAssetRef(value: unknown): { assetId: number | null; kind?: 'thumb' | 'small' | 'medium' | 'large'; fitMode?: 'cover' | 'contain'; customWidth?: number; presetId?: string; showPois?: boolean } {
   if (typeof value === 'number') {
     return { assetId: value };
   }
@@ -441,35 +454,45 @@ function parseAssetRef(value: unknown): { assetId: number | null; kind?: 'thumb'
     : null;
   const fitMode = rec.fitMode === 'contain' ? 'contain' : rec.fitMode === 'cover' ? 'cover' : null;
   const customWidth = typeof rec.customWidth === 'number' ? rec.customWidth : null;
+  const presetId = typeof rec.presetId === 'string' && rec.presetId.trim() ? rec.presetId.trim() : null;
+  const showPois = typeof rec.showPois === 'boolean' ? rec.showPois : null;
   return {
     assetId: typeof rec.assetId === 'number' ? rec.assetId : null,
     ...(kind ? { kind } : {}),
     ...(fitMode ? { fitMode } : {}),
-    ...(customWidth ? { customWidth } : {})
+    ...(customWidth ? { customWidth } : {}),
+    ...(presetId ? { presetId } : {}),
+    ...(showPois != null ? { showPois } : {})
   };
 }
 
 function NewsletterForm({
+  editableEnabled,
   siteId,
   marketCode,
   localeCode,
   routeSlug,
   contentItemId,
+  versionId,
+  componentId,
+  componentType,
   formId,
   title,
   description,
   submitLabel,
   steps,
   fields,
-  apiBaseUrl,
-  fieldPathPrefix,
-  bridgeAttrs
+  apiBaseUrl
 }: {
+  editableEnabled: boolean;
   siteId: number;
   marketCode: string;
   localeCode: string;
   routeSlug: string;
   contentItemId: number;
+  versionId: number;
+  componentId: string;
+  componentType: string;
   formId?: number | null;
   title?: string;
   description?: string;
@@ -477,8 +500,6 @@ function NewsletterForm({
   steps: FormStepPayload[];
   fields: FormFieldPayload[];
   apiBaseUrl: string;
-  fieldPathPrefix?: string;
-  bridgeAttrs?: Record<string, string | number>;
 }) {
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [status, setStatus] = useState('');
@@ -546,16 +567,7 @@ function NewsletterForm({
     const stepId = typeof field.stepId === 'number' ? field.stepId : parsedSteps[0]?.id ?? 0;
     return stepId === currentStepId && field.behavior.visible;
   });
-  const fieldAttrs = (suffix: string, inlineKind?: CmsInlineEditMode) => {
-    if (!fieldPathPrefix) {
-      return undefined;
-    }
-    return {
-      ...(bridgeAttrs ?? {}),
-      'data-cms-field-path': `${fieldPathPrefix}.${suffix}`,
-      ...(inlineKind ? { 'data-cms-inline-kind': inlineKind } : {})
-    };
-  };
+  const fieldPath = (suffix: string) => `components.${componentId}.props.${suffix}`;
 
   const parseUiConfig = (field: FormFieldPayload): Record<string, unknown> => {
     try {
@@ -773,8 +785,31 @@ function NewsletterForm({
 
   return (
     <section className="cms-section cms-newsletter">
-      <h2 {...fieldAttrs('title', 'text')}>{title ?? 'Newsletter'}</h2>
-      <p className="cms-muted" {...fieldAttrs('description', 'text')}>{description ?? 'Stay updated with product releases.'}</p>
+      <CmsEditable
+        enabled={editableEnabled}
+        contentItemId={contentItemId}
+        versionId={versionId}
+        componentId={componentId}
+        componentType={componentType}
+        fieldPath={fieldPath('title')}
+        kind="text"
+        wrapperAs="h2"
+        value={title ?? 'Newsletter'}
+        meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+      />
+      <CmsEditable
+        enabled={editableEnabled}
+        contentItemId={contentItemId}
+        versionId={versionId}
+        componentId={componentId}
+        componentType={componentType}
+        fieldPath={fieldPath('description')}
+        kind="text"
+        wrapperAs="p"
+        className="cms-muted"
+        value={description ?? 'Stay updated with product releases.'}
+        meta={{ multiline: true, commit: 'enter', allowHtml: false }}
+      />
       <form onSubmit={submit}>
         {visibleStepIds.length > 1 ? (
           <small className="cms-muted">Step {activeStepIndex + 1} of {visibleStepIds.length}</small>
@@ -788,9 +823,20 @@ function NewsletterForm({
             {fieldErrors[field.key] ? <small style={{ color: '#dc2626' }}>{fieldErrors[field.key]}</small> : null}
           </label>
         ))}
-        <button className="cms-btn primary" type="submit" {...fieldAttrs('submitLabel', 'text')}>
-          {activeStepIndex < visibleStepIds.length - 1 ? 'Continue' : submitLabel ?? 'Submit'}
-        </button>
+        <CmsEditable
+          enabled={editableEnabled}
+          contentItemId={contentItemId}
+          versionId={versionId}
+          componentId={componentId}
+          componentType={componentType}
+          fieldPath={fieldPath('submitLabel')}
+          kind="text"
+          wrapperAs="button"
+          className="cms-btn primary"
+          wrapperProps={{ type: 'submit' }}
+          value={activeStepIndex < visibleStepIds.length - 1 ? 'Continue' : submitLabel ?? 'Submit'}
+          meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+        />
         {activeStepIndex > 0 ? (
           <button className="cms-btn secondary" type="button" onClick={() => setActiveStepIndex((prev) => Math.max(prev - 1, 0))}>
             Back
@@ -822,6 +868,7 @@ function renderComponent(
   routeSlug: string,
   contentItemId: number,
   versionId: number,
+  editableEnabled: boolean,
   id: string,
   component: ComponentPayload | undefined,
   allComponents: Record<string, ComponentPayload>,
@@ -835,23 +882,15 @@ function renderComponent(
 
   const componentType = normalizeType(component.type);
   const props = componentProps(component);
-  const wrapperProps = {
-    'data-cms-content-item-id': contentItemId,
-    'data-cms-version-id': versionId,
-    'data-cms-component-id': id,
-    'data-cms-component-type': component.type
-  };
-  const bridgeAttrs = {
-    'data-cms-content-item-id': contentItemId,
-    'data-cms-version-id': versionId
-  };
-  const fieldAttrs = (path: string, inlineKind?: CmsInlineEditMode) => ({
-    ...bridgeAttrs,
-    'data-cms-component-id': id,
-    'data-cms-field-path': path,
-    ...(path.startsWith(`components.${id}.props.`) ? { 'data-cms-prop-path': path.slice(`components.${id}.props.`.length) } : {}),
-    ...(inlineKind ? { 'data-cms-inline-kind': inlineKind } : {})
-  });
+  const editableBase = {
+    enabled: editableEnabled,
+    contentItemId,
+    versionId,
+    componentId: id,
+    componentType: component.type
+  } as const;
+  const path = (key: string) => `components.${id}.props.${key}`;
+  const rootPath = `components.${id}`;
 
   if (componentType === 'hero' || componentType === 'hero_component') {
     const backgroundAssetSelection = parseAssetRef(props.backgroundAssetRef);
@@ -859,38 +898,120 @@ function renderComponent(
     const secondaryCta = (props.secondaryCta as ContentLink | undefined) ?? null;
 
     return (
-      <section key={id} {...wrapperProps} className="cms-section cms-hero">
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="section"
+        className="cms-section cms-hero"
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
         {backgroundAssetSelection.assetId ? (
-          <div style={{ position: 'absolute', inset: 0, opacity: 0.2 }}>
+          <CmsEditable
+            {...editableBase}
+            kind="asset"
+            fieldPath={path('backgroundAssetRef')}
+            wrapperAs="div"
+            value={String(backgroundAssetSelection.assetId)}
+            style={{ position: 'absolute', inset: 0, opacity: 0.2 }}
+            keySuffix="background"
+            meta={{ commit: 'none' }}
+          >
             <CmsImage
               assetId={backgroundAssetSelection.assetId}
               asset={assets[String(backgroundAssetSelection.assetId)] ?? null}
               kind={backgroundAssetSelection.kind ?? 'large'}
               {...(backgroundAssetSelection.fitMode ? { fitMode: backgroundAssetSelection.fitMode } : {})}
               {...(backgroundAssetSelection.customWidth ? { customWidth: backgroundAssetSelection.customWidth } : {})}
+              {...(backgroundAssetSelection.presetId ? { presetId: backgroundAssetSelection.presetId } : {})}
+              {...(backgroundAssetSelection.showPois ? { showPois: backgroundAssetSelection.showPois } : {})}
               apiBaseUrl={apiBaseUrl}
-              fieldPath={`components.${id}.props.backgroundAssetRef`}
-              bridgeAttrs={bridgeAttrs}
+              marketCode={marketCode}
+              localeCode={localeCode}
+              urlPattern={urlPattern}
             />
-          </div>
+          </CmsEditable>
         ) : null}
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <h1 {...fieldAttrs(`components.${id}.props.title`, 'text')}>{String(props.title ?? 'Demo hero')}</h1>
-          <p {...fieldAttrs(`components.${id}.props.subtitle`, 'text')}>{String(props.subtitle ?? '')}</p>
+          <CmsEditable
+            {...editableBase}
+            kind="text"
+            fieldPath={path('title')}
+            wrapperAs="h1"
+            value={String(props.title ?? 'Demo hero')}
+            meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+          />
+          <CmsEditable
+            {...editableBase}
+            kind="text"
+            fieldPath={path('subtitle')}
+            wrapperAs="p"
+            value={String(props.subtitle ?? '')}
+            meta={{ multiline: true, commit: 'enter', allowHtml: false }}
+          />
           <div className="cms-buttons">
-            <CmsLink link={primaryCta} className="cms-btn primary" fieldPath={`components.${id}.props.primaryCta`} bridgeAttrs={bridgeAttrs} />
-            <CmsLink link={secondaryCta} className="cms-btn secondary" fieldPath={`components.${id}.props.secondaryCta`} bridgeAttrs={bridgeAttrs} />
+            <CmsEditable
+              {...editableBase}
+              kind="link"
+              fieldPath={path('primaryCta')}
+              wrapperAs="a"
+              className="cms-btn primary"
+              wrapperProps={{
+                href: linkHref(primaryCta),
+                target: primaryCta?.target ?? '_self',
+                rel: primaryCta?.target === '_blank' ? 'noreferrer' : undefined
+              }}
+              value={primaryCta?.text ?? primaryCta?.url ?? 'Learn more'}
+              meta={{ commit: 'none' }}
+            />
+            <CmsEditable
+              {...editableBase}
+              kind="link"
+              fieldPath={path('secondaryCta')}
+              wrapperAs="a"
+              className="cms-btn secondary"
+              wrapperProps={{
+                href: linkHref(secondaryCta),
+                target: secondaryCta?.target ?? '_self',
+                rel: secondaryCta?.target === '_blank' ? 'noreferrer' : undefined
+              }}
+              value={secondaryCta?.text ?? secondaryCta?.url ?? 'Learn more'}
+              meta={{ commit: 'none' }}
+            />
           </div>
         </div>
-      </section>
+      </CmsEditable>
     );
   }
 
   if (componentType === 'feature_grid') {
     const items = Array.isArray(props.items) ? (props.items as Array<Record<string, unknown>>) : [];
     return (
-      <section key={id} {...wrapperProps} className="cms-section" id="features">
-          <h2 {...fieldAttrs(`components.${id}.props.title`, 'text')}>{String(props.title ?? 'Features')}</h2>
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="section"
+        className="cms-section"
+        wrapperProps={{ id: 'features' }}
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
+        <CmsEditable
+          {...editableBase}
+          kind="text"
+          fieldPath={path('title')}
+          wrapperAs="h2"
+          value={String(props.title ?? 'Features')}
+          meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+        />
         <div className="cms-grid features">
           {items.map((item, index) => {
             const itemRef = typeof item.item === 'string' ? item.item : '';
@@ -917,17 +1038,46 @@ function renderComponent(
                   : '';
 
             return (
-              <article key={`${id}-${index}`} className="cms-card" {...fieldAttrs(`components.${id}.props.items`)}>
-                <h3>{icon ? <i className={`pi ${icon}`} style={{ marginRight: 6 }} /> : null}{title}</h3>
-                <p className="cms-muted">{description}</p>
+              <CmsEditable
+                key={`${id}-${index}`}
+                {...editableBase}
+                kind="list"
+                role="item"
+                fieldPath={path(`items.${index}`)}
+                wrapperAs="article"
+                className="cms-card"
+                value={`item-${index + 1}`}
+                keySuffix={`item-${index}`}
+                meta={{ commit: 'none' }}
+              >
+                <CmsEditable
+                  {...editableBase}
+                  kind="text"
+                  fieldPath={path(`items.${index}.title`)}
+                  wrapperAs="h3"
+                  value={title}
+                  keySuffix={`title-${index}`}
+                  meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                />
+                {icon ? <i className={`pi ${icon}`} style={{ marginRight: 6 }} /> : null}
+                <CmsEditable
+                  {...editableBase}
+                  kind="text"
+                  fieldPath={path(`items.${index}.description`)}
+                  wrapperAs="p"
+                  className="cms-muted"
+                  value={description}
+                  keySuffix={`desc-${index}`}
+                  meta={{ multiline: true, commit: 'enter', allowHtml: false }}
+                />
                 {itemRef && referencedType !== 'feature_grid_item' ? (
                   <small className="cms-muted">Unsupported ref type: {referenced?.type ?? 'missing'}</small>
                 ) : null}
-              </article>
+              </CmsEditable>
             );
           })}
         </div>
-      </section>
+      </CmsEditable>
     );
   }
 
@@ -936,54 +1086,191 @@ function renderComponent(
     const invert = Boolean(props.invert);
     const cta = (props.cta as ContentLink | undefined) ?? null;
     return (
-      <section key={id} {...wrapperProps} className={`cms-section cms-image-row${invert ? ' invert' : ''}`}>
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="section"
+        className={`cms-section cms-image-row${invert ? ' invert' : ''}`}
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
         <div className="cms-image-wrap">
-          <CmsImage
-            assetId={imageAssetSelection.assetId}
-            asset={imageAssetSelection.assetId ? assets[String(imageAssetSelection.assetId)] ?? null : null}
-            kind={imageAssetSelection.kind ?? 'medium'}
-            {...(imageAssetSelection.fitMode ? { fitMode: imageAssetSelection.fitMode } : {})}
-            {...(imageAssetSelection.customWidth ? { customWidth: imageAssetSelection.customWidth } : {})}
-            apiBaseUrl={apiBaseUrl}
-            fieldPath={`components.${id}.props.imageAssetRef`}
-            bridgeAttrs={bridgeAttrs}
-          />
+          <CmsEditable
+            {...editableBase}
+            kind="asset"
+            fieldPath={path('imageAssetRef')}
+            wrapperAs="div"
+            value={String(imageAssetSelection.assetId ?? '')}
+            meta={{ commit: 'none' }}
+          >
+            <CmsImage
+              assetId={imageAssetSelection.assetId}
+              asset={imageAssetSelection.assetId ? assets[String(imageAssetSelection.assetId)] ?? null : null}
+              kind={imageAssetSelection.kind ?? 'medium'}
+              {...(imageAssetSelection.fitMode ? { fitMode: imageAssetSelection.fitMode } : {})}
+              {...(imageAssetSelection.customWidth ? { customWidth: imageAssetSelection.customWidth } : {})}
+              {...(imageAssetSelection.presetId ? { presetId: imageAssetSelection.presetId } : {})}
+              {...(imageAssetSelection.showPois ? { showPois: imageAssetSelection.showPois } : {})}
+              apiBaseUrl={apiBaseUrl}
+              marketCode={marketCode}
+              localeCode={localeCode}
+              urlPattern={urlPattern}
+            />
+          </CmsEditable>
         </div>
         <div>
-          <h2 {...fieldAttrs(`components.${id}.props.title`, 'text')}>{String(props.title ?? '')}</h2>
-          <p className="cms-muted" {...fieldAttrs(`components.${id}.props.body`, 'text')}>{String(props.body ?? '')}</p>
-          <CmsLink link={cta} className="cms-btn primary" fieldPath={`components.${id}.props.cta`} bridgeAttrs={bridgeAttrs} />
+          <CmsEditable
+            {...editableBase}
+            kind="text"
+            fieldPath={path('title')}
+            wrapperAs="h2"
+            value={String(props.title ?? '')}
+            meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+          />
+          <CmsEditable
+            {...editableBase}
+            kind="text"
+            fieldPath={path('body')}
+            wrapperAs="p"
+            className="cms-muted"
+            value={String(props.body ?? '')}
+            meta={{ multiline: true, commit: 'enter', allowHtml: false }}
+          />
+          <CmsEditable
+            {...editableBase}
+            kind="link"
+            fieldPath={path('cta')}
+            wrapperAs="a"
+            className="cms-btn primary"
+            wrapperProps={{
+              href: linkHref(cta),
+              target: cta?.target ?? '_self',
+              rel: cta?.target === '_blank' ? 'noreferrer' : undefined
+            }}
+            value={cta?.text ?? cta?.url ?? 'Learn more'}
+            meta={{ commit: 'none' }}
+          />
         </div>
-      </section>
+      </CmsEditable>
     );
   }
 
   if (componentType === 'pricing') {
     const tiers = Array.isArray(props.tiers) ? (props.tiers as Array<Record<string, unknown>>) : [];
     return (
-      <section key={id} {...wrapperProps} className="cms-section" id="pricing">
-        <h2 {...fieldAttrs(`components.${id}.props.title`, 'text')}>{String(props.title ?? 'Pricing')}</h2>
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="section"
+        className="cms-section"
+        wrapperProps={{ id: 'pricing' }}
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
+        <CmsEditable
+          {...editableBase}
+          kind="text"
+          fieldPath={path('title')}
+          wrapperAs="h2"
+          value={String(props.title ?? 'Pricing')}
+          meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+        />
         <div className="cms-pricing-grid">
-          {tiers.map((tier, index) => (
-            <article key={`${id}-${index}`} className="cms-card cms-pricing-tier" {...fieldAttrs(`components.${id}.props.tiers`)}>
-              <h3>{String(tier.name ?? `Tier ${index + 1}`)}</h3>
-              <div className="cms-price">{String(tier.price ?? '')}</div>
-              <p className="cms-muted">{String(tier.description ?? '')}</p>
-              <ul>
-                {(Array.isArray(tier.features) ? tier.features : []).map((feature, featureIndex) => (
-                  <li key={`${id}-${index}-${featureIndex}`}>{String(feature)}</li>
-                ))}
-              </ul>
-              <CmsLink
-                link={(tier.cta as ContentLink | undefined) ?? null}
-                className="cms-btn primary"
-                fieldPath={`components.${id}.props.tiers`}
-                bridgeAttrs={bridgeAttrs}
-              />
-            </article>
-          ))}
+          {tiers.map((tier, index) => {
+            const tierCta = (tier.cta as ContentLink | undefined) ?? null;
+            return (
+              <CmsEditable
+                key={`${id}-${index}`}
+                {...editableBase}
+                kind="list"
+                role="item"
+                fieldPath={path(`tiers.${index}`)}
+                wrapperAs="article"
+                className="cms-card cms-pricing-tier"
+                value={`tier-${index + 1}`}
+                keySuffix={`tier-${index}`}
+                meta={{ commit: 'none' }}
+              >
+                <CmsEditable
+                  {...editableBase}
+                  kind="text"
+                  fieldPath={path(`tiers.${index}.name`)}
+                  wrapperAs="h3"
+                  value={String(tier.name ?? `Tier ${index + 1}`)}
+                  keySuffix={`tier-name-${index}`}
+                  meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                />
+                <CmsEditable
+                  {...editableBase}
+                  kind="text"
+                  fieldPath={path(`tiers.${index}.price`)}
+                  wrapperAs="div"
+                  className="cms-price"
+                  value={String(tier.price ?? '')}
+                  keySuffix={`tier-price-${index}`}
+                  meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                />
+                <CmsEditable
+                  {...editableBase}
+                  kind="text"
+                  fieldPath={path(`tiers.${index}.description`)}
+                  wrapperAs="p"
+                  className="cms-muted"
+                  value={String(tier.description ?? '')}
+                  keySuffix={`tier-description-${index}`}
+                  meta={{ multiline: true, commit: 'enter', allowHtml: false }}
+                />
+                <CmsEditable
+                  {...editableBase}
+                  kind="list"
+                  fieldPath={path(`tiers.${index}.features`)}
+                  wrapperAs="ul"
+                  value="features"
+                  keySuffix={`tier-features-${index}`}
+                  meta={{ commit: 'none' }}
+                >
+                  {(Array.isArray(tier.features) ? tier.features : []).map((feature, featureIndex) => (
+                    <CmsEditable
+                      key={`${id}-${index}-${featureIndex}`}
+                      {...editableBase}
+                      kind="text"
+                      fieldPath={path(`tiers.${index}.features.${featureIndex}`)}
+                      wrapperAs="li"
+                      role="item"
+                      value={String(feature)}
+                      keySuffix={`tier-feature-${index}-${featureIndex}`}
+                      meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                    />
+                  ))}
+                </CmsEditable>
+                <CmsEditable
+                  {...editableBase}
+                  kind="link"
+                  fieldPath={path(`tiers.${index}.cta`)}
+                  wrapperAs="a"
+                  className="cms-btn primary"
+                  wrapperProps={{
+                    href: linkHref(tierCta),
+                    target: tierCta?.target ?? '_self',
+                    rel: tierCta?.target === '_blank' ? 'noreferrer' : undefined
+                  }}
+                  value={tierCta?.text ?? tierCta?.url ?? 'Learn more'}
+                  keySuffix={`tier-cta-${index}`}
+                  meta={{ commit: 'none' }}
+                />
+              </CmsEditable>
+            );
+          })}
         </div>
-      </section>
+      </CmsEditable>
     );
   }
 
@@ -992,17 +1279,64 @@ function renderComponent(
       ? (props.items as Array<{ question?: string; answer?: string }>)
       : [];
     return (
-      <section key={id} {...wrapperProps} className="cms-section" id="faq">
-        <h2 {...fieldAttrs(`components.${id}.props.title`, 'text')}>{String(props.title ?? 'FAQ')}</h2>
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="section"
+        className="cms-section"
+        wrapperProps={{ id: 'faq' }}
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
+        <CmsEditable
+          {...editableBase}
+          kind="text"
+          fieldPath={path('title')}
+          wrapperAs="h2"
+          value={String(props.title ?? 'FAQ')}
+          meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+        />
         <div>
           {items.map((item, index) => (
-            <details key={`${id}-${index}`} className="cms-faq-item" {...fieldAttrs(`components.${id}.props.items`)}>
-              <summary>{item.question ?? `Question ${index + 1}`}</summary>
-              <p className="cms-muted">{item.answer ?? ''}</p>
-            </details>
+            <CmsEditable
+              key={`${id}-${index}`}
+              {...editableBase}
+              kind="list"
+              role="item"
+              fieldPath={path(`items.${index}`)}
+              wrapperAs="details"
+              className="cms-faq-item"
+              value={`faq-${index + 1}`}
+              keySuffix={`faq-item-${index}`}
+              meta={{ commit: 'none' }}
+            >
+              <CmsEditable
+                {...editableBase}
+                kind="text"
+                fieldPath={path(`items.${index}.question`)}
+                wrapperAs="summary"
+                value={item.question ?? `Question ${index + 1}`}
+                keySuffix={`faq-q-${index}`}
+                meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+              />
+              <CmsEditable
+                {...editableBase}
+                kind="text"
+                fieldPath={path(`items.${index}.answer`)}
+                wrapperAs="p"
+                className="cms-muted"
+                value={item.answer ?? ''}
+                keySuffix={`faq-a-${index}`}
+                meta={{ multiline: true, commit: 'enter', allowHtml: false }}
+              />
+            </CmsEditable>
           ))}
         </div>
-      </section>
+      </CmsEditable>
     );
   }
 
@@ -1012,13 +1346,27 @@ function renderComponent(
     const description = typeof props.description === 'string' ? props.description : null;
     const submitLabel = typeof props.submitLabel === 'string' ? props.submitLabel : null;
     return (
-      <div key={id} {...wrapperProps}>
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="div"
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
         <NewsletterForm
+          editableEnabled={editableEnabled}
           siteId={siteId}
           marketCode={marketCode}
           localeCode={localeCode}
           routeSlug={routeSlug}
           contentItemId={contentItemId}
+          versionId={versionId}
+          componentId={id}
+          componentType={component.type}
           formId={formId}
           {...(title ? { title } : {})}
           {...(description ? { description } : {})}
@@ -1026,10 +1374,8 @@ function renderComponent(
           steps={formId ? forms[String(formId)]?.steps ?? [] : []}
           fields={formId ? forms[String(formId)]?.fields ?? [] : []}
           apiBaseUrl={apiBaseUrl}
-          fieldPathPrefix={`components.${id}.props`}
-          bridgeAttrs={bridgeAttrs}
         />
-      </div>
+      </CmsEditable>
     );
   }
 
@@ -1039,53 +1385,124 @@ function renderComponent(
       : [];
     const socials = Array.isArray(props.socialLinks) ? (props.socialLinks as ContentLink[]) : [];
     return (
-      <footer key={id} {...wrapperProps} className="cms-section cms-footer">
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="footer"
+        className="cms-section cms-footer"
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
         <div className="cms-footer-grid">
           {linkGroups.map((group, index) => (
-            <div key={`${id}-${index}`} {...fieldAttrs(`components.${id}.props.linkGroups`)}>
-              <h4>{group.title ?? `Group ${index + 1}`}</h4>
+            <CmsEditable
+              key={`${id}-${index}`}
+              {...editableBase}
+              kind="list"
+              role="item"
+              fieldPath={path(`linkGroups.${index}`)}
+              wrapperAs="div"
+              value={`group-${index + 1}`}
+              keySuffix={`group-${index}`}
+              meta={{ commit: 'none' }}
+            >
+              <CmsEditable
+                {...editableBase}
+                kind="text"
+                fieldPath={path(`linkGroups.${index}.title`)}
+                wrapperAs="h4"
+                value={group.title ?? `Group ${index + 1}`}
+                keySuffix={`group-title-${index}`}
+                meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+              />
               <div className="cms-grid">
                 {(group.links ?? []).map((entry, linkIndex) => (
-                  <CmsLink
+                  <CmsEditable
                     key={`${id}-${index}-${linkIndex}`}
-                    link={entry}
-                    fieldPath={`components.${id}.props.linkGroups`}
-                    bridgeAttrs={bridgeAttrs}
+                    {...editableBase}
+                    kind="link"
+                    role="item"
+                    fieldPath={path(`linkGroups.${index}.links.${linkIndex}`)}
+                    wrapperAs="a"
+                    wrapperProps={{
+                      href: linkHref(entry),
+                      target: entry?.target ?? '_self',
+                      rel: entry?.target === '_blank' ? 'noreferrer' : undefined
+                    }}
+                    value={entry?.text ?? entry?.url ?? 'Learn more'}
+                    keySuffix={`group-link-${index}-${linkIndex}`}
+                    meta={{ commit: 'none' }}
                   />
                 ))}
               </div>
-            </div>
+            </CmsEditable>
           ))}
         </div>
         <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', gap: '0.8rem', flexWrap: 'wrap' }}>
-          <small {...fieldAttrs(`components.${id}.props.copyright`, 'text')}>{String(props.copyright ?? '')}</small>
+          <CmsEditable
+            {...editableBase}
+            kind="text"
+            fieldPath={path('copyright')}
+            wrapperAs="small"
+            value={String(props.copyright ?? '')}
+            meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+          />
           <div className="cms-buttons" style={{ marginTop: 0 }}>
             {socials.map((entry, index) => (
-          <CmsLink
+              <CmsEditable
                 key={`${id}-social-${index}`}
-                link={entry}
+                {...editableBase}
+                kind="link"
+                role="item"
+                fieldPath={path(`socialLinks.${index}`)}
+                wrapperAs="a"
                 className="cms-btn secondary"
-                fieldPath={`components.${id}.props.socialLinks`}
-                bridgeAttrs={bridgeAttrs}
+                wrapperProps={{
+                  href: linkHref(entry),
+                  target: entry?.target ?? '_self',
+                  rel: entry?.target === '_blank' ? 'noreferrer' : undefined
+                }}
+                value={entry?.text ?? entry?.url ?? 'Learn more'}
+                keySuffix={`social-${index}`}
+                meta={{ commit: 'none' }}
               />
             ))}
           </div>
         </div>
-      </footer>
+      </CmsEditable>
     );
   }
 
   if (componentType === 'richtext' || componentType === 'text_block') {
     const html = String((props.html as string | undefined) ?? (props.body as string | undefined) ?? '');
     const sanitizedHtml = sanitizeRichTextHtml(html, { marketCode, localeCode, urlPattern, apiBaseUrl });
+    const richPath = typeof props.html === 'string' ? path('html') : path('body');
     return (
-      <section key={id} {...wrapperProps} className="cms-section">
-        <div
-          {...fieldAttrs(`components.${id}.props.body`, 'richtext')}
-          data-cms-field-type="richtext"
-          dangerouslySetInnerHTML={{ __html: sanitizedHtml || '<p></p>' }}
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="section"
+        className="cms-section"
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
+        <CmsEditable
+          {...editableBase}
+          kind="richtext"
+          fieldPath={richPath}
+          wrapperAs="div"
+          html={sanitizedHtml || '<p></p>'}
+          meta={{ multiline: true, commit: 'ctrl_enter', allowHtml: true }}
         />
-      </section>
+      </CmsEditable>
     );
   }
 
@@ -1094,12 +1511,31 @@ function renderComponent(
   }
 
   if (componentType === 'cta') {
+    const href = String(props.href ?? '#');
     return (
-      <section key={id} {...wrapperProps} className="cms-section">
-        <a className="cms-btn primary" href={String(props.href ?? '#')} {...fieldAttrs(`components.${id}.props.text`, 'text')}>
-          {String(props.text ?? 'CTA')}
-        </a>
-      </section>
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="section"
+        className="cms-section"
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
+        <CmsEditable
+          {...editableBase}
+          kind="link"
+          fieldPath={path('href')}
+          wrapperAs="a"
+          className="cms-btn primary"
+          wrapperProps={{ href }}
+          value={String(props.text ?? 'CTA')}
+          meta={{ commit: 'none' }}
+        />
+      </CmsEditable>
     );
   }
 
@@ -1128,11 +1564,13 @@ export function CmsRendererClient({
   const selectedRef = useRef<HTMLElement | null>(null);
   const inlineModeRef = useRef(Boolean(cmsBridge && inlineEdit));
   const inlineSessionRef = useRef<{
+    wrapper: HTMLElement;
     target: HTMLElement;
     payload: Omit<CmsInlineEditPayload, 'value'>;
     mode: CmsInlineEditMode;
+    meta: CmsEditMeta;
     originalValue: string;
-    input: (event: Event) => void;
+    input: () => void;
     keydown: (event: KeyboardEvent) => void;
     blur: () => void;
     timerId: number | null;
@@ -1140,29 +1578,45 @@ export function CmsRendererClient({
   const inlineHintRef = useRef<HTMLDivElement | null>(null);
   const inlineFeaturesRef = useRef<string[]>([]);
   const actionItemsRef = useRef<CmsActionItem[]>([]);
+  const debugPanelRef = useRef<HTMLDivElement | null>(null);
+  const debugEnabledRef = useRef(false);
+  const lastStatusRef = useRef('idle');
   const fieldEntries = useMemo(() => Object.entries(fields), [fields]);
   const fieldDefMap = useMemo(() => new Map(fieldDefs.map((def) => [def.key, def])), [fieldDefs]);
   const areas = composition.areas ?? [{ name: 'main', components: Object.keys(components) }];
 
-  const readInlineValue = (target: HTMLElement, mode: CmsInlineEditMode): string =>
-    mode === 'richtext' ? target.innerHTML : target.textContent ?? '';
+  const updateDebugPanel = () => {
+    const panel = debugPanelRef.current;
+    if (!panel) {
+      return;
+    }
+    if (!debugEnabledRef.current) {
+      panel.style.display = 'none';
+      return;
+    }
+    panel.style.display = 'block';
+    const selected = selectedRef.current;
+    panel.innerHTML = [
+      `<strong>CMS Debug</strong>`,
+      `wrapper: ${selected?.dataset.cmsEditTargetId ?? 'none'}`,
+      `editTargetId: ${selected?.dataset.cmsEditTargetId ?? 'none'}`,
+      `fieldPath: ${selected?.dataset.cmsFieldPath ?? 'none'}`,
+      `componentId: ${selected?.dataset.cmsComponentId ?? 'none'}`,
+      `lastStatus: ${lastStatusRef.current}`
+    ].join('<br/>');
+  };
 
-  const toInlinePayload = (target: HTMLElement, mode: CmsInlineEditMode): Omit<CmsInlineEditPayload, 'value'> | null => {
-    const contentItemId = Number(findDatasetValue(target, 'cmsContentItemId') ?? '0');
-    const versionId = Number(findDatasetValue(target, 'cmsVersionId') ?? '0');
-    const fieldPath = target.dataset.cmsFieldPath ?? findDatasetValue(target, 'cmsFieldPath');
-    const componentId = target.dataset.cmsComponentId ?? findDatasetValue(target, 'cmsComponentId');
-    const propPath = target.dataset.cmsPropPath ?? findDatasetValue(target, 'cmsPropPath');
-    const resolvedFieldPath = resolveInlineFieldPath({ fieldPath, componentId, propPath });
-    if (!resolvedFieldPath && !(componentId && propPath)) {
+  const toInlinePayload = (wrapper: HTMLElement, mode: CmsInlineEditMode): Omit<CmsInlineEditPayload, 'value'> | null => {
+    const selection = resolveEditableSelection(wrapper);
+    if (!selection) {
       return null;
     }
     return {
-      contentItemId,
-      versionId,
-      ...(resolvedFieldPath ? { fieldPath: resolvedFieldPath } : {}),
-      ...(componentId ? { componentId } : {}),
-      ...(propPath ? { propPath } : {}),
+      contentItemId: selection.contentItemId,
+      versionId: selection.versionId,
+      editTargetId: selection.editTargetId,
+      ...(selection.fieldPath ? { fieldPath: selection.fieldPath } : {}),
+      ...(selection.componentId ? { componentId: selection.componentId } : {}),
       mode
     };
   };
@@ -1186,12 +1640,15 @@ export function CmsRendererClient({
     session.target.removeEventListener('keydown', session.keydown);
     session.target.removeEventListener('blur', session.blur);
     session.target.removeAttribute('contenteditable');
+    session.target.removeAttribute('tabindex');
     session.target.classList.remove('cms-inline-editing');
+    session.wrapper.dataset.cmsEditing = 'false';
     inlineSessionRef.current = null;
     if (inlineHintRef.current) {
       inlineHintRef.current.remove();
       inlineHintRef.current = null;
     }
+    updateDebugPanel();
   };
 
   const cancelInlineSession = () => {
@@ -1213,6 +1670,8 @@ export function CmsRendererClient({
         '*'
       );
     }
+    lastStatusRef.current = `cancel:${session.payload.editTargetId}`;
+    updateDebugPanel();
     teardownInlineSession();
   };
 
@@ -1221,11 +1680,13 @@ export function CmsRendererClient({
     if (!session) {
       return;
     }
-    const value = readInlineValue(session.target, session.mode);
+    const value = readTargetValue(session.target, session.mode);
     postInlineEditMessage('CMS_INLINE_EDIT_COMMIT', {
       ...session.payload,
       value
     });
+    lastStatusRef.current = `commit:${session.payload.editTargetId}`;
+    updateDebugPanel();
     teardownInlineSession();
   };
 
@@ -1244,29 +1705,38 @@ export function CmsRendererClient({
       }
       postInlineEditMessage('CMS_INLINE_EDIT_PATCH', {
         ...active.payload,
-        value: readInlineValue(active.target, active.mode)
+        value: readTargetValue(active.target, active.mode)
       });
+      lastStatusRef.current = `patch:${active.payload.editTargetId}`;
+      updateDebugPanel();
     }, 900);
   };
 
-  const startInlineSession = (target: HTMLElement | null) => {
-    if (!inlineModeRef.current || !target) {
+  const startInlineSession = (wrapper: HTMLElement | null) => {
+    if (!inlineModeRef.current || !wrapper) {
       return;
     }
-    const mode = resolveInlineMode({
-      inlineKind: target.dataset.cmsInlineKind ?? findDatasetValue(target, 'cmsInlineKind'),
-      fieldType: target.dataset.cmsFieldType ?? findDatasetValue(target, 'cmsFieldType')
-    }) as CmsInlineEditMode | null;
+    const kind = wrapper.dataset.cmsEditKind;
+    const mode = (kind === 'text' || kind === 'richtext' ? kind : null) as CmsInlineEditMode | null;
     if (!mode) {
       return;
     }
-    const payload = toInlinePayload(target, mode);
+    const target = resolveEditTarget(wrapper);
+    if (!target) {
+      return;
+    }
+    const payload = toInlinePayload(wrapper, mode);
     if (!payload) {
       return;
     }
+    const meta = parseEditMeta(wrapper.dataset.cmsEditMeta);
     teardownInlineSession();
-    target.setAttribute('contenteditable', 'true');
+    wrapper.dataset.cmsEditing = 'true';
+    target.setAttribute('contenteditable', mode === 'text' ? 'plaintext-only' : 'true');
+    target.contentEditable = mode === 'text' ? 'plaintext-only' : 'true';
     target.classList.add('cms-inline-editing');
+    target.style.outline = 'none';
+    target.style.background = 'transparent';
     if (mode === 'richtext') {
       const hint = document.createElement('div');
       hint.textContent = 'Ctrl+Enter to save, Esc to cancel';
@@ -1287,6 +1757,22 @@ export function CmsRendererClient({
       schedulePatchMessage();
     };
     const keydown = (event: KeyboardEvent) => {
+      if (document.activeElement !== target) {
+        focusEditableTarget(target);
+      }
+      if (
+        mode === 'text' &&
+        event.defaultPrevented &&
+        event.key.length === 1 &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        insertTextAtSelection(target, event.key);
+        schedulePatchMessage();
+        return;
+      }
       const allowed = new Set(inlineFeaturesRef.current);
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'b' && !allowed.has('bold')) {
         event.preventDefault();
@@ -1309,7 +1795,7 @@ export function CmsRendererClient({
         cancelInlineSession();
         return;
       }
-      if (shouldCommit(mode, event)) {
+      if (shouldCommit(mode, meta, event)) {
         event.preventDefault();
         commitInlineSession();
       }
@@ -1321,15 +1807,19 @@ export function CmsRendererClient({
     target.addEventListener('keydown', keydown);
     target.addEventListener('blur', blur);
     inlineSessionRef.current = {
+      wrapper,
       target,
       payload,
       mode,
-      originalValue: readInlineValue(target, mode),
+      meta,
+      originalValue: readTargetValue(target, mode),
       input,
       keydown,
       blur,
       timerId: null
     };
+    lastStatusRef.current = `editing:${payload.editTargetId}`;
+    updateDebugPanel();
     window.requestAnimationFrame(() => focusEditableTarget(target));
   };
 
@@ -1407,6 +1897,60 @@ export function CmsRendererClient({
     contextMenu.style.minWidth = '180px';
     contextMenu.style.boxShadow = '0 10px 28px rgba(2, 6, 23, 0.45)';
     document.body.appendChild(contextMenu);
+
+    const debugPanel = document.createElement('div');
+    debugPanel.style.position = 'fixed';
+    debugPanel.style.left = '10px';
+    debugPanel.style.bottom = '10px';
+    debugPanel.style.zIndex = '2147483647';
+    debugPanel.style.background = 'rgba(15, 23, 42, 0.95)';
+    debugPanel.style.color = '#e2e8f0';
+    debugPanel.style.border = '1px solid rgba(148, 163, 184, 0.45)';
+    debugPanel.style.borderRadius = '8px';
+    debugPanel.style.padding = '8px 10px';
+    debugPanel.style.fontSize = '11px';
+    debugPanel.style.lineHeight = '1.35';
+    debugPanel.style.maxWidth = '320px';
+    debugPanel.style.display = 'none';
+    document.body.appendChild(debugPanel);
+    debugPanelRef.current = debugPanel;
+
+    const debugToggle = document.createElement('button');
+    debugToggle.type = 'button';
+    debugToggle.textContent = 'Debug';
+    debugToggle.style.position = 'fixed';
+    debugToggle.style.left = '10px';
+    debugToggle.style.bottom = '10px';
+    debugToggle.style.zIndex = '2147483647';
+    debugToggle.style.border = '1px solid rgba(148, 163, 184, 0.45)';
+    debugToggle.style.borderRadius = '8px';
+    debugToggle.style.padding = '6px 10px';
+    debugToggle.style.fontSize = '11px';
+    debugToggle.style.background = 'rgba(15, 23, 42, 0.9)';
+    debugToggle.style.color = '#e2e8f0';
+    debugToggle.style.cursor = 'pointer';
+    debugToggle.onclick = () => {
+      debugEnabledRef.current = !debugEnabledRef.current;
+      debugToggle.style.bottom = debugEnabledRef.current ? '138px' : '10px';
+      updateDebugPanel();
+    };
+    document.body.appendChild(debugToggle);
+
+    const showStatusBadge = (text: string, ok: boolean) => {
+      const badge = document.createElement('div');
+      badge.textContent = text;
+      badge.style.position = 'fixed';
+      badge.style.right = '12px';
+      badge.style.bottom = '12px';
+      badge.style.zIndex = '2147483647';
+      badge.style.padding = '6px 10px';
+      badge.style.borderRadius = '8px';
+      badge.style.background = ok ? 'rgba(22, 163, 74, 0.95)' : 'rgba(185, 28, 28, 0.95)';
+      badge.style.color = '#fff';
+      badge.style.fontSize = '12px';
+      document.body.appendChild(badge);
+      window.setTimeout(() => badge.remove(), 1400);
+    };
 
     const hideMenus = () => {
       overflowMenu.style.display = 'none';
@@ -1543,21 +2087,39 @@ export function CmsRendererClient({
       drawOverlay(hover, hoverRef.current, '#2563eb', 'rgba(37, 99, 235, 0.08)');
       drawOverlay(selected, selectedRef.current, '#f97316', 'rgba(249, 115, 22, 0.08)');
       renderToolbar();
+      updateDebugPanel();
     };
 
     const onPointerMove = (event: PointerEvent) => {
-      const target = getAnnotatedTarget(document.elementFromPoint(event.clientX, event.clientY));
+      const target = findEditableWrapper(document.elementFromPoint(event.clientX, event.clientY));
       hoverRef.current = target;
       syncOverlays();
     };
 
-    const onClick = (event: MouseEvent) => {
-      const target = getAnnotatedTarget(event.target as Element | null);
+    const onPointerDown = (event: PointerEvent) => {
+      const target = findEditableWrapper(event.target);
       if (!target) {
         return;
       }
       const activeInline = inlineSessionRef.current;
-      if (!activeInline || !activeInline.target.contains(event.target as Node)) {
+      if (activeInline?.wrapper === target) {
+        return;
+      }
+      const kind = target.dataset.cmsEditKind;
+      if (kind === 'text' || kind === 'richtext') {
+        // UX fix: prevent native caret/selection on single click so users aren't misled.
+        // Editing still starts on explicit double-click.
+        event.preventDefault();
+      }
+    };
+
+    const onClick = (event: MouseEvent) => {
+      const target = findEditableWrapper(event.target);
+      if (!target) {
+        return;
+      }
+      const activeInline = inlineSessionRef.current;
+      if (!activeInline || activeInline.wrapper !== target) {
         event.preventDefault();
         event.stopPropagation();
       }
@@ -1569,25 +2131,27 @@ export function CmsRendererClient({
     };
 
     const onDoubleClick = (event: MouseEvent) => {
-      const target = getAnnotatedTarget(event.target as Element | null);
+      const target = findEditableWrapper(event.target);
       if (!target) {
         return;
       }
       selectedRef.current = target;
-      emitSelect(target);
       syncOverlays();
       startInlineSession(target);
-      if (inlineSessionRef.current?.target === target) {
+      if (inlineSessionRef.current?.wrapper === target) {
+        emitSelect(target);
         event.preventDefault();
         event.stopPropagation();
+        return;
       }
+      emitSelect(target);
     };
 
     const onContextMenu = (event: MouseEvent) => {
       if (event.target instanceof Node && (toolbar.contains(event.target) || overflowMenu.contains(event.target) || contextMenu.contains(event.target))) {
         return;
       }
-      const target = getAnnotatedTarget(event.target as Element | null);
+      const target = findEditableWrapper(event.target);
       if (!target) {
         contextMenu.style.display = 'none';
         return;
@@ -1611,7 +2175,17 @@ export function CmsRendererClient({
     };
 
     const onMessage = (event: MessageEvent<unknown>) => {
-      const payload = event.data as { type?: string; componentId?: string; fieldPath?: string } | undefined;
+      const payload = event.data as {
+        type?: string;
+        editTargetId?: string;
+        componentId?: string;
+        fieldPath?: string;
+        richTextFeatures?: string[];
+        enabled?: boolean;
+        ok?: boolean;
+        message?: string;
+        requestType?: string;
+      } | undefined;
       if (!payload?.type) {
         return;
       }
@@ -1622,10 +2196,10 @@ export function CmsRendererClient({
         return;
       }
       if (payload.type === 'CMS_HIGHLIGHT') {
-        inlineFeaturesRef.current = Array.isArray((payload as { richTextFeatures?: string[] }).richTextFeatures)
-          ? ((payload as { richTextFeatures?: string[] }).richTextFeatures ?? [])
+        inlineFeaturesRef.current = Array.isArray(payload.richTextFeatures)
+          ? (payload.richTextFeatures ?? [])
           : [];
-        selectedRef.current = findByBridgeSelector(payload.componentId, payload.fieldPath);
+        selectedRef.current = findByBridgeSelector(payload.editTargetId, payload.componentId, payload.fieldPath);
         syncOverlays();
         if (selectedRef.current) {
           emitActionRequest('list', selectedRef.current);
@@ -1634,31 +2208,28 @@ export function CmsRendererClient({
         }
       }
       if (payload.type === 'CMS_SCROLL_TO' && payload.componentId) {
-        const target = findByBridgeSelector(payload.componentId, undefined);
+        const target = findByBridgeSelector(undefined, payload.componentId, undefined);
         target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
       if (payload.type === 'CMS_INLINE_MODE') {
-        const enabled = Boolean((payload as { enabled?: boolean }).enabled);
+        const enabled = Boolean(payload.enabled);
         inlineModeRef.current = enabled;
         if (!enabled) {
           inlineFeaturesRef.current = [];
           teardownInlineSession();
         }
       }
+      if (payload.type === 'CMS_ACTION_RESULT') {
+        const ok = Boolean(payload.ok);
+        const message = payload.message?.trim() || (ok ? 'Saved' : 'Not saved');
+        showStatusBadge(message, ok);
+        lastStatusRef.current = `${payload.requestType ?? 'action'}:${ok ? 'ok' : 'error'}:${payload.editTargetId ?? ''}`;
+        updateDebugPanel();
+      }
       if (payload.type === 'CMS_INLINE_EDIT_ERROR') {
-        const badge = document.createElement('div');
-        badge.textContent = 'Not saved';
-        badge.style.position = 'fixed';
-        badge.style.right = '12px';
-        badge.style.bottom = '12px';
-        badge.style.zIndex = '2147483647';
-        badge.style.padding = '6px 10px';
-        badge.style.borderRadius = '8px';
-        badge.style.background = 'rgba(185, 28, 28, 0.95)';
-        badge.style.color = '#fff';
-        badge.style.fontSize = '12px';
-        document.body.appendChild(badge);
-        window.setTimeout(() => badge.remove(), 1600);
+        showStatusBadge(payload.message?.trim() || 'Not saved', false);
+        lastStatusRef.current = `error:${payload.editTargetId ?? payload.fieldPath ?? ''}`;
+        updateDebugPanel();
       }
       if (payload.type === 'CMS_REFRESH') {
         window.location.reload();
@@ -1666,6 +2237,7 @@ export function CmsRendererClient({
     };
 
     window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerdown', onPointerDown, true);
     window.addEventListener('click', onClick, true);
     window.addEventListener('dblclick', onDoubleClick, true);
     window.addEventListener('contextmenu', onContextMenu, true);
@@ -1676,6 +2248,7 @@ export function CmsRendererClient({
 
     return () => {
       window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerdown', onPointerDown, true);
       window.removeEventListener('click', onClick, true);
       window.removeEventListener('dblclick', onDoubleClick, true);
       window.removeEventListener('contextmenu', onContextMenu, true);
@@ -1689,6 +2262,9 @@ export function CmsRendererClient({
       toolbar.remove();
       overflowMenu.remove();
       contextMenu.remove();
+      debugPanel.remove();
+      debugToggle.remove();
+      debugPanelRef.current = null;
       hoverRef.current = null;
       selectedRef.current = null;
       actionItemsRef.current = [];
@@ -1697,48 +2273,102 @@ export function CmsRendererClient({
 
   return (
     <main className="cms-page">
-      <section className="cms-section" style={{ marginBottom: '0.9rem' }}>
-        {fieldEntries.map(([key, value]) => {
-          const fieldDef = fieldDefMap.get(key);
-          const isRichText = fieldDef?.type === 'richtext';
-          if (isRichText) {
-            const html = String(value ?? '');
-            const sanitizedHtml = sanitizeRichTextHtml(html, { marketCode, localeCode, urlPattern, apiBaseUrl });
+      {cmsBridge ? (
+        <section className="cms-section" style={{ marginBottom: '0.9rem' }}>
+          {fieldEntries.map(([key, value]) => {
+            const fieldDef = fieldDefMap.get(key);
+            const isRichText = fieldDef?.type === 'richtext';
+            if (isRichText) {
+              const html = String(value ?? '');
+              const sanitizedHtml = sanitizeRichTextHtml(html, { marketCode, localeCode, urlPattern, apiBaseUrl });
+              return (
+                <div key={key} className="cms-field-block">
+                  <small className="cms-field-label">{key}</small>
+                  <CmsEditable
+                    enabled={cmsBridge}
+                    contentItemId={contentItemId}
+                    versionId={versionId}
+                    fieldPath={`fields.${key}`}
+                    kind="richtext"
+                    wrapperAs="div"
+                    html={sanitizedHtml || '<p></p>'}
+                    meta={{ multiline: true, commit: 'ctrl_enter', allowHtml: true }}
+                  />
+                </div>
+              );
+            }
+            const fieldType = fieldDef?.type ?? '';
+            const kind: CmsEditKind =
+              fieldType === 'contentLink' || fieldType === 'contentLinkList'
+                ? 'link'
+                : fieldType === 'assetRef' || fieldType === 'assetList'
+                  ? 'asset'
+                  : Array.isArray(value)
+                    ? 'list'
+                    : 'text';
+            const displayValue =
+              kind === 'link'
+                ? (() => {
+                    if (value && typeof value === 'object' && !Array.isArray(value)) {
+                      const link = value as ContentLink;
+                      return link.text ?? link.url ?? '';
+                    }
+                    if (Array.isArray(value) && value.length > 0) {
+                      const first = value[0];
+                      if (first && typeof first === 'object') {
+                        const link = first as ContentLink;
+                        return link.text ?? link.url ?? '';
+                      }
+                    }
+                    return String(value ?? '');
+                  })()
+                : kind === 'asset'
+                  ? String(
+                      typeof value === 'number'
+                        ? value
+                        : value && typeof value === 'object' && !Array.isArray(value)
+                          ? ((value as { assetId?: unknown }).assetId ?? '')
+                          : ''
+                    )
+                  : String(value ?? '');
             return (
-              <div key={key} className="cms-field-block">
-                <small className="cms-field-label">{key}</small>
-                <div
-                  data-cms-field-path={`fields.${key}`}
-                  data-cms-field-type="richtext"
-                  data-cms-inline-kind="richtext"
-                  data-cms-content-item-id={contentItemId}
-                  data-cms-version-id={versionId}
-                  dangerouslySetInnerHTML={{ __html: sanitizedHtml || '<p></p>' }}
+              <div key={key}>
+                <strong>{key}:</strong>{' '}
+                <CmsEditable
+                  enabled={cmsBridge}
+                  contentItemId={contentItemId}
+                  versionId={versionId}
+                  fieldPath={`fields.${key}`}
+                  kind={kind}
+                  wrapperAs="span"
+                  className="cms-muted"
+                  value={displayValue}
+                  meta={{ multiline: fieldType === 'multiline', commit: 'enter', allowHtml: false }}
                 />
               </div>
             );
-          }
-          const textInline = fieldDef?.type === 'text' || fieldDef?.type === 'multiline' || fieldDef?.type === 'string';
-          return (
-            <div key={key} data-cms-content-item-id={contentItemId} data-cms-version-id={versionId}>
-              <strong>{key}:</strong>{' '}
-              <span
-                className="cms-muted"
-                data-cms-field-path={`fields.${key}`}
-                data-cms-content-item-id={contentItemId}
-                data-cms-version-id={versionId}
-                {...(textInline ? { 'data-cms-inline-kind': 'text' } : {})}
-              >
-                {String(value ?? '')}
-              </span>
-            </div>
-          );
-        })}
-      </section>
+          })}
+        </section>
+      ) : null}
       {areas.map((area) => (
         <section key={area.name} style={{ display: 'grid', gap: '0.9rem' }}>
           {area.components.map((componentId) =>
-            renderComponent(siteId, marketCode, localeCode, urlPattern, routeSlug, contentItemId, versionId, componentId, components[componentId], components, forms, assets, apiBaseUrl)
+            renderComponent(
+              siteId,
+              marketCode,
+              localeCode,
+              urlPattern,
+              routeSlug,
+              contentItemId,
+              versionId,
+              cmsBridge,
+              componentId,
+              components[componentId],
+              components,
+              forms,
+              assets,
+              apiBaseUrl
+            )
           )}
         </section>
       ))}
