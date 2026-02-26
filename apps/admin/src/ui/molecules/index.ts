@@ -3,7 +3,9 @@ export { SplitWorkspace } from './SplitWorkspace';
 export { EntityTable } from './EntityTable';
 export { EntityEditor } from './EntityEditor';
 export { EmptyState } from './EmptyState';
-export { WorkspacePage, WorkspaceHeader, WorkspaceActionBar, WorkspaceOverflowMenu, WorkspaceToolbar, WorkspaceBody } from './WorkspacePage';
+export { WorkspaceGrid, type WorkspaceGridBulkAction } from './WorkspaceGrid';
+export { WorkspacePage, WorkspaceHeader, WorkspaceActionBar, WorkspaceOverflowMenu, WorkspaceToolbar, WorkspaceBody, useWorkspaceFrame } from './WorkspacePage';
+export { WorkspacePaneLayout, WorkspacePanelToggleButton, type WorkspaceManagedPane } from './WorkspacePanels';
 export { PaneRoot, PaneScroll } from './Pane';
 
 export { ForbiddenState } from './ForbiddenState';

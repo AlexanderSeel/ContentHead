@@ -3,11 +3,9 @@ import { useLocation } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
-import { DataTable } from 'primereact/datatable';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Chips } from 'primereact/chips';
-import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { getApiBaseUrl } from '../../lib/api';
@@ -20,7 +18,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
-import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
+import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout, WorkspaceToolbar } from '../../ui/molecules';
 import { AssetImageEditorDialog } from './AssetImageEditorDialog';
 
 type AssetRow = {
@@ -276,25 +274,36 @@ export function AssetLibraryPage() {
         <InputText value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search assets" />
       </WorkspaceToolbar>
       <WorkspaceBody>
-        <Splitter className="splitFill asset-library-splitter">
-          <SplitterPanel size={48} minSize={30}>
-            <div className="paneRoot asset-library-pane">
-              <div className="paneHeader asset-library-panel-header">List</div>
-              <div className="paneScroll">
+        <WorkspacePaneLayout
+          workspaceId="content-assets"
+          className="asset-library-splitter"
+          left={{
+            id: 'asset-list',
+            label: 'List',
+            defaultSize: 48,
+            minSize: 30,
+            collapsible: true,
+            content: (
+              <>
                 <ContextMenu ref={contextMenuRef} model={contextItems} />
-                <DataTable
+                <WorkspaceGrid
                   className="asset-library-table"
                   value={assets}
-                  size="small"
-                  scrollable
-                  scrollHeight="flex"
-                  selectionMode="single"
-                  selection={selected}
-                  rowClassName={(row: AssetRow) => (row.id === selected?.id ? 'asset-library-row-selected' : '')}
-                  onSelectionChange={(event) => setSelected((event.value as AssetRow) ?? null)}
-                  onContextMenu={(event) => {
-                    setContextAsset(event.data as AssetRow);
-                    window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
+                  tableProps={{
+                    scrollable: true,
+                    scrollHeight: 'flex',
+                    selectionMode: 'single',
+                    selection: selected,
+                    rowClassName: (row: AssetRow) => (row.id === selected?.id ? 'asset-library-row-selected' : ''),
+                    onSelectionChange: (event: any) => setSelected((event.value as AssetRow) ?? null),
+                    onContextMenu: (event: any) => {
+                      setContextAsset(event.data as AssetRow);
+                      window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
+                    }
+                  }}
+                  rowOverflow={{
+                    commandsForRow: (row) => commandRegistry.getCommands(rowContextFor(row), 'rowOverflow'),
+                    contextForRow: rowContextFor
                   }}
                 >
                   <Column
@@ -309,77 +318,65 @@ export function AssetLibraryPage() {
                   />
                   <Column field="originalName" header="Filename" />
                   <Column field="title" header="Title" />
-                  <Column
-                    header="Actions"
-                    body={(row: AssetRow) => (
-                      <CommandMenuButton
-                        commands={commandRegistry.getCommands(rowContextFor(row), 'rowOverflow')}
-                        context={rowContextFor(row)}
-                        className="asset-library-row-menu"
-                        buttonLabel="Actions"
-                        buttonIcon="pi pi-ellipsis-h"
-                        text={false}
-                      />
-                    )}
+                </WorkspaceGrid>
+              </>
+            )
+          }}
+          center={{
+            id: 'asset-preview',
+            label: 'Preview',
+            defaultSize: 27,
+            minSize: 20,
+            collapsible: true,
+            className: 'asset-library-preview-pane',
+            content: !selected ? (
+              <p className="muted asset-library-empty-state">Select an asset to preview.</p>
+            ) : (
+              <div className="asset-library-preview-stage">
+                <img
+                  src={`${apiBase}/assets/${selected.id}`}
+                  alt={selected.altText ?? selected.title ?? selected.originalName}
+                  className="asset-library-preview-image"
+                />
+              </div>
+            )
+          }}
+          right={{
+            id: 'asset-properties',
+            label: 'Properties',
+            defaultSize: 25,
+            minSize: 20,
+            collapsible: true,
+            content: !selected ? (
+              <p className="muted asset-library-empty-state">Select an asset to edit properties.</p>
+            ) : (
+              <div className="form-row asset-library-meta-form">
+                <label>Title</label>
+                <InputText value={selected.title ?? ''} onChange={(event) => setSelected({ ...selected, title: event.target.value })} />
+                <label>Alt Text</label>
+                <InputText value={selected.altText ?? ''} onChange={(event) => setSelected({ ...selected, altText: event.target.value })} />
+                <label>Description</label>
+                <InputTextarea rows={4} value={selected.description ?? ''} onChange={(event) => setSelected({ ...selected, description: event.target.value })} />
+                <label>Tags</label>
+                <Chips value={parseTags(selected.tagsJson)} onChange={(event) => setSelected({ ...selected, tagsJson: JSON.stringify(event.value ?? []) })} separator="," />
+                <div className="inline-actions">
+                  <Button label="Edit image" text onClick={() => setImageEditorAssetId(selected.id)} />
+                  <Button label="Save metadata" onClick={() => saveMetadata().catch(() => undefined)} loading={saving} />
+                  <Button
+                    label="Delete"
+                    severity="danger"
+                    onClick={() =>
+                      sdk
+                        .deleteAsset({ id: selected.id })
+                        .then(() => refresh())
+                        .catch(handleError)
+                    }
                   />
-                </DataTable>
+                </div>
               </div>
-            </div>
-          </SplitterPanel>
-          <SplitterPanel size={27} minSize={20}>
-            <div className="paneRoot asset-library-pane asset-library-preview-pane">
-              <div className="paneHeader asset-library-panel-header">Preview</div>
-              <div className="paneScroll">
-                {!selected ? (
-                  <p className="muted asset-library-empty-state">Select an asset to preview.</p>
-                ) : (
-                  <div className="asset-library-preview-stage">
-                    <img
-                      src={`${apiBase}/assets/${selected.id}`}
-                      alt={selected.altText ?? selected.title ?? selected.originalName}
-                      className="asset-library-preview-image"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </SplitterPanel>
-          <SplitterPanel size={25} minSize={20}>
-            <div className="paneRoot asset-library-pane">
-              <div className="paneHeader asset-library-panel-header">Properties</div>
-              <div className="paneScroll">
-                {!selected ? (
-                  <p className="muted asset-library-empty-state">Select an asset to edit properties.</p>
-                ) : (
-                  <div className="form-row asset-library-meta-form">
-                    <label>Title</label>
-                    <InputText value={selected.title ?? ''} onChange={(event) => setSelected({ ...selected, title: event.target.value })} />
-                    <label>Alt Text</label>
-                    <InputText value={selected.altText ?? ''} onChange={(event) => setSelected({ ...selected, altText: event.target.value })} />
-                    <label>Description</label>
-                    <InputTextarea rows={4} value={selected.description ?? ''} onChange={(event) => setSelected({ ...selected, description: event.target.value })} />
-                    <label>Tags</label>
-                    <Chips value={parseTags(selected.tagsJson)} onChange={(event) => setSelected({ ...selected, tagsJson: JSON.stringify(event.value ?? []) })} separator="," />
-                    <div className="inline-actions">
-                      <Button label="Edit image" text onClick={() => setImageEditorAssetId(selected.id)} />
-                      <Button label="Save metadata" onClick={() => saveMetadata().catch(() => undefined)} loading={saving} />
-                      <Button
-                        label="Delete"
-                        severity="danger"
-                        onClick={() =>
-                          sdk
-                            .deleteAsset({ id: selected.id })
-                            .then(() => refresh())
-                            .catch(handleError)
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </SplitterPanel>
-        </Splitter>
+            )
+          }}
+        />
       </WorkspaceBody>
           {uploading ? <div className="status-panel">Uploading files...</div> : null}
           {status ? <div className="status-panel" role="alert">{status}</div> : null}

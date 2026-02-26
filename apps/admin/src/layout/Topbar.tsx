@@ -89,14 +89,9 @@ export function Topbar() {
             command: () => setLayoutPreferences({ density: 'compact' })
           }
         ]
-      },
-      {
-        label: layoutPreferences.showWorkspacePanel ? 'Hide workspace panel' : 'Show workspace panel',
-        icon: 'pi pi-columns',
-        command: () => setLayoutPreferences({ showWorkspacePanel: !layoutPreferences.showWorkspacePanel })
       }
     ],
-    [layoutPreferences.density, layoutPreferences.showWorkspacePanel, setLayoutPreferences]
+    [layoutPreferences.density, setLayoutPreferences]
   );
 
   const start = (

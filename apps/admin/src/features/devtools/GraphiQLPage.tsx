@@ -7,7 +7,7 @@ import { InputText } from 'primereact/inputtext';
 import { useAuth } from '../../app/AuthContext';
 import { useUi } from '../../app/UiContext';
 import { applyMonacoTheme } from '../../theme/themeBridge';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { WorkspaceBody, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout, WorkspaceToolbar } from '../../ui/molecules';
 
 import 'graphiql/style.css';
 
@@ -86,33 +86,71 @@ export function GraphiQLPage() {
         subtitle="GraphQL playground with the standard query editor layout."
         helpTopicKey="graphiql"
       />
-      <WorkspaceActionBar
-        primary={(
-          <div className="graphiql-header-actions">
-            <Button
-              size="small"
-              label={useSessionToken ? 'Session Auth: On' : 'Session Auth: Off'}
-              onClick={() => setUseSessionToken((prev) => !prev)}
-            />
-            <InputText
-              value={previewToken}
-              onChange={(event) => setPreviewToken(event.target.value)}
-              placeholder="x-preview-token (optional)"
-            />
-          </div>
-        )}
-      />
-      <WorkspaceBody>
-        <div className="devtools-editor splitFill graphiql-host ch-graphiql-standard">
-          <GraphiQL
-            className="ch-graphiql"
-            fetcher={fetcher}
-            storage={storage}
-            defaultQuery={DEFAULT_QUERY}
-            defaultHeaders={defaultHeaders}
-            defaultEditorToolsVisibility={false}
+      <WorkspaceToolbar defaultExpanded>
+        <div className="inline-actions">
+          <Button
+            size="small"
+            label={useSessionToken ? 'Session Auth: On' : 'Session Auth: Off'}
+            onClick={() => setUseSessionToken((prev) => !prev)}
+          />
+          <InputText
+            value={previewToken}
+            onChange={(event) => setPreviewToken(event.target.value)}
+            placeholder="x-preview-token (optional)"
           />
         </div>
+      </WorkspaceToolbar>
+      <WorkspaceBody>
+        <WorkspacePaneLayout
+          workspaceId="dev-graphiql"
+          left={{
+            id: 'explorer',
+            label: 'Explorer',
+            defaultSize: 18,
+            minSize: 12,
+            collapsible: true,
+            content: (
+              <div className="form-row">
+                <label>Endpoint</label>
+                <InputText value={endpoint} readOnly />
+                <small className="muted">Use the center editor to run queries and mutations.</small>
+              </div>
+            )
+          }}
+          center={{
+            id: 'editor',
+            label: 'Editor',
+            defaultSize: 54,
+            minSize: 30,
+            collapsible: false,
+            content: (
+              <div className="devtools-editor splitFill graphiql-host ch-graphiql-standard">
+                <GraphiQL
+                  className="ch-graphiql"
+                  fetcher={fetcher}
+                  storage={storage}
+                  defaultQuery={DEFAULT_QUERY}
+                  defaultHeaders={defaultHeaders}
+                  defaultEditorToolsVisibility={false}
+                />
+              </div>
+            )
+          }}
+          right={{
+            id: 'result',
+            label: 'Result',
+            defaultSize: 28,
+            minSize: 16,
+            collapsible: true,
+            content: (
+              <div className="form-row">
+                <label>Request Headers</label>
+                <pre className="m-0">{defaultHeaders}</pre>
+                <small className="muted">Results and schema docs are available directly in GraphiQL.</small>
+              </div>
+            )
+          }}
+        />
       </WorkspaceBody>
     </WorkspacePage>
   );

@@ -337,7 +337,7 @@ export function ContentTypesPage() {
   const headerOverflowCommands = commandRegistry.getCommands(headerContext, 'pageHeaderOverflow');
 
   return (
-    <WorkspacePage>
+    <WorkspacePage className="content-types-page">
       <WorkspaceHeader
         title="Content Types"
         subtitle="Visual schema builder with field inspector and preview"
@@ -380,75 +380,92 @@ export function ContentTypesPage() {
             </PaneRoot>
           </SplitterPanel>
           <SplitterPanel size={46} minSize={28}>
-            <PaneRoot className="content-card">
-              <PaneScroll>
+            <PaneRoot className="content-card content-types-editor-pane">
+              <PaneScroll className="content-types-editor-scroll">
                 {!selected ? <p>Select a content type.</p> : (
                   <>
-                    <div className="form-grid">
-                      <div className="form-row">
-                        <label>Name</label>
-                        <InputText value={selected.name} onChange={(event) => setSelected((prev) => (prev ? { ...prev, name: event.target.value } : prev))} />
+                    <section className="content-types-section content-types-editor-meta">
+                      <div className="content-types-section-head">
+                        <h3>Type</h3>
                       </div>
-                      <div className="form-row">
-                        <label>Description</label>
-                        <InputText value={selected.description ?? ''} onChange={(event) => setSelected((prev) => (prev ? { ...prev, description: event.target.value } : prev))} />
-                      </div>
-                    </div>
-                    <div className="form-grid mt-3">
-                      <div className="form-row">
-                        <label>Allowed Components</label>
-                        <MultiSelect
-                          value={allowedComponents}
-                          options={registryOptions}
-                          onChange={(event) => setAllowedComponents((event.value as string[]) ?? [])}
-                          placeholder="Select allowed component types"
-                          display="chip"
-                          filter
-                        />
-                        <small className="muted">Content editors can only add these component types.</small>
-                      </div>
-                      <div className="form-row">
-                        <label>Areas</label>
-                        <div className="inline-actions">
-                          <InputText
-                            value={newAreaName}
-                            onChange={(event) => setNewAreaName(event.target.value)}
-                            placeholder="e.g. header"
-                          />
-                          <Button label="Add Area" onClick={addArea} disabled={!newAreaName.trim()} />
+                      <div className="content-types-meta-grid">
+                        <div className="form-row">
+                          <label>Name</label>
+                          <InputText value={selected.name} onChange={(event) => setSelected((prev) => (prev ? { ...prev, name: event.target.value } : prev))} />
                         </div>
-                        <small className="muted">Define content areas used by the page builder.</small>
+                        <div className="form-row">
+                          <label>Description</label>
+                          <InputText value={selected.description ?? ''} onChange={(event) => setSelected((prev) => (prev ? { ...prev, description: event.target.value } : prev))} />
+                        </div>
                       </div>
-                      {areaNames.map((areaName) => (
-                        <div className="form-row" key={areaName}>
-                          <div className="inline-actions justify-content-between">
-                            <label>{`Allowed (${areaName})`}</label>
-                            <Button
-                              text
-                              size="small"
-                              icon="pi pi-trash"
-                              severity="danger"
-                              onClick={() => removeArea(areaName)}
-                              disabled={areaNames.length <= 1}
-                            />
-                          </div>
+                    </section>
+                    <section className="content-types-section content-types-editor-rules">
+                      <div className="content-types-section-head">
+                        <h3>Component Rules</h3>
+                      </div>
+                      <div className="content-types-rule-row">
+                        <div className="form-row">
+                          <label>Allowed Components</label>
                           <MultiSelect
-                            value={areaRestrictions[areaName] ?? []}
-                            options={registryOptions.filter((option) => allowedComponents.includes(option.value))}
-                            onChange={(event) =>
-                              setAreaRestrictions((prev) => ({
-                                ...prev,
-                                [areaName]: (event.value as string[]) ?? []
-                              }))
-                            }
-                            placeholder={`Restrict ${areaName} area (optional)`}
+                            className="w-full"
+                            value={allowedComponents}
+                            options={registryOptions}
+                            onChange={(event) => setAllowedComponents((event.value as string[]) ?? [])}
+                            placeholder="Select allowed component types"
                             display="chip"
                             filter
                           />
+                          <small className="muted">Editors can only add these component types.</small>
                         </div>
-                      ))}
-                    </div>
-                    <div className="form-row mt-3">
+                        <div className="form-row">
+                          <label>Add Area</label>
+                          <div className="content-types-area-add">
+                            <InputText
+                              value={newAreaName}
+                              onChange={(event) => setNewAreaName(event.target.value)}
+                              placeholder="e.g. header"
+                            />
+                            <Button label="Add" onClick={addArea} disabled={!newAreaName.trim()} />
+                          </div>
+                          <small className="muted">Define content zones used by the page builder.</small>
+                        </div>
+                      </div>
+                      <div className="content-types-area-list">
+                        {areaNames.map((areaName) => (
+                          <div className="content-types-area-row" key={areaName}>
+                            <div className="content-types-area-row-head">
+                              <label>{`Allowed (${areaName})`}</label>
+                              <Button
+                                text
+                                size="small"
+                                icon="pi pi-trash"
+                                severity="danger"
+                                onClick={() => removeArea(areaName)}
+                                disabled={areaNames.length <= 1}
+                              />
+                            </div>
+                            <MultiSelect
+                              className="w-full"
+                              value={areaRestrictions[areaName] ?? []}
+                              options={registryOptions.filter((option) => allowedComponents.includes(option.value))}
+                              onChange={(event) =>
+                                setAreaRestrictions((prev) => ({
+                                  ...prev,
+                                  [areaName]: (event.value as string[]) ?? []
+                                }))
+                              }
+                              placeholder={`Restrict ${areaName} area (optional)`}
+                              display="chip"
+                              filter
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                    <section className="form-row content-types-editor-fields">
+                      <div className="content-types-section-head">
+                        <h3>Fields</h3>
+                      </div>
                       <FieldList
                         fields={fields}
                         selectedKey={selectedFieldKey}
@@ -457,8 +474,9 @@ export function ContentTypesPage() {
                         onDuplicate={duplicateField}
                         onDelete={removeField}
                         onRequired={(key, required) => setFields((prev) => prev.map((entry) => (entry.key === key ? { ...entry, required } : entry)))}
+                        className="content-types-field-table"
                       />
-                    </div>
+                    </section>
                   </>
                 )}
               </PaneScroll>

@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react';
-import { Splitter, SplitterPanel } from 'primereact/splitter';
-
-import { useUi } from '../../app/UiContext';
+import { WorkspacePaneLayout } from './WorkspacePanels';
 
 export function SplitWorkspace({
   left,
@@ -10,6 +8,7 @@ export function SplitWorkspace({
   leftSize = 25,
   centerSize = 50,
   rightSize = 25,
+  workspaceId = 'split-workspace',
   className
 }: {
   left: ReactNode;
@@ -18,21 +17,40 @@ export function SplitWorkspace({
   leftSize?: number;
   centerSize?: number;
   rightSize?: number;
+  workspaceId?: string;
   className?: string;
 }) {
-  const { layoutPreferences } = useUi();
-  const showLeftPanel = layoutPreferences.showWorkspacePanel;
   return (
-    <Splitter className={className ?? 'splitFill workspace-splitter'}>
-      <SplitterPanel size={showLeftPanel ? leftSize : 0} minSize={showLeftPanel ? 15 : 0}>
-        <div className="pane paneScroll">{showLeftPanel ? left : null}</div>
-      </SplitterPanel>
-      <SplitterPanel size={centerSize} minSize={30}>
-        <div className="pane paneScroll">{center}</div>
-      </SplitterPanel>
-      <SplitterPanel size={rightSize} minSize={20}>
-        <div className="pane paneScroll">{right}</div>
-      </SplitterPanel>
-    </Splitter>
+    <WorkspacePaneLayout
+      workspaceId={workspaceId}
+      {...(className ? { className } : {})}
+      left={{
+        id: 'left',
+        label: 'Tree',
+        defaultSize: leftSize,
+        minSize: 15,
+        collapsible: true,
+        header: null,
+        content: left
+      }}
+      center={{
+        id: 'center',
+        label: 'Editor',
+        defaultSize: centerSize,
+        minSize: 30,
+        collapsible: false,
+        header: null,
+        content: center
+      }}
+      right={{
+        id: 'right',
+        label: 'Inspector',
+        defaultSize: rightSize,
+        minSize: 20,
+        collapsible: true,
+        header: null,
+        content: right
+      }}
+    />
   );
 }

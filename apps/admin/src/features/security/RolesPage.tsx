@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { MultiSelect } from 'primereact/multiselect';
-import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { Tag } from 'primereact/tag';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
 import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
-import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout } from '../../ui/molecules';
 
 type RoleRow = {
   id: number;
@@ -101,41 +99,53 @@ export function RolesPage() {
             )}
           />
           <WorkspaceBody>
-            <Splitter className="splitFill">
-              <SplitterPanel size={45} minSize={28}>
-                <div className="paneRoot">
-                  <div className="paneScroll">
-                    <DataTable value={roles} size="small" selectionMode="single" selection={selected} onSelectionChange={(event) => setSelected((event.value as RoleRow) ?? null)}>
-                      <Column field="name" header="Role" />
-                      <Column field="permissions" header="Permissions" body={(row: RoleRow) => row.permissions.join(', ')} />
-                    </DataTable>
+            <WorkspacePaneLayout
+              workspaceId="security-roles"
+              left={{
+                id: 'roles-list',
+                label: 'Roles',
+                defaultSize: 45,
+                minSize: 28,
+                collapsible: true,
+                content: (
+                  <WorkspaceGrid
+                    value={roles}
+                    tableProps={{
+                      selectionMode: 'single',
+                      selection: selected,
+                      onSelectionChange: (event: any) => setSelected((event.value as RoleRow) ?? null)
+                    }}
+                  >
+                    <Column field="name" header="Role" />
+                    <Column field="permissions" header="Permissions" body={(row: RoleRow) => row.permissions.join(', ')} />
+                  </WorkspaceGrid>
+                )
+              }}
+              center={{
+                id: 'role-editor',
+                label: 'Editor',
+                defaultSize: 55,
+                minSize: 28,
+                collapsible: false,
+                content: !selected ? (
+                  <p className="muted">Select a role.</p>
+                ) : (
+                  <div className="form-row">
+                    <label>Name</label>
+                    <InputText value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} />
+                    <label>Description</label>
+                    <InputTextarea rows={3} value={selected.description ?? ''} onChange={(event) => setSelected({ ...selected, description: event.target.value })} />
+                    <label>Permissions</label>
+                    <MultiSelect
+                      value={selected.permissions}
+                      options={permissions.map((entry) => ({ label: entry, value: entry }))}
+                      onChange={(event) => setSelected({ ...selected, permissions: event.value as string[] })}
+                      display="chip"
+                    />
                   </div>
-                </div>
-              </SplitterPanel>
-              <SplitterPanel size={55} minSize={28}>
-                <div className="paneRoot">
-                  <div className="paneScroll">
-                    {!selected ? (
-                      <p className="muted">Select a role.</p>
-                    ) : (
-                      <div className="form-row">
-                        <label>Name</label>
-                        <InputText value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} />
-                        <label>Description</label>
-                        <InputTextarea rows={3} value={selected.description ?? ''} onChange={(event) => setSelected({ ...selected, description: event.target.value })} />
-                        <label>Permissions</label>
-                        <MultiSelect
-                          value={selected.permissions}
-                          options={permissions.map((entry) => ({ label: entry, value: entry }))}
-                          onChange={(event) => setSelected({ ...selected, permissions: event.value as string[] })}
-                          display="chip"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </SplitterPanel>
-            </Splitter>
+                )
+              }}
+            />
           </WorkspaceBody>
           {status ? <div className="status-panel" role="alert">{status}</div> : null}
         </>

@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
-import { DataTable, type DataTableSortEvent } from 'primereact/datatable';
+import type { DataTableSortEvent } from 'primereact/datatable';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { Tag } from 'primereact/tag';
@@ -18,7 +18,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { routeStartsWith } from '../../ui/commands/utils';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
+import { WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
 
 type SubmissionRow = {
   id: number;
@@ -380,69 +380,75 @@ export function FormSubmissionsPage() {
           />
         </div>
         <ContextMenu ref={contextMenuRef} model={contextItems} />
-        <DataTable
+        <WorkspaceGrid
           value={rows}
-          loading={loading}
-          paginator
-          first={first}
-          rows={rowsPerPage}
-          totalRecords={total}
-          onPage={(event) => {
-            setFirst(event.first);
-            setRowsPerPage(event.rows);
-          }}
-          sortField={sortField}
-          sortOrder={sortOrder === 'ASC' ? 1 : -1}
-          onSort={onSort}
-          selection={selection}
-          onSelectionChange={(event) => setSelection((event.value as SubmissionRow[]) ?? [])}
-          selectionMode="checkbox"
-          dataKey="id"
-          rowGroupMode="subheader"
-          groupRowsBy="formId"
-          expandableRowGroups
-          expandedRows={expandedRows}
-          onRowToggle={(event) => setExpandedRows(Array.isArray(event.data) ? (event.data as SubmissionRow[]) : [])}
-          rowGroupHeaderTemplate={(row: SubmissionRow) => <span>Form #{row.formId}</span>}
-          emptyMessage="No submissions found for the current filters."
-          rowExpansionTemplate={(row: SubmissionRow) => {
-            let dataPretty = row.dataJson;
-            let metaPretty = row.metaJson;
-            try {
-              dataPretty = JSON.stringify(JSON.parse(row.dataJson), null, 2);
-            } catch {
-              // keep raw
-            }
-            try {
-              metaPretty = JSON.stringify(JSON.parse(row.metaJson), null, 2);
-            } catch {
-              // keep raw
-            }
-            return (
-              <div className="grid gap-3">
-                <div>
-                  <strong>Answers</strong>
-                  <pre className="m-0">{dataPretty}</pre>
+          tableProps={{
+            loading,
+            paginator: true,
+            first,
+            rows: rowsPerPage,
+            totalRecords: total,
+            onPage: (event: any) => {
+              setFirst(event.first);
+              setRowsPerPage(event.rows);
+            },
+            sortField,
+            sortOrder: sortOrder === 'ASC' ? 1 : -1,
+            onSort,
+            selection,
+            onSelectionChange: (event: any) => setSelection((event.value as SubmissionRow[]) ?? []),
+            selectionMode: 'checkbox',
+            dataKey: 'id',
+            rowGroupMode: 'subheader',
+            groupRowsBy: 'formId',
+            expandableRowGroups: true,
+            expandedRows,
+            onRowToggle: (event: any) => setExpandedRows(Array.isArray(event.data) ? (event.data as SubmissionRow[]) : []),
+            rowGroupHeaderTemplate: (row: SubmissionRow) => <span>Form #{row.formId}</span>,
+            emptyMessage: 'No submissions found for the current filters.',
+            rowExpansionTemplate: (row: SubmissionRow) => {
+              let dataPretty = row.dataJson;
+              let metaPretty = row.metaJson;
+              try {
+                dataPretty = JSON.stringify(JSON.parse(row.dataJson), null, 2);
+              } catch {
+                // keep raw
+              }
+              try {
+                metaPretty = JSON.stringify(JSON.parse(row.metaJson), null, 2);
+              } catch {
+                // keep raw
+              }
+              return (
+                <div className="grid gap-3">
+                  <div>
+                    <strong>Answers</strong>
+                    <pre className="m-0">{dataPretty}</pre>
+                  </div>
+                  <div>
+                    <strong>Metadata</strong>
+                    <pre className="m-0">{metaPretty}</pre>
+                  </div>
+                  {row.pageRouteSlug ? (
+                    <a
+                      href={`http://localhost:3000/${row.marketCode}/${row.localeCode}/${row.pageRouteSlug}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open related page
+                    </a>
+                  ) : null}
                 </div>
-                <div>
-                  <strong>Metadata</strong>
-                  <pre className="m-0">{metaPretty}</pre>
-                </div>
-                {row.pageRouteSlug ? (
-                  <a
-                    href={`http://localhost:3000/${row.marketCode}/${row.localeCode}/${row.pageRouteSlug}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open related page
-                  </a>
-                ) : null}
-              </div>
-            );
+              );
+            },
+            onContextMenu: (event: any) => {
+              setContextRow(event.data as SubmissionRow);
+              window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
+            }
           }}
-          onContextMenu={(event) => {
-            setContextRow(event.data as SubmissionRow);
-            window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
+          rowOverflow={{
+            commandsForRow: (row) => commandRegistry.getCommands(rowContextFor(row), 'rowOverflow'),
+            contextForRow: rowContextFor
           }}
         >
           <Column expander headerClassName="w-3rem" bodyClassName="w-3rem" />
@@ -459,11 +465,7 @@ export function FormSubmissionsPage() {
           <Column field="marketCode" header="Market" sortable />
           <Column field="localeCode" header="Locale" sortable />
           <Column field="pageRouteSlug" header="Route" />
-          <Column
-            header="Actions"
-            body={(row: SubmissionRow) => <CommandMenuButton commands={commandRegistry.getCommands(rowContextFor(row), 'rowOverflow')} context={rowContextFor(row)} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
-          />
-        </DataTable>
+        </WorkspaceGrid>
       </section>
       </WorkspaceBody>
     </WorkspacePage>

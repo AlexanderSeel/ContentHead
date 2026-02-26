@@ -3,8 +3,6 @@ import { useLocation } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
-import { DataTable } from 'primereact/datatable';
-import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { Accordion, AccordionTab } from 'primereact/accordion';
 
 import { createAdminSdk } from '../../lib/sdk';
@@ -15,7 +13,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout } from '../../ui/molecules';
 
 type WorkflowRun = { id: number; definitionId: number; status: string; currentNodeId?: string | null; logsJson: string; contextJson: string };
 
@@ -140,51 +138,61 @@ export function WorkflowRunsPage() {
         overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
       <WorkspaceBody>
-        <Splitter className="splitFill">
-          <SplitterPanel size={48} minSize={28}>
-            <div className="paneRoot">
-              <div className="paneScroll">
-              <ContextMenu ref={contextMenuRef} model={contextItems} />
-              <DataTable
-                value={runs}
-                size="small"
-                selectionMode="single"
-                selection={selected}
-                onSelectionChange={(event) => setSelected(event.value as WorkflowRun)}
-                onContextMenu={(event) => {
-                  setContextRun(event.data as WorkflowRun);
-                  window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
-                }}
-              >
-                <Column field="id" header="Run ID" />
-                <Column field="definitionId" header="Definition" />
-                <Column field="status" header="Status" />
-                <Column field="currentNodeId" header="Current Node" />
-                <Column
-                  header="Actions"
-                  body={(row: WorkflowRun) => <CommandMenuButton commands={commandRegistry.getCommands(rowContextFor(row), 'rowOverflow')} context={rowContextFor(row)} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
-                />
-              </DataTable>
-              </div>
-            </div>
-          </SplitterPanel>
-          <SplitterPanel size={52} minSize={30}>
-            <div className="paneRoot">
-              <div className="paneScroll">
-                {!selected ? <div className="status-panel">Select a run to inspect context and logs.</div> : (
-                  <Accordion multiple activeIndex={[0]}>
-                    <AccordionTab header={`Basic: Run #${selected.id} Context`}>
-                      <pre>{JSON.stringify(JSON.parse(selected.contextJson || '{}'), null, 2)}</pre>
-                    </AccordionTab>
-                    <AccordionTab header="Advanced: Timeline / Logs">
-                      <pre>{JSON.stringify(JSON.parse(selected.logsJson || '[]'), null, 2)}</pre>
-                    </AccordionTab>
-                  </Accordion>
-                )}
-              </div>
-            </div>
-          </SplitterPanel>
-        </Splitter>
+        <WorkspacePaneLayout
+          workspaceId="workflows-runs"
+          left={{
+            id: 'runs',
+            label: 'Runs',
+            defaultSize: 48,
+            minSize: 28,
+            collapsible: true,
+            content: (
+              <>
+                <ContextMenu ref={contextMenuRef} model={contextItems} />
+                <WorkspaceGrid
+                  value={runs}
+                  tableProps={{
+                    selectionMode: 'single',
+                    selection: selected,
+                    onSelectionChange: (event: any) => setSelected(event.value as WorkflowRun),
+                    onContextMenu: (event: any) => {
+                      setContextRun(event.data as WorkflowRun);
+                      window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
+                    }
+                  }}
+                  rowOverflow={{
+                    commandsForRow: (row) => commandRegistry.getCommands(rowContextFor(row), 'rowOverflow'),
+                    contextForRow: rowContextFor
+                  }}
+                >
+                  <Column field="id" header="Run ID" />
+                  <Column field="definitionId" header="Definition" />
+                  <Column field="status" header="Status" />
+                  <Column field="currentNodeId" header="Current Node" />
+                </WorkspaceGrid>
+              </>
+            )
+          }}
+          center={{
+            id: 'details',
+            label: 'Details',
+            defaultSize: 52,
+            minSize: 30,
+            collapsible: false,
+            content: !selected ? (
+              <div className="status-panel">Select a run to inspect context and logs.</div>
+            ) : (
+              <Accordion multiple activeIndex={[0]}>
+                <AccordionTab header={`Basic: Run #${selected.id} Context`}>
+                  <pre>{JSON.stringify(JSON.parse(selected.contextJson || '{}'), null, 2)}</pre>
+                </AccordionTab>
+                <AccordionTab header="Advanced: Timeline / Logs">
+                  <pre>{JSON.stringify(JSON.parse(selected.logsJson || '[]'), null, 2)}</pre>
+                </AccordionTab>
+              </Accordion>
+            )
+          }}
+        />
       </WorkspaceBody>
     </WorkspacePage>
   );

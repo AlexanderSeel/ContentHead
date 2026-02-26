@@ -59,7 +59,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage, useWorkspaceFrame } from '../../ui/molecules';
 
 type CType = {
   id: number;
@@ -720,6 +720,7 @@ export function ContentPagesPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast, confirm } = useUi();
+  const workspaceFrame = useWorkspaceFrame();
   const { siteId, marketCode, localeCode, combos, sites } = useAdminContext();
 
   const selectedItemId = Number(contentItemId ?? 0) || null;
@@ -3002,6 +3003,36 @@ export function ContentPagesPage() {
     });
   };
 
+  useEffect(() => {
+    const panelMenu = [
+      {
+        label: leftPaneCollapsed ? 'Show Tree' : 'Hide Tree',
+        icon: leftPaneCollapsed ? 'pi pi-eye' : 'pi pi-eye-slash',
+        command: () => toggleLeftPaneCollapsed()
+      },
+      {
+        label: workspaceMode === 'split' ? 'Hide Preview' : 'Show Preview',
+        icon: workspaceMode === 'split' ? 'pi pi-eye-slash' : 'pi pi-eye',
+        command: () => setWorkspaceMode((prev) => (prev === 'split' ? 'properties' : 'split'))
+      },
+      {
+        separator: true
+      },
+      {
+        label: 'Reset layout',
+        icon: 'pi pi-replay',
+        command: () => {
+          setLeftPaneCollapsed(false);
+          setWorkspaceMode('split');
+          setWorkspaceSizes([28, 72]);
+          window.localStorage.setItem('content-pages.workspace.sizes', JSON.stringify([28, 72]));
+        }
+      }
+    ];
+    workspaceFrame?.setPanelMenuModel(panelMenu);
+    return () => workspaceFrame?.setPanelMenuModel([]);
+  }, [leftPaneCollapsed, toggleLeftPaneCollapsed, workspaceFrame, workspaceMode]);
+
   const previewWebsiteUrl = buildPreviewWebsiteUrl(null);
 
   const baseCommandContext: CommandContext = {
@@ -3642,13 +3673,6 @@ export function ContentPagesPage() {
         }
         modeToggle={
           <>
-            <Button
-              label={leftPaneCollapsed ? 'Expand tree' : 'Collapse tree'}
-              size="small"
-              text
-              icon={leftPaneCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'}
-              onClick={toggleLeftPaneCollapsed}
-            />
             <Button label="Split" size="small" text={workspaceMode !== 'split'} onClick={() => setWorkspaceMode('split')} />
             <Button label="Properties" size="small" text={workspaceMode !== 'properties'} onClick={() => setWorkspaceMode('properties')} />
             <Button label="On-page" size="small" text={workspaceMode !== 'onpage'} onClick={() => setWorkspaceMode('onpage')} />
@@ -3681,16 +3705,6 @@ export function ContentPagesPage() {
               <ContextMenu ref={treeContextMenuRef} model={treeContextMenuItems} />
               <div className="inline-actions justify-content-between mb-2">
                 <strong>Page Tree</strong>
-                <Button
-                  label={leftPaneCollapsed ? '' : 'Collapse'}
-                  text
-                  size="small"
-                  icon={leftPaneCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'}
-                  aria-label={leftPaneCollapsed ? 'Expand tree' : 'Collapse tree'}
-                  tooltip={leftPaneCollapsed ? 'Expand tree' : 'Collapse tree'}
-                  tooltipOptions={{ position: 'right' }}
-                  onClick={toggleLeftPaneCollapsed}
-                />
               </div>
               {!leftPaneCollapsed ? (
                 <>
@@ -3815,18 +3829,7 @@ export function ContentPagesPage() {
                   </TreeTable>
                 </>
               ) : (
-                <div className="content-tree-collapsed-placeholder">
-                  <Button
-                    label=""
-                    text
-                    size="small"
-                    icon="pi pi-angle-right"
-                    aria-label="Expand tree"
-                    tooltip="Expand tree"
-                    tooltipOptions={{ position: 'right' }}
-                    onClick={toggleLeftPaneCollapsed}
-                  />
-                </div>
+                <div className="content-tree-collapsed-placeholder" />
               )}
             </div>
           </SplitterPanel>
