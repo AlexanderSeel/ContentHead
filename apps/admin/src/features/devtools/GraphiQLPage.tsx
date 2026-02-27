@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { GraphiQL } from 'graphiql';
 import type { Fetcher, FetcherOpts, Storage as GraphiQLStorage } from '@graphiql/toolkit';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 
 import { useAuth } from '../../app/AuthContext';
-import { useUi } from '../../app/UiContext';
-import { applyMonacoTheme } from '../../theme/themeBridge';
 import { WorkspaceBody, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout, WorkspaceToolbar } from '../../ui/molecules';
 
 import 'graphiql/style.css';
@@ -38,7 +36,6 @@ function createInMemoryStorage(): GraphiQLStorage {
 
 export function GraphiQLPage() {
   const { token } = useAuth();
-  const { theme } = useUi();
   const endpoint = `${import.meta.env.VITE_API_URL ?? 'http://localhost:4000/graphql'}`;
   const [previewToken, setPreviewToken] = useState('');
   const [useSessionToken, setUseSessionToken] = useState(true);
@@ -70,14 +67,6 @@ export function GraphiQLPage() {
     },
     [baseHeaders, endpoint]
   );
-
-  useEffect(() => {
-    void import('monaco-editor')
-      .then((monaco) => {
-        applyMonacoTheme(theme, monaco);
-      })
-      .catch(() => undefined);
-  }, [theme]);
 
   return (
     <WorkspacePage>

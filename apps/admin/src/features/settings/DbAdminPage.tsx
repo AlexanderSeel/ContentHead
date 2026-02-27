@@ -59,6 +59,7 @@ type DbAdminTableListItem = {
   name: string;
   schema: string;
   rowCount?: number | null;
+  __tableKey?: string;
 };
 
 type RowRecord = Record<string, unknown> & { __rowKey: string };
@@ -213,9 +214,17 @@ function parseRows(rowsJson: string | null | undefined, primaryKey: string[]): R
   }
   try {
     const raw = JSON.parse(rowsJson) as Record<string, unknown>[];
+    const seenKeys = new Set<string>();
     return raw.map((row, index) => {
       const keyParts = primaryKey.map((key) => row[key]).filter((value) => value !== undefined && value !== null);
-      const rowKey = keyParts.length === primaryKey.length ? keyParts.map((part) => String(part)).join('|') : `row-${index}`;
+      const baseKey = keyParts.length === primaryKey.length ? keyParts.map((part) => String(part)).join('|') : `row-${index}`;
+      let rowKey = baseKey;
+      let suffix = 1;
+      while (seenKeys.has(rowKey)) {
+        suffix += 1;
+        rowKey = `${baseKey}#${suffix}`;
+      }
+      seenKeys.add(rowKey);
       return { ...row, __rowKey: rowKey };
     });
   } catch {
@@ -279,7 +288,10 @@ export function DbAdminPage() {
   const tableRows = useMemo(() => {
     const search = tableSearch.trim().toLowerCase();
     const list = search ? tables.filter((table) => table.name.toLowerCase().includes(search)) : tables;
-    return list;
+    return list.map((table) => ({
+      ...table,
+      __tableKey: `${table.schema}.${table.name}`
+    }));
   }, [tables, tableSearch]);
 
   const selectedTableRow = useMemo(
@@ -307,10 +319,15 @@ export function DbAdminPage() {
     const candidate = error as {
       response?: { errors?: Array<{ extensions?: { code?: string } }> };
       message?: string;
+      failure?: { codes?: string[] };
     };
     const code = candidate?.response?.errors?.[0]?.extensions?.code;
     if (typeof code === 'string') {
       return code;
+    }
+    const wrapped = candidate?.failure?.codes?.[0];
+    if (typeof wrapped === 'string') {
+      return wrapped;
     }
     const text = String(candidate?.message ?? error);
     return text.includes('FORBIDDEN') ? 'FORBIDDEN' : '';
@@ -348,9 +365,7 @@ export function DbAdminPage() {
       const tableList = (result.dbAdminTables ?? []) as DbAdminTableListItem[];
       setTables(tableList);
       if (selectedTable && !tableList.some((table) => table.name === selectedTable)) {
-        setSelectedTable(tableList[0]?.name ?? null);
-      } else if (!selectedTable && tableList.length > 0) {
-        setSelectedTable(tableList[0]?.name ?? null);
+        setSelectedTable(null);
       }
     } catch (error) {
       if (parseErrorCode(error) === 'FORBIDDEN') {
@@ -365,13 +380,32 @@ export function DbAdminPage() {
   };
 
   const loadTableInfo = async (tableName: string) => {
-    const info = await sdk.dbAdminDescribe({ table: tableName, dangerMode });
-    const table = info.dbAdminDescribe as DbAdminTable | null;
-    setTableInfo(table);
-    return table;
+    if (!tableName.trim()) {
+      setTableInfo(null);
+      return null;
+    }
+    try {
+      const info = await sdk.dbAdminDescribe({ table: tableName, dangerMode });
+      const table = info.dbAdminDescribe as DbAdminTable | null;
+      setTableInfo(table);
+      return table;
+    } catch (error) {
+      if (parseErrorCode(error) === 'DB_ADMIN_DANGER_MODE_REQUIRED') {
+        setTableInfo(null);
+        setRows([]);
+        setStatus(`Table ${tableName} requires system-table mode. Enable "Toggle system tables" to inspect it.`);
+        return null;
+      }
+      throw error;
+    }
   };
 
   const loadRows = async (tableName: string, primaryKeyOverride?: string[]) => {
+    if (!tableName.trim()) {
+      setRows([]);
+      setTotalRows(0);
+      return;
+    }
     setRowsLoading(true);
     try {
       const filter =
@@ -413,7 +447,8 @@ export function DbAdminPage() {
     if (!accessChecked || forbiddenMessage) {
       return;
     }
-    if (!selectedTable) {
+    const selectedTableExists = Boolean(selectedTable && tables.some((entry) => entry.name === selectedTable));
+    if (!selectedTable || !selectedTableExists) {
       setTableInfo(null);
       setRows([]);
       setSelectedRows([]);
@@ -432,7 +467,7 @@ export function DbAdminPage() {
       .then((info) => loadRows(selectedTable, info?.primaryKey ?? []))
       .catch((error: unknown) => setStatus(getErrorMessage(error)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTable, dangerMode]);
+  }, [selectedTable, dangerMode, tables, accessChecked, forbiddenMessage]);
 
   useEffect(() => {
     if (!accessChecked || forbiddenMessage) {
@@ -673,6 +708,13 @@ export function DbAdminPage() {
           return;
         }
       }
+      // Prevent stale table selection from triggering describe/list with mismatched mode.
+      setSelectedTable(null);
+      setTableInfo(null);
+      setRows([]);
+      setSelectedRows([]);
+      setActiveRow(null);
+      setEditMode('view');
       setDangerMode(next);
       await refreshTables(next);
     },
@@ -756,6 +798,7 @@ export function DbAdminPage() {
                   style={{ height: '100%' }}
                   tableStyle={{ minWidth: '22rem' }}
                   className="db-admin-table"
+                  dataKey="__tableKey"
                   selectionMode="single"
                   selection={selectedTableRow}
                   onSelectionChange={(event) => setSelectedTable((event.value as DbAdminTableListItem | null)?.name ?? null)}
@@ -853,9 +896,9 @@ export function DbAdminPage() {
                   }}
                 >
                   <Column selectionMode="multiple" headerClassName="w-3rem" bodyClassName="w-3rem" style={{ width: '3rem', minWidth: '3rem' }} />
-                  {visibleColumns.map((column) => (
+                  {visibleColumns.map((column, index) => (
                     <Column
-                      key={column.name}
+                      key={`${column.name}-${index}`}
                       field={column.name}
                       header={column.name}
                       body={(row) => renderCell((row as RowRecord)[column.name])}
@@ -903,7 +946,9 @@ export function DbAdminPage() {
                                   return;
                                 }
                                 await deleteRow(activeRow);
-                                await loadRows(selectedTable ?? '');
+                                if (selectedTable) {
+                                  await loadRows(selectedTable);
+                                }
                                 setActiveRow(null);
                               }}
                               disabled={!activeRow || (tableInfo?.primaryKey.length ?? 0) === 0}

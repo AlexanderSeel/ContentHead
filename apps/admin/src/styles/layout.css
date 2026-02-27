@@ -1405,6 +1405,29 @@ body {
   gap: 0.75rem;
 }
 
+.diagnostics-page-shell > .p-tabview {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.diagnostics-page-shell > .p-tabview > .p-tabview-panels {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.diagnostics-overview-accordion,
+.diagnostics-events-accordion {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.diagnostics-overview-accordion .p-accordion-content,
+.diagnostics-events-accordion .p-accordion-content {
+  padding: 0.6rem 0;
+}
+
 .diagnostics-error-list {
   display: grid;
   gap: 0.6rem;
@@ -1417,6 +1440,53 @@ body {
   max-height: 160px;
   overflow: auto;
   background: var(--surface-ground);
+}
+
+.diagnostics-issues-toolbar {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.diagnostics-issues-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.55rem;
+}
+
+.diagnostics-issues-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.diagnostics-toggle,
+.diagnostics-max {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--text-color-secondary);
+}
+
+.diagnostics-max .p-inputnumber {
+  width: 8rem;
+}
+
+.diagnostics-issue-detail {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.diagnostics-issue-detail pre {
+  margin: 0.35rem 0 0;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: var(--surface-ground);
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 @media (max-width: 1100px) {

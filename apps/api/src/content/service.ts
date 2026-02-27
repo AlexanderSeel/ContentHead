@@ -135,6 +135,30 @@ function invalidInput(message: string, code = 'BAD_USER_INPUT'): never {
   throw new GraphQLError(message, { extensions: { code } });
 }
 
+async function tableExists(db: DbClient, tableName: string): Promise<boolean> {
+  const row = await db.get<{ count?: number }>(
+    `
+SELECT COUNT(*)::INTEGER as count
+FROM information_schema.tables
+WHERE table_schema = 'main' AND table_name = ?
+`,
+    [tableName]
+  );
+  return (row?.count ?? 0) > 0;
+}
+
+async function columnExists(db: DbClient, tableName: string, columnName: string): Promise<boolean> {
+  const row = await db.get<{ count?: number }>(
+    `
+SELECT COUNT(*)::INTEGER as count
+FROM information_schema.columns
+WHERE table_schema = 'main' AND table_name = ? AND column_name = ?
+`,
+    [tableName, columnName]
+  );
+  return (row?.count ?? 0) > 0;
+}
+
 function parseJsonObject(value: string, name: string): Record<string, unknown> {
   try {
     const parsed: unknown = JSON.parse(value);
@@ -1845,11 +1869,116 @@ export async function deletePage(db: DbClient, pageId: number): Promise<boolean>
 
   await db.run('BEGIN TRANSACTION');
   try {
-    await db.run('UPDATE content_items SET archived = TRUE WHERE id = ?', [page.id]);
+    // First delete call archives. A second call on an already archived page performs permanent removal.
+    if (!page.archived) {
+      await db.run('UPDATE content_items SET archived = TRUE WHERE id = ?', [page.id]);
+      await db.run('DELETE FROM content_routes WHERE content_item_id = ?', [page.id]);
+      await db.run('COMMIT');
+      return true;
+    }
+
+    const versionRows = await db.all<{ id: number }>('SELECT id FROM content_versions WHERE content_item_id = ?', [page.id]);
+    const versionIds = versionRows.map((row) => row.id);
+    const hasVariantSets = await tableExists(db, 'variant_sets');
+    const hasVariants = await tableExists(db, 'variants');
+
+    if (versionIds.length > 0 && hasVariants && hasVariantSets) {
+      const versionPlaceholders = versionIds.map(() => '?').join(',');
+      const crossPageVariant = await db.get<{ id: number }>(
+        `
+SELECT v.id
+FROM variants v
+JOIN variant_sets vs ON vs.id = v.variant_set_id
+WHERE v.content_version_id IN (${versionPlaceholders})
+  AND vs.content_item_id <> ?
+LIMIT 1
+`,
+        [...versionIds, page.id]
+      );
+      if (crossPageVariant) {
+        invalidInput(
+          'Cannot permanently delete this page because one or more versions are referenced by variants from another page',
+          'PAGE_VERSION_REFERENCED'
+        );
+      }
+    }
+
+    const hasPageTargeting = await tableExists(db, 'page_targeting');
+    const hasPageAclSettings = await tableExists(db, 'page_acl_settings');
+    const hasEntityAcls = await tableExists(db, 'entity_acls');
+    const hasFormSubmissions = await tableExists(db, 'form_submissions');
+
+    const variantSetRows = hasVariantSets
+      ? await db.all<{ id: number }>('SELECT id FROM variant_sets WHERE content_item_id = ?', [page.id])
+      : [];
+    const variantSetIds = variantSetRows.map((row) => row.id);
+
+    if (hasPageTargeting) {
+      if (await columnExists(db, 'page_targeting', 'fallback_content_item_id')) {
+        await db.run('UPDATE page_targeting SET fallback_content_item_id = NULL WHERE fallback_content_item_id = ?', [page.id]);
+      }
+      if (await columnExists(db, 'page_targeting', 'content_item_id')) {
+        await db.run('DELETE FROM page_targeting WHERE content_item_id = ?', [page.id]);
+      }
+    }
+
+    if (hasPageAclSettings && (await columnExists(db, 'page_acl_settings', 'content_item_id'))) {
+      await db.run('DELETE FROM page_acl_settings WHERE content_item_id = ?', [page.id]);
+    }
+    if (
+      hasEntityAcls &&
+      (await columnExists(db, 'entity_acls', 'entity_type')) &&
+      (await columnExists(db, 'entity_acls', 'entity_id'))
+    ) {
+      await db.run("DELETE FROM entity_acls WHERE entity_type = 'PAGE' AND entity_id = ?", [String(page.id)]);
+    }
+    if (hasFormSubmissions && (await columnExists(db, 'form_submissions', 'page_content_item_id'))) {
+      await db.run('UPDATE form_submissions SET page_content_item_id = NULL WHERE page_content_item_id = ?', [page.id]);
+    }
+    if (await tableExists(db, 'ext_customers')) {
+      if (await columnExists(db, 'ext_customers', 'content_item_id')) {
+        await db.run('UPDATE ext_customers SET content_item_id = NULL WHERE content_item_id = ?', [page.id]);
+      }
+    }
+    if (await tableExists(db, 'ext_bookings')) {
+      if (await columnExists(db, 'ext_bookings', 'content_item_id')) {
+        await db.run('UPDATE ext_bookings SET content_item_id = NULL WHERE content_item_id = ?', [page.id]);
+      }
+    }
+
+    if (hasVariantSets && variantSetIds.length > 0) {
+      const variantSetPlaceholders = variantSetIds.map(() => '?').join(',');
+      if (await columnExists(db, 'variant_sets', 'fallback_variant_set_id')) {
+        await db.run(
+          `UPDATE variant_sets SET fallback_variant_set_id = NULL WHERE fallback_variant_set_id IN (${variantSetPlaceholders})`,
+          variantSetIds
+        );
+      }
+      if (hasVariants && (await columnExists(db, 'variants', 'variant_set_id'))) {
+        await db.run(`DELETE FROM variants WHERE variant_set_id IN (${variantSetPlaceholders})`, variantSetIds);
+      }
+      await db.run(`DELETE FROM variant_sets WHERE id IN (${variantSetPlaceholders})`, variantSetIds);
+    }
+
+    if (hasVariants && versionIds.length > 0 && (await columnExists(db, 'variants', 'content_version_id'))) {
+      const versionPlaceholders = versionIds.map(() => '?').join(',');
+      await db.run(`DELETE FROM variants WHERE content_version_id IN (${versionPlaceholders})`, versionIds);
+    }
+
+    await db.run(
+      'UPDATE content_items SET current_draft_version_id = NULL, current_published_version_id = NULL WHERE id = ?',
+      [page.id]
+    );
     await db.run('DELETE FROM content_routes WHERE content_item_id = ?', [page.id]);
+    await db.run('DELETE FROM content_versions WHERE content_item_id = ?', [page.id]);
+    await db.run('DELETE FROM content_items WHERE id = ?', [page.id]);
     await db.run('COMMIT');
   } catch (error) {
     await db.run('ROLLBACK');
+    if (!(error instanceof GraphQLError)) {
+      const detail = error instanceof Error ? error.message : String(error);
+      invalidInput(`Could not delete page permanently: ${detail}`, 'PAGE_DELETE_FAILED');
+    }
     throw error;
   }
 

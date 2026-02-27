@@ -165,6 +165,9 @@ ORDER BY
 
   const entries: DbAdminTableListItem[] = [];
   for (const row of rows) {
+    if (!showSystemTables && row.schema === 'main' && !SAFE_TABLES.has(row.name)) {
+      continue;
+    }
     let rowCount: number | null = null;
     if (row.schema === 'main' && !row.internal) {
       try {

@@ -25,7 +25,7 @@ export type CommandContext = {
   userRoles?: string[];
   userPermissions?: string[];
   featureFlags?: Record<string, boolean>;
-  toast?: (message: ToastMessage) => void;
+  toast?: (message: ToastMessage, featureTag?: string) => void;
   confirm?: (options: { header: string; message: string; acceptLabel?: string; rejectLabel?: string }) => Promise<boolean>;
   [key: string]: unknown;
 };

@@ -6,6 +6,7 @@ import { PRIME_THEMES, type ThemeOption } from '../theme/themeList';
 import { applyScale, applyTheme } from '../theme/themeManager';
 import { createThemeBridgeSnapshot, type ThemeBridgeSnapshot } from '../theme/themeBridge';
 import { setGraphqlErrorNotifier } from '../lib/graphqlReliability';
+import { registerToastDispatcher, showError, showToast } from '../ui/toast';
 
 const THEME_STORAGE_KEY = 'contenthead.admin.theme';
 const SCALE_STORAGE_KEY = 'contenthead.admin.scale';
@@ -27,7 +28,7 @@ type UiContextValue = {
   setScale: (value: number) => void;
   layoutPreferences: LayoutPreferences;
   setLayoutPreferences: (value: Partial<LayoutPreferences>) => void;
-  toast: (message: ToastMessage) => void;
+  toast: (message: ToastMessage, featureTag?: string) => void;
   confirm: (options: { header: string; message: string; acceptLabel?: string; rejectLabel?: string }) => Promise<boolean>;
 };
 
@@ -72,12 +73,19 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
   }, [layoutPreferences]);
 
   useEffect(() => {
+    registerToastDispatcher((message) => {
+      toastRef.current?.show(message);
+    });
+    return () => registerToastDispatcher(null);
+  }, []);
+
+  useEffect(() => {
     setGraphqlErrorNotifier((failure) => {
-      toastRef.current?.show({
-        severity: 'error',
+      showError({
         summary: `${failure.operationName} failed`,
         detail: failure.message,
-        life: 5000
+        life: 5000,
+        featureTag: 'graphql'
       });
     });
     return () => setGraphqlErrorNotifier(null);
@@ -98,7 +106,7 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
           ...current,
           ...next
         })),
-      toast: (message) => toastRef.current?.show(message),
+      toast: (message, featureTag) => showToast(message, featureTag),
       confirm: (options) =>
         new Promise((resolve) => {
           confirmDialog({

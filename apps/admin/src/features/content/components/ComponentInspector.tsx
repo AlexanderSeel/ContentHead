@@ -385,14 +385,21 @@ export function ComponentInspector({
     }
     if (field.type === 'componentRef') {
       return (
-        <Dropdown
-          value={typeof value === 'string' ? value : null}
-          options={filteredComponentRefs.map((entry) => ({ label: entry.label, value: entry.id }))}
-          onChange={(event) => onChangeValue(typeof event.value === 'string' ? event.value : '')}
-          filter
-          showClear
-          placeholder="Select component"
-        />
+        <div className="form-row">
+          <Dropdown
+            value={typeof value === 'string' ? value : null}
+            options={filteredComponentRefs.map((entry) => ({ label: entry.label, value: entry.id }))}
+            onChange={(event) => onChangeValue(typeof event.value === 'string' ? event.value : '')}
+            filter
+            showClear
+            placeholder="Select component"
+          />
+          {filteredComponentRefs.length === 0 && Array.isArray(field.refComponentTypes) && field.refComponentTypes.length > 0 ? (
+            <small className="muted">
+              No matching component instances found ({field.refComponentTypes.join(', ')}). Use inline fields or add one.
+            </small>
+          ) : null}
+        </div>
       );
     }
     if (field.type === 'objectRef') {

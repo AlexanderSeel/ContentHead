@@ -6,6 +6,7 @@ import { AdminShell } from '../layout/AdminShell';
 import { LoginPage } from '../routes/LoginPage';
 import { AuthGuard } from '../routes/AuthGuard';
 import { DevGuard } from '../routes/DevGuard';
+import { DiagnosticsGuard } from '../routes/DiagnosticsGuard';
 import { DashboardPage } from '../routes/DashboardPage';
 import { AccessDeniedPage } from '../routes/AccessDeniedPage';
 import { NotFoundPage } from '../routes/NotFoundPage';
@@ -37,11 +38,13 @@ import { DuckDbAdminPage } from '../features/settings/DuckDbAdminPage';
 import { GraphiQLPage } from '../features/devtools/GraphiQLPage';
 import { DiagnosticsPage } from '../features/devtools/DiagnosticsPage';
 import { extensionRoutes } from '../extensions/core/registry';
+import { IssueCollectorAdminBridge, IssueCollectorRouteBridge } from './IssueCollectorBridge';
 
 export function AdminApp() {
   return (
     <AuthProvider>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <IssueCollectorRouteBridge />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/access-denied" element={<AccessDeniedPage />} />
@@ -50,6 +53,7 @@ export function AdminApp() {
             <Route
               element={
                 <AdminProvider>
+                  <IssueCollectorAdminBridge />
                   <AdminShell />
                 </AdminProvider>
               }
@@ -107,6 +111,9 @@ export function AdminApp() {
 
               <Route element={<DevGuard />}>
                 <Route path="/dev/graphiql" element={<GraphiQLPage />} />
+              </Route>
+
+              <Route element={<DiagnosticsGuard />}>
                 <Route path="/dev/diagnostics" element={<DiagnosticsPage />} />
               </Route>
 

@@ -231,6 +231,26 @@ const contentLinkSchema = z.object({
   target: z.enum(['_self', '_blank']).optional()
 });
 
+const featureGridItemSelectionSchema = z
+  .object({
+    item: z.string().min(1).optional(),
+    icon: z.string().optional(),
+    title: z.string().optional(),
+    description: z.string().optional()
+  })
+  .superRefine((value, ctx) => {
+    const hasRef = typeof value.item === 'string' && value.item.trim().length > 0;
+    const hasInlineTitle = typeof value.title === 'string' && value.title.trim().length > 0;
+    const hasInlineDescription = typeof value.description === 'string' && value.description.trim().length > 0;
+    if (!hasRef && !(hasInlineTitle && hasInlineDescription)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Provide inline title and description for each item.',
+        path: ['item']
+      });
+    }
+  });
+
 export const componentRegistry: ComponentRegistryEntry[] = [
   {
     id: 'hero',
@@ -284,11 +304,7 @@ export const componentRegistry: ComponentRegistryEntry[] = [
     icon: 'pi pi-th-large',
     schema: z.object({
       title: z.string().optional(),
-      items: z.array(
-        z.object({
-          item: z.string().min(1)
-        })
-      )
+      items: z.array(featureGridItemSelectionSchema)
     }),
     defaultProps: {
       title: 'Why teams choose ContentHead',
@@ -300,9 +316,11 @@ export const componentRegistry: ComponentRegistryEntry[] = [
         key: 'items',
         label: 'Items',
         type: 'objectList',
-        itemLabelKey: 'item',
+        itemLabelKey: 'title',
         fields: [
-          { key: 'item', label: 'Item Component', type: 'componentRef', refComponentTypes: ['feature_grid_item'] }
+          { key: 'title', label: 'Title', type: 'text' },
+          { key: 'description', label: 'Description', type: 'multiline' },
+          { key: 'icon', label: 'Icon', type: 'text' }
         ]
       }
     ]

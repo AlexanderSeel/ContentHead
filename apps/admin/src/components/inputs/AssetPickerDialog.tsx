@@ -7,10 +7,10 @@ import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 
-import { createSdk } from '@contenthead/sdk';
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
-import { getApiBaseUrl, getApiGraphqlUrl } from '../../lib/api';
+import { getApiBaseUrl } from '../../lib/api';
 import { AssetImageEditorDialog } from '../../features/assets/AssetImageEditorDialog';
+import { createAdminSdk } from '../../lib/sdk';
 
 type AssetRow = {
   id: number;
@@ -68,14 +68,7 @@ export function AssetPickerDialog({
   onHide: () => void;
   onApply: (assetIds: number[]) => void;
 }) {
-  const sdk = useMemo(
-    () =>
-      createSdk({
-        endpoint: getApiGraphqlUrl(),
-        headersProvider: async () => (token ? { authorization: `Bearer ${token}` } : undefined)
-      }),
-    [token]
-  );
+  const sdk = useMemo(() => createAdminSdk(token), [token]);
   const [search, setSearch] = useState('');
   const [folders, setFolders] = useState<FolderRow[]>([]);
   const [assets, setAssets] = useState<AssetRow[]>([]);

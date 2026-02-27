@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { TabPanel, TabView } from 'primereact/tabview';
 import { Column } from 'primereact/column';
@@ -19,6 +19,7 @@ import { MultiSelect } from 'primereact/multiselect';
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { getApiGraphqlUrl } from '../../lib/api';
 import { createAdminSdk } from '../../lib/sdk';
+import { CONTENT_PAGES_WORKSPACE_SIZES_KEY } from '../../lib/layoutSettings';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -74,6 +75,7 @@ type CItem = {
   contentTypeId: number;
   parentId?: number | null;
   sortOrder?: number | null;
+  archived?: boolean | null;
   currentDraftVersionId?: number | null;
   currentPublishedVersionId?: number | null;
 };
@@ -169,10 +171,14 @@ type TreeRow = {
   contentItemId: number;
   title: string;
   status: 'Draft' | 'Published' | 'New';
+  archived: boolean;
+  hasChildren: boolean;
   parentId: number | null;
   sortOrder: number;
   depth: number;
 };
+
+const CONTENT_PAGES_SHOW_ARCHIVED_KEY = 'content-pages-show-archived';
 
 type ContentPageHeaderCommandContext = CommandContext & {
   selectedContentItemId: number | null;
@@ -202,6 +208,7 @@ type ContentPageRowCommandContext = CommandContext & {
   duplicateRow: (row: TreeRow) => Promise<void>;
   exportRow: (row: TreeRow) => void;
   deleteRow: (row: TreeRow) => Promise<void>;
+  deleteRowFinal: (row: TreeRow) => Promise<void>;
 };
 
 type ContentPageTreeCommandContext = ContentPageRowCommandContext & {
@@ -217,6 +224,22 @@ const parseJson = <T,>(value: string, fallback: T): T => {
   } catch {
     return fallback;
   }
+};
+
+const parseGraphqlErrorCode = (error: unknown): string => {
+  const candidate = error as {
+    response?: { errors?: Array<{ extensions?: { code?: string } }> };
+    failure?: { codes?: string[] };
+  };
+  const directCode = candidate?.response?.errors?.[0]?.extensions?.code;
+  if (typeof directCode === 'string' && directCode.trim()) {
+    return directCode;
+  }
+  const wrappedCode = candidate?.failure?.codes?.[0];
+  if (typeof wrappedCode === 'string' && wrappedCode.trim()) {
+    return wrappedCode;
+  }
+  return '';
 };
 
 function parseComponentInstances(componentsJson: string): ComponentInstance[] {
@@ -597,13 +620,24 @@ const contentPageRowOverflowCommands: Command<ContentPageRowCommandContext>[] = 
   },
   {
     id: 'content-pages.row.delete',
-    label: 'Delete',
+    label: 'Archive / Restore',
     icon: 'pi pi-trash',
     danger: true,
     requiresConfirm: true,
-    confirmText: 'Archive this page and remove its current route?',
+    confirmText: 'Toggle archive state for this page?',
     visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
     run: (ctx) => ctx.deleteRow(ctx.row)
+  },
+  {
+    id: 'content-pages.row.delete-final',
+    label: 'Delete Permanently',
+    icon: 'pi pi-times',
+    group: 'Danger',
+    danger: true,
+    requiresConfirm: true,
+    confirmText: 'Permanently delete this archived page and its versions/routes? This cannot be undone.',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages') && ctx.row.archived && !ctx.row.hasChildren,
+    run: (ctx) => ctx.deleteRowFinal(ctx.row)
   }
 ];
 
@@ -682,13 +716,24 @@ const contentPageTreeContextCommands: Command<ContentPageTreeCommandContext>[] =
   },
   {
     id: 'content-pages.tree.delete',
-    label: 'Delete',
+    label: 'Archive / Restore',
     icon: 'pi pi-trash',
     danger: true,
     requiresConfirm: true,
-    confirmText: 'Archive this page and remove its current route?',
+    confirmText: 'Toggle archive state for this page?',
     visible: (ctx) => routeStartsWith(ctx.route, '/content/pages'),
     run: (ctx) => ctx.deleteRow(ctx.treeNode)
+  },
+  {
+    id: 'content-pages.tree.delete-final',
+    label: 'Delete Permanently',
+    icon: 'pi pi-times',
+    group: 'Danger',
+    danger: true,
+    requiresConfirm: true,
+    confirmText: 'Permanently delete this archived page and its versions/routes? This cannot be undone.',
+    visible: (ctx) => routeStartsWith(ctx.route, '/content/pages') && ctx.treeNode.archived && !ctx.treeNode.hasChildren,
+    run: (ctx) => ctx.deleteRowFinal(ctx.treeNode)
   }
 ];
 
@@ -793,6 +838,7 @@ export function ContentPagesPage() {
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('split');
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>('web');
   const [treeFilter, setTreeFilter] = useState('');
+  const [showArchivedPages, setShowArchivedPages] = useState(false);
   const [treeExpandedKeys, setTreeExpandedKeys] = useState<Record<string, boolean>>({});
   const [previewReloadKey, setPreviewReloadKey] = useState(0);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
@@ -812,7 +858,7 @@ export function ContentPagesPage() {
   const [formOptions, setFormOptions] = useState<FormListRow[]>([]);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem('content-pages.workspace.sizes');
+    const saved = window.localStorage.getItem(CONTENT_PAGES_WORKSPACE_SIZES_KEY);
     if (!saved) {
       return;
     }
@@ -825,6 +871,18 @@ export function ContentPagesPage() {
       // ignore invalid saved layout
     }
   }, []);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(CONTENT_PAGES_SHOW_ARCHIVED_KEY);
+    if (!saved) {
+      return;
+    }
+    setShowArchivedPages(saved === '1');
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(CONTENT_PAGES_SHOW_ARCHIVED_KEY, showArchivedPages ? '1' : '0');
+  }, [showArchivedPages]);
 
   useEffect(() => {
     return () => {
@@ -886,21 +944,46 @@ export function ContentPagesPage() {
     [internalRoles, internalUsers, principalGroups]
   );
 
+  const itemById = useMemo(() => {
+    const mapped = new Map<number, CItem>();
+    for (const item of items) {
+      mapped.set(item.id, item);
+    }
+    return mapped;
+  }, [items]);
+
+  const childCountById = useMemo(() => {
+    const mapped = new Map<number, number>();
+    const walk = (nodes: PageTreeNodeDto[]) => {
+      for (const node of nodes) {
+        mapped.set(node.id, Array.isArray(node.children) ? node.children.length : 0);
+        if (Array.isArray(node.children) && node.children.length > 0) {
+          walk(node.children);
+        }
+      }
+    };
+    walk(pageTree);
+    return mapped;
+  }, [pageTree]);
+
   const filteredPageTree = useMemo(() => {
     const query = treeFilter.trim().toLowerCase();
-    if (!query) {
-      return pageTree;
-    }
-
     const walk = (nodes: PageTreeNodeDto[]): PageTreeNodeDto[] => {
       const next: PageTreeNodeDto[] = [];
       for (const node of nodes) {
         const childMatches = walk(node.children ?? []);
+        const archived = Boolean(itemById.get(node.id)?.archived);
+        if (archived && !showArchivedPages) {
+          next.push(...childMatches);
+          continue;
+        }
         const selfMatches =
+          query.length === 0 ||
           node.title.toLowerCase().includes(query) ||
           node.slug.toLowerCase().includes(query) ||
           String(node.id).includes(query) ||
-          node.status.toLowerCase().includes(query);
+          node.status.toLowerCase().includes(query) ||
+          (archived ? 'archived' : '').includes(query);
         if (selfMatches || childMatches.length > 0) {
           next.push({
             ...node,
@@ -912,7 +995,7 @@ export function ContentPagesPage() {
     };
 
     return walk(pageTree);
-  }, [pageTree, treeFilter]);
+  }, [itemById, pageTree, showArchivedPages, treeFilter]);
 
   const treeNodes = useMemo<TreeNode[]>(() => {
     const toNode = (entry: PageTreeNodeDto, depth: number): TreeNode => ({
@@ -923,6 +1006,8 @@ export function ContentPagesPage() {
         contentItemId: entry.id,
         title: entry.title,
         status: entry.status,
+        archived: Boolean(itemById.get(entry.id)?.archived),
+        hasChildren: (childCountById.get(entry.id) ?? 0) > 0,
         parentId: entry.parentId ?? null,
         sortOrder: entry.sortOrder,
         depth
@@ -931,7 +1016,7 @@ export function ContentPagesPage() {
     });
 
     return filteredPageTree.map((entry) => toNode(entry, 0));
-  }, [filteredPageTree]);
+  }, [childCountById, filteredPageTree, itemById]);
 
   const selectedRouteKey = useMemo(() => {
     if (!selectedItemId) {
@@ -939,6 +1024,15 @@ export function ContentPagesPage() {
     }
     return String(selectedItemId);
   }, [selectedItemId]);
+
+  useEffect(() => {
+    if (!selectedItemId) {
+      return;
+    }
+    if (itemById.get(selectedItemId)?.archived) {
+      setShowArchivedPages(true);
+    }
+  }, [itemById, selectedItemId]);
 
   useEffect(() => {
     if (!selectedRouteKey) {
@@ -963,9 +1057,24 @@ export function ContentPagesPage() {
       }
       return false;
     };
-    if (walk(treeNodes, [])) {
-      setTreeExpandedKeys((prev) => ({ ...prev, ...nextExpanded }));
+    if (!walk(treeNodes, [])) {
+      return;
     }
+    const parentKeys = Object.keys(nextExpanded);
+    if (parentKeys.length === 0) {
+      return;
+    }
+    setTreeExpandedKeys((prev) => {
+      let changed = false;
+      const merged = { ...prev };
+      for (const key of parentKeys) {
+        if (!merged[key]) {
+          merged[key] = true;
+          changed = true;
+        }
+      }
+      return changed ? merged : prev;
+    });
   }, [selectedRouteKey, treeNodes]);
 
   const componentInstances = useMemo(() => parseComponentInstances(componentsJson), [componentsJson]);
@@ -1976,17 +2085,26 @@ export function ContentPagesPage() {
     setTargetLocaleCode(localeCode);
   }, [marketCode, localeCode]);
 
+  const marketQueryParam = searchParams.get('market');
+  const localeQueryParam = searchParams.get('locale');
+
   useEffect(() => {
-    const marketQuery = searchParams.get('market');
-    const localeQuery = searchParams.get('locale');
-    if (marketQuery || localeQuery) {
-      setRouteDraft((prev) => ({
-        ...prev,
-        marketCode: marketQuery ?? prev.marketCode,
-        localeCode: localeQuery ?? prev.localeCode
-      }));
+    if (!marketQueryParam && !localeQueryParam) {
+      return;
     }
-  }, [searchParams]);
+    setRouteDraft((prev) => {
+      const nextMarket = marketQueryParam ?? prev.marketCode;
+      const nextLocale = localeQueryParam ?? prev.localeCode;
+      if (nextMarket === prev.marketCode && nextLocale === prev.localeCode) {
+        return prev;
+      }
+      return {
+        ...prev,
+        marketCode: nextMarket,
+        localeCode: nextLocale
+      };
+    });
+  }, [marketQueryParam, localeQueryParam]);
 
   useEffect(() => {
     if (!selectedItemId) {
@@ -2212,6 +2330,47 @@ export function ContentPagesPage() {
     }
   }, [availableComponentTypeOptions, newComponentType]);
 
+  const buildAutoRouteSlug = (contentItemId: number): string => {
+    const usedSlugs = new Set(
+      routes
+        .filter((entry) => entry.marketCode === marketCode && entry.localeCode === localeCode)
+        .map((entry) => entry.slug.toLowerCase())
+    );
+    const preferred = [`demo/item${contentItemId}`, `page${contentItemId}`];
+    for (const candidate of preferred) {
+      if (!usedSlugs.has(candidate.toLowerCase())) {
+        return candidate;
+      }
+    }
+    let suffix = 2;
+    while (usedSlugs.has(`page${contentItemId}-${suffix}`.toLowerCase())) {
+      suffix += 1;
+    }
+    return `page${contentItemId}-${suffix}`;
+  };
+
+  const ensureAutoRouteForPage = async (contentItemId: number): Promise<string | null> => {
+    const slug = buildAutoRouteSlug(contentItemId);
+    try {
+      await sdk.upsertRoute({
+        siteId,
+        contentItemId,
+        marketCode,
+        localeCode,
+        slug,
+        isCanonical: true
+      });
+      return slug;
+    } catch (error) {
+      toast({
+        severity: 'warn',
+        summary: 'Page created without route',
+        detail: `Auto route failed: ${formatErrorMessage(error)}`
+      });
+      return null;
+    }
+  };
+
   const createPage = async () => {
     const contentTypeId = selectedContentTypeId ?? types[0]?.id;
     if (!contentTypeId) {
@@ -2234,11 +2393,18 @@ export function ContentPagesPage() {
     });
 
     const id = created.createContentItem?.id;
-    await refresh();
     if (id) {
+      const createdSlug = await ensureAutoRouteForPage(id);
+      await refresh();
       navigate(buildContentEditorUrl(id, marketCode, localeCode));
-      toast({ severity: 'success', summary: 'Page created', detail: `Content item #${id}` });
+      toast({
+        severity: 'success',
+        summary: 'Page created',
+        detail: createdSlug ? `Content item #${id} at /${createdSlug}` : `Content item #${id}`
+      });
+      return;
     }
+    await refresh();
   };
 
   const saveDraft = async (options: { force?: boolean; silent?: boolean; refreshPreview?: boolean } = {}) => {
@@ -2511,11 +2677,18 @@ export function ContentPagesPage() {
       metadataJson: '{}'
     });
     const id = created.createChildPage?.id ?? null;
-    await refresh();
     if (id) {
+      const createdSlug = await ensureAutoRouteForPage(id);
+      await refresh();
       navigate(buildContentEditorUrl(id, marketCode, localeCode));
-      toast({ severity: 'success', summary: `Created child page #${id}` });
+      toast({
+        severity: 'success',
+        summary: `Created child page #${id}`,
+        detail: createdSlug ? `Route /${createdSlug}` : undefined
+      });
+      return;
     }
+    await refresh();
   };
 
   const savePagePermissions = async () => {
@@ -2610,12 +2783,83 @@ export function ContentPagesPage() {
   };
 
   const deleteTreeRow = async (row: TreeRow) => {
-    await sdk.deletePage({ pageId: row.contentItemId });
+    if (row.archived) {
+      await sdk.archiveContentItem({ id: row.contentItemId, archived: false });
+      await refresh();
+      toast({ severity: 'success', summary: `Restored page #${row.contentItemId}` });
+      return;
+    }
+    if (row.hasChildren) {
+      await sdk.archiveContentItem({ id: row.contentItemId, archived: true });
+      const pageRoutes = routes.filter((entry) => entry.contentItemId === row.contentItemId);
+      await Promise.all(pageRoutes.map((entry) => sdk.deleteRoute({ id: entry.id })));
+      if (selectedItemId === row.contentItemId) {
+        navigate('/content/pages');
+      }
+      await refresh();
+      toast({
+        severity: 'warn',
+        summary: `Archived parent page #${row.contentItemId}`,
+        detail: 'Child pages were kept.'
+      });
+      return;
+    }
+    let archivedViaFallback = false;
+    try {
+      await sdk.deletePage({ pageId: row.contentItemId });
+    } catch (error) {
+      const code = parseGraphqlErrorCode(error);
+      if (code !== 'PAGE_HAS_CHILDREN') {
+        if (code === 'PAGE_DELETE_FAILED' || code === 'PAGE_VERSION_REFERENCED') {
+          setStatus(formatErrorMessage(error));
+          return;
+        }
+        throw error;
+      }
+      archivedViaFallback = true;
+      await sdk.archiveContentItem({ id: row.contentItemId, archived: true });
+      const pageRoutes = routes.filter((entry) => entry.contentItemId === row.contentItemId);
+      await Promise.all(pageRoutes.map((entry) => sdk.deleteRoute({ id: entry.id })));
+    }
     if (selectedItemId === row.contentItemId) {
       navigate('/content/pages');
     }
     await refresh();
-    toast({ severity: 'success', summary: `Archived page #${row.contentItemId}` });
+    toast(
+      archivedViaFallback
+        ? {
+            severity: 'warn',
+            summary: `Archived parent page #${row.contentItemId}`,
+            detail: 'Child pages were kept.'
+          }
+        : { severity: 'success', summary: `Archived page #${row.contentItemId}` }
+    );
+  };
+
+  const permanentlyDeleteTreeRow = async (row: TreeRow) => {
+    if (!row.archived) {
+      setStatus('Archive the page first before permanent deletion.');
+      return;
+    }
+    try {
+      await sdk.deletePage({ pageId: row.contentItemId });
+    } catch (error) {
+      const code = parseGraphqlErrorCode(error);
+      if (code === 'PAGE_HAS_CHILDREN') {
+        setStatus('Cannot permanently delete a page that still has child pages. Delete/archive child pages first.');
+        return;
+      }
+      if (code === 'PAGE_DELETE_FAILED' || code === 'PAGE_VERSION_REFERENCED') {
+        setStatus(formatErrorMessage(error));
+        return;
+      }
+      throw error;
+    }
+    if (selectedItemId === row.contentItemId) {
+      navigate('/content/pages');
+    }
+    await refresh();
+    toast({ severity: 'success', summary: `Deleted page #${row.contentItemId} permanently` });
   };
 
   const moveComponent = (id: string, direction: -1 | 1) => {
@@ -2985,7 +3229,7 @@ export function ContentPagesPage() {
     toast({ severity: 'success', summary: `Exported page #${row.contentItemId}` });
   };
 
-  const toggleLeftPaneCollapsed = () => {
+  const toggleLeftPaneCollapsed = useCallback(() => {
     setLeftPaneCollapsed((prev) => {
       const nextCollapsed = !prev;
       if (nextCollapsed) {
@@ -2995,16 +3239,16 @@ export function ContentPagesPage() {
         }
         const collapsedSizes: number[] = [4, 96];
         setWorkspaceSizes(collapsedSizes);
-        window.localStorage.setItem('content-pages.workspace.sizes', JSON.stringify(collapsedSizes));
+        window.localStorage.setItem(CONTENT_PAGES_WORKSPACE_SIZES_KEY, JSON.stringify(collapsedSizes));
       } else {
         const restoredLeft = Math.max(20, Math.min(45, leftPaneExpandedSizeRef.current || 28));
         const restoredSizes: number[] = [restoredLeft, 100 - restoredLeft];
         setWorkspaceSizes(restoredSizes);
-        window.localStorage.setItem('content-pages.workspace.sizes', JSON.stringify(restoredSizes));
+        window.localStorage.setItem(CONTENT_PAGES_WORKSPACE_SIZES_KEY, JSON.stringify(restoredSizes));
       }
       return nextCollapsed;
     });
-  };
+  }, [workspaceSizes]);
 
   useEffect(() => {
     const panelMenu = [
@@ -3028,7 +3272,7 @@ export function ContentPagesPage() {
           setLeftPaneCollapsed(false);
           setWorkspaceMode('split');
           setWorkspaceSizes([28, 72]);
-          window.localStorage.setItem('content-pages.workspace.sizes', JSON.stringify([28, 72]));
+          window.localStorage.setItem(CONTENT_PAGES_WORKSPACE_SIZES_KEY, JSON.stringify([28, 72]));
         }
       }
     ];
@@ -3094,6 +3338,7 @@ export function ContentPagesPage() {
       duplicateRow: duplicateTreeRow,
       exportRow,
       deleteRow: deleteTreeRow,
+      deleteRowFinal: permanentlyDeleteTreeRow,
       openWebsiteFromRow: (row) => openPreviewWebsite(row),
       issueTokenForRow: (row) => issuePreviewToken(row.contentItemId),
       copyPreviewUrlForRow: (row) => {
@@ -3700,7 +3945,7 @@ export function ContentPagesPage() {
             if (!leftPaneCollapsed && (next[0] ?? 0) > 10) {
               leftPaneExpandedSizeRef.current = next[0] ?? leftPaneExpandedSizeRef.current;
             }
-            window.localStorage.setItem('content-pages.workspace.sizes', JSON.stringify(next));
+            window.localStorage.setItem(CONTENT_PAGES_WORKSPACE_SIZES_KEY, JSON.stringify(next));
           }}
         >
           <SplitterPanel size={workspaceSizes[0] ?? 28} minSize={leftPaneCollapsed ? 4 : 20}>
@@ -3713,7 +3958,13 @@ export function ContentPagesPage() {
                 <>
                   <div className="form-row mb-3">
                     <label>Filter tree</label>
-                    <InputText value={treeFilter} onChange={(event) => setTreeFilter(event.target.value)} placeholder="Slug, title, status" />
+                    <InputText value={treeFilter} onChange={(event) => setTreeFilter(event.target.value)} placeholder="Slug, title, status, archived" />
+                  </div>
+                  <div className="inline-actions mb-3">
+                    <label className="flex align-items-center gap-2">
+                      <Checkbox checked={showArchivedPages} onChange={(event) => setShowArchivedPages(Boolean(event.checked))} />
+                      <span>Show archived pages</span>
+                    </label>
                   </div>
                   <TreeTable
                     className="content-pages-tree"
@@ -3737,6 +3988,8 @@ export function ContentPagesPage() {
                         contentItemId: row.contentItemId,
                         title: String(row.title ?? `Item #${row.contentItemId}`),
                         status: (row.status as TreeRow['status']) ?? 'New',
+                        archived: Boolean(row.archived),
+                        hasChildren: Boolean(row.hasChildren),
                         parentId: typeof row.parentId === 'number' ? row.parentId : null,
                         sortOrder: typeof row.sortOrder === 'number' ? row.sortOrder : 0,
                         depth: typeof row.depth === 'number' ? row.depth : 0
@@ -3776,8 +4029,10 @@ export function ContentPagesPage() {
                         const row = node.data as TreeRow;
                         return (
                           <Tag
-                            value={row.status}
-                            severity={row.status === 'Published' ? 'success' : row.status === 'Draft' ? 'warning' : 'secondary'}
+                            value={row.archived ? 'Archived' : row.status}
+                            severity={
+                              row.archived ? 'danger' : row.status === 'Published' ? 'success' : row.status === 'Draft' ? 'warning' : 'secondary'
+                            }
                           />
                         );
                       }}
@@ -3800,7 +4055,8 @@ export function ContentPagesPage() {
                           moveRowDown,
                           duplicateRow: duplicateTreeRow,
                           exportRow,
-                          deleteRow: deleteTreeRow
+                          deleteRow: deleteTreeRow,
+                          deleteRowFinal: permanentlyDeleteTreeRow
                         };
                         const rowCommands = commandRegistry.getCommands(rowCommandContext, 'rowOverflow');
                         return (

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Editor } from 'primereact/editor';
 
 import { AssetPickerDialog } from '../../../components/inputs/AssetPickerDialog';
@@ -66,7 +66,15 @@ function buildFormats(features: RichTextFeature[]): string[] {
   return formats;
 }
 
-function buildHeader(features: RichTextFeature[]) {
+type ToolbarHandlers = {
+  onUndo: () => void;
+  onRedo: () => void;
+  onInsertTable: () => void;
+  onOpenLink: () => void;
+  onOpenAsset: () => void;
+};
+
+function buildHeader(features: RichTextFeature[], handlers: ToolbarHandlers) {
   const enabled = new Set(features);
   const headingOptions = [
     has(enabled, 'h1') ? <option key="h1" value="1" /> : null,
@@ -105,13 +113,68 @@ function buildHeader(features: RichTextFeature[]) {
       <span className="ql-formats">
         {has(enabled, 'list') ? <button type="button" className="ql-list" value="bullet" /> : null}
         {has(enabled, 'ordered') ? <button type="button" className="ql-list" value="ordered" /> : null}
-        {has(enabled, 'link') ? <button type="button" className="ql-cms-link">Link</button> : null}
-        {has(enabled, 'table') ? <button type="button" className="ql-table">Tbl</button> : null}
-        {has(enabled, 'image') ? <button type="button" className="ql-cms-asset">Asset</button> : null}
+        {has(enabled, 'link') ? (
+          <button
+            type="button"
+            className="ch-richtext-toolbar-button"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              handlers.onOpenLink();
+            }}
+          >
+            Link
+          </button>
+        ) : null}
+        {has(enabled, 'table') ? (
+          <button
+            type="button"
+            className="ch-richtext-toolbar-button"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              handlers.onInsertTable();
+            }}
+          >
+            Tbl
+          </button>
+        ) : null}
+        {has(enabled, 'image') ? (
+          <button
+            type="button"
+            className="ch-richtext-toolbar-button"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              handlers.onOpenAsset();
+            }}
+          >
+            Asset
+          </button>
+        ) : null}
       </span>
       <span className="ql-formats">
-        {has(enabled, 'undo') ? <button type="button" className="ql-undo">Undo</button> : null}
-        {has(enabled, 'redo') ? <button type="button" className="ql-redo">Redo</button> : null}
+        {has(enabled, 'undo') ? (
+          <button
+            type="button"
+            className="ch-richtext-toolbar-button"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              handlers.onUndo();
+            }}
+          >
+            Undo
+          </button>
+        ) : null}
+        {has(enabled, 'redo') ? (
+          <button
+            type="button"
+            className="ch-richtext-toolbar-button"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              handlers.onRedo();
+            }}
+          >
+            Redo
+          </button>
+        ) : null}
       </span>
     </>
   );
@@ -144,12 +207,65 @@ export function RichTextEditor({
   const sdk = useMemo(() => createAdminSdk(token ?? null), [token]);
   const enabled = features && features.length > 0 ? features : DEFAULT_RICH_TEXT_FEATURES;
   const toolbarPreset = enabled.length === 0 ? FULL_RICH_TEXT_FEATURES : enabled;
-  const headerTemplate = useMemo(() => buildHeader(toolbarPreset), [toolbarPreset]);
   const formats = useMemo(() => buildFormats(toolbarPreset), [toolbarPreset]);
   const quillRef = useRef<any>(null);
   const [linkDialogVisible, setLinkDialogVisible] = useState(false);
   const [assetDialogVisible, setAssetDialogVisible] = useState(false);
   const [selectionRange, setSelectionRange] = useState<QuillRange | null>(null);
+
+  const captureSelectionRange = useCallback(() => {
+    const quill = quillRef.current;
+    if (!quill) {
+      setSelectionRange(null);
+      return;
+    }
+    const range = quill.getSelection(true);
+    if (range && typeof range.index === 'number' && typeof range.length === 'number') {
+      setSelectionRange({ index: range.index, length: range.length });
+      return;
+    }
+    setSelectionRange(null);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    quillRef.current?.history?.undo?.();
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    quillRef.current?.history?.redo?.();
+  }, []);
+
+  const handleInsertTable = useCallback(() => {
+    const quill = quillRef.current;
+    if (!quill) {
+      return;
+    }
+    const range = quill.getSelection(true);
+    const insertAt = typeof range?.index === 'number' ? range.index : quill.getLength();
+    quill.clipboard.dangerouslyPasteHTML(insertAt, TABLE_HTML, 'user');
+  }, []);
+
+  const handleOpenLink = useCallback(() => {
+    captureSelectionRange();
+    setLinkDialogVisible(true);
+  }, [captureSelectionRange]);
+
+  const handleOpenAsset = useCallback(() => {
+    captureSelectionRange();
+    setAssetDialogVisible(true);
+  }, [captureSelectionRange]);
+
+  const headerTemplate = useMemo(
+    () =>
+      buildHeader(toolbarPreset, {
+        onUndo: handleUndo,
+        onRedo: handleRedo,
+        onInsertTable: handleInsertTable,
+        onOpenLink: handleOpenLink,
+        onOpenAsset: handleOpenAsset
+      }),
+    [toolbarPreset, handleUndo, handleRedo, handleInsertTable, handleOpenLink, handleOpenAsset]
+  );
 
   const insertHtmlAtSelection = (html: string, fallbackText = '') => {
     const quill = quillRef.current;
@@ -176,35 +292,6 @@ export function RichTextEditor({
         formats={formats}
         onLoad={(quill) => {
           quillRef.current = quill;
-          const toolbar = quill?.getModule?.('toolbar');
-          if (!toolbar) {
-            return;
-          }
-          toolbar.addHandler('undo', () => quill.history.undo());
-          toolbar.addHandler('redo', () => quill.history.redo());
-          toolbar.addHandler('table', () => {
-            const range = quill.getSelection(true);
-            const insertAt = typeof range?.index === 'number' ? range.index : quill.getLength();
-            quill.clipboard.dangerouslyPasteHTML(insertAt, TABLE_HTML, 'user');
-          });
-          toolbar.addHandler('cms-link', () => {
-            const range = quill.getSelection(true);
-            if (range && typeof range.index === 'number' && typeof range.length === 'number') {
-              setSelectionRange({ index: range.index, length: range.length });
-            } else {
-              setSelectionRange(null);
-            }
-            setLinkDialogVisible(true);
-          });
-          toolbar.addHandler('cms-asset', () => {
-            const range = quill.getSelection(true);
-            if (range && typeof range.index === 'number' && typeof range.length === 'number') {
-              setSelectionRange({ index: range.index, length: range.length });
-            } else {
-              setSelectionRange(null);
-            }
-            setAssetDialogVisible(true);
-          });
         }}
         readOnly={readOnly}
       />

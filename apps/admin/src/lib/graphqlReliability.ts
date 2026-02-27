@@ -1,9 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import { formatErrorMessage } from './graphqlErrorUi';
+import { redactValue } from './issueRedaction';
 
 const GRAPHQL_DIAGNOSTICS_LIMIT = 20;
-
-const REDACTED_KEYS = ['password', 'token', 'secret', 'authorization', 'apikey', 'api_key'];
 
 export type GraphqlFailureKind =
   | 'missing_permission'
@@ -20,6 +19,7 @@ export type GraphqlFailure = {
   timestamp: string;
   variables: unknown;
   rawMessages: string[];
+  codes: string[];
 };
 
 export type GraphqlResult<T> = { ok: true; data: T } | { ok: false; error: GraphqlFailure };
@@ -52,7 +52,7 @@ export function createGraphqlFailure(input: {
   error: unknown;
 }): GraphqlFailure {
   const timestamp = new Date().toISOString();
-  const variables = redactSecrets(input.variables);
+  const variables = redactValue(input.variables);
   const normalized = normalizeError(input.error);
   const kind = classifyFailureKind(normalized.messages, normalized.codes);
   const message = toActionableMessage(kind, normalized.messages[0] ?? normalized.fallbackMessage);
@@ -62,7 +62,8 @@ export function createGraphqlFailure(input: {
     message,
     timestamp,
     variables,
-    rawMessages: normalized.messages
+    rawMessages: normalized.messages,
+    codes: normalized.codes
   };
 }
 
@@ -74,6 +75,7 @@ export function reportGraphqlFailure(failure: GraphqlFailure) {
     kind: failure.kind,
     message: failure.message,
     rawMessages: failure.rawMessages,
+    codes: failure.codes,
     variables: failure.variables,
     timestamp: failure.timestamp
   });
@@ -87,28 +89,6 @@ function subscribe(listener: DiagnosticsListener): () => void {
 
 function getSnapshot(): GraphqlFailure[] {
   return diagnosticsBuffer;
-}
-
-function redactSecrets(value: unknown, keyHint = ''): unknown {
-  const normalizedKey = keyHint.toLowerCase();
-  if (REDACTED_KEYS.some((entry) => normalizedKey.includes(entry))) {
-    return '[REDACTED]';
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((entry) => redactSecrets(entry));
-  }
-
-  if (value && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    const next: Record<string, unknown> = {};
-    for (const [key, nested] of Object.entries(record)) {
-      next[key] = redactSecrets(nested, key);
-    }
-    return next;
-  }
-
-  return value;
 }
 
 function normalizeError(error: unknown): {

@@ -6,6 +6,7 @@ import {
   createGraphqlFailure,
   reportGraphqlFailure
 } from './graphqlReliability';
+import { issueCollector } from './issueCollector';
 
 type RawSdk = ReturnType<typeof createSdk>;
 type SdkMethodKey = {
@@ -21,8 +22,9 @@ type SafeSdk = {
 export type AdminSdk = RawSdk & { safe: SafeSdk };
 
 export function createAdminSdk(token: string | null) {
+  const endpoint = getApiGraphqlUrl();
   const rawSdk = createSdk({
-    endpoint: getApiGraphqlUrl(),
+    endpoint,
     headersProvider: async () =>
       token
         ? {
@@ -40,9 +42,17 @@ export function createAdminSdk(token: string | null) {
     (wrapped as Record<SdkMethodKey, (...args: unknown[]) => Promise<unknown>>)[key] = async (
       ...args: unknown[]
     ) => {
+      const startedAt = performanceNow();
       try {
         return await method(...args);
       } catch (error) {
+        issueCollector.addGraphqlFailure({
+          operationName: String(key),
+          variables: args[0] ?? null,
+          endpoint,
+          error,
+          durationMs: performanceNow() - startedAt
+        });
         const failure = createGraphqlFailure({
           operationName: String(key),
           variables: args[0] ?? null,
@@ -65,6 +75,13 @@ export function createAdminSdk(token: string | null) {
         if (error instanceof AdminGraphqlError) {
           return { ok: false, error: error.failure };
         }
+        issueCollector.addGraphqlFailure({
+          operationName: String(key),
+          variables: args[0] ?? null,
+          endpoint,
+          error,
+          durationMs: 0
+        });
         const failure = createGraphqlFailure({
           operationName: String(key),
           variables: args[0] ?? null,
@@ -77,4 +94,11 @@ export function createAdminSdk(token: string | null) {
   }
 
   return { ...wrapped, safe } as AdminSdk;
+}
+
+function performanceNow(): number {
+  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    return performance.now();
+  }
+  return Date.now();
 }

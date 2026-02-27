@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Children, createContext, isValidElement, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Children, Fragment, createContext, isValidElement, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { BreadCrumb } from 'primereact/breadcrumb';
 import { Button } from 'primereact/button';
 import { Menu } from 'primereact/menu';
@@ -139,37 +139,49 @@ function WorkspaceTopbar({
 
 export function WorkspacePage({ children, className }: { children: ReactNode; className?: string }) {
   const { layoutPreferences } = useUi();
-  const childList = Children.toArray(children);
-
   let headerProps: WorkspaceHeaderProps | undefined;
   let actionBarProps: WorkspaceActionBarProps | undefined;
   let toolbarProps: WorkspaceToolbarProps | undefined;
   const bodyChildren: ReactNode[] = [];
   const trailingChildren: ReactNode[] = [];
 
-  for (const child of childList) {
+  const collect = (node: ReactNode): void => {
+    if (!isValidElement(node)) {
+      trailingChildren.push(node);
+      return;
+    }
+
+    if (node.type === Fragment) {
+      const fragmentChildren = (node.props as { children?: ReactNode }).children ?? null;
+      Children.forEach(fragmentChildren, collect);
+      return;
+    }
+
+    const child = node;
     if (!isValidElement(child)) {
       trailingChildren.push(child);
-      continue;
+      return;
     }
     if (child.type === WorkspaceHeader) {
       headerProps = child.props as WorkspaceHeaderProps;
-      continue;
+      return;
     }
     if (child.type === WorkspaceActionBar) {
       actionBarProps = mergeActionBarProps(actionBarProps, child.props as WorkspaceActionBarProps);
-      continue;
+      return;
     }
     if (child.type === WorkspaceToolbar) {
       toolbarProps = child.props as WorkspaceToolbarProps;
-      continue;
+      return;
     }
     if (child.type === WorkspaceBody) {
       bodyChildren.push((child.props as { children?: ReactNode }).children ?? null);
-      continue;
+      return;
     }
     trailingChildren.push(child);
-  }
+  };
+
+  Children.forEach(children, collect);
 
   const [helpOpen, setHelpOpen] = useState(false);
   const [askAiOpen, setAskAiOpen] = useState(false);
