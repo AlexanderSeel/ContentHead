@@ -218,8 +218,238 @@ a {
   font-size: 0.9rem;
 }
 
+.cms-site-header {
+  position: relative;
+  z-index: 25;
+  margin-bottom: 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.cms-site-header.sticky {
+  position: sticky;
+  top: 0.5rem;
+}
+
+.cms-site-header-inner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+.cms-site-brand {
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.cms-site-nav {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.cms-site-nav-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--border), transparent 30%);
+  background: color-mix(in srgb, var(--surface), transparent 30%);
+}
+
+.cms-mega-nav-item {
+  position: relative;
+}
+
+.cms-mega-nav-item[open] .cms-mega-panel {
+  display: grid;
+}
+
+.cms-mega-nav-item > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.cms-mega-nav-item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.cms-mega-panel {
+  display: none;
+  gap: 0.7rem;
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.45rem);
+  min-width: 20rem;
+  max-width: min(34rem, 85vw);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 0.85rem;
+}
+
+.cms-site-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.cms-anchor-nav {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.8rem 1rem;
+}
+
+.cms-anchor-nav.sticky {
+  position: sticky;
+  top: 5.2rem;
+  z-index: 15;
+}
+
+.cms-anchor-nav-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.cms-anchor-nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cms-anchor-nav-link {
+  text-decoration: none;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-2), white 30%);
+}
+
+.cms-stats-strip {
+  background: linear-gradient(160deg, #edf4ff 0%, #eafcf8 100%);
+}
+
+.cms-stats-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.cms-stat-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.cms-carousel {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.cms-carousel-nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.cms-carousel-viewport {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(18rem, 26rem);
+  overflow-x: auto;
+  gap: 0.8rem;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 0.3rem;
+}
+
+.cms-carousel-slide {
+  scroll-snap-align: start;
+}
+
+.cms-carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.cms-carousel-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #d0d8ea;
+  cursor: pointer;
+}
+
+.cms-carousel-dot.active {
+  background: var(--brand);
+  border-color: var(--brand-strong);
+}
+
+.cms-slider-card {
+  display: grid;
+  gap: 0.65rem;
+  height: 100%;
+}
+
+.cms-slider-image img {
+  width: 100%;
+  height: 11rem;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.cms-testimonial-card blockquote {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+.cms-testimonial-meta {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.cms-testimonial-meta img {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+}
+
+.cms-teaser-card {
+  display: grid;
+  gap: 0.5rem;
+}
+
 @media (max-width: 680px) {
   .cms-page {
     padding: 0.8rem 0.75rem 2rem;
+  }
+  .cms-site-header-inner {
+    grid-template-columns: 1fr;
+  }
+  .cms-site-actions {
+    justify-content: flex-start;
+  }
+  .cms-anchor-nav.sticky {
+    top: 0.5rem;
+  }
+  .cms-carousel-viewport {
+    grid-auto-columns: minmax(15rem, 84vw);
   }
 }

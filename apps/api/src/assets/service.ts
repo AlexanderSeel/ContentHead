@@ -89,6 +89,23 @@ export type AssetListResult = {
   total: number;
 };
 
+export type AssetUsageReference = {
+  contentItemId: number;
+  contentTypeName: string;
+  versionId: number;
+  versionState: string;
+  routeSlug: string | null;
+  marketCode: string | null;
+  localeCode: string | null;
+  jsonArea: 'fields' | 'components' | 'metadata';
+  path: string;
+};
+
+export type AssetUsageResult = {
+  assetId: number;
+  references: AssetUsageReference[];
+};
+
 export type AssetFolderRecord = {
   id: number;
   siteId: number;
@@ -1080,6 +1097,167 @@ export async function deleteAssetRendition(
   return true;
 }
 
+function collectAssetReferencePaths(
+  value: unknown,
+  assetId: number,
+  path: string,
+  sink: string[]
+): void {
+  const targetString = String(assetId);
+  if (typeof value === 'number' && Number.isFinite(value) && Math.trunc(value) === assetId) {
+    sink.push(path || '$');
+    return;
+  }
+  if (typeof value === 'string' && value.trim() === targetString) {
+    sink.push(path || '$');
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => collectAssetReferencePaths(entry, assetId, `${path}[${index}]`, sink));
+    return;
+  }
+  if (!value || typeof value !== 'object') {
+    return;
+  }
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    const nextPath = path ? `${path}.${key}` : key;
+    collectAssetReferencePaths(entry, assetId, nextPath, sink);
+  }
+}
+
+export async function listAssetUsage(
+  db: DbClient,
+  input: {
+    siteId: number;
+    assetIds: number[];
+    limitPerAsset?: number | null | undefined;
+  }
+): Promise<AssetUsageResult[]> {
+  const normalizedIds = Array.from(
+    new Set(
+      input.assetIds
+        .map((entry) => Math.trunc(entry))
+        .filter((entry) => Number.isFinite(entry) && entry > 0)
+    )
+  );
+  if (normalizedIds.length === 0) {
+    return [];
+  }
+  const limitPerAsset = Math.max(1, Math.min(200, Math.trunc(input.limitPerAsset ?? 40)));
+
+  const routes = await db.all<{
+    contentItemId: number;
+    slug: string;
+    marketCode: string;
+    localeCode: string;
+    isCanonical: boolean;
+  }>(
+    `
+SELECT
+  content_item_id as contentItemId,
+  slug,
+  market_code as marketCode,
+  locale_code as localeCode,
+  is_canonical as isCanonical
+FROM content_routes
+WHERE site_id = ?
+ORDER BY is_canonical DESC, id ASC
+`,
+    [input.siteId]
+  );
+  const routeByItemId = new Map<number, { slug: string; marketCode: string; localeCode: string }>();
+  for (const route of routes) {
+    if (!routeByItemId.has(route.contentItemId)) {
+      routeByItemId.set(route.contentItemId, {
+        slug: route.slug,
+        marketCode: route.marketCode,
+        localeCode: route.localeCode
+      });
+    }
+  }
+
+  const versions = await db.all<{
+    versionId: number;
+    contentItemId: number;
+    versionState: string;
+    contentTypeName: string;
+    fieldsJson: string;
+    componentsJson: string;
+    metadataJson: string;
+  }>(
+    `
+SELECT
+  v.id as versionId,
+  v.content_item_id as contentItemId,
+  v.state as versionState,
+  ct.name as contentTypeName,
+  v.fields_json as fieldsJson,
+  v.components_json as componentsJson,
+  v.metadata_json as metadataJson
+FROM content_versions v
+JOIN content_items i ON i.id = v.content_item_id
+JOIN content_types ct ON ct.id = i.content_type_id
+WHERE i.site_id = ?
+ORDER BY v.id DESC
+`,
+    [input.siteId]
+  );
+
+  const result = new Map<number, AssetUsageReference[]>();
+  normalizedIds.forEach((id) => result.set(id, []));
+
+  for (const row of versions) {
+    for (const assetId of normalizedIds) {
+      const current = result.get(assetId);
+      if (!current || current.length >= limitPerAsset) {
+        continue;
+      }
+      const needle = String(assetId);
+      const mayContain =
+        row.fieldsJson.includes(needle) || row.componentsJson.includes(needle) || row.metadataJson.includes(needle);
+      if (!mayContain) {
+        continue;
+      }
+
+      const route = routeByItemId.get(row.contentItemId);
+      const scan = (area: 'fields' | 'components' | 'metadata', rawJson: string): void => {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(rawJson);
+        } catch {
+          return;
+        }
+        const paths: string[] = [];
+        collectAssetReferencePaths(parsed, assetId, '', paths);
+        for (const path of paths) {
+          if (current.length >= limitPerAsset) {
+            break;
+          }
+          current.push({
+            contentItemId: row.contentItemId,
+            contentTypeName: row.contentTypeName,
+            versionId: row.versionId,
+            versionState: row.versionState,
+            routeSlug: route?.slug ?? null,
+            marketCode: route?.marketCode ?? null,
+            localeCode: route?.localeCode ?? null,
+            jsonArea: area,
+            path
+          });
+        }
+      };
+      scan('fields', row.fieldsJson);
+      scan('components', row.componentsJson);
+      scan('metadata', row.metadataJson);
+    }
+  }
+
+  return normalizedIds.map((assetId) => ({
+    assetId,
+    references: result.get(assetId) ?? []
+  }));
+}
+
 export async function updateAssetMetadata(
   db: DbClient,
   input: {
@@ -1146,12 +1324,16 @@ export async function deleteAsset(
     await db.run('COMMIT');
   } catch (error) {
     await db.run('ROLLBACK');
-    throw error;
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new GraphQLError(`Could not delete asset ${id}: ${detail}`, {
+      extensions: { code: 'ASSET_DELETE_FAILED' }
+    });
   }
 
-  await storage.delete(asset.storagePath);
+  // Storage cleanup should not fail the mutation once DB deletion committed.
+  await storage.delete(asset.storagePath).catch(() => undefined);
   for (const rendition of renditions) {
-    await storage.delete(rendition.storagePath);
+    await storage.delete(rendition.storagePath).catch(() => undefined);
   }
 
   return true;

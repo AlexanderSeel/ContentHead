@@ -59,7 +59,8 @@ const configHints: Record<string, string> = {
   localfs: '{\n  "basePath": "./.data/assets"\n}',
   s3: '{\n  "bucket": "...",\n  "region": "...",\n  "accessKey": "...",\n  "secretKey": "..."\n}',
   mock: '{\n  "enabled": true\n}',
-  openai_compatible: '{\n  "baseUrl": "https://api.openai.com/v1",\n  "apiKey": "...",\n  "model": "gpt-4o-mini"\n}',
+  openai_compatible:
+    '{\n  "baseUrl": "https://api.openai.com/v1",\n  "apiKey": "...",\n  "model": "gpt-4o-mini",\n  "textModel": "gpt-4o-mini",\n  "imageModel": "gpt-image-1",\n  "imageFallbackToMock": true\n}',
   ollama: '{\n  "baseUrl": "http://localhost:11434",\n  "model": "llama3.1"\n}'
 };
 

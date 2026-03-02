@@ -131,7 +131,15 @@ function WorkspaceTopbar({
           />
         ) : null}
         {actions?.overflow}
-        {panelOverflowModel.length > 0 ? <WorkspaceOverflowMenu model={panelOverflowModel} label="" /> : null}
+        {panelOverflowModel.length > 0 ? (
+          <WorkspaceOverflowMenu
+            model={panelOverflowModel}
+            label=""
+            icon="pi pi-window-maximize"
+            size="small"
+            className="ch-command-menu-trigger"
+          />
+        ) : null}
       </div>
     </section>
   );
@@ -271,10 +279,16 @@ export function WorkspaceHeader({
 
 export function WorkspaceOverflowMenu({
   model,
-  label = 'More'
+  label = 'More',
+  icon = 'pi pi-ellipsis-h',
+  size = 'small',
+  className
 }: {
   model: MenuItem[];
   label?: string;
+  icon?: string;
+  size?: 'small' | 'large';
+  className?: string;
 }) {
   const menuRef = useRef<Menu | null>(null);
   if (model.length === 0) {
@@ -284,9 +298,11 @@ export function WorkspaceOverflowMenu({
     <>
       <Menu popup model={model} ref={(ref) => (menuRef.current = ref)} />
       <Button
-        icon="pi pi-ellipsis-h"
+        icon={icon}
         label={label}
         text
+        size={size}
+        className={className}
         aria-label={label || 'More actions'}
         onClick={(event) => menuRef.current?.toggle(event)}
       />

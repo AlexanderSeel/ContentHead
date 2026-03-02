@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql';
 
+import type { AssetStorageProvider } from '../assets/storage.js';
 import type { DbClient } from './DbClient.js';
 
 export type DbAdminColumn = {
@@ -48,6 +49,13 @@ export type DbAdminSqlResult = {
   rowCount: number;
   message?: string | null;
   executedSql?: string | null;
+};
+
+export type DbAdminResetResult = {
+  siteId: number;
+  statementsExecuted: number;
+  tablesTouched: string[];
+  message: string;
 };
 
 export type DbAdminFilter = {
@@ -668,5 +676,617 @@ export async function dbAdminSql(
     rowCount: 0,
     message: 'Statement executed',
     executedSql: trimmed
+  };
+}
+
+export async function dbAdminResetSiteData(
+  db: DbClient,
+  siteId: number,
+  assetStorage?: AssetStorageProvider | null
+): Promise<DbAdminResetResult> {
+  const site = await db.get<{ id: number }>('SELECT id FROM sites WHERE id = ?', [siteId]);
+  if (!site) {
+    throw new GraphQLError(`Site ${siteId} not found`, { extensions: { code: 'SITE_NOT_FOUND' } });
+  }
+
+  const availableTables = new Set(await listAllTables(db));
+  const touchedTables = new Set<string>();
+  let statementsExecuted = 0;
+
+  const run = async (sql: string, params: unknown[] = [], requiredTables: string[] = []): Promise<void> => {
+    if (requiredTables.some((table) => !availableTables.has(table))) {
+      return;
+    }
+    await db.run(sql, params);
+    statementsExecuted += 1;
+    requiredTables.forEach((table) => touchedTables.add(table));
+  };
+  const hasTables = (...tables: string[]): boolean => tables.every((table) => availableTables.has(table));
+  const placeholders = (count: number): string => Array.from({ length: count }, () => '?').join(', ');
+  const deleteRowsReferencing = async (
+    parentTable: string,
+    parentColumn: string,
+    ids: number[]
+  ): Promise<void> => {
+    if (ids.length === 0) {
+      return;
+    }
+    const inSql = placeholders(ids.length);
+    for (const childTable of availableTables) {
+      if (childTable === parentTable) {
+        continue;
+      }
+      let fkRows: Array<{ table?: string; from?: string; to?: string }> = [];
+      try {
+        fkRows = await db.all<Array<{ table?: string; from?: string; to?: string }>[number]>(
+          `PRAGMA foreign_key_list('${escapeLiteral(childTable)}')`
+        );
+      } catch {
+        continue;
+      }
+      for (const fk of fkRows) {
+        const fkParent = (fk.table ?? '').trim().toLowerCase();
+        const fkChildColumn = (fk.from ?? '').trim();
+        const fkParentColumn = (fk.to ?? '').trim().toLowerCase();
+        if (!fkChildColumn) {
+          continue;
+        }
+        if (fkParent !== parentTable.toLowerCase() || fkParentColumn !== parentColumn.toLowerCase()) {
+          continue;
+        }
+        await run(
+          `DELETE FROM ${quoteIdent(childTable)} WHERE ${quoteIdent(fkChildColumn)} IN (${inSql})`,
+          ids,
+          [childTable, parentTable]
+        );
+      }
+    }
+  };
+  const normalizeStringList = (value: unknown): string[] => {
+    if (Array.isArray(value)) {
+      return value.map((entry) => String(entry));
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return [];
+      }
+      try {
+        const parsed = JSON.parse(trimmed) as unknown;
+        if (Array.isArray(parsed)) {
+          return parsed.map((entry) => String(entry));
+        }
+      } catch {
+        // fall through
+      }
+      return trimmed
+        .replace(/^\[|\]$/g, '')
+        .split(',')
+        .map((entry) => entry.trim().replace(/^"|"$/g, ''))
+        .filter(Boolean);
+    }
+    return [];
+  };
+  const fkReferencesFromConstraints = async (
+    parentTable: string,
+    parentColumn: string
+  ): Promise<Array<{ childTable: string; childColumn: string }>> => {
+    const rows = await db.all<{
+      tableName: string;
+      constraintColumnNames: unknown;
+      referencedColumnNames: unknown;
+    }>(
+      `
+SELECT
+  table_name as tableName,
+  constraint_column_names as constraintColumnNames,
+  referenced_column_names as referencedColumnNames
+FROM duckdb_constraints()
+WHERE constraint_type = 'FOREIGN KEY' AND lower(referenced_table) = lower(?)
+`,
+      [parentTable]
+    );
+    const refs: Array<{ childTable: string; childColumn: string }> = [];
+    for (const row of rows) {
+      const childColumns = normalizeStringList(row.constraintColumnNames);
+      const referencedColumns = normalizeStringList(row.referencedColumnNames).map((entry) => entry.toLowerCase());
+      if (childColumns.length === 0 || referencedColumns.length === 0) {
+        continue;
+      }
+      const index = referencedColumns.indexOf(parentColumn.toLowerCase());
+      if (index < 0 || !childColumns[index]) {
+        continue;
+      }
+      refs.push({ childTable: row.tableName, childColumn: childColumns[index]! });
+    }
+    return refs;
+  };
+  const siteContentItemRows = hasTables('content_items')
+    ? await db.all<{ id: number }>('SELECT id FROM content_items WHERE site_id = ?', [siteId])
+    : [];
+  const siteContentItemIds = siteContentItemRows.map((entry) => entry.id);
+  const siteContentItemInSql = siteContentItemIds.length > 0 ? placeholders(siteContentItemIds.length) : '';
+  const siteContentTypeRows = hasTables('content_types')
+    ? await db.all<{ id: number }>('SELECT id FROM content_types WHERE site_id = ?', [siteId])
+    : [];
+  const siteContentTypeIds = siteContentTypeRows.map((entry) => entry.id);
+  const siteContentTypeInSql = siteContentTypeIds.length > 0 ? placeholders(siteContentTypeIds.length) : '';
+  const siteFormRows = hasTables('forms') ? await db.all<{ id: number }>('SELECT id FROM forms WHERE site_id = ?', [siteId]) : [];
+  const siteFormIds = siteFormRows.map((entry) => entry.id);
+  const siteFormInSql = siteFormIds.length > 0 ? placeholders(siteFormIds.length) : '';
+  const siteFormStepRows =
+    hasTables('form_steps') && siteFormIds.length > 0
+      ? await db.all<{ id: number }>(`SELECT id FROM form_steps WHERE form_id IN (${siteFormInSql})`, siteFormIds)
+      : [];
+  const siteFormStepIds = siteFormStepRows.map((entry) => entry.id);
+  const siteFormStepInSql = siteFormStepIds.length > 0 ? placeholders(siteFormStepIds.length) : '';
+  const siteAssetRows = hasTables('assets') ? await db.all<{ id: number }>('SELECT id FROM assets WHERE site_id = ?', [siteId]) : [];
+  const siteAssetIds = siteAssetRows.map((entry) => entry.id);
+  const siteAssetInSql = siteAssetIds.length > 0 ? placeholders(siteAssetIds.length) : '';
+  const storagePathsToDelete = new Set<string>();
+  if (assetStorage && siteAssetIds.length > 0) {
+    const assetRows = await db.all<{ storagePath: string }>(
+      `SELECT storage_path as storagePath FROM assets WHERE id IN (${siteAssetInSql})`,
+      siteAssetIds
+    );
+    for (const row of assetRows) {
+      if (row.storagePath?.trim()) {
+        storagePathsToDelete.add(row.storagePath.trim());
+      }
+    }
+    if (hasTables('asset_renditions')) {
+      const renditionRows = await db.all<{ storagePath: string }>(
+        `SELECT storage_path as storagePath FROM asset_renditions WHERE asset_id IN (${siteAssetInSql})`,
+        siteAssetIds
+      );
+      for (const row of renditionRows) {
+        if (row.storagePath?.trim()) {
+          storagePathsToDelete.add(row.storagePath.trim());
+        }
+      }
+    }
+  }
+
+  await db.run('BEGIN TRANSACTION');
+  try {
+    await run(
+      'DELETE FROM form_submissions WHERE site_id = ? OR form_id IN (SELECT id FROM forms WHERE site_id = ?)',
+      [siteId, siteId],
+      ['form_submissions', 'forms']
+    );
+
+    await run(
+      `DELETE FROM entity_acls
+       WHERE entity_type = 'PAGE'
+         AND entity_id IN (
+           SELECT CAST(id AS VARCHAR)
+           FROM content_items
+           WHERE site_id = ?
+         )`,
+      [siteId],
+      ['entity_acls', 'content_items']
+    );
+    await run(
+      `DELETE FROM page_targeting
+       WHERE content_item_id IN (SELECT id FROM content_items WHERE site_id = ?)
+          OR fallback_content_item_id IN (SELECT id FROM content_items WHERE site_id = ?)`,
+      [siteId, siteId],
+      ['page_targeting', 'content_items']
+    );
+    await run(
+      'DELETE FROM page_acl_settings WHERE content_item_id IN (SELECT id FROM content_items WHERE site_id = ?)',
+      [siteId],
+      ['page_acl_settings', 'content_items']
+    );
+
+    if (hasTables('variant_sets')) {
+      const variantSetRows =
+        siteContentItemIds.length > 0
+          ? await db.all<{ id: number }>(
+              `SELECT id
+               FROM variant_sets
+               WHERE site_id = ?
+                  OR content_item_id IN (${siteContentItemInSql})`,
+              [siteId, ...siteContentItemIds]
+            )
+          : await db.all<{ id: number }>('SELECT id FROM variant_sets WHERE site_id = ?', [siteId]);
+      const variantSetIds = variantSetRows.map((entry) => entry.id);
+      if (variantSetIds.length > 0) {
+        const inSql = placeholders(variantSetIds.length);
+        const constraintRefs = await fkReferencesFromConstraints('variant_sets', 'id');
+        for (const ref of constraintRefs) {
+          if (!availableTables.has(ref.childTable)) {
+            continue;
+          }
+          if (ref.childTable === 'variant_sets') {
+            await run(
+              `UPDATE ${quoteIdent(ref.childTable)} SET ${quoteIdent(ref.childColumn)} = NULL WHERE ${quoteIdent(ref.childColumn)} IN (${inSql})`,
+              variantSetIds,
+              [ref.childTable]
+            );
+            continue;
+          }
+          await run(
+            `DELETE FROM ${quoteIdent(ref.childTable)} WHERE ${quoteIdent(ref.childColumn)} IN (${inSql})`,
+            variantSetIds,
+            [ref.childTable]
+          );
+        }
+        await deleteRowsReferencing('variant_sets', 'id', variantSetIds);
+        for (const childTable of availableTables) {
+          if (childTable === 'variant_sets') {
+            continue;
+          }
+          const cols = await loadColumns(db, childTable).catch(() => []);
+          const colNames = new Set(cols.map((col) => col.name.toLowerCase()));
+          if (colNames.has('variant_set_id')) {
+            await run(
+              `DELETE FROM ${quoteIdent(childTable)} WHERE ${quoteIdent('variant_set_id')} IN (${inSql})`,
+              variantSetIds,
+              [childTable]
+            );
+          }
+          if (colNames.has('fallback_variant_set_id')) {
+            await run(
+              `UPDATE ${quoteIdent(childTable)} SET ${quoteIdent('fallback_variant_set_id')} = NULL WHERE ${quoteIdent('fallback_variant_set_id')} IN (${inSql})`,
+              variantSetIds,
+              [childTable]
+            );
+          }
+        }
+        if (hasTables('variants')) {
+          await run(`DELETE FROM variants WHERE variant_set_id IN (${inSql})`, variantSetIds, ['variants']);
+        }
+        await run(
+          `UPDATE variant_sets
+           SET fallback_variant_set_id = NULL
+           WHERE fallback_variant_set_id IN (${inSql})`,
+          variantSetIds,
+          ['variant_sets']
+        );
+        // DuckDB FK checks can still see stale references within one long transaction.
+        // Commit child cleanup first, then delete parent rows in a fresh transaction.
+        await db.run('COMMIT');
+        await db.run('BEGIN TRANSACTION');
+        for (const variantSetId of variantSetIds) {
+          const blockers: string[] = [];
+          for (const childTable of availableTables) {
+            if (childTable === 'variant_sets') {
+              continue;
+            }
+            const cols = await loadColumns(db, childTable).catch(() => []);
+            const colNames = new Set(cols.map((col) => col.name.toLowerCase()));
+            if (colNames.has('variant_set_id')) {
+              const row = await db.get<{ total: number }>(
+                `SELECT COUNT(*)::INTEGER as total FROM ${quoteIdent(childTable)} WHERE ${quoteIdent('variant_set_id')} = ?`,
+                [variantSetId]
+              );
+              if ((row?.total ?? 0) > 0) {
+                blockers.push(`${childTable}.variant_set_id=${row?.total ?? 0}`);
+              }
+            }
+            if (colNames.has('fallback_variant_set_id')) {
+              const row = await db.get<{ total: number }>(
+                `SELECT COUNT(*)::INTEGER as total FROM ${quoteIdent(childTable)} WHERE ${quoteIdent('fallback_variant_set_id')} = ?`,
+                [variantSetId]
+              );
+              if ((row?.total ?? 0) > 0) {
+                blockers.push(`${childTable}.fallback_variant_set_id=${row?.total ?? 0}`);
+              }
+            }
+          }
+          if (blockers.length > 0) {
+            throw new GraphQLError(
+              `Cannot reset site ${siteId}: variant_set ${variantSetId} still referenced by ${blockers.join(', ')}`,
+              { extensions: { code: 'DB_ADMIN_RESET_FK_BLOCKED' } }
+            );
+          }
+          await run('DELETE FROM variant_sets WHERE id = ?', [variantSetId], ['variant_sets']);
+        }
+      }
+    }
+    await run(
+      `DELETE FROM variants
+       WHERE content_version_id IN (
+         SELECT id
+         FROM content_versions
+         WHERE content_item_id IN (SELECT id FROM content_items WHERE site_id = ?)
+       )`,
+      [siteId],
+      ['variants', 'content_versions', 'content_items']
+    );
+
+    if (siteContentItemIds.length > 0) {
+      await run(
+        `DELETE FROM content_routes
+         WHERE site_id = ?
+            OR content_item_id IN (${siteContentItemInSql})`,
+        [siteId, ...siteContentItemIds],
+        ['content_routes']
+      );
+    } else {
+      await run('DELETE FROM content_routes WHERE site_id = ?', [siteId], ['content_routes']);
+    }
+
+    await run(
+      `UPDATE content_items
+       SET current_draft_version_id = NULL
+       WHERE current_draft_version_id IN (
+         SELECT id
+         FROM content_versions
+         WHERE content_item_id IN (SELECT id FROM content_items WHERE site_id = ?)
+       )`,
+      [siteId],
+      ['content_items', 'content_versions']
+    );
+    await run(
+      `UPDATE content_items
+       SET current_published_version_id = NULL
+       WHERE current_published_version_id IN (
+         SELECT id
+         FROM content_versions
+         WHERE content_item_id IN (SELECT id FROM content_items WHERE site_id = ?)
+       )`,
+      [siteId],
+      ['content_items', 'content_versions']
+    );
+    await run(
+      'DELETE FROM content_versions WHERE content_item_id IN (SELECT id FROM content_items WHERE site_id = ?)',
+      [siteId],
+      ['content_versions', 'content_items']
+    );
+    if (siteContentItemIds.length > 0) {
+      const refs = await fkReferencesFromConstraints('content_items', 'id');
+      for (const ref of refs) {
+        if (!availableTables.has(ref.childTable)) {
+          continue;
+        }
+        if (ref.childTable === 'content_items' && ref.childColumn.toLowerCase() === 'id') {
+          continue;
+        }
+        const childColumns = await loadColumns(db, ref.childTable).catch(() => []);
+        const childColumn = childColumns.find((column) => column.name.toLowerCase() === ref.childColumn.toLowerCase());
+        if (!childColumn) {
+          continue;
+        }
+        if (childColumn.nullable) {
+          await run(
+            `UPDATE ${quoteIdent(ref.childTable)}
+             SET ${quoteIdent(ref.childColumn)} = NULL
+             WHERE ${quoteIdent(ref.childColumn)} IN (${siteContentItemInSql})`,
+            siteContentItemIds,
+            [ref.childTable]
+          );
+          continue;
+        }
+        await run(
+          `DELETE FROM ${quoteIdent(ref.childTable)}
+           WHERE ${quoteIdent(ref.childColumn)} IN (${siteContentItemInSql})`,
+          siteContentItemIds,
+          [ref.childTable]
+        );
+      }
+    }
+    // Split into a fresh transaction before deleting parent content_items rows.
+    await db.run('COMMIT');
+    await db.run('BEGIN TRANSACTION');
+    await run('DELETE FROM content_items WHERE site_id = ?', [siteId], ['content_items']);
+    await run('DELETE FROM templates WHERE site_id = ?', [siteId], ['templates']);
+    if (siteContentTypeIds.length > 0) {
+      await run(
+        `DELETE FROM content_items WHERE content_type_id IN (${siteContentTypeInSql})`,
+        siteContentTypeIds,
+        ['content_items']
+      );
+      const refs = await fkReferencesFromConstraints('content_types', 'id');
+      for (const ref of refs) {
+        if (!availableTables.has(ref.childTable)) {
+          continue;
+        }
+        if (ref.childTable === 'content_types' && ref.childColumn.toLowerCase() === 'id') {
+          continue;
+        }
+        const childColumns = await loadColumns(db, ref.childTable).catch(() => []);
+        const childColumn = childColumns.find((column) => column.name.toLowerCase() === ref.childColumn.toLowerCase());
+        if (!childColumn) {
+          continue;
+        }
+        if (childColumn.nullable) {
+          await run(
+            `UPDATE ${quoteIdent(ref.childTable)}
+             SET ${quoteIdent(ref.childColumn)} = NULL
+             WHERE ${quoteIdent(ref.childColumn)} IN (${siteContentTypeInSql})`,
+            siteContentTypeIds,
+            [ref.childTable]
+          );
+          continue;
+        }
+        await run(
+          `DELETE FROM ${quoteIdent(ref.childTable)}
+           WHERE ${quoteIdent(ref.childColumn)} IN (${siteContentTypeInSql})`,
+          siteContentTypeIds,
+          [ref.childTable]
+        );
+      }
+    }
+    await db.run('COMMIT');
+    await db.run('BEGIN TRANSACTION');
+    await run('DELETE FROM content_types WHERE site_id = ?', [siteId], ['content_types']);
+
+    if (siteFormIds.length > 0 && siteFormStepIds.length > 0) {
+      await run(
+        `DELETE FROM form_fields
+         WHERE form_id IN (${siteFormInSql})
+            OR step_id IN (${siteFormStepInSql})`,
+        [...siteFormIds, ...siteFormStepIds],
+        ['form_fields', 'forms', 'form_steps']
+      );
+    } else {
+      await run('DELETE FROM form_fields WHERE form_id IN (SELECT id FROM forms WHERE site_id = ?)', [siteId], ['form_fields', 'forms']);
+    }
+    if (siteFormStepIds.length > 0) {
+      const refs = await fkReferencesFromConstraints('form_steps', 'id');
+      for (const ref of refs) {
+        if (!availableTables.has(ref.childTable)) {
+          continue;
+        }
+        if (ref.childTable === 'form_steps' && ref.childColumn.toLowerCase() === 'id') {
+          continue;
+        }
+        const childColumns = await loadColumns(db, ref.childTable).catch(() => []);
+        const childColumn = childColumns.find((column) => column.name.toLowerCase() === ref.childColumn.toLowerCase());
+        if (!childColumn) {
+          continue;
+        }
+        if (childColumn.nullable) {
+          await run(
+            `UPDATE ${quoteIdent(ref.childTable)}
+             SET ${quoteIdent(ref.childColumn)} = NULL
+             WHERE ${quoteIdent(ref.childColumn)} IN (${siteFormStepInSql})`,
+            siteFormStepIds,
+            [ref.childTable]
+          );
+          continue;
+        }
+        await run(
+          `DELETE FROM ${quoteIdent(ref.childTable)}
+           WHERE ${quoteIdent(ref.childColumn)} IN (${siteFormStepInSql})`,
+          siteFormStepIds,
+          [ref.childTable]
+        );
+      }
+    }
+    await db.run('COMMIT');
+    await db.run('BEGIN TRANSACTION');
+    if (siteFormStepIds.length > 0) {
+      await run(`DELETE FROM form_steps WHERE id IN (${siteFormStepInSql})`, siteFormStepIds, ['form_steps']);
+    } else {
+      await run('DELETE FROM form_steps WHERE form_id IN (SELECT id FROM forms WHERE site_id = ?)', [siteId], ['form_steps', 'forms']);
+    }
+    if (siteFormIds.length > 0) {
+      const refs = await fkReferencesFromConstraints('forms', 'id');
+      for (const ref of refs) {
+        if (!availableTables.has(ref.childTable)) {
+          continue;
+        }
+        if (ref.childTable === 'forms' && ref.childColumn.toLowerCase() === 'id') {
+          continue;
+        }
+        const childColumns = await loadColumns(db, ref.childTable).catch(() => []);
+        const childColumn = childColumns.find((column) => column.name.toLowerCase() === ref.childColumn.toLowerCase());
+        if (!childColumn) {
+          continue;
+        }
+        if (childColumn.nullable) {
+          await run(
+            `UPDATE ${quoteIdent(ref.childTable)}
+             SET ${quoteIdent(ref.childColumn)} = NULL
+             WHERE ${quoteIdent(ref.childColumn)} IN (${siteFormInSql})`,
+            siteFormIds,
+            [ref.childTable]
+          );
+          continue;
+        }
+        await run(
+          `DELETE FROM ${quoteIdent(ref.childTable)}
+           WHERE ${quoteIdent(ref.childColumn)} IN (${siteFormInSql})`,
+          siteFormIds,
+          [ref.childTable]
+        );
+      }
+    }
+    await db.run('COMMIT');
+    await db.run('BEGIN TRANSACTION');
+    await run('DELETE FROM forms WHERE site_id = ?', [siteId], ['forms']);
+
+    await run('DELETE FROM ext_bookings WHERE site_id = ?', [siteId], ['ext_bookings']);
+    await run('DELETE FROM ext_customers WHERE site_id = ?', [siteId], ['ext_customers']);
+    await run('DELETE FROM ext_organisations WHERE site_id = ?', [siteId], ['ext_organisations']);
+
+    if (siteAssetIds.length > 0) {
+      await run(`DELETE FROM asset_renditions WHERE asset_id IN (${siteAssetInSql})`, siteAssetIds, ['asset_renditions']);
+      const refs = await fkReferencesFromConstraints('assets', 'id');
+      for (const ref of refs) {
+        if (!availableTables.has(ref.childTable)) {
+          continue;
+        }
+        if (ref.childTable === 'assets' && ref.childColumn.toLowerCase() === 'id') {
+          continue;
+        }
+        const childColumns = await loadColumns(db, ref.childTable).catch(() => []);
+        const childColumn = childColumns.find((column) => column.name.toLowerCase() === ref.childColumn.toLowerCase());
+        if (!childColumn) {
+          continue;
+        }
+        if (childColumn.nullable) {
+          await run(
+            `UPDATE ${quoteIdent(ref.childTable)}
+             SET ${quoteIdent(ref.childColumn)} = NULL
+             WHERE ${quoteIdent(ref.childColumn)} IN (${siteAssetInSql})`,
+            siteAssetIds,
+            [ref.childTable]
+          );
+          continue;
+        }
+        await run(
+          `DELETE FROM ${quoteIdent(ref.childTable)}
+           WHERE ${quoteIdent(ref.childColumn)} IN (${siteAssetInSql})`,
+          siteAssetIds,
+          [ref.childTable]
+        );
+      }
+    } else {
+      await run(
+        'DELETE FROM asset_renditions WHERE asset_id IN (SELECT id FROM assets WHERE site_id = ?)',
+        [siteId],
+        ['asset_renditions', 'assets']
+      );
+    }
+    await db.run('COMMIT');
+    await db.run('BEGIN TRANSACTION');
+    if (siteAssetIds.length > 0) {
+      await run(`DELETE FROM assets WHERE id IN (${siteAssetInSql})`, siteAssetIds, ['assets']);
+    } else {
+      await run('DELETE FROM assets WHERE site_id = ?', [siteId], ['assets']);
+    }
+    await run('DELETE FROM asset_folders WHERE site_id = ?', [siteId], ['asset_folders']);
+
+    await run('DELETE FROM visitor_groups WHERE site_id = ?', [siteId], ['visitor_groups']);
+    await run('DELETE FROM component_type_settings WHERE site_id = ?', [siteId], ['component_type_settings']);
+
+    await run('DELETE FROM site_locale_overrides WHERE site_id = ?', [siteId], ['site_locale_overrides']);
+    await run('DELETE FROM site_market_locales WHERE site_id = ?', [siteId], ['site_market_locales']);
+    // Split transaction before deleting site_locales/site_markets to avoid DuckDB FK visibility issues
+    // on composite keys (site_market_locales -> site_locales/site_markets) in long transactions.
+    await db.run('COMMIT');
+    await db.run('BEGIN TRANSACTION');
+    await run('DELETE FROM site_locales WHERE site_id = ?', [siteId], ['site_locales']);
+    await run('DELETE FROM site_markets WHERE site_id = ?', [siteId], ['site_markets']);
+
+    await db.run('COMMIT');
+  } catch (error) {
+    await db.run('ROLLBACK');
+    throw error;
+  }
+
+  let storageDeleteFailures = 0;
+  if (assetStorage && storagePathsToDelete.size > 0) {
+    for (const storagePath of storagePathsToDelete) {
+      try {
+        await assetStorage.delete(storagePath);
+      } catch {
+        storageDeleteFailures += 1;
+      }
+    }
+  }
+
+  return {
+    siteId,
+    statementsExecuted,
+    tablesTouched: Array.from(touchedTables).sort(),
+    message:
+      storageDeleteFailures > 0
+        ? `Reset complete for site ${siteId}. Removed previous site data. File cleanup had ${storageDeleteFailures} warning(s).`
+        : `Reset complete for site ${siteId}. Removed previous site data.`
   };
 }

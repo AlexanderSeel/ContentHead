@@ -118,6 +118,8 @@ import {
 import {
   aiGenerateContent,
   aiGenerateContentType,
+  aiGenerateImage,
+  aiGenerateText,
   aiGenerateVariants,
   aiTranslateVersion
 } from '../ai/service.js';
@@ -125,17 +127,21 @@ import {
   type AssetFolderRecord,
   type AssetListResult,
   type AssetPoi,
+  type AssetUsageReference,
+  type AssetUsageResult,
   type AssetPoiLink,
   type AssetRenditionCrop,
   type AssetRenditionPreset,
   type AssetRenditionRecord,
   type AssetRecord,
+  createAssetFromUpload,
   createAssetFolder,
   deleteAsset,
   deleteAssetRendition,
   generateAssetRenditionFromPreset,
   getAsset,
   listAssetRenditions,
+  listAssetUsage,
   listAssetFolders,
   listAssets,
   parseAssetPois,
@@ -150,6 +156,7 @@ import {
   type DbAdminIndex,
   type DbAdminListResult,
   type DbAdminMutationResult,
+  type DbAdminResetResult,
   type DbAdminSqlResult,
   type DbAdminTableListItem,
   type DbAdminTableDescription,
@@ -157,6 +164,7 @@ import {
   dbAdminDescribe,
   dbAdminInsert,
   dbAdminList,
+  dbAdminResetSiteData,
   dbAdminSql,
   dbAdminTables,
   dbAdminUpdate
@@ -947,6 +955,29 @@ AssetListRef.implement({
   })
 });
 
+const AssetUsageReferenceRef = builder.objectRef<AssetUsageReference>('AssetUsageReference');
+AssetUsageReferenceRef.implement({
+  fields: (t) => ({
+    contentItemId: t.exposeInt('contentItemId'),
+    contentTypeName: t.exposeString('contentTypeName'),
+    versionId: t.exposeInt('versionId'),
+    versionState: t.exposeString('versionState'),
+    routeSlug: t.exposeString('routeSlug', { nullable: true }),
+    marketCode: t.exposeString('marketCode', { nullable: true }),
+    localeCode: t.exposeString('localeCode', { nullable: true }),
+    jsonArea: t.exposeString('jsonArea'),
+    path: t.exposeString('path')
+  })
+});
+
+const AssetUsageResultRef = builder.objectRef<AssetUsageResult>('AssetUsageResult');
+AssetUsageResultRef.implement({
+  fields: (t) => ({
+    assetId: t.exposeInt('assetId'),
+    references: t.field({ type: [AssetUsageReferenceRef], resolve: (parent) => parent.references })
+  })
+});
+
 const AssetFolderRef = builder.objectRef<AssetFolderRecord>('AssetFolder');
 AssetFolderRef.implement({
   fields: (t) => ({
@@ -1166,6 +1197,16 @@ DbAdminSqlResultRef.implement({
   })
 });
 
+const DbAdminResetResultRef = builder.objectRef<DbAdminResetResult>('DbAdminResetResult');
+DbAdminResetResultRef.implement({
+  fields: (t) => ({
+    siteId: t.exposeInt('siteId'),
+    statementsExecuted: t.exposeInt('statementsExecuted'),
+    tablesTouched: t.exposeStringList('tablesTouched'),
+    message: t.exposeString('message')
+  })
+});
+
 const DbAdminPagingInputRef = builder.inputType('DbAdminPagingInput', {
   fields: (t) => ({
     limit: t.int({ required: false }),
@@ -1231,6 +1272,13 @@ AiVariantsResultRef.implement({
   fields: (t) => ({
     variantSetId: t.exposeInt('variantSetId'),
     createdKeys: t.exposeStringList('createdKeys')
+  })
+});
+
+const AiTextResultRef = builder.objectRef<{ text: string }>('AiTextResult');
+AiTextResultRef.implement({
+  fields: (t) => ({
+    text: t.exposeString('text')
   })
 });
 
@@ -1849,6 +1897,22 @@ ORDER BY 1
       nullable: true,
       args: { id: t.arg.int({ required: true }) },
       resolve: async (_root, args: { id: number }, ctx) => getAsset(ctx.db, args.id)
+    }),
+    assetUsage: t.field({
+      type: [AssetUsageResultRef],
+      args: {
+        siteId: t.arg.int({ required: true }),
+        assetIds: t.arg.intList({ required: true }),
+        limitPerAsset: t.arg.int({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { siteId: number; assetIds: number[]; limitPerAsset?: number | null | undefined },
+        ctx
+      ) => {
+        await requirePermission(ctx, 'CONTENT_READ');
+        return listAssetUsage(ctx.db, args);
+      }
     }),
     listAssetFolders: t.field({
       type: [AssetFolderRef],
@@ -3093,6 +3157,99 @@ builder.mutationType({
           by: args.by ?? ctx.currentUser?.username ?? 'system'
         })
     }),
+    aiGenerateText: t.field({
+      type: AiTextResultRef,
+      args: {
+        prompt: t.arg.string({ required: true }),
+        maxChars: t.arg.int({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: { prompt: string; maxChars?: number | null | undefined },
+        ctx
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        return aiGenerateText(ctx.db, args);
+      }
+    }),
+    aiGenerateAsset: t.field({
+      type: AssetRef,
+      args: {
+        siteId: t.arg.int({ required: true }),
+        prompt: t.arg.string({ required: true }),
+        filename: t.arg.string({ required: false }),
+        mimeType: t.arg.string({ required: false }),
+        size: t.arg.string({ required: false }),
+        title: t.arg.string({ required: false }),
+        altText: t.arg.string({ required: false }),
+        description: t.arg.string({ required: false }),
+        tags: t.arg.stringList({ required: false }),
+        folderId: t.arg.int({ required: false }),
+        by: t.arg.string({ required: false })
+      },
+      resolve: async (
+        _root,
+        args: {
+          siteId: number;
+          prompt: string;
+          filename?: string | null | undefined;
+          mimeType?: string | null | undefined;
+          size?: string | null | undefined;
+          title?: string | null | undefined;
+          altText?: string | null | undefined;
+          description?: string | null | undefined;
+          tags?: string[] | null | undefined;
+          folderId?: number | null | undefined;
+          by?: string | null | undefined;
+        },
+        ctx
+      ) => {
+        await requirePermission(ctx, 'CONTENT_WRITE');
+        if (!ctx.assetStorage) {
+          throw new GraphQLError('Asset storage unavailable', { extensions: { code: 'ASSET_STORAGE_UNAVAILABLE' } });
+        }
+
+        const generated = await aiGenerateImage(ctx.db, {
+          prompt: args.prompt,
+          size: args.size,
+          mimeType: args.mimeType,
+          filenameHint: args.filename
+        });
+
+        const createdBy = args.by ?? ctx.currentUser?.username ?? 'system';
+        const originalName = args.filename?.trim() || generated.filenameHint;
+        const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '-').replace(/-+/g, '-');
+
+        const created = await createAssetFromUpload(ctx.db, ctx.assetStorage, {
+          siteId: args.siteId,
+          filename: safeName || generated.filenameHint,
+          originalName: originalName || generated.filenameHint,
+          mimeType: generated.mimeType,
+          data: generated.data,
+          folderId: args.folderId,
+          createdBy
+        });
+
+        const hasMetadata =
+          typeof args.title === 'string' ||
+          typeof args.altText === 'string' ||
+          typeof args.description === 'string' ||
+          Array.isArray(args.tags);
+        if (!hasMetadata) {
+          return created;
+        }
+
+        return updateAssetMetadata(ctx.db, {
+          id: created.id,
+          title: args.title,
+          altText: args.altText,
+          description: args.description,
+          tags: args.tags,
+          folderId: args.folderId,
+          by: createdBy
+        });
+      }
+    }),
     createAssetFolder: t.field({
       type: AssetFolderRef,
       args: {
@@ -3362,6 +3519,16 @@ builder.mutationType({
           await requireDbAdminAccess(ctx, 'DB_ADMIN_READ');
         }
         return dbAdminSql(ctx.db, args.query, args.paramsJson, args.allowWrites);
+      }
+    }),
+    dbAdminResetSiteData: t.field({
+      type: DbAdminResetResultRef,
+      args: {
+        siteId: t.arg.int({ required: true })
+      },
+      resolve: async (_root, args: { siteId: number }, ctx) => {
+        await requireDbAdminAccess(ctx, 'DB_ADMIN_WRITE');
+        return dbAdminResetSiteData(ctx.db, args.siteId, ctx.assetStorage);
       }
     }),
     createInternalUser: t.field({

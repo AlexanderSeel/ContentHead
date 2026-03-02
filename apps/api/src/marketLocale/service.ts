@@ -113,6 +113,11 @@ function graphQLError(message: string): GraphQLError {
   return new GraphQLError(message, { extensions: { code: INVALID_MARKET_LOCALE } });
 }
 
+function isDuckDbForeignKeyLimitation(error: unknown): boolean {
+  const message = String((error as { message?: string } | null | undefined)?.message ?? error).toLowerCase();
+  return message.includes('constraint error') && message.includes('foreign key');
+}
+
 async function ensureSiteExists(db: DbClient, siteId: number): Promise<void> {
   const site = await db.get<{ id: number }>('SELECT id FROM sites WHERE id = ?', [siteId]);
   if (!site) {
@@ -262,29 +267,81 @@ export async function upsertMarket(db: DbClient, input: UpsertMarketInput): Prom
   await ensureSiteExists(db, input.siteId);
   await db.run('BEGIN TRANSACTION');
   try {
-    await db.run(
-      `
+    if (input.isDefault) {
+      // Clear current default first so strict unique-default constraints cannot fail on upsert.
+      await db.run('UPDATE site_markets SET is_default = FALSE WHERE site_id = ?', [input.siteId]);
+    }
+
+    const existingMarket = await db.get<{
+      code: string;
+      name: string;
+      currency: string | null;
+      timezone: string | null;
+      active: boolean;
+    }>(
+      'SELECT code, name, currency, timezone, active FROM markets WHERE code = ?',
+      [input.code]
+    );
+    if (existingMarket) {
+      const nextCurrency = input.currency ?? null;
+      const nextTimezone = input.timezone ?? null;
+      const unchanged =
+        existingMarket.name === input.name &&
+        (existingMarket.currency ?? null) === nextCurrency &&
+        (existingMarket.timezone ?? null) === nextTimezone &&
+        Boolean(existingMarket.active) === input.active;
+      if (!unchanged) {
+        try {
+          await db.run(
+            `
+UPDATE markets
+SET name = ?, currency = ?, timezone = ?, active = ?
+WHERE code = ?
+`,
+            [input.name, nextCurrency, nextTimezone, input.active, input.code]
+          );
+        } catch (error) {
+          if (isDuckDbForeignKeyLimitation(error)) {
+            throw new GraphQLError(
+              `Market ${input.code} is in use and cannot be updated in-place in DuckDB. Keep the base market unchanged.`,
+              { extensions: { code: 'MARKET_IN_USE' } }
+            );
+          }
+          throw error;
+        }
+      }
+    } else {
+      await db.run(
+        `
 INSERT INTO markets(code, name, currency, timezone, active)
 VALUES (?, ?, ?, ?, ?)
-ON CONFLICT(code) DO UPDATE SET
-  name = excluded.name,
-  currency = excluded.currency,
-  timezone = excluded.timezone,
-  active = excluded.active
 `,
-      [input.code, input.name, input.currency ?? null, input.timezone ?? null, input.active]
-    );
+        [input.code, input.name, input.currency ?? null, input.timezone ?? null, input.active]
+      );
+    }
 
-    await db.run(
-      `
+    const siteMarketExists = await db.get<{ marketCode: string }>(
+      'SELECT market_code as marketCode FROM site_markets WHERE site_id = ? AND market_code = ?',
+      [input.siteId, input.code]
+    );
+    if (siteMarketExists) {
+      await db.run(
+        `
+UPDATE site_markets
+SET active = ?, is_default = ?
+WHERE site_id = ? AND market_code = ?
+`,
+        [input.active, input.isDefault, input.siteId, input.code]
+      );
+    } else {
+      await db.run(
+        `
 INSERT INTO site_markets(site_id, market_code, active, is_default)
 VALUES (?, ?, ?, ?)
-ON CONFLICT(site_id, market_code) DO UPDATE SET
-  active = excluded.active,
-  is_default = excluded.is_default
 `,
-      [input.siteId, input.code, input.active, input.isDefault]
-    );
+        [input.siteId, input.code, input.active, input.isDefault]
+      );
+    }
 
     if (input.isDefault) {
       await db.run(
@@ -317,28 +374,78 @@ export async function upsertLocale(db: DbClient, input: UpsertLocaleInput): Prom
 
   await db.run('BEGIN TRANSACTION');
   try {
-    await db.run(
-      `
+    if (input.isDefault) {
+      // Clear current default first so strict unique-default constraints cannot fail on upsert.
+      await db.run('UPDATE site_locales SET is_default = FALSE WHERE site_id = ?', [input.siteId]);
+    }
+
+    const existingLocale = await db.get<{
+      code: string;
+      name: string;
+      active: boolean;
+      fallbackLocaleCode: string | null;
+    }>(
+      'SELECT code, name, active, fallback_locale_code as fallbackLocaleCode FROM locales WHERE code = ?',
+      [input.code]
+    );
+    if (existingLocale) {
+      const nextFallback = input.fallbackLocaleCode ?? null;
+      const unchanged =
+        existingLocale.name === input.name &&
+        Boolean(existingLocale.active) === input.active &&
+        (existingLocale.fallbackLocaleCode ?? null) === nextFallback;
+      if (!unchanged) {
+        try {
+          await db.run(
+            `
+UPDATE locales
+SET name = ?, active = ?, fallback_locale_code = ?
+WHERE code = ?
+`,
+            [input.name, input.active, nextFallback, input.code]
+          );
+        } catch (error) {
+          if (isDuckDbForeignKeyLimitation(error)) {
+            throw new GraphQLError(
+              `Locale ${input.code} is in use and cannot be updated in-place in DuckDB. Keep the base locale unchanged or use site-level locale override fields.`,
+              { extensions: { code: 'LOCALE_IN_USE' } }
+            );
+          }
+          throw error;
+        }
+      }
+    } else {
+      await db.run(
+        `
 INSERT INTO locales(code, name, active, fallback_locale_code)
 VALUES (?, ?, ?, ?)
-ON CONFLICT(code) DO UPDATE SET
-  name = excluded.name,
-  active = excluded.active,
-  fallback_locale_code = excluded.fallback_locale_code
 `,
-      [input.code, input.name, input.active, input.fallbackLocaleCode ?? null]
-    );
+        [input.code, input.name, input.active, input.fallbackLocaleCode ?? null]
+      );
+    }
 
-    await db.run(
-      `
+    const siteLocaleExists = await db.get<{ localeCode: string }>(
+      'SELECT locale_code as localeCode FROM site_locales WHERE site_id = ? AND locale_code = ?',
+      [input.siteId, input.code]
+    );
+    if (siteLocaleExists) {
+      await db.run(
+        `
+UPDATE site_locales
+SET active = ?, is_default = ?
+WHERE site_id = ? AND locale_code = ?
+`,
+        [input.active, input.isDefault, input.siteId, input.code]
+      );
+    } else {
+      await db.run(
+        `
 INSERT INTO site_locales(site_id, locale_code, active, is_default)
 VALUES (?, ?, ?, ?)
-ON CONFLICT(site_id, locale_code) DO UPDATE SET
-  active = excluded.active,
-  is_default = excluded.is_default
 `,
-      [input.siteId, input.code, input.active, input.isDefault]
-    );
+        [input.siteId, input.code, input.active, input.isDefault]
+      );
+    }
 
     if (input.isDefault) {
       await db.run(
@@ -409,15 +516,28 @@ export async function setSiteMarkets(
         });
       }
 
-      await db.run(
-        `
+      const siteMarketRow = await db.get<{ marketCode: string }>(
+        'SELECT market_code as marketCode FROM site_markets WHERE site_id = ? AND market_code = ?',
+        [siteId, market.code]
+      );
+      if (siteMarketRow) {
+        await db.run(
+          `
+UPDATE site_markets
+SET active = ?
+WHERE site_id = ? AND market_code = ?
+`,
+          [market.active, siteId, market.code]
+        );
+      } else {
+        await db.run(
+          `
 INSERT INTO site_markets(site_id, market_code, active, is_default)
 VALUES (?, ?, ?, FALSE)
-ON CONFLICT(site_id, market_code) DO UPDATE SET
-  active = excluded.active
 `,
-        [siteId, market.code, market.active]
-      );
+          [siteId, market.code, market.active]
+        );
+      }
     }
 
     if (markets.length > 0) {
@@ -478,15 +598,28 @@ export async function setSiteLocales(
         });
       }
 
-      await db.run(
-        `
+      const siteLocaleRow = await db.get<{ localeCode: string }>(
+        'SELECT locale_code as localeCode FROM site_locales WHERE site_id = ? AND locale_code = ?',
+        [siteId, locale.code]
+      );
+      if (siteLocaleRow) {
+        await db.run(
+          `
+UPDATE site_locales
+SET active = ?
+WHERE site_id = ? AND locale_code = ?
+`,
+          [locale.active, siteId, locale.code]
+        );
+      } else {
+        await db.run(
+          `
 INSERT INTO site_locales(site_id, locale_code, active, is_default)
 VALUES (?, ?, ?, FALSE)
-ON CONFLICT(site_id, locale_code) DO UPDATE SET
-  active = excluded.active
 `,
-        [siteId, locale.code, locale.active]
-      );
+          [siteId, locale.code, locale.active]
+        );
+      }
     }
 
     if (locales.length > 0) {
@@ -632,22 +765,42 @@ export async function setSiteMarketLocaleMatrix(
         );
       }
 
-      await db.run(
-        `
+      const matrixRow = await db.get<{ marketCode: string }>(
+        `SELECT market_code as marketCode
+FROM site_market_locales
+WHERE site_id = ? AND market_code = ? AND locale_code = ?`,
+        [siteId, combination.marketCode, combination.localeCode]
+      );
+      if (matrixRow) {
+        await db.run(
+          `
+UPDATE site_market_locales
+SET active = ?, is_default_for_market = ?
+WHERE site_id = ? AND market_code = ? AND locale_code = ?
+`,
+          [
+            combination.active,
+            combination.isDefaultForMarket ?? false,
+            siteId,
+            combination.marketCode,
+            combination.localeCode
+          ]
+        );
+      } else {
+        await db.run(
+          `
 INSERT INTO site_market_locales(site_id, market_code, locale_code, active, is_default_for_market)
 VALUES (?, ?, ?, ?, ?)
-ON CONFLICT(site_id, market_code, locale_code) DO UPDATE SET
-  active = excluded.active,
-  is_default_for_market = excluded.is_default_for_market
 `,
-        [
-          siteId,
-          combination.marketCode,
-          combination.localeCode,
-          combination.active,
-          combination.isDefaultForMarket ?? false
-        ]
-      );
+          [
+            siteId,
+            combination.marketCode,
+            combination.localeCode,
+            combination.active,
+            combination.isDefaultForMarket ?? false
+          ]
+        );
+      }
     }
 
     const allExisting = await db.all<{ marketCode: string; localeCode: string }>(

@@ -1,6 +1,6 @@
 'use client';
 
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildLocalizedPath,
   evaluateFieldConditions,
@@ -265,9 +265,59 @@ function emitActionRequest(
   );
 }
 
-function linkHref(link?: ContentLink | null): string {
+function normalizeRouteSlugFromUrl(rawUrl: string): { slug: string; anchor: string } {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) {
+    return { slug: '', anchor: '' };
+  }
+  const [pathPartRaw, anchorPart] = trimmed.split('#', 2);
+  const pathPart = pathPartRaw ?? '';
+  const pathOnly = pathPart.split('?')[0] ?? '';
+  const cleanedPath = pathOnly
+    .replace(/^\/+/, '')
+    .replace(/\/+$/, '');
+  const segments = cleanedPath ? cleanedPath.split('/').filter(Boolean) : [];
+  if (
+    segments.length >= 2 &&
+    /^[A-Z]{2}$/.test(segments[0] ?? '') &&
+    /^[a-z]{2}-[A-Z]{2}$/.test(segments[1] ?? '')
+  ) {
+    return {
+      slug: segments.slice(2).join('/'),
+      anchor: anchorPart?.replace(/^#/, '') ?? ''
+    };
+  }
+  return { slug: cleanedPath, anchor: anchorPart?.replace(/^#/, '') ?? '' };
+}
+
+function linkHref(
+  link: ContentLink | null | undefined,
+  options?: { marketCode: string; localeCode: string; urlPattern: string }
+): string {
   if (!link) {
     return '#';
+  }
+  if (link.kind === 'internal' && options) {
+    const explicitSlug =
+      typeof link.routeSlug === 'string' && link.routeSlug.trim()
+        ? link.routeSlug.trim().replace(/^\/+/, '')
+        : '';
+    const fromUrl =
+      typeof link.url === 'string' && link.url.trim()
+        ? normalizeRouteSlugFromUrl(link.url)
+        : { slug: '', anchor: '' };
+    const chosenSlug = explicitSlug || fromUrl.slug;
+    const chosenAnchor =
+      typeof link.anchor === 'string' && link.anchor.trim()
+        ? link.anchor.trim().replace(/^#/, '')
+        : fromUrl.anchor;
+    const localized = buildLocalizedPath(
+      options.urlPattern,
+      options.marketCode,
+      options.localeCode,
+      chosenSlug
+    );
+    return chosenAnchor ? `${localized}#${chosenAnchor}` : localized;
   }
   if (link.url) {
     return link.url;
@@ -860,6 +910,153 @@ function componentProps(component: ComponentPayload | undefined): Record<string,
   return rest;
 }
 
+function sectionIdFromProps(props: Record<string, unknown>, fallback?: string): string | undefined {
+  const customId = typeof props.sectionId === 'string' ? props.sectionId.trim() : '';
+  if (customId) {
+    return customId.replace(/^#/, '');
+  }
+  return fallback;
+}
+
+type ScrollCarouselSlide = {
+  key: string;
+  label: string;
+  content: ReactNode;
+};
+
+function ScrollSnapCarousel({
+  className,
+  ariaLabel,
+  slides,
+  autoplay,
+  showArrows,
+  showDots
+}: {
+  className?: string;
+  ariaLabel: string;
+  slides: ScrollCarouselSlide[];
+  autoplay: boolean;
+  showArrows: boolean;
+  showDots: boolean;
+}) {
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const scrollTo = (index: number) => {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+    const children = Array.from(viewport.children) as HTMLElement[];
+    const target = children[index];
+    if (!target) {
+      return;
+    }
+    target.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+  };
+
+  const shift = (direction: -1 | 1) => {
+    if (slides.length === 0) {
+      return;
+    }
+    const next = (activeIndex + direction + slides.length) % slides.length;
+    scrollTo(next);
+  };
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+    const onScroll = () => {
+      const children = Array.from(viewport.children) as HTMLElement[];
+      if (children.length === 0) {
+        setActiveIndex(0);
+        return;
+      }
+      const scrollLeft = viewport.scrollLeft;
+      let closest = 0;
+      let closestDistance = Number.POSITIVE_INFINITY;
+      for (let i = 0; i < children.length; i += 1) {
+        const distance = Math.abs(children[i]!.offsetLeft - scrollLeft);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closest = i;
+        }
+      }
+      setActiveIndex(closest);
+    };
+    viewport.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => viewport.removeEventListener('scroll', onScroll);
+  }, [slides.length]);
+
+  useEffect(() => {
+    if (!autoplay || slides.length <= 1) {
+      return;
+    }
+    const id = window.setInterval(() => {
+      const viewport = viewportRef.current;
+      if (!viewport) {
+        return;
+      }
+      const children = Array.from(viewport.children) as HTMLElement[];
+      if (children.length === 0) {
+        return;
+      }
+      const next = (activeIndex + 1) % children.length;
+      children[next]?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+    }, 5200);
+    return () => window.clearInterval(id);
+  }, [activeIndex, autoplay, slides.length]);
+
+  if (slides.length === 0) {
+    return <p className="cms-muted">No items configured yet.</p>;
+  }
+
+  return (
+    <div className={`cms-carousel${className ? ` ${className}` : ''}`}>
+      {showArrows ? (
+        <div className="cms-carousel-nav">
+          <button type="button" className="cms-btn secondary" onClick={() => shift(-1)} aria-label={`Previous ${ariaLabel}`}>
+            Previous
+          </button>
+          <button type="button" className="cms-btn secondary" onClick={() => shift(1)} aria-label={`Next ${ariaLabel}`}>
+            Next
+          </button>
+        </div>
+      ) : null}
+      <div ref={viewportRef} className="cms-carousel-viewport" role="region" aria-label={ariaLabel}>
+        {slides.map((slide, index) => (
+          <section
+            key={slide.key}
+            className="cms-carousel-slide"
+            aria-label={slide.label}
+            aria-current={activeIndex === index ? 'true' : 'false'}
+          >
+            {slide.content}
+          </section>
+        ))}
+      </div>
+      {showDots && slides.length > 1 ? (
+        <div className="cms-carousel-dots" role="tablist" aria-label={`${ariaLabel} pagination`}>
+          {slides.map((slide, index) => (
+            <button
+              key={`dot-${slide.key}`}
+              type="button"
+              role="tab"
+              aria-selected={activeIndex === index}
+              aria-label={`Show ${slide.label}`}
+              className={`cms-carousel-dot${activeIndex === index ? ' active' : ''}`}
+              onClick={() => scrollTo(index)}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function renderComponent(
   siteId: number,
   marketCode: string,
@@ -892,6 +1089,235 @@ function renderComponent(
   const path = (key: string) => `components.${id}.props.${key}`;
   const rootPath = `components.${id}`;
 
+  if (componentType === 'main_menu') {
+    const items = Array.isArray(props.items) ? (props.items as Array<Record<string, unknown>>) : [];
+    const cta = (props.cta as ContentLink | undefined) ?? null;
+    const localeLinks = Array.isArray(props.localeLinks) ? (props.localeLinks as ContentLink[]) : [];
+    const brandLink = (props.brandLink as ContentLink | undefined) ?? null;
+    const sticky = Boolean(props.sticky ?? true);
+    return (
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="header"
+        className={`cms-site-header${sticky ? ' sticky' : ''}`}
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
+        <div className="cms-site-header-inner">
+          <a
+            className="cms-site-brand"
+            href={linkHref(brandLink, { marketCode, localeCode, urlPattern })}
+            target={brandLink?.target ?? '_self'}
+            rel={brandLink?.target === '_blank' ? 'noreferrer' : undefined}
+          >
+            <CmsEditable
+              {...editableBase}
+              kind="text"
+              fieldPath={path('brandLabel')}
+              wrapperAs="span"
+              value={String(props.brandLabel ?? 'ContentHead')}
+              meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+            />
+          </a>
+          <nav className="cms-site-nav" aria-label="Main">
+            {items.map((item, index) => {
+              const label = String(item.label ?? `Item ${index + 1}`);
+              const description = String(item.description ?? '');
+              const itemLink = (item.link as ContentLink | undefined) ?? null;
+              const subLinks = Array.isArray(item.subLinks) ? (item.subLinks as ContentLink[]) : [];
+              const groupTitle = String(item.groupTitle ?? '');
+              if (subLinks.length === 0) {
+                return (
+                  <a
+                    key={`${id}-menu-${index}`}
+                    className="cms-site-nav-link"
+                    href={linkHref(itemLink, { marketCode, localeCode, urlPattern })}
+                    target={itemLink?.target ?? '_self'}
+                    rel={itemLink?.target === '_blank' ? 'noreferrer' : undefined}
+                  >
+                    <CmsEditable
+                      {...editableBase}
+                      kind="text"
+                      fieldPath={path(`items.${index}.label`)}
+                      wrapperAs="span"
+                      value={label}
+                      keySuffix={`menu-item-${index}`}
+                      meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                    />
+                  </a>
+                );
+              }
+              return (
+                <details className="cms-mega-nav-item" key={`${id}-menu-${index}`}>
+                  <summary className="cms-site-nav-link">
+                    <CmsEditable
+                      {...editableBase}
+                      kind="text"
+                      fieldPath={path(`items.${index}.label`)}
+                      wrapperAs="span"
+                      value={label}
+                      keySuffix={`menu-item-${index}`}
+                      meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                    />
+                  </summary>
+                  <div className="cms-mega-panel">
+                    <CmsEditable
+                      {...editableBase}
+                      kind="text"
+                      fieldPath={path(`items.${index}.groupTitle`)}
+                      wrapperAs="h4"
+                      value={groupTitle || label}
+                      keySuffix={`menu-group-title-${index}`}
+                      meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                    />
+                    <CmsEditable
+                      {...editableBase}
+                      kind="text"
+                      fieldPath={path(`items.${index}.description`)}
+                      wrapperAs="p"
+                      className="cms-muted"
+                      value={description}
+                      keySuffix={`menu-group-description-${index}`}
+                      meta={{ multiline: true, commit: 'enter', allowHtml: false }}
+                    />
+                    <div className="cms-grid">
+                      {subLinks.map((entry, childIndex) => (
+                        <CmsEditable
+                          key={`${id}-menu-${index}-${childIndex}`}
+                          {...editableBase}
+                          kind="link"
+                          role="item"
+                          fieldPath={path(`items.${index}.subLinks.${childIndex}`)}
+                          wrapperAs="a"
+                          className="cms-btn secondary"
+                          wrapperProps={{
+                            href: linkHref(entry, { marketCode, localeCode, urlPattern }),
+                            target: entry?.target ?? '_self',
+                            rel: entry?.target === '_blank' ? 'noreferrer' : undefined
+                          }}
+                          value={entry?.text ?? entry?.url ?? 'Learn more'}
+                          keySuffix={`menu-group-link-${index}-${childIndex}`}
+                          meta={{ commit: 'none' }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </details>
+              );
+            })}
+          </nav>
+          <div className="cms-site-actions">
+            {localeLinks.map((entry, index) => (
+              <CmsEditable
+                key={`${id}-locale-${index}`}
+                {...editableBase}
+                kind="link"
+                role="item"
+                fieldPath={path(`localeLinks.${index}`)}
+                wrapperAs="a"
+                className="cms-btn secondary"
+                wrapperProps={{
+                  href: linkHref(entry, { marketCode, localeCode, urlPattern }),
+                  target: entry?.target ?? '_self',
+                  rel: entry?.target === '_blank' ? 'noreferrer' : undefined
+                }}
+                value={entry?.text ?? entry?.url ?? 'Locale'}
+                keySuffix={`locale-link-${index}`}
+                meta={{ commit: 'none' }}
+              />
+            ))}
+            <CmsEditable
+              {...editableBase}
+              kind="link"
+              fieldPath={path('cta')}
+              wrapperAs="a"
+              className="cms-btn primary"
+              wrapperProps={{
+                href: linkHref(cta, { marketCode, localeCode, urlPattern }),
+                target: cta?.target ?? '_self',
+                rel: cta?.target === '_blank' ? 'noreferrer' : undefined
+              }}
+              value={cta?.text ?? cta?.url ?? 'Get started'}
+              meta={{ commit: 'none' }}
+            />
+          </div>
+        </div>
+      </CmsEditable>
+    );
+  }
+
+  if (componentType === 'anchor_nav') {
+    const sections = Array.isArray(props.sections)
+      ? (props.sections as Array<{ label?: string; anchorId?: string }>)
+      : [];
+    const smoothScroll = Boolean(props.smoothScroll ?? true);
+    const sticky = Boolean(props.sticky ?? true);
+    const onAnchorClick = (event: ReactMouseEvent, anchorId: string) => {
+      if (!smoothScroll || !anchorId) {
+        return;
+      }
+      const target = document.getElementById(anchorId.replace(/^#/, ''));
+      if (!target) {
+        return;
+      }
+      event.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.history.replaceState(null, '', `#${anchorId.replace(/^#/, '')}`);
+    };
+    return (
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="section"
+        className={`cms-section cms-anchor-nav${sticky ? ' sticky' : ''}`}
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
+        <CmsEditable
+          {...editableBase}
+          kind="text"
+          fieldPath={path('title')}
+          wrapperAs="p"
+          className="cms-anchor-nav-title"
+          value={String(props.title ?? 'On this page')}
+          meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+        />
+        <nav className="cms-anchor-nav-links" aria-label="On this page">
+          {sections.map((section, index) => {
+            const anchorId = String(section.anchorId ?? '').replace(/^#/, '');
+            return (
+              <CmsEditable
+                key={`${id}-anchor-${index}`}
+                {...editableBase}
+                kind="text"
+                role="item"
+                fieldPath={path(`sections.${index}.label`)}
+                wrapperAs="a"
+                className="cms-anchor-nav-link"
+                wrapperProps={{
+                  href: `#${anchorId}`,
+                  onClick: (event: ReactMouseEvent) => onAnchorClick(event, anchorId)
+                }}
+                value={String(section.label ?? `Section ${index + 1}`)}
+                keySuffix={`anchor-label-${index}`}
+                meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+              />
+            );
+          })}
+        </nav>
+      </CmsEditable>
+    );
+  }
+
   if (componentType === 'hero' || componentType === 'hero_component') {
     const backgroundAssetSelection = parseAssetRef(props.backgroundAssetRef);
     const primaryCta = (props.primaryCta as ContentLink | undefined) ?? null;
@@ -906,6 +1332,7 @@ function renderComponent(
         fieldPath={rootPath}
         wrapperAs="section"
         className="cms-section cms-hero"
+        wrapperProps={{ id: sectionIdFromProps(props, 'hero') }}
         value={component.type}
         keySuffix="root"
         meta={{ commit: 'none' }}
@@ -961,7 +1388,7 @@ function renderComponent(
               wrapperAs="a"
               className="cms-btn primary"
               wrapperProps={{
-                href: linkHref(primaryCta),
+                href: linkHref(primaryCta, { marketCode, localeCode, urlPattern }),
                 target: primaryCta?.target ?? '_self',
                 rel: primaryCta?.target === '_blank' ? 'noreferrer' : undefined
               }}
@@ -975,7 +1402,7 @@ function renderComponent(
               wrapperAs="a"
               className="cms-btn secondary"
               wrapperProps={{
-                href: linkHref(secondaryCta),
+                href: linkHref(secondaryCta, { marketCode, localeCode, urlPattern }),
                 target: secondaryCta?.target ?? '_self',
                 rel: secondaryCta?.target === '_blank' ? 'noreferrer' : undefined
               }}
@@ -999,7 +1426,7 @@ function renderComponent(
         fieldPath={rootPath}
         wrapperAs="section"
         className="cms-section"
-        wrapperProps={{ id: 'features' }}
+        wrapperProps={{ id: sectionIdFromProps(props, 'features') }}
         value={component.type}
         keySuffix="root"
         meta={{ commit: 'none' }}
@@ -1081,6 +1508,450 @@ function renderComponent(
     );
   }
 
+  if (componentType === 'stats_strip') {
+    const items = Array.isArray(props.items)
+      ? (props.items as Array<{ value?: string; label?: string; suffix?: string }>)
+      : [];
+    return (
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="section"
+        className="cms-section cms-stats-strip"
+        wrapperProps={{ id: sectionIdFromProps(props, 'stats') }}
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
+        <CmsEditable
+          {...editableBase}
+          kind="text"
+          fieldPath={path('title')}
+          wrapperAs="h2"
+          value={String(props.title ?? 'At a glance')}
+          meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+        />
+        <div className="cms-stats-grid">
+          {items.map((item, index) => (
+            <CmsEditable
+              key={`${id}-stat-${index}`}
+              {...editableBase}
+              kind="list"
+              role="item"
+              fieldPath={path(`items.${index}`)}
+              wrapperAs="article"
+              className="cms-card"
+              value={`stat-${index + 1}`}
+              keySuffix={`stat-${index}`}
+              meta={{ commit: 'none' }}
+            >
+              <div className="cms-stat-value">
+                <CmsEditable
+                  {...editableBase}
+                  kind="text"
+                  fieldPath={path(`items.${index}.value`)}
+                  wrapperAs="span"
+                  value={String(item.value ?? '0')}
+                  keySuffix={`stat-value-${index}`}
+                  meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                />
+                <CmsEditable
+                  {...editableBase}
+                  kind="text"
+                  fieldPath={path(`items.${index}.suffix`)}
+                  wrapperAs="span"
+                  value={String(item.suffix ?? '')}
+                  keySuffix={`stat-suffix-${index}`}
+                  meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                />
+              </div>
+              <CmsEditable
+                {...editableBase}
+                kind="text"
+                fieldPath={path(`items.${index}.label`)}
+                wrapperAs="p"
+                className="cms-muted"
+                value={String(item.label ?? `KPI ${index + 1}`)}
+                keySuffix={`stat-label-${index}`}
+                meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+              />
+            </CmsEditable>
+          ))}
+        </div>
+      </CmsEditable>
+    );
+  }
+
+  if (componentType === 'card_slider') {
+    const cards = Array.isArray(props.cards)
+      ? (props.cards as Array<Record<string, unknown>>)
+      : [];
+    const autoplay = Boolean(props.autoplay);
+    const showArrows = props.showArrows !== false;
+    const showDots = props.showDots !== false;
+    return (
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="section"
+        className="cms-section"
+        wrapperProps={{ id: sectionIdFromProps(props, 'highlights') }}
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
+        <CmsEditable
+          {...editableBase}
+          kind="text"
+          fieldPath={path('title')}
+          wrapperAs="h2"
+          value={String(props.title ?? 'Highlights')}
+          meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+        />
+        <ScrollSnapCarousel
+          ariaLabel={String(props.title ?? 'Highlights')}
+          autoplay={autoplay}
+          showArrows={showArrows}
+          showDots={showDots}
+          slides={cards.map((card, index) => {
+            const assetSelection = parseAssetRef(card.imageAssetRef);
+            const link = (card.link as ContentLink | undefined) ?? null;
+            return {
+              key: `${id}-card-${index}`,
+              label: String(card.title ?? `Card ${index + 1}`),
+              content: (
+                <CmsEditable
+                  {...editableBase}
+                  kind="list"
+                  role="item"
+                  fieldPath={path(`cards.${index}`)}
+                  wrapperAs="article"
+                  className="cms-card cms-slider-card"
+                  value={`card-${index + 1}`}
+                  keySuffix={`card-${index}`}
+                  meta={{ commit: 'none' }}
+                >
+                  {assetSelection.assetId ? (
+                    <CmsEditable
+                      {...editableBase}
+                      kind="asset"
+                      fieldPath={path(`cards.${index}.imageAssetRef`)}
+                      wrapperAs="div"
+                      className="cms-slider-image"
+                      value={String(assetSelection.assetId)}
+                      keySuffix={`card-image-${index}`}
+                      meta={{ commit: 'none' }}
+                    >
+                      <CmsImage
+                        assetId={assetSelection.assetId}
+                        asset={assets[String(assetSelection.assetId)] ?? null}
+                        kind={assetSelection.kind ?? 'medium'}
+                        {...(assetSelection.fitMode ? { fitMode: assetSelection.fitMode } : {})}
+                        {...(assetSelection.customWidth ? { customWidth: assetSelection.customWidth } : {})}
+                        {...(assetSelection.presetId ? { presetId: assetSelection.presetId } : {})}
+                        {...(assetSelection.showPois ? { showPois: assetSelection.showPois } : {})}
+                        apiBaseUrl={apiBaseUrl}
+                        marketCode={marketCode}
+                        localeCode={localeCode}
+                        urlPattern={urlPattern}
+                      />
+                    </CmsEditable>
+                  ) : null}
+                  <CmsEditable
+                    {...editableBase}
+                    kind="text"
+                    fieldPath={path(`cards.${index}.title`)}
+                    wrapperAs="h3"
+                    value={String(card.title ?? `Card ${index + 1}`)}
+                    keySuffix={`card-title-${index}`}
+                    meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                  />
+                  <CmsEditable
+                    {...editableBase}
+                    kind="text"
+                    fieldPath={path(`cards.${index}.text`)}
+                    wrapperAs="p"
+                    className="cms-muted"
+                    value={String(card.text ?? '')}
+                    keySuffix={`card-text-${index}`}
+                    meta={{ multiline: true, commit: 'enter', allowHtml: false }}
+                  />
+                  <CmsEditable
+                    {...editableBase}
+                    kind="link"
+                    fieldPath={path(`cards.${index}.link`)}
+                    wrapperAs="a"
+                    className="cms-btn primary"
+                    wrapperProps={{
+                      href: linkHref(link, { marketCode, localeCode, urlPattern }),
+                      target: link?.target ?? '_self',
+                      rel: link?.target === '_blank' ? 'noreferrer' : undefined
+                    }}
+                    value={link?.text ?? link?.url ?? 'Read more'}
+                    keySuffix={`card-link-${index}`}
+                    meta={{ commit: 'none' }}
+                  />
+                </CmsEditable>
+              )
+            };
+          })}
+        />
+      </CmsEditable>
+    );
+  }
+
+  if (componentType === 'testimonials_slider') {
+    const items = Array.isArray(props.items)
+      ? (props.items as Array<Record<string, unknown>>)
+      : [];
+    const autoplay = Boolean(props.autoplay ?? true);
+    return (
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="section"
+        className="cms-section"
+        wrapperProps={{ id: sectionIdFromProps(props, 'testimonials') }}
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
+        <CmsEditable
+          {...editableBase}
+          kind="text"
+          fieldPath={path('title')}
+          wrapperAs="h2"
+          value={String(props.title ?? 'What teams say')}
+          meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+        />
+        <ScrollSnapCarousel
+          className="cms-testimonial-carousel"
+          ariaLabel={String(props.title ?? 'Testimonials')}
+          autoplay={autoplay}
+          showArrows
+          showDots
+          slides={items.map((item, index) => {
+            const avatarSelection = parseAssetRef(item.avatarAssetRef);
+            return {
+              key: `${id}-quote-${index}`,
+              label: String(item.name ?? `Quote ${index + 1}`),
+              content: (
+                <CmsEditable
+                  {...editableBase}
+                  kind="list"
+                  role="item"
+                  fieldPath={path(`items.${index}`)}
+                  wrapperAs="article"
+                  className="cms-card cms-testimonial-card"
+                  value={`quote-${index + 1}`}
+                  keySuffix={`quote-${index}`}
+                  meta={{ commit: 'none' }}
+                >
+                  <CmsEditable
+                    {...editableBase}
+                    kind="text"
+                    fieldPath={path(`items.${index}.quote`)}
+                    wrapperAs="blockquote"
+                    value={String(item.quote ?? '')}
+                    keySuffix={`quote-text-${index}`}
+                    meta={{ multiline: true, commit: 'enter', allowHtml: false }}
+                  />
+                  <div className="cms-testimonial-meta">
+                    {avatarSelection.assetId ? (
+                      <CmsEditable
+                        {...editableBase}
+                        kind="asset"
+                        fieldPath={path(`items.${index}.avatarAssetRef`)}
+                        wrapperAs="div"
+                        value={String(avatarSelection.assetId)}
+                        keySuffix={`quote-avatar-${index}`}
+                        meta={{ commit: 'none' }}
+                      >
+                        <CmsImage
+                          assetId={avatarSelection.assetId}
+                          asset={assets[String(avatarSelection.assetId)] ?? null}
+                          kind={avatarSelection.kind ?? 'thumb'}
+                          {...(avatarSelection.fitMode ? { fitMode: avatarSelection.fitMode } : {})}
+                          {...(avatarSelection.customWidth ? { customWidth: avatarSelection.customWidth } : {})}
+                          {...(avatarSelection.presetId ? { presetId: avatarSelection.presetId } : {})}
+                          {...(avatarSelection.showPois ? { showPois: avatarSelection.showPois } : {})}
+                          apiBaseUrl={apiBaseUrl}
+                          marketCode={marketCode}
+                          localeCode={localeCode}
+                          urlPattern={urlPattern}
+                        />
+                      </CmsEditable>
+                    ) : null}
+                    <div>
+                      <CmsEditable
+                        {...editableBase}
+                        kind="text"
+                        fieldPath={path(`items.${index}.name`)}
+                        wrapperAs="strong"
+                        value={String(item.name ?? '')}
+                        keySuffix={`quote-name-${index}`}
+                        meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                      />
+                      <CmsEditable
+                        {...editableBase}
+                        kind="text"
+                        fieldPath={path(`items.${index}.role`)}
+                        wrapperAs="p"
+                        className="cms-muted"
+                        value={String(item.role ?? '')}
+                        keySuffix={`quote-role-${index}`}
+                        meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                      />
+                    </div>
+                  </div>
+                </CmsEditable>
+              )
+            };
+          })}
+        />
+      </CmsEditable>
+    );
+  }
+
+  if (componentType === 'content_teasers') {
+    const items = Array.isArray(props.items)
+      ? (props.items as Array<Record<string, unknown>>)
+      : [];
+    return (
+      <CmsEditable
+        key={id}
+        {...editableBase}
+        kind="list"
+        role="item"
+        fieldPath={rootPath}
+        wrapperAs="section"
+        className="cms-section"
+        wrapperProps={{ id: sectionIdFromProps(props, 'resources') }}
+        value={component.type}
+        keySuffix="root"
+        meta={{ commit: 'none' }}
+      >
+        <CmsEditable
+          {...editableBase}
+          kind="text"
+          fieldPath={path('title')}
+          wrapperAs="h2"
+          value={String(props.title ?? 'From the resource hub')}
+          meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+        />
+        <CmsEditable
+          {...editableBase}
+          kind="text"
+          fieldPath={path('intro')}
+          wrapperAs="p"
+          className="cms-muted"
+          value={String(props.intro ?? '')}
+          meta={{ multiline: true, commit: 'enter', allowHtml: false }}
+        />
+        <div className="cms-grid features">
+          {items.map((item, index) => {
+            const assetSelection = parseAssetRef(item.imageAssetRef);
+            const link = (item.link as ContentLink | undefined) ?? null;
+            return (
+              <CmsEditable
+                key={`${id}-teaser-${index}`}
+                {...editableBase}
+                kind="list"
+                role="item"
+                fieldPath={path(`items.${index}`)}
+                wrapperAs="article"
+                className="cms-card cms-teaser-card"
+                value={`teaser-${index + 1}`}
+                keySuffix={`teaser-${index}`}
+                meta={{ commit: 'none' }}
+              >
+                {assetSelection.assetId ? (
+                  <CmsEditable
+                    {...editableBase}
+                    kind="asset"
+                    fieldPath={path(`items.${index}.imageAssetRef`)}
+                    wrapperAs="div"
+                    className="cms-slider-image"
+                    value={String(assetSelection.assetId)}
+                    keySuffix={`teaser-image-${index}`}
+                    meta={{ commit: 'none' }}
+                  >
+                    <CmsImage
+                      assetId={assetSelection.assetId}
+                      asset={assets[String(assetSelection.assetId)] ?? null}
+                      kind={assetSelection.kind ?? 'small'}
+                      {...(assetSelection.fitMode ? { fitMode: assetSelection.fitMode } : {})}
+                      {...(assetSelection.customWidth ? { customWidth: assetSelection.customWidth } : {})}
+                      {...(assetSelection.presetId ? { presetId: assetSelection.presetId } : {})}
+                      {...(assetSelection.showPois ? { showPois: assetSelection.showPois } : {})}
+                      apiBaseUrl={apiBaseUrl}
+                      marketCode={marketCode}
+                      localeCode={localeCode}
+                      urlPattern={urlPattern}
+                    />
+                  </CmsEditable>
+                ) : null}
+                <CmsEditable
+                  {...editableBase}
+                  kind="text"
+                  fieldPath={path(`items.${index}.tag`)}
+                  wrapperAs="small"
+                  className="cms-muted"
+                  value={String(item.tag ?? '')}
+                  keySuffix={`teaser-tag-${index}`}
+                  meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                />
+                <CmsEditable
+                  {...editableBase}
+                  kind="text"
+                  fieldPath={path(`items.${index}.title`)}
+                  wrapperAs="h3"
+                  value={String(item.title ?? `Teaser ${index + 1}`)}
+                  keySuffix={`teaser-title-${index}`}
+                  meta={{ multiline: false, commit: 'enter', allowHtml: false }}
+                />
+                <CmsEditable
+                  {...editableBase}
+                  kind="text"
+                  fieldPath={path(`items.${index}.summary`)}
+                  wrapperAs="p"
+                  className="cms-muted"
+                  value={String(item.summary ?? '')}
+                  keySuffix={`teaser-summary-${index}`}
+                  meta={{ multiline: true, commit: 'enter', allowHtml: false }}
+                />
+                <CmsEditable
+                  {...editableBase}
+                  kind="link"
+                  fieldPath={path(`items.${index}.link`)}
+                  wrapperAs="a"
+                  className="cms-btn primary"
+                  wrapperProps={{
+                    href: linkHref(link, { marketCode, localeCode, urlPattern }),
+                    target: link?.target ?? '_self',
+                    rel: link?.target === '_blank' ? 'noreferrer' : undefined
+                  }}
+                  value={link?.text ?? link?.url ?? 'Read'}
+                  keySuffix={`teaser-link-${index}`}
+                  meta={{ commit: 'none' }}
+                />
+              </CmsEditable>
+            );
+          })}
+        </div>
+      </CmsEditable>
+    );
+  }
+
   if (componentType === 'image_text') {
     const imageAssetSelection = parseAssetRef(props.imageAssetRef);
     const invert = Boolean(props.invert);
@@ -1094,6 +1965,7 @@ function renderComponent(
         fieldPath={rootPath}
         wrapperAs="section"
         className={`cms-section cms-image-row${invert ? ' invert' : ''}`}
+        wrapperProps={{ id: sectionIdFromProps(props) }}
         value={component.type}
         keySuffix="root"
         meta={{ commit: 'none' }}
@@ -1147,7 +2019,7 @@ function renderComponent(
             wrapperAs="a"
             className="cms-btn primary"
             wrapperProps={{
-              href: linkHref(cta),
+              href: linkHref(cta, { marketCode, localeCode, urlPattern }),
               target: cta?.target ?? '_self',
               rel: cta?.target === '_blank' ? 'noreferrer' : undefined
             }}
@@ -1170,7 +2042,7 @@ function renderComponent(
         fieldPath={rootPath}
         wrapperAs="section"
         className="cms-section"
-        wrapperProps={{ id: 'pricing' }}
+        wrapperProps={{ id: sectionIdFromProps(props, 'pricing') }}
         value={component.type}
         keySuffix="root"
         meta={{ commit: 'none' }}
@@ -1258,7 +2130,7 @@ function renderComponent(
                   wrapperAs="a"
                   className="cms-btn primary"
                   wrapperProps={{
-                    href: linkHref(tierCta),
+                    href: linkHref(tierCta, { marketCode, localeCode, urlPattern }),
                     target: tierCta?.target ?? '_self',
                     rel: tierCta?.target === '_blank' ? 'noreferrer' : undefined
                   }}
@@ -1287,7 +2159,7 @@ function renderComponent(
         fieldPath={rootPath}
         wrapperAs="section"
         className="cms-section"
-        wrapperProps={{ id: 'faq' }}
+        wrapperProps={{ id: sectionIdFromProps(props, 'faq') }}
         value={component.type}
         keySuffix="root"
         meta={{ commit: 'none' }}
@@ -1353,6 +2225,7 @@ function renderComponent(
         role="item"
         fieldPath={rootPath}
         wrapperAs="div"
+        wrapperProps={{ id: sectionIdFromProps(props, 'newsletter') }}
         value={component.type}
         keySuffix="root"
         meta={{ commit: 'none' }}
@@ -1393,6 +2266,7 @@ function renderComponent(
         fieldPath={rootPath}
         wrapperAs="footer"
         className="cms-section cms-footer"
+        wrapperProps={{ id: sectionIdFromProps(props, 'footer') }}
         value={component.type}
         keySuffix="root"
         meta={{ commit: 'none' }}
@@ -1429,7 +2303,7 @@ function renderComponent(
                     fieldPath={path(`linkGroups.${index}.links.${linkIndex}`)}
                     wrapperAs="a"
                     wrapperProps={{
-                      href: linkHref(entry),
+                      href: linkHref(entry, { marketCode, localeCode, urlPattern }),
                       target: entry?.target ?? '_self',
                       rel: entry?.target === '_blank' ? 'noreferrer' : undefined
                     }}
@@ -1462,7 +2336,7 @@ function renderComponent(
                 wrapperAs="a"
                 className="cms-btn secondary"
                 wrapperProps={{
-                  href: linkHref(entry),
+                  href: linkHref(entry, { marketCode, localeCode, urlPattern }),
                   target: entry?.target ?? '_self',
                   rel: entry?.target === '_blank' ? 'noreferrer' : undefined
                 }}

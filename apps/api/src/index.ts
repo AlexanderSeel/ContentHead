@@ -161,7 +161,7 @@ async function bootstrap(): Promise<void> {
         res.setHeader('content-type', asset.mimeType || 'application/octet-stream');
         res.setHeader('etag', etag);
         res.setHeader('last-modified', new Date(asset.updatedAt).toUTCString());
-        res.setHeader('cache-control', 'public, max-age=3600');
+        res.setHeader('cache-control', 'public, max-age=0, must-revalidate');
         res.end(file);
         return;
       }
@@ -199,7 +199,7 @@ async function bootstrap(): Promise<void> {
         res.setHeader('content-type', contentType);
         res.setHeader('etag', etag);
         res.setHeader('last-modified', new Date(rendition.createdAt).toUTCString());
-        res.setHeader('cache-control', 'public, max-age=86400, immutable');
+        res.setHeader('cache-control', 'public, max-age=0, must-revalidate');
         res.end(file);
         return;
       }
@@ -232,7 +232,7 @@ async function bootstrap(): Promise<void> {
           res.setHeader('content-type', contentType);
           res.setHeader('etag', etag);
           res.setHeader('last-modified', new Date(presetRendition.createdAt).toUTCString());
-          res.setHeader('cache-control', 'public, max-age=86400, immutable');
+          res.setHeader('cache-control', 'public, max-age=0, must-revalidate');
           res.end(file);
           return;
         }
@@ -286,7 +286,7 @@ async function bootstrap(): Promise<void> {
         res.setHeader('content-type', rendition.format === 'png' ? 'image/png' : rendition.format === 'jpeg' ? 'image/jpeg' : 'image/webp');
         res.setHeader('etag', etag);
         res.setHeader('last-modified', new Date(rendition.createdAt).toUTCString());
-        res.setHeader('cache-control', 'public, max-age=86400, immutable');
+        res.setHeader('cache-control', 'public, max-age=0, must-revalidate');
         res.end(file);
         return;
       }

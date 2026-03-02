@@ -33,8 +33,9 @@ pnpm --filter @contenthead/api seed
 
 ## Demo Import
 - Demo payload: `apps/admin/public/demo/contenthead-demo-import.json`
+- Complex demo payload: `apps/admin/public/demo/contenthead-complex-demo-import.json`
 - Import screen: `/settings/global/duckdb`
-- Click `Load Demo Import`, then `Import JSON`.
+- Click `Load Demo Import` or `Load Complex Demo`, then `Import JSON`.
 - Backward-compatible format: `schemaVersion: 1` with optional sections:
   - `siteConfig` (`urlPattern`, `markets`, `locales`, `matrix`)
   - `forms` (forms + steps + fields)
@@ -58,6 +59,13 @@ pnpm --filter @contenthead/api seed
 - Test:
   - `/demo?siteId=1&market=US&locale=en-US&segments=beta`
   - Force: add `&variantKey=variant_b`
+- Complex demo (`index` and `pricing` pages) has A/B variants for `US/en-US`.
+- Target rule: `segments` contains `enterprise` OR `country == US`.
+- Weighted split: `home-general` 50 / `home-enterprise` 50 and `pricing-general` 50 / `pricing-enterprise` 50.
+- Test:
+  - `/{market}/{locale}/index?segments=enterprise` (example: `/US/en-US/index?segments=enterprise`)
+  - Force home variant: add `?variantKey=home-enterprise`
+  - Force pricing variant: `/US/en-US/pricing?variantKey=pricing-enterprise`
 
 ### Form Submissions
 - Web forms now persist through `submitForm`.

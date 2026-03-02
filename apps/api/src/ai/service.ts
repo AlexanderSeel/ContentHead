@@ -6,7 +6,7 @@ import { createContentItem, createContentType, createDraftVersion, updateDraftVe
 import { upsertVariantSet, upsertVariant } from '../content/variantService.js';
 import { validateMarketLocale } from '../marketLocale/service.js';
 import { resolveDefaultConnector } from '../connectors/service.js';
-import { MockAIProvider, OpenAICompatibleProviderStub, type AIProvider } from './provider.js';
+import { MockAIProvider, OpenAICompatibleProvider, type AIProvider } from './provider.js';
 
 const fieldDefSchema = z.object({
   key: z.string().min(1),
@@ -42,9 +42,28 @@ async function aiProvider(db: DbClient): Promise<AIProvider> {
   const connector = await resolveDefaultConnector(db, 'ai');
   if (connector?.type === 'openai_compatible') {
     try {
-      const config = JSON.parse(connector.configJson) as { apiKey?: string | null | undefined };
-      if (config.apiKey) {
-        return new OpenAICompatibleProviderStub(config.apiKey);
+      const config = JSON.parse(connector.configJson) as {
+        apiKey?: string | null | undefined;
+        baseUrl?: string | null | undefined;
+        model?: string | null | undefined;
+        textModel?: string | null | undefined;
+        imageModel?: string | null | undefined;
+        imageFallbackToMock?: boolean | null | undefined;
+      };
+      if (config.apiKey?.trim() && config.baseUrl?.trim() && config.model?.trim()) {
+        const baseUrl = config.baseUrl.trim();
+        const model = config.model.trim();
+        const explicitImageModel = config.imageModel?.trim() || null;
+        const inferredImageModel =
+          !explicitImageModel && /api\.openai\.com/i.test(baseUrl) ? 'gpt-image-1' : null;
+        return new OpenAICompatibleProvider({
+          apiKey: config.apiKey.trim(),
+          baseUrl,
+          model,
+          textModel: config.textModel?.trim() || null,
+          imageModel: explicitImageModel ?? inferredImageModel,
+          imageFallbackToMock: config.imageFallbackToMock ?? true
+        });
       }
     } catch {
       return new MockAIProvider();
@@ -321,4 +340,44 @@ export async function aiTranslateVersion(
   });
 
   return { contentItemId: version.contentItemId, draftVersionId: updated.id };
+}
+
+export async function aiGenerateText(
+  db: DbClient,
+  input: {
+    prompt: string;
+    maxChars?: number | null | undefined;
+  }
+): Promise<{ text: string }> {
+  const prompt = input.prompt.trim();
+  if (!prompt) {
+    throw new GraphQLError('Prompt is required', { extensions: { code: 'BAD_USER_INPUT' } });
+  }
+  const text = await (await aiProvider(db)).generateText({ prompt, maxChars: input.maxChars });
+  return { text: text.trim() };
+}
+
+export async function aiGenerateImage(
+  db: DbClient,
+  input: {
+    prompt: string;
+    size?: string | null | undefined;
+    mimeType?: string | null | undefined;
+    filenameHint?: string | null | undefined;
+  }
+): Promise<{ data: Buffer; mimeType: string; filenameHint: string }> {
+  const prompt = input.prompt.trim();
+  if (!prompt) {
+    throw new GraphQLError('Prompt is required', { extensions: { code: 'BAD_USER_INPUT' } });
+  }
+  const generated = await (await aiProvider(db)).generateImage({
+    prompt,
+    size: input.size,
+    mimeType: input.mimeType,
+    filenameHint: input.filenameHint
+  });
+  if (!generated.data || generated.data.byteLength === 0) {
+    throw new GraphQLError('AI did not return image data', { extensions: { code: 'AI_IMAGE_EMPTY' } });
+  }
+  return generated;
 }

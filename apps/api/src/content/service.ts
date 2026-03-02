@@ -1027,6 +1027,222 @@ const COMPONENT_PRESETS: ComponentPreset[] = [
     }
   },
   {
+    componentTypeId: 'main_menu',
+    label: 'Main Menu',
+    groupName: 'Layout',
+    enabled: true,
+    schema: [
+      { key: 'brandLabel', label: 'Brand Label', type: 'text', required: true, defaultValue: 'ContentHead' },
+      { key: 'brandLink', label: 'Brand Link', type: 'contentLink', control: 'LinkPicker' },
+      {
+        key: 'items',
+        label: 'Menu Items',
+        type: 'objectList',
+        itemLabelKey: 'label',
+        fields: [
+          { key: 'label', label: 'Label', type: 'text', required: true },
+          { key: 'description', label: 'Description', type: 'multiline' },
+          { key: 'link', label: 'Link', type: 'contentLink', control: 'LinkPicker' },
+          { key: 'groupTitle', label: 'Mega Group Title', type: 'text' },
+          { key: 'subLinks', label: 'Mega Group Links', type: 'contentLinkList' }
+        ]
+      },
+      { key: 'cta', label: 'CTA Link', type: 'contentLink', control: 'LinkPicker' },
+      { key: 'localeLinks', label: 'Locale Links', type: 'contentLinkList' },
+      { key: 'sticky', label: 'Sticky', type: 'boolean', defaultValue: true }
+    ],
+    defaultProps: {
+      brandLabel: 'ContentHead',
+      brandLink: { kind: 'internal', routeSlug: '', text: 'ContentHead', target: '_self' },
+      items: [
+        {
+          label: 'Platform',
+          description: 'Composable CMS platform',
+          link: { kind: 'internal', routeSlug: 'platform', text: 'Platform', target: '_self' },
+          groupTitle: 'Platform',
+          subLinks: [
+            { kind: 'internal', routeSlug: 'platform/features', text: 'Features', target: '_self' },
+            { kind: 'internal', routeSlug: 'platform/integrations', text: 'Integrations', target: '_self' },
+            { kind: 'internal', routeSlug: 'platform/security', text: 'Security', target: '_self' }
+          ]
+        },
+        {
+          label: 'Solutions',
+          description: 'Use-case driven experiences',
+          link: { kind: 'internal', routeSlug: 'solutions', text: 'Solutions', target: '_self' },
+          groupTitle: 'Solutions',
+          subLinks: [
+            { kind: 'internal', routeSlug: 'solutions/for-marketing', text: 'For Marketing', target: '_self' },
+            { kind: 'internal', routeSlug: 'solutions/for-commerce', text: 'For Commerce', target: '_self' },
+            { kind: 'internal', routeSlug: 'solutions/for-enterprises', text: 'For Enterprises', target: '_self' }
+          ]
+        },
+        {
+          label: 'Resources',
+          description: 'Articles and guides',
+          link: { kind: 'internal', routeSlug: 'resources', text: 'Resources', target: '_self' },
+          groupTitle: 'Resources',
+          subLinks: [
+            { kind: 'internal', routeSlug: 'resources/blog', text: 'Blog', target: '_self' },
+            { kind: 'internal', routeSlug: 'resources/guides', text: 'Guides', target: '_self' }
+          ]
+        }
+      ],
+      cta: { kind: 'internal', routeSlug: 'contact', text: 'Book demo', target: '_self' },
+      localeLinks: [
+        { kind: 'internal', routeSlug: '', text: 'EN (US)', target: '_self' },
+        { kind: 'internal', routeSlug: '', text: 'DE', target: '_self' }
+      ],
+      sticky: true
+    }
+  },
+  {
+    componentTypeId: 'anchor_nav',
+    label: 'Anchor Navigation',
+    groupName: 'Layout',
+    enabled: true,
+    schema: [
+      { key: 'title', label: 'Title', type: 'text', defaultValue: 'On this page' },
+      { key: 'sticky', label: 'Sticky', type: 'boolean', defaultValue: true },
+      { key: 'smoothScroll', label: 'Smooth Scroll', type: 'boolean', defaultValue: true },
+      {
+        key: 'sections',
+        label: 'Sections',
+        type: 'objectList',
+        itemLabelKey: 'label',
+        fields: [
+          { key: 'label', label: 'Label', type: 'text', required: true },
+          { key: 'anchorId', label: 'Anchor ID', type: 'text', required: true }
+        ]
+      }
+    ],
+    defaultProps: {
+      title: 'On this page',
+      sticky: true,
+      smoothScroll: true,
+      sections: [
+        { label: 'Overview', anchorId: 'overview' },
+        { label: 'Features', anchorId: 'features' },
+        { label: 'Pricing', anchorId: 'pricing' },
+        { label: 'FAQ', anchorId: 'faq' }
+      ]
+    }
+  },
+  {
+    componentTypeId: 'card_slider',
+    label: 'Card Slider',
+    groupName: 'Marketing',
+    enabled: true,
+    schema: [
+      { key: 'title', label: 'Title', type: 'text', defaultValue: 'Highlights' },
+      { key: 'autoplay', label: 'Autoplay', type: 'boolean', defaultValue: false },
+      { key: 'showArrows', label: 'Show Arrows', type: 'boolean', defaultValue: true },
+      { key: 'showDots', label: 'Show Dots', type: 'boolean', defaultValue: true },
+      {
+        key: 'cards',
+        label: 'Cards',
+        type: 'objectList',
+        itemLabelKey: 'title',
+        fields: [
+          { key: 'imageAssetRef', label: 'Image', type: 'assetRef', control: 'AssetPicker' },
+          { key: 'title', label: 'Title', type: 'text', required: true },
+          { key: 'text', label: 'Text', type: 'multiline' },
+          { key: 'link', label: 'Link', type: 'contentLink', control: 'LinkPicker' }
+        ]
+      }
+    ],
+    defaultProps: {
+      title: 'Highlights',
+      autoplay: false,
+      showArrows: true,
+      showDots: true,
+      cards: []
+    }
+  },
+  {
+    componentTypeId: 'stats_strip',
+    label: 'Stats / KPI Strip',
+    groupName: 'Marketing',
+    enabled: true,
+    schema: [
+      { key: 'title', label: 'Title', type: 'text', defaultValue: 'At a glance' },
+      {
+        key: 'items',
+        label: 'Stats',
+        type: 'objectList',
+        itemLabelKey: 'label',
+        fields: [
+          { key: 'value', label: 'Value', type: 'text', required: true },
+          { key: 'label', label: 'Label', type: 'text', required: true },
+          { key: 'suffix', label: 'Suffix', type: 'text' }
+        ]
+      }
+    ],
+    defaultProps: {
+      title: 'At a glance',
+      items: [
+        { value: '140+', label: 'Enterprise teams', suffix: '' },
+        { value: '36', label: 'Markets launched', suffix: '' },
+        { value: '99.95', label: 'Avg uptime', suffix: '%' }
+      ]
+    }
+  },
+  {
+    componentTypeId: 'testimonials_slider',
+    label: 'Testimonials Slider',
+    groupName: 'Marketing',
+    enabled: true,
+    schema: [
+      { key: 'title', label: 'Title', type: 'text', defaultValue: 'What teams say' },
+      { key: 'autoplay', label: 'Autoplay', type: 'boolean', defaultValue: true },
+      {
+        key: 'items',
+        label: 'Testimonials',
+        type: 'objectList',
+        itemLabelKey: 'name',
+        fields: [
+          { key: 'quote', label: 'Quote', type: 'multiline', required: true },
+          { key: 'name', label: 'Name', type: 'text', required: true },
+          { key: 'role', label: 'Role', type: 'text' },
+          { key: 'avatarAssetRef', label: 'Avatar', type: 'assetRef', control: 'AssetPicker' }
+        ]
+      }
+    ],
+    defaultProps: {
+      title: 'What teams say',
+      autoplay: true,
+      items: []
+    }
+  },
+  {
+    componentTypeId: 'content_teasers',
+    label: 'Content Teasers',
+    groupName: 'Content',
+    enabled: true,
+    schema: [
+      { key: 'title', label: 'Title', type: 'text', defaultValue: 'From the resource hub' },
+      { key: 'intro', label: 'Intro', type: 'multiline' },
+      {
+        key: 'items',
+        label: 'Teasers',
+        type: 'objectList',
+        itemLabelKey: 'title',
+        fields: [
+          { key: 'title', label: 'Title', type: 'text', required: true },
+          { key: 'summary', label: 'Summary', type: 'multiline' },
+          { key: 'tag', label: 'Tag', type: 'text' },
+          { key: 'imageAssetRef', label: 'Image', type: 'assetRef', control: 'AssetPicker' },
+          { key: 'link', label: 'Link', type: 'contentLink', control: 'LinkPicker' }
+        ]
+      }
+    ],
+    defaultProps: {
+      title: 'From the resource hub',
+      intro: 'Read practical articles and deep implementation guides.',
+      items: []
+    }
+  },
+  {
     componentTypeId: 'text_block',
     label: 'Text Block',
     groupName: 'Content',
@@ -1965,10 +2181,23 @@ LIMIT 1
       await db.run(`DELETE FROM variants WHERE content_version_id IN (${versionPlaceholders})`, versionIds);
     }
 
-    await db.run(
-      'UPDATE content_items SET current_draft_version_id = NULL, current_published_version_id = NULL WHERE id = ?',
-      [page.id]
-    );
+    if (versionIds.length > 0) {
+      const versionPlaceholders = versionIds.map(() => '?').join(',');
+      // Defensive cleanup for unexpected cross-item version pointers.
+      await db.run(
+        `UPDATE content_items SET current_draft_version_id = NULL WHERE current_draft_version_id IN (${versionPlaceholders})`,
+        versionIds
+      );
+      await db.run(
+        `UPDATE content_items SET current_published_version_id = NULL WHERE current_published_version_id IN (${versionPlaceholders})`,
+        versionIds
+      );
+    } else {
+      await db.run(
+        'UPDATE content_items SET current_draft_version_id = NULL, current_published_version_id = NULL WHERE id = ?',
+        [page.id]
+      );
+    }
     await db.run('DELETE FROM content_routes WHERE content_item_id = ?', [page.id]);
     await db.run('DELETE FROM content_versions WHERE content_item_id = ?', [page.id]);
     await db.run('DELETE FROM content_items WHERE id = ?', [page.id]);

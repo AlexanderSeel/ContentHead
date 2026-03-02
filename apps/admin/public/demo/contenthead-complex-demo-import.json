@@ -1,0 +1,918 @@
+{
+  "schemaVersion": 1,
+  "siteId": 1,
+  "exportedAt": "2026-02-27T16:11:10.764Z",
+  "siteConfig": {
+    "siteName": "contenthead_complex_demo_site_v2",
+    "urlPattern": "/{market}/{locale}",
+    "markets": [
+      {
+        "code": "US",
+        "name": "United States",
+        "currency": "USD",
+        "timezone": "America/New_York",
+        "active": true,
+        "isDefault": true
+      },
+      {
+        "code": "DE",
+        "name": "Germany",
+        "currency": "EUR",
+        "timezone": "Europe/Berlin",
+        "active": true,
+        "isDefault": false
+      }
+    ],
+    "locales": [
+      {
+        "code": "en-US",
+        "name": "English (US)",
+        "active": true,
+        "isDefault": true,
+        "fallbackLocaleCode": null
+      },
+      {
+        "code": "de-DE",
+        "name": "Deutsch (DE)",
+        "active": true,
+        "isDefault": false,
+        "fallbackLocaleCode": "en-US"
+      }
+    ],
+    "matrix": {
+      "combinations": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "active": true,
+          "isDefaultForMarket": true
+        },
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "active": true,
+          "isDefaultForMarket": true
+        }
+      ],
+      "defaults": {
+        "marketDefaultLocales": [
+          {
+            "marketCode": "US",
+            "localeCode": "en-US"
+          },
+          {
+            "marketCode": "DE",
+            "localeCode": "de-DE"
+          }
+        ]
+      }
+    }
+  },
+  "contentTypes": [
+    {
+      "name": "StartPage",
+      "description": "Root page model.",
+      "fieldsJson": "[{\"key\":\"title\",\"label\":\"Title\",\"type\":\"text\",\"required\":true},{\"key\":\"summary\",\"label\":\"Summary\",\"type\":\"text\",\"uiConfig\":{\"multiline\":true}},{\"key\":\"body\",\"label\":\"Body\",\"type\":\"richtext\"},{\"key\":\"priority\",\"label\":\"Priority\",\"type\":\"number\"},{\"key\":\"score\",\"label\":\"Score\",\"type\":\"number\"},{\"key\":\"isFeatured\",\"label\":\"Featured\",\"type\":\"boolean\"},{\"key\":\"publishDate\",\"label\":\"Publish Date\",\"type\":\"date\"},{\"key\":\"publishDateTime\",\"label\":\"Publish Date Time\",\"type\":\"datetime\"},{\"key\":\"theme\",\"label\":\"Theme\",\"type\":\"select\",\"validations\":{\"allowedValues\":[\"light\",\"dark\",\"ocean\"]}},{\"key\":\"tags\",\"label\":\"Tags\",\"type\":\"multiselect\",\"validations\":{\"allowedValues\":[\"cms\",\"dam\",\"forms\",\"personalization\",\"localization\",\"security\"]}},{\"key\":\"relatedArticle\",\"label\":\"Related Article\",\"type\":\"reference\"},{\"key\":\"heroLink\",\"label\":\"Hero Link\",\"type\":\"contentLink\"},{\"key\":\"secondaryLinks\",\"label\":\"Secondary Links\",\"type\":\"contentLinkList\"},{\"key\":\"heroAsset\",\"label\":\"Hero Asset\",\"type\":\"assetRef\"},{\"key\":\"galleryAssets\",\"label\":\"Gallery Assets\",\"type\":\"assetList\"},{\"key\":\"settingsJson\",\"label\":\"Settings JSON\",\"type\":\"json\"},{\"key\":\"model\",\"label\":\"Model\",\"type\":\"text\",\"uiConfig\":{\"hidden\":true,\"defaultValue\":\"StartPage\"}}]"
+    },
+    {
+      "name": "LandingPage",
+      "description": "Landing model.",
+      "fieldsJson": "[{\"key\":\"title\",\"label\":\"Title\",\"type\":\"text\",\"required\":true},{\"key\":\"summary\",\"label\":\"Summary\",\"type\":\"text\",\"uiConfig\":{\"multiline\":true}},{\"key\":\"body\",\"label\":\"Body\",\"type\":\"richtext\"},{\"key\":\"priority\",\"label\":\"Priority\",\"type\":\"number\"},{\"key\":\"score\",\"label\":\"Score\",\"type\":\"number\"},{\"key\":\"isFeatured\",\"label\":\"Featured\",\"type\":\"boolean\"},{\"key\":\"publishDate\",\"label\":\"Publish Date\",\"type\":\"date\"},{\"key\":\"publishDateTime\",\"label\":\"Publish Date Time\",\"type\":\"datetime\"},{\"key\":\"theme\",\"label\":\"Theme\",\"type\":\"select\",\"validations\":{\"allowedValues\":[\"light\",\"dark\",\"ocean\"]}},{\"key\":\"tags\",\"label\":\"Tags\",\"type\":\"multiselect\",\"validations\":{\"allowedValues\":[\"cms\",\"dam\",\"forms\",\"personalization\",\"localization\",\"security\"]}},{\"key\":\"relatedArticle\",\"label\":\"Related Article\",\"type\":\"reference\"},{\"key\":\"heroLink\",\"label\":\"Hero Link\",\"type\":\"contentLink\"},{\"key\":\"secondaryLinks\",\"label\":\"Secondary Links\",\"type\":\"contentLinkList\"},{\"key\":\"heroAsset\",\"label\":\"Hero Asset\",\"type\":\"assetRef\"},{\"key\":\"galleryAssets\",\"label\":\"Gallery Assets\",\"type\":\"assetList\"},{\"key\":\"settingsJson\",\"label\":\"Settings JSON\",\"type\":\"json\"},{\"key\":\"model\",\"label\":\"Model\",\"type\":\"text\",\"uiConfig\":{\"hidden\":true,\"defaultValue\":\"LandingPage\"}}]"
+    },
+    {
+      "name": "ArticlePage",
+      "description": "Article model.",
+      "fieldsJson": "[{\"key\":\"title\",\"label\":\"Title\",\"type\":\"text\",\"required\":true},{\"key\":\"summary\",\"label\":\"Summary\",\"type\":\"text\",\"uiConfig\":{\"multiline\":true}},{\"key\":\"body\",\"label\":\"Body\",\"type\":\"richtext\"},{\"key\":\"priority\",\"label\":\"Priority\",\"type\":\"number\"},{\"key\":\"score\",\"label\":\"Score\",\"type\":\"number\"},{\"key\":\"isFeatured\",\"label\":\"Featured\",\"type\":\"boolean\"},{\"key\":\"publishDate\",\"label\":\"Publish Date\",\"type\":\"date\"},{\"key\":\"publishDateTime\",\"label\":\"Publish Date Time\",\"type\":\"datetime\"},{\"key\":\"theme\",\"label\":\"Theme\",\"type\":\"select\",\"validations\":{\"allowedValues\":[\"light\",\"dark\",\"ocean\"]}},{\"key\":\"tags\",\"label\":\"Tags\",\"type\":\"multiselect\",\"validations\":{\"allowedValues\":[\"cms\",\"dam\",\"forms\",\"personalization\",\"localization\",\"security\"]}},{\"key\":\"relatedArticle\",\"label\":\"Related Article\",\"type\":\"reference\"},{\"key\":\"heroLink\",\"label\":\"Hero Link\",\"type\":\"contentLink\"},{\"key\":\"secondaryLinks\",\"label\":\"Secondary Links\",\"type\":\"contentLinkList\"},{\"key\":\"heroAsset\",\"label\":\"Hero Asset\",\"type\":\"assetRef\"},{\"key\":\"galleryAssets\",\"label\":\"Gallery Assets\",\"type\":\"assetList\"},{\"key\":\"settingsJson\",\"label\":\"Settings JSON\",\"type\":\"json\"},{\"key\":\"model\",\"label\":\"Model\",\"type\":\"text\",\"uiConfig\":{\"hidden\":true,\"defaultValue\":\"ArticlePage\"}}]"
+    },
+    {
+      "name": "GuidePage",
+      "description": "Guide model.",
+      "fieldsJson": "[{\"key\":\"title\",\"label\":\"Title\",\"type\":\"text\",\"required\":true},{\"key\":\"summary\",\"label\":\"Summary\",\"type\":\"text\",\"uiConfig\":{\"multiline\":true}},{\"key\":\"body\",\"label\":\"Body\",\"type\":\"richtext\"},{\"key\":\"priority\",\"label\":\"Priority\",\"type\":\"number\"},{\"key\":\"score\",\"label\":\"Score\",\"type\":\"number\"},{\"key\":\"isFeatured\",\"label\":\"Featured\",\"type\":\"boolean\"},{\"key\":\"publishDate\",\"label\":\"Publish Date\",\"type\":\"date\"},{\"key\":\"publishDateTime\",\"label\":\"Publish Date Time\",\"type\":\"datetime\"},{\"key\":\"theme\",\"label\":\"Theme\",\"type\":\"select\",\"validations\":{\"allowedValues\":[\"light\",\"dark\",\"ocean\"]}},{\"key\":\"tags\",\"label\":\"Tags\",\"type\":\"multiselect\",\"validations\":{\"allowedValues\":[\"cms\",\"dam\",\"forms\",\"personalization\",\"localization\",\"security\"]}},{\"key\":\"relatedArticle\",\"label\":\"Related Article\",\"type\":\"reference\"},{\"key\":\"heroLink\",\"label\":\"Hero Link\",\"type\":\"contentLink\"},{\"key\":\"secondaryLinks\",\"label\":\"Secondary Links\",\"type\":\"contentLinkList\"},{\"key\":\"heroAsset\",\"label\":\"Hero Asset\",\"type\":\"assetRef\"},{\"key\":\"galleryAssets\",\"label\":\"Gallery Assets\",\"type\":\"assetList\"},{\"key\":\"settingsJson\",\"label\":\"Settings JSON\",\"type\":\"json\"},{\"key\":\"model\",\"label\":\"Model\",\"type\":\"text\",\"uiConfig\":{\"hidden\":true,\"defaultValue\":\"GuidePage\"}}]"
+    },
+    {
+      "name": "StandardPage",
+      "description": "Standard model.",
+      "fieldsJson": "[{\"key\":\"title\",\"label\":\"Title\",\"type\":\"text\",\"required\":true},{\"key\":\"summary\",\"label\":\"Summary\",\"type\":\"text\",\"uiConfig\":{\"multiline\":true}},{\"key\":\"body\",\"label\":\"Body\",\"type\":\"richtext\"},{\"key\":\"priority\",\"label\":\"Priority\",\"type\":\"number\"},{\"key\":\"score\",\"label\":\"Score\",\"type\":\"number\"},{\"key\":\"isFeatured\",\"label\":\"Featured\",\"type\":\"boolean\"},{\"key\":\"publishDate\",\"label\":\"Publish Date\",\"type\":\"date\"},{\"key\":\"publishDateTime\",\"label\":\"Publish Date Time\",\"type\":\"datetime\"},{\"key\":\"theme\",\"label\":\"Theme\",\"type\":\"select\",\"validations\":{\"allowedValues\":[\"light\",\"dark\",\"ocean\"]}},{\"key\":\"tags\",\"label\":\"Tags\",\"type\":\"multiselect\",\"validations\":{\"allowedValues\":[\"cms\",\"dam\",\"forms\",\"personalization\",\"localization\",\"security\"]}},{\"key\":\"relatedArticle\",\"label\":\"Related Article\",\"type\":\"reference\"},{\"key\":\"heroLink\",\"label\":\"Hero Link\",\"type\":\"contentLink\"},{\"key\":\"secondaryLinks\",\"label\":\"Secondary Links\",\"type\":\"contentLinkList\"},{\"key\":\"heroAsset\",\"label\":\"Hero Asset\",\"type\":\"assetRef\"},{\"key\":\"galleryAssets\",\"label\":\"Gallery Assets\",\"type\":\"assetList\"},{\"key\":\"settingsJson\",\"label\":\"Settings JSON\",\"type\":\"json\"},{\"key\":\"model\",\"label\":\"Model\",\"type\":\"text\",\"uiConfig\":{\"hidden\":true,\"defaultValue\":\"StandardPage\"}}]"
+    }
+  ],
+  "templates": [
+    {
+      "name": "Marketing Template",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header_tpl\",\"hero_tpl\",\"footer_tpl\"]}]}",
+      "componentsJson": "{\"header_tpl\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book demo\",\"target\":\"_self\"}}},\"hero_tpl\":{\"type\":\"hero\",\"props\":{\"title\":\"Marketing template\",\"subtitle\":\"Reusable shell\",\"backgroundAssetRef\":null,\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}}},\"footer_tpl\":{\"type\":\"footer\",\"props\":{\"copyright\":\"Demo Brand\",\"linkGroups\":[],\"socialLinks\":[]}}}",
+      "constraintsJson": "{\"allowedAreas\":[\"main\"]}"
+    },
+    {
+      "name": "Article Template",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"hero_tpl\",\"anchor_tpl\",\"body_tpl\",\"footer_tpl\"]}]}",
+      "componentsJson": "{\"hero_tpl\":{\"type\":\"hero\",\"props\":{\"title\":\"Article template\",\"subtitle\":\"Hero + body\",\"backgroundAssetRef\":null,\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Back\",\"target\":\"_self\"}}},\"anchor_tpl\":{\"type\":\"anchor_nav\",\"props\":{\"title\":\"In this article\",\"sticky\":true,\"smoothScroll\":true,\"sections\":[{\"label\":\"Overview\",\"anchorId\":\"overview\"},{\"label\":\"Details\",\"anchorId\":\"details\"}]}},\"body_tpl\":{\"type\":\"text_block\",\"props\":{\"body\":\"<h2 id=\\\"overview\\\">Overview</h2><p>Body.</p>\",\"columns\":1}},\"footer_tpl\":{\"type\":\"footer\",\"props\":{\"copyright\":\"Demo Brand\",\"linkGroups\":[],\"socialLinks\":[]}}}",
+      "constraintsJson": "{\"allowedAreas\":[\"main\"]}"
+    },
+    {
+      "name": "Docs/Guide Template",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"hero_tpl\",\"anchor_tpl\",\"body_tpl\",\"footer_tpl\"]}]}",
+      "componentsJson": "{\"hero_tpl\":{\"type\":\"hero\",\"props\":{\"title\":\"Guide template\",\"subtitle\":\"Sticky TOC + sections\",\"backgroundAssetRef\":null,\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Back\",\"target\":\"_self\"}}},\"anchor_tpl\":{\"type\":\"anchor_nav\",\"props\":{\"title\":\"In this guide\",\"sticky\":true,\"smoothScroll\":true,\"sections\":[{\"label\":\"Overview\",\"anchorId\":\"overview\"},{\"label\":\"Checklist\",\"anchorId\":\"checklist\"},{\"label\":\"Rollout\",\"anchorId\":\"rollout\"}]}},\"body_tpl\":{\"type\":\"text_block\",\"props\":{\"body\":\"<h2 id=\\\"overview\\\">Overview</h2><p>Guide body.</p>\",\"columns\":1}},\"footer_tpl\":{\"type\":\"footer\",\"props\":{\"copyright\":\"Demo Brand\",\"linkGroups\":[],\"socialLinks\":[]}}}",
+      "constraintsJson": "{\"allowedAreas\":[\"main\"]}"
+    }
+  ],
+  "assets": [
+    {
+      "externalId": "asset-ai-hero",
+      "filename": "complex-ai-hero.png",
+      "originalName": "complex-ai-hero.png",
+      "mimeType": "image/png",
+      "aiImagePrompt": "Futuristic composable CMS control center dashboard, cinematic lighting, subtle blue/cyan palette, wide hero background, no text overlay",
+      "aiImageSize": "1536x1024",
+      "title": "AI Hero Dashboard",
+      "altText": "AI generated hero image showing composable CMS dashboard",
+      "description": "Generated during import through the configured AI connector.",
+      "tags": [
+        "demo",
+        "ai",
+        "generated"
+      ]
+    },
+    {
+      "externalId": "asset-hero-wave",
+      "filename": "complex-hero-wave.svg",
+      "originalName": "complex-hero-wave.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#0f172a\"/><stop offset=\"100%\" stop-color=\"#155e75\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#38bdf8\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#38bdf8\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Hero Wave</text></svg>",
+      "title": "Hero Wave",
+      "altText": "Hero Wave",
+      "description": "Hero Wave",
+      "tags": [
+        "demo"
+      ]
+    },
+    {
+      "externalId": "asset-hero-grid",
+      "filename": "complex-hero-grid.svg",
+      "originalName": "complex-hero-grid.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#0c4a6e\"/><stop offset=\"100%\" stop-color=\"#164e63\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#34d399\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#34d399\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Hero Grid</text></svg>",
+      "title": "Hero Grid",
+      "altText": "Hero Grid",
+      "description": "Hero Grid",
+      "tags": [
+        "demo"
+      ]
+    },
+    {
+      "externalId": "asset-feature-board",
+      "filename": "complex-feature-board.svg",
+      "originalName": "complex-feature-board.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#1d4ed8\"/><stop offset=\"100%\" stop-color=\"#0f766e\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#93c5fd\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#93c5fd\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Feature Board</text></svg>",
+      "title": "Feature Board",
+      "altText": "Feature Board",
+      "description": "Feature Board",
+      "tags": [
+        "demo"
+      ]
+    },
+    {
+      "externalId": "asset-integration-map",
+      "filename": "complex-integration-map.svg",
+      "originalName": "complex-integration-map.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#0369a1\"/><stop offset=\"100%\" stop-color=\"#1e3a8a\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#a5f3fc\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#a5f3fc\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Integration Map</text></svg>",
+      "title": "Integration Map",
+      "altText": "Integration Map",
+      "description": "Integration Map",
+      "tags": [
+        "demo"
+      ]
+    },
+    {
+      "externalId": "asset-security-shield",
+      "filename": "complex-security-shield.svg",
+      "originalName": "complex-security-shield.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#111827\"/><stop offset=\"100%\" stop-color=\"#1f2937\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#60a5fa\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#60a5fa\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Security Shield</text></svg>",
+      "title": "Security Shield",
+      "altText": "Security Shield",
+      "description": "Security Shield",
+      "tags": [
+        "demo"
+      ]
+    },
+    {
+      "externalId": "asset-pricing-bg",
+      "filename": "complex-pricing-bg.svg",
+      "originalName": "complex-pricing-bg.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#164e63\"/><stop offset=\"100%\" stop-color=\"#065f46\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#67e8f9\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#67e8f9\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Pricing BG</text></svg>",
+      "title": "Pricing BG",
+      "altText": "Pricing BG",
+      "description": "Pricing BG",
+      "tags": [
+        "demo"
+      ]
+    },
+    {
+      "externalId": "asset-contact-team",
+      "filename": "complex-contact-team.svg",
+      "originalName": "complex-contact-team.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#1e293b\"/><stop offset=\"100%\" stop-color=\"#334155\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#86efac\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#86efac\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Contact Team</text></svg>",
+      "title": "Contact Team",
+      "altText": "Contact Team",
+      "description": "Contact Team",
+      "tags": [
+        "demo"
+      ]
+    },
+    {
+      "externalId": "asset-article-1",
+      "filename": "complex-article-1.svg",
+      "originalName": "complex-article-1.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#312e81\"/><stop offset=\"100%\" stop-color=\"#0f766e\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#c4b5fd\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#c4b5fd\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Article 1</text></svg>",
+      "title": "Article 1",
+      "altText": "Article 1",
+      "description": "Article 1",
+      "tags": [
+        "demo"
+      ]
+    },
+    {
+      "externalId": "asset-article-2",
+      "filename": "complex-article-2.svg",
+      "originalName": "complex-article-2.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#134e4a\"/><stop offset=\"100%\" stop-color=\"#0f172a\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#5eead4\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#5eead4\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Article 2</text></svg>",
+      "title": "Article 2",
+      "altText": "Article 2",
+      "description": "Article 2",
+      "tags": [
+        "demo"
+      ]
+    },
+    {
+      "externalId": "asset-article-3",
+      "filename": "complex-article-3.svg",
+      "originalName": "complex-article-3.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#082f49\"/><stop offset=\"100%\" stop-color=\"#172554\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#7dd3fc\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#7dd3fc\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Article 3</text></svg>",
+      "title": "Article 3",
+      "altText": "Article 3",
+      "description": "Article 3",
+      "tags": [
+        "demo"
+      ]
+    },
+    {
+      "externalId": "asset-avatar-1",
+      "filename": "complex-avatar-1.svg",
+      "originalName": "complex-avatar-1.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#1d4ed8\"/><stop offset=\"100%\" stop-color=\"#22d3ee\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#bae6fd\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#bae6fd\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Avatar One</text></svg>",
+      "title": "Avatar One",
+      "altText": "Avatar One",
+      "description": "Avatar One",
+      "tags": [
+        "demo"
+      ]
+    },
+    {
+      "externalId": "asset-avatar-2",
+      "filename": "complex-avatar-2.svg",
+      "originalName": "complex-avatar-2.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#0f766e\"/><stop offset=\"100%\" stop-color=\"#14b8a6\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#99f6e4\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#99f6e4\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Avatar Two</text></svg>",
+      "title": "Avatar Two",
+      "altText": "Avatar Two",
+      "description": "Avatar Two",
+      "tags": [
+        "demo"
+      ]
+    },
+    {
+      "externalId": "asset-avatar-3",
+      "filename": "complex-avatar-3.svg",
+      "originalName": "complex-avatar-3.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#7c3aed\"/><stop offset=\"100%\" stop-color=\"#1d4ed8\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#c4b5fd\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#c4b5fd\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Avatar Three</text></svg>",
+      "title": "Avatar Three",
+      "altText": "Avatar Three",
+      "description": "Avatar Three",
+      "tags": [
+        "demo"
+      ]
+    },
+    {
+      "externalId": "asset-guide-cover",
+      "filename": "complex-guide-cover.svg",
+      "originalName": "complex-guide-cover.svg",
+      "mimeType": "image/svg+xml",
+      "sourceText": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1600\" height=\"900\" viewBox=\"0 0 1600 900\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#1f2937\"/><stop offset=\"100%\" stop-color=\"#0f766e\"/></linearGradient></defs><rect width=\"1600\" height=\"900\" fill=\"url(#g)\"/><circle cx=\"1260\" cy=\"260\" r=\"230\" fill=\"#34d399\" fill-opacity=\"0.22\"/><circle cx=\"1180\" cy=\"640\" r=\"300\" fill=\"#34d399\" fill-opacity=\"0.12\"/><text x=\"140\" y=\"270\" font-size=\"70\" font-family=\"Segoe UI, Arial\" fill=\"white\">Guide Cover</text></svg>",
+      "title": "Guide Cover",
+      "altText": "Guide Cover",
+      "description": "Guide Cover",
+      "tags": [
+        "demo"
+      ]
+    }
+  ],
+  "forms": [
+    {
+      "externalId": "form-newsletter-signup",
+      "name": "Newsletter Signup",
+      "description": "Two-step newsletter form.",
+      "active": true,
+      "steps": [
+        {
+          "externalId": "form-newsletter-step-consent",
+          "name": "Consent",
+          "position": 1
+        },
+        {
+          "externalId": "form-newsletter-step-interests",
+          "name": "Interests",
+          "position": 2
+        }
+      ],
+      "fields": [
+        {
+          "stepRef": "form-newsletter-step-consent",
+          "key": "email",
+          "label": "Work Email",
+          "fieldType": "email",
+          "position": 1,
+          "conditionsJson": "{}",
+          "validationsJson": "{\"regex\":\"^[^\\\\s@]+@[^\\\\s@]+\\\\.[^\\\\s@]+$\"}",
+          "uiConfigJson": "{\"placeholder\":\"you@company.com\"}",
+          "active": true
+        },
+        {
+          "stepRef": "form-newsletter-step-consent",
+          "key": "consent",
+          "label": "I agree to receive updates",
+          "fieldType": "checkbox",
+          "position": 2,
+          "conditionsJson": "{}",
+          "validationsJson": "{}",
+          "uiConfigJson": "{}",
+          "active": true
+        },
+        {
+          "stepRef": "form-newsletter-step-interests",
+          "key": "interests",
+          "label": "Interests",
+          "fieldType": "multiselect",
+          "position": 1,
+          "conditionsJson": "{\"showIf\":{\"op\":\"eq\",\"field\":\"query.answer.consent\",\"value\":true},\"requiredIf\":{\"op\":\"eq\",\"field\":\"query.answer.consent\",\"value\":true}}",
+          "validationsJson": "{}",
+          "uiConfigJson": "{\"options\":[{\"label\":\"CMS\",\"value\":\"cms\"},{\"label\":\"DAM\",\"value\":\"dam\"},{\"label\":\"Personalization\",\"value\":\"personalization\"}]}",
+          "active": true
+        }
+      ]
+    },
+    {
+      "externalId": "form-contact-demo",
+      "name": "Contact / Demo Request",
+      "description": "Multi-step contact form.",
+      "active": true,
+      "steps": [
+        {
+          "externalId": "form-contact-step-type",
+          "name": "Type",
+          "position": 1
+        },
+        {
+          "externalId": "form-contact-step-details",
+          "name": "Details",
+          "position": 2
+        }
+      ],
+      "fields": [
+        {
+          "stepRef": "form-contact-step-type",
+          "key": "requestType",
+          "label": "Request Type",
+          "fieldType": "select",
+          "position": 1,
+          "conditionsJson": "{}",
+          "validationsJson": "{}",
+          "uiConfigJson": "{\"options\":[{\"label\":\"Demo\",\"value\":\"demo\"},{\"label\":\"Enterprise\",\"value\":\"enterprise\"},{\"label\":\"Support\",\"value\":\"support\"}]}",
+          "active": true
+        },
+        {
+          "stepRef": "form-contact-step-type",
+          "key": "email",
+          "label": "Email",
+          "fieldType": "email",
+          "position": 2,
+          "conditionsJson": "{}",
+          "validationsJson": "{\"regex\":\"^[^\\\\s@]+@[^\\\\s@]+\\\\.[^\\\\s@]+$\"}",
+          "uiConfigJson": "{\"placeholder\":\"you@company.com\"}",
+          "active": true
+        },
+        {
+          "stepRef": "form-contact-step-details",
+          "key": "company",
+          "label": "Company",
+          "fieldType": "text",
+          "position": 1,
+          "conditionsJson": "{\"showIf\":{\"any\":[{\"op\":\"eq\",\"field\":\"query.answer.requestType\",\"value\":\"demo\"},{\"op\":\"eq\",\"field\":\"query.answer.requestType\",\"value\":\"enterprise\"}]}}",
+          "validationsJson": "{}",
+          "uiConfigJson": "{\"placeholder\":\"Acme\"}",
+          "active": true
+        },
+        {
+          "stepRef": "form-contact-step-details",
+          "key": "teamSize",
+          "label": "Team Size",
+          "fieldType": "select",
+          "position": 2,
+          "conditionsJson": "{\"showIf\":{\"op\":\"eq\",\"field\":\"query.answer.requestType\",\"value\":\"enterprise\"}}",
+          "validationsJson": "{}",
+          "uiConfigJson": "{\"options\":[{\"label\":\"1-10\",\"value\":\"1-10\"},{\"label\":\"11-50\",\"value\":\"11-50\"},{\"label\":\"51-250\",\"value\":\"51-250\"},{\"label\":\"250+\",\"value\":\"250+\"}]}",
+          "active": true
+        },
+        {
+          "stepRef": "form-contact-step-details",
+          "key": "message",
+          "label": "Message",
+          "fieldType": "textarea",
+          "position": 3,
+          "conditionsJson": "{}",
+          "validationsJson": "{\"minLength\":10}",
+          "uiConfigJson": "{\"placeholder\":\"Tell us what you want to build\"}",
+          "active": true
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "itemExternalId": "home-en",
+      "itemIndex": 0,
+      "marketCode": "US",
+      "localeCode": "en-US",
+      "key": "home-general",
+      "priority": 200,
+      "state": "ACTIVE",
+      "ruleJson": "{\"any\":[{\"op\":\"contains\",\"field\":\"segments\",\"value\":\"enterprise\"},{\"op\":\"eq\",\"field\":\"country\",\"value\":\"US\"}]}",
+      "trafficAllocation": 50,
+      "patch": {
+        "comment": "Variant A general messaging",
+        "componentsJson": "{\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Build, launch, and optimize modern experiences\",\"subtitle\":\"Unified platform for content modeling and publishing.\",\"backgroundAssetRef\":\"@asset:asset-hero-wave\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"See platform\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book consultation\",\"target\":\"_self\"}}}}"
+      }
+    },
+    {
+      "itemExternalId": "home-en",
+      "itemIndex": 0,
+      "marketCode": "US",
+      "localeCode": "en-US",
+      "key": "home-enterprise",
+      "priority": 190,
+      "state": "ACTIVE",
+      "ruleJson": "{\"any\":[{\"op\":\"contains\",\"field\":\"segments\",\"value\":\"enterprise\"},{\"op\":\"eq\",\"field\":\"country\",\"value\":\"US\"}]}",
+      "trafficAllocation": 50,
+      "patch": {
+        "comment": "Variant B enterprise messaging",
+        "componentsJson": "{\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Enterprise-ready content operations\",\"subtitle\":\"Governed workflows and deterministic rollout for global teams.\",\"backgroundAssetRef\":\"@asset:asset-security-shield\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"Enterprise solution\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk architecture\",\"target\":\"_self\"}}}}"
+      }
+    },
+    {
+      "itemExternalId": "pricing-en",
+      "itemIndex": 0,
+      "marketCode": "US",
+      "localeCode": "en-US",
+      "key": "pricing-general",
+      "priority": 200,
+      "state": "ACTIVE",
+      "ruleJson": "{\"any\":[{\"op\":\"contains\",\"field\":\"segments\",\"value\":\"enterprise\"},{\"op\":\"eq\",\"field\":\"country\",\"value\":\"US\"}]}",
+      "trafficAllocation": 50,
+      "patch": {
+        "comment": "Variant A pricing",
+        "componentsJson": "{\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Flexible pricing for every stage\",\"subtitle\":\"Start small and expand capabilities.\",\"backgroundAssetRef\":\"@asset:asset-pricing-bg\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore capabilities\",\"target\":\"_self\"}}}}"
+      }
+    },
+    {
+      "itemExternalId": "pricing-en",
+      "itemIndex": 0,
+      "marketCode": "US",
+      "localeCode": "en-US",
+      "key": "pricing-enterprise",
+      "priority": 190,
+      "state": "ACTIVE",
+      "ruleJson": "{\"any\":[{\"op\":\"contains\",\"field\":\"segments\",\"value\":\"enterprise\"},{\"op\":\"eq\",\"field\":\"country\",\"value\":\"US\"}]}",
+      "trafficAllocation": 50,
+      "patch": {
+        "comment": "Variant B pricing enterprise",
+        "componentsJson": "{\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Enterprise agreements for governance-heavy teams\",\"subtitle\":\"Align procurement, compliance, and platform teams.\",\"backgroundAssetRef\":\"@asset:asset-security-shield\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Request proposal\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"Enterprise solution\",\"target\":\"_self\"}}}}"
+      }
+    }
+  ],
+  "items": [
+    {
+      "externalId": "home-en",
+      "contentTypeName": "StartPage",
+      "fieldsJson": "{\"title\":\"Home\",\"summary\":\"@ai:text:Write one concise hero summary (max 20 words) for a composable CMS platform that supports localization, DAM, forms, and personalization.\",\"body\":\"<p>Home body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-2-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-ai-hero\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"stats\",\"anchor\",\"features\",\"slider\",\"pricing\",\"teasers\",\"testimonials\",\"faq\",\"newsletter\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Ship global experiences without custom glue\",\"subtitle\":\"@ai:text:Create a short subtitle (max 14 words) highlighting enterprise-safe composable content operations.\",\"backgroundAssetRef\":\"@asset:asset-ai-hero\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore Platform\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"View Pricing\",\"target\":\"_self\"}}},\"stats\":{\"type\":\"stats_strip\",\"props\":{\"title\":\"Built for scale\",\"items\":[{\"value\":\"180\",\"suffix\":\"+\",\"label\":\"Reusable components\"},{\"value\":\"99.95\",\"suffix\":\"%\",\"label\":\"Publishing SLA\"},{\"value\":\"34\",\"suffix\":\"\",\"label\":\"Connected channels\"}]}},\"anchor\":{\"type\":\"anchor_nav\",\"props\":{\"title\":\"Jump to\",\"sticky\":true,\"smoothScroll\":true,\"sections\":[{\"label\":\"Features\",\"anchorId\":\"features\"},{\"label\":\"Highlights\",\"anchorId\":\"highlights\"},{\"label\":\"Pricing\",\"anchorId\":\"pricing\"},{\"label\":\"Resources\",\"anchorId\":\"resources\"},{\"label\":\"FAQ\",\"anchorId\":\"faq\"}]}},\"features\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"Core capabilities\",\"items\":[{\"icon\":\"pi-sitemap\",\"title\":\"Page hierarchy\",\"description\":\"Nested pages and parent inheritance.\"},{\"icon\":\"pi-box\",\"title\":\"Composable modules\",\"description\":\"Menus, anchors, sliders, forms, and footers.\"},{\"icon\":\"pi-images\",\"title\":\"DAM references\",\"description\":\"Asset refs and lists across fields and components.\"},{\"icon\":\"pi-sliders-h\",\"title\":\"Variants\",\"description\":\"Rules + deterministic split.\"}]}},\"slider\":{\"type\":\"card_slider\",\"props\":{\"title\":\"Highlights\",\"autoplay\":false,\"showArrows\":true,\"showDots\":true,\"cards\":[{\"imageAssetRef\":\"@asset:asset-feature-board\",\"title\":\"Marketing velocity\",\"text\":\"Launch pages quickly.\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"See solution\",\"target\":\"_self\"}},{\"imageAssetRef\":\"@asset:asset-integration-map\",\"title\":\"Commerce integrations\",\"text\":\"Connect catalog and content.\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"See solution\",\"target\":\"_self\"}},{\"imageAssetRef\":\"@asset:asset-security-shield\",\"title\":\"Enterprise governance\",\"text\":\"Secure preview and permissions.\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"See solution\",\"target\":\"_self\"}}]}},\"pricing\":{\"type\":\"pricing\",\"props\":{\"title\":\"Simple pricing\",\"tiers\":[{\"name\":\"Starter\",\"price\":\"$0\",\"description\":\"Prototype\",\"features\":[\"1 site\",\"Core pages\"],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Start\",\"target\":\"_self\"}},{\"name\":\"Growth\",\"price\":\"$199\",\"description\":\"Delivery teams\",\"features\":[\"DAM\",\"Forms\",\"Localization\"],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Request trial\",\"target\":\"_self\"}},{\"name\":\"Enterprise\",\"price\":\"Custom\",\"description\":\"Global orgs\",\"features\":[\"SSO\",\"Governance\",\"Support\"],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk sales\",\"target\":\"_self\"}}]}},\"teasers\":{\"type\":\"content_teasers\",\"props\":{\"title\":\"Resource hub\",\"intro\":\"Connected by internal links.\",\"items\":[{\"tag\":\"Article\",\"title\":\"Future of composable teams\",\"summary\":\"Operating model and rollout.\",\"imageAssetRef\":\"@asset:asset-article-1\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/blog/future-of-composable\",\"text\":\"Read\",\"target\":\"_self\"}},{\"tag\":\"Article\",\"title\":\"Localization at scale\",\"summary\":\"Market and locale routing.\",\"imageAssetRef\":\"@asset:asset-article-2\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/blog/localization-at-scale\",\"text\":\"Read\",\"target\":\"_self\"}},{\"tag\":\"Guide\",\"title\":\"Launch playbook\",\"summary\":\"Enterprise rollout guide.\",\"imageAssetRef\":\"@asset:asset-guide-cover\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/guides/launch-playbook\",\"text\":\"Read\",\"target\":\"_self\"}}]}},\"testimonials\":{\"type\":\"testimonials_slider\",\"props\":{\"title\":\"Testimonials\",\"autoplay\":true,\"items\":[{\"quote\":\"Launch lead time dropped from 10 days to 2.\",\"name\":\"Nora I.\",\"role\":\"VP Marketing\",\"avatarAssetRef\":\"@asset:asset-avatar-1\"},{\"quote\":\"Localization no longer blocks releases.\",\"name\":\"Marc T.\",\"role\":\"Web Ops Lead\",\"avatarAssetRef\":\"@asset:asset-avatar-2\"},{\"quote\":\"Variant rollout became auditable.\",\"name\":\"Elena K.\",\"role\":\"Director Digital\",\"avatarAssetRef\":\"@asset:asset-avatar-3\"}]}},\"faq\":{\"type\":\"faq\",\"props\":{\"title\":\"FAQ\",\"items\":[{\"question\":\"Is every module editable?\",\"answer\":\"Yes, via admin property editors and on-page annotations.\"},{\"question\":\"Are routes market-aware?\",\"answer\":\"Yes, using /{market}/{locale}/... path patterns.\"},{\"question\":\"Do forms store submissions?\",\"answer\":\"Yes, submissions appear in admin and can be exported.\"}]}},\"newsletter\":{\"type\":\"newsletter_form\",\"props\":{\"title\":\"Newsletter\",\"description\":\"Monthly updates.\",\"formId\":\"@form:form-newsletter-signup\",\"submitLabel\":\"Subscribe\"}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"home\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "index",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "platform-en",
+      "parentExternalId": "home-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Platform\",\"summary\":\"Platform summary\",\"body\":\"<p>Platform body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"anchor\",\"main\",\"tail\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Platform\",\"subtitle\":\"Platform page\",\"backgroundAssetRef\":\"@asset:asset-hero-grid\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"See features\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform/integrations\",\"text\":\"See integrations\",\"target\":\"_self\"}}},\"anchor\":{\"type\":\"anchor_nav\",\"props\":{\"title\":\"Platform sections\",\"sticky\":true,\"smoothScroll\":true,\"sections\":[{\"label\":\"Features\",\"anchorId\":\"features\"},{\"label\":\"Highlights\",\"anchorId\":\"highlights\"},{\"label\":\"FAQ\",\"anchorId\":\"faq\"}]}},\"main\":{\"type\":\"card_slider\",\"props\":{\"title\":\"Platform highlights\",\"autoplay\":true,\"showArrows\":true,\"showDots\":true,\"cards\":[{\"imageAssetRef\":\"@asset:asset-feature-board\",\"title\":\"Templates\",\"text\":\"Reusable page patterns.\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Open\",\"target\":\"_self\"}},{\"imageAssetRef\":\"@asset:asset-integration-map\",\"title\":\"Integrations\",\"text\":\"Connected architecture.\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform/integrations\",\"text\":\"Open\",\"target\":\"_self\"}},{\"imageAssetRef\":\"@asset:asset-security-shield\",\"title\":\"Security\",\"text\":\"Governance and controls.\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Open\",\"target\":\"_self\"}}]}},\"tail\":{\"type\":\"faq\",\"props\":{\"title\":\"Platform FAQ\",\"items\":[{\"question\":\"Can we manage component registry?\",\"answer\":\"Yes, component settings can be seeded and edited.\"}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"platform-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "platform",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "features-en",
+      "parentExternalId": "platform-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Features\",\"summary\":\"Features summary\",\"body\":\"<p>Features body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Features\",\"subtitle\":\"Features page\",\"backgroundAssetRef\":\"@asset:asset-feature-board\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk to sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Back to platform\",\"target\":\"_self\"}}},\"main\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"Features highlights\",\"items\":[{\"icon\":\"pi-star\",\"title\":\"Composable\",\"description\":\"Features module demo.\"},{\"icon\":\"pi-cog\",\"title\":\"Editable\",\"description\":\"All fields are editable.\"}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"features-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "platform/features",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "integrations-en",
+      "parentExternalId": "platform-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Integrations\",\"summary\":\"Integrations summary\",\"body\":\"<p>Integrations body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Integrations\",\"subtitle\":\"Integrations page\",\"backgroundAssetRef\":\"@asset:asset-integration-map\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk to sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Back to platform\",\"target\":\"_self\"}}},\"main\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"Integrations highlights\",\"items\":[{\"icon\":\"pi-star\",\"title\":\"Composable\",\"description\":\"Integrations module demo.\"},{\"icon\":\"pi-cog\",\"title\":\"Editable\",\"description\":\"All fields are editable.\"}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"integrations-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "platform/integrations",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "security-en",
+      "parentExternalId": "platform-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Security\",\"summary\":\"Security summary\",\"body\":\"<p>Security body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Security\",\"subtitle\":\"Security page\",\"backgroundAssetRef\":\"@asset:asset-security-shield\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk to sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Back to platform\",\"target\":\"_self\"}}},\"main\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"Security highlights\",\"items\":[{\"icon\":\"pi-star\",\"title\":\"Composable\",\"description\":\"Security module demo.\"},{\"icon\":\"pi-cog\",\"title\":\"Editable\",\"description\":\"All fields are editable.\"}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"security-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "platform/security",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "solutions-en",
+      "parentExternalId": "home-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Solutions\",\"summary\":\"Solutions summary\",\"body\":\"<p>Solutions body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Solutions\",\"subtitle\":\"Solutions page\",\"backgroundAssetRef\":\"@asset:asset-feature-board\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk to sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Back to platform\",\"target\":\"_self\"}}},\"main\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"Solutions highlights\",\"items\":[{\"icon\":\"pi-star\",\"title\":\"Composable\",\"description\":\"Solutions module demo.\"},{\"icon\":\"pi-cog\",\"title\":\"Editable\",\"description\":\"All fields are editable.\"}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"solutions-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "solutions",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "solution-marketing-en",
+      "parentExternalId": "solutions-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"For Marketing\",\"summary\":\"For Marketing summary\",\"body\":\"<p>For Marketing body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"For Marketing\",\"subtitle\":\"For Marketing page\",\"backgroundAssetRef\":\"@asset:asset-article-1\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk to sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Back to platform\",\"target\":\"_self\"}}},\"main\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"For Marketing highlights\",\"items\":[{\"icon\":\"pi-star\",\"title\":\"Composable\",\"description\":\"For Marketing module demo.\"},{\"icon\":\"pi-cog\",\"title\":\"Editable\",\"description\":\"All fields are editable.\"}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"solution-marketing-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "solutions/marketing",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "solution-commerce-en",
+      "parentExternalId": "solutions-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"For Commerce\",\"summary\":\"For Commerce summary\",\"body\":\"<p>For Commerce body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"For Commerce\",\"subtitle\":\"For Commerce page\",\"backgroundAssetRef\":\"@asset:asset-article-2\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk to sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Back to platform\",\"target\":\"_self\"}}},\"main\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"For Commerce highlights\",\"items\":[{\"icon\":\"pi-star\",\"title\":\"Composable\",\"description\":\"For Commerce module demo.\"},{\"icon\":\"pi-cog\",\"title\":\"Editable\",\"description\":\"All fields are editable.\"}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"solution-commerce-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "solutions/commerce",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "solution-enterprise-en",
+      "parentExternalId": "solutions-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"For Enterprises\",\"summary\":\"For Enterprises summary\",\"body\":\"<p>For Enterprises body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"For Enterprises\",\"subtitle\":\"For Enterprises page\",\"backgroundAssetRef\":\"@asset:asset-article-3\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk to sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Back to platform\",\"target\":\"_self\"}}},\"main\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"For Enterprises highlights\",\"items\":[{\"icon\":\"pi-star\",\"title\":\"Composable\",\"description\":\"For Enterprises module demo.\"},{\"icon\":\"pi-cog\",\"title\":\"Editable\",\"description\":\"All fields are editable.\"}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"solution-enterprise-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "solutions/enterprise",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "resources-en",
+      "parentExternalId": "home-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Resources\",\"summary\":\"Resources summary\",\"body\":\"<p>Resources body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Resources\",\"subtitle\":\"Resources page\",\"backgroundAssetRef\":\"@asset:asset-guide-cover\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk to sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Back to platform\",\"target\":\"_self\"}}},\"main\":{\"type\":\"content_teasers\",\"props\":{\"title\":\"Latest resources\",\"intro\":\"Blog + guide links\",\"items\":[{\"tag\":\"Article\",\"title\":\"Future of composable teams\",\"summary\":\"Operating model.\",\"imageAssetRef\":\"@asset:asset-article-1\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/blog/future-of-composable\",\"text\":\"Read\",\"target\":\"_self\"}},{\"tag\":\"Article\",\"title\":\"Localization at scale\",\"summary\":\"Routing model.\",\"imageAssetRef\":\"@asset:asset-article-2\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/blog/localization-at-scale\",\"text\":\"Read\",\"target\":\"_self\"}},{\"tag\":\"Guide\",\"title\":\"Launch playbook\",\"summary\":\"Rollout checklist.\",\"imageAssetRef\":\"@asset:asset-guide-cover\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/guides/launch-playbook\",\"text\":\"Read\",\"target\":\"_self\"}}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"resources-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "resources",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "blog-en",
+      "parentExternalId": "resources-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Blog\",\"summary\":\"Blog summary\",\"body\":\"<p>Blog body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Blog\",\"subtitle\":\"Blog page\",\"backgroundAssetRef\":\"@asset:asset-article-1\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk to sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Back to platform\",\"target\":\"_self\"}}},\"main\":{\"type\":\"content_teasers\",\"props\":{\"title\":\"Articles\",\"intro\":\"Three seeded articles.\",\"items\":[{\"tag\":\"Article\",\"title\":\"Future of composable teams\",\"summary\":\"Operating model.\",\"imageAssetRef\":\"@asset:asset-article-1\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/blog/future-of-composable\",\"text\":\"Read\",\"target\":\"_self\"}},{\"tag\":\"Article\",\"title\":\"Localization at scale\",\"summary\":\"Routing model.\",\"imageAssetRef\":\"@asset:asset-article-2\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/blog/localization-at-scale\",\"text\":\"Read\",\"target\":\"_self\"}},{\"tag\":\"Article\",\"title\":\"Design systems and CMS modules\",\"summary\":\"Design + content alignment.\",\"imageAssetRef\":\"@asset:asset-article-3\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/blog/design-systems\",\"text\":\"Read\",\"target\":\"_self\"}}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"blog-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "resources/blog",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "article-1-en",
+      "parentExternalId": "blog-en",
+      "contentTypeName": "ArticlePage",
+      "fieldsJson": "{\"title\":\"The future of composable teams\",\"summary\":\"The future of composable teams summary\",\"body\":\"<p>The future of composable teams body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-05\",\"publishDateTime\":\"2026-02-05T09:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-2-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-article-1\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Article Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"anchor\",\"main\",\"related\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"The future of composable teams\",\"subtitle\":\"The future of composable teams excerpt\",\"backgroundAssetRef\":\"@asset:asset-article-1\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Back to blog\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"resources/guides/launch-playbook\",\"text\":\"Open guide\",\"target\":\"_self\"}}},\"anchor\":{\"type\":\"anchor_nav\",\"props\":{\"title\":\"In this article\",\"sticky\":true,\"smoothScroll\":true,\"sections\":[{\"label\":\"Overview\",\"anchorId\":\"overview\"},{\"label\":\"Details\",\"anchorId\":\"details\"},{\"label\":\"Takeaways\",\"anchorId\":\"takeaways\"}]}},\"main\":{\"type\":\"text_block\",\"props\":{\"body\":\"<h2 id=\\\"overview\\\">Overview</h2><p>The future of composable teams overview.</p><h2 id=\\\"details\\\">Details</h2><p>The future of composable teams details.</p><h2 id=\\\"takeaways\\\">Takeaways</h2><p>The future of composable teams takeaways.</p>\",\"columns\":1}},\"related\":{\"type\":\"content_teasers\",\"props\":{\"title\":\"Related\",\"intro\":\"More resources\",\"items\":[{\"tag\":\"Guide\",\"title\":\"Launch playbook\",\"summary\":\"Enterprise rollout guide.\",\"imageAssetRef\":\"@asset:asset-guide-cover\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/guides/launch-playbook\",\"text\":\"Read\",\"target\":\"_self\"}}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Article Template\",\"category\":\"article\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "resources/blog/future-of-composable",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "article-2-en",
+      "parentExternalId": "blog-en",
+      "contentTypeName": "ArticlePage",
+      "fieldsJson": "{\"title\":\"Localization at scale\",\"summary\":\"Localization at scale summary\",\"body\":\"<p>Localization at scale body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-05\",\"publishDateTime\":\"2026-02-05T09:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-3-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-article-2\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Article Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"anchor\",\"main\",\"related\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Localization at scale\",\"subtitle\":\"Localization at scale excerpt\",\"backgroundAssetRef\":\"@asset:asset-article-2\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Back to blog\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"resources/guides/launch-playbook\",\"text\":\"Open guide\",\"target\":\"_self\"}}},\"anchor\":{\"type\":\"anchor_nav\",\"props\":{\"title\":\"In this article\",\"sticky\":true,\"smoothScroll\":true,\"sections\":[{\"label\":\"Overview\",\"anchorId\":\"overview\"},{\"label\":\"Details\",\"anchorId\":\"details\"},{\"label\":\"Takeaways\",\"anchorId\":\"takeaways\"}]}},\"main\":{\"type\":\"text_block\",\"props\":{\"body\":\"<h2 id=\\\"overview\\\">Overview</h2><p>Localization at scale overview.</p><h2 id=\\\"details\\\">Details</h2><p>Localization at scale details.</p><h2 id=\\\"takeaways\\\">Takeaways</h2><p>Localization at scale takeaways.</p>\",\"columns\":1}},\"related\":{\"type\":\"content_teasers\",\"props\":{\"title\":\"Related\",\"intro\":\"More resources\",\"items\":[{\"tag\":\"Guide\",\"title\":\"Launch playbook\",\"summary\":\"Enterprise rollout guide.\",\"imageAssetRef\":\"@asset:asset-guide-cover\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/guides/launch-playbook\",\"text\":\"Read\",\"target\":\"_self\"}}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Article Template\",\"category\":\"article\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "resources/blog/localization-at-scale",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "article-3-en",
+      "parentExternalId": "blog-en",
+      "contentTypeName": "ArticlePage",
+      "fieldsJson": "{\"title\":\"Design systems and CMS modules\",\"summary\":\"Design systems and CMS modules summary\",\"body\":\"<p>Design systems and CMS modules body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-05\",\"publishDateTime\":\"2026-02-05T09:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-article-3\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Article Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"anchor\",\"main\",\"related\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Design systems and CMS modules\",\"subtitle\":\"Design systems and CMS modules excerpt\",\"backgroundAssetRef\":\"@asset:asset-article-3\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Back to blog\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"resources/guides/launch-playbook\",\"text\":\"Open guide\",\"target\":\"_self\"}}},\"anchor\":{\"type\":\"anchor_nav\",\"props\":{\"title\":\"In this article\",\"sticky\":true,\"smoothScroll\":true,\"sections\":[{\"label\":\"Overview\",\"anchorId\":\"overview\"},{\"label\":\"Details\",\"anchorId\":\"details\"},{\"label\":\"Takeaways\",\"anchorId\":\"takeaways\"}]}},\"main\":{\"type\":\"text_block\",\"props\":{\"body\":\"<h2 id=\\\"overview\\\">Overview</h2><p>Design systems and CMS modules overview.</p><h2 id=\\\"details\\\">Details</h2><p>Design systems and CMS modules details.</p><h2 id=\\\"takeaways\\\">Takeaways</h2><p>Design systems and CMS modules takeaways.</p>\",\"columns\":1}},\"related\":{\"type\":\"content_teasers\",\"props\":{\"title\":\"Related\",\"intro\":\"More resources\",\"items\":[{\"tag\":\"Guide\",\"title\":\"Launch playbook\",\"summary\":\"Enterprise rollout guide.\",\"imageAssetRef\":\"@asset:asset-guide-cover\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/guides/launch-playbook\",\"text\":\"Read\",\"target\":\"_self\"}}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Article Template\",\"category\":\"article\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "resources/blog/design-systems",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "guides-en",
+      "parentExternalId": "resources-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Guides\",\"summary\":\"Guides summary\",\"body\":\"<p>Guides body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Guides\",\"subtitle\":\"Guides page\",\"backgroundAssetRef\":\"@asset:asset-guide-cover\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk to sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Back to platform\",\"target\":\"_self\"}}},\"main\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"Guides highlights\",\"items\":[{\"icon\":\"pi-star\",\"title\":\"Composable\",\"description\":\"Guides module demo.\"},{\"icon\":\"pi-cog\",\"title\":\"Editable\",\"description\":\"All fields are editable.\"}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"guides-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "resources/guides",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "guide-1-en",
+      "parentExternalId": "guides-en",
+      "contentTypeName": "GuidePage",
+      "fieldsJson": "{\"title\":\"Enterprise launch playbook\",\"summary\":\"Guide for rollout and governance.\",\"body\":\"<p>Enterprise launch playbook body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-2-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-guide-cover\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Docs/Guide Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"anchor\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Enterprise launch playbook\",\"subtitle\":\"Checklist from pilot to global rollout.\",\"backgroundAssetRef\":\"@asset:asset-guide-cover\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Request review\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Back to guides\",\"target\":\"_self\"}}},\"anchor\":{\"type\":\"anchor_nav\",\"props\":{\"title\":\"Guide contents\",\"sticky\":true,\"smoothScroll\":true,\"sections\":[{\"label\":\"Overview\",\"anchorId\":\"overview\"},{\"label\":\"Checklist\",\"anchorId\":\"checklist\"},{\"label\":\"Rollout\",\"anchorId\":\"rollout\"}]}},\"main\":{\"type\":\"text_block\",\"props\":{\"body\":\"<h2 id=\\\"overview\\\">Overview</h2><p>Define ownership and goals.</p><h2 id=\\\"checklist\\\">Checklist</h2><p>Model types, templates, routes, and forms.</p><h2 id=\\\"rollout\\\">Rollout</h2><p>Launch by market waves and monitor variants.</p>\",\"columns\":1}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Docs/Guide Template\",\"category\":\"guide\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "resources/guides/launch-playbook",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "pricing-en",
+      "parentExternalId": "home-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Pricing\",\"summary\":\"Pricing summary\",\"body\":\"<p>Pricing body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"anchor\",\"main\",\"tail\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Pricing\",\"subtitle\":\"Pricing page\",\"backgroundAssetRef\":\"@asset:asset-pricing-bg\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk to sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"}}},\"anchor\":{\"type\":\"anchor_nav\",\"props\":{\"title\":\"Pricing sections\",\"sticky\":true,\"smoothScroll\":true,\"sections\":[{\"label\":\"Plans\",\"anchorId\":\"pricing\"},{\"label\":\"FAQ\",\"anchorId\":\"faq\"},{\"label\":\"Contact\",\"anchorId\":\"newsletter\"}]}},\"main\":{\"type\":\"pricing\",\"props\":{\"title\":\"Choose your tier\",\"tiers\":[{\"name\":\"Starter\",\"price\":\"$0\",\"description\":\"Prototype\",\"features\":[\"1 site\",\"Core pages\"],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Start\",\"target\":\"_self\"}},{\"name\":\"Growth\",\"price\":\"$199\",\"description\":\"Delivery teams\",\"features\":[\"DAM\",\"Forms\",\"Localization\"],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Trial\",\"target\":\"_self\"}},{\"name\":\"Enterprise\",\"price\":\"Custom\",\"description\":\"Global orgs\",\"features\":[\"SSO\",\"Governance\",\"Support\"],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Proposal\",\"target\":\"_self\"}}]}},\"tail\":{\"type\":\"newsletter_form\",\"props\":{\"title\":\"Need pricing guidance?\",\"description\":\"Send your requirements.\",\"formId\":\"@form:form-contact-demo\",\"submitLabel\":\"Send request\"}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"pricing-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "pricing",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "contact-en",
+      "parentExternalId": "home-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Contact\",\"summary\":\"Contact summary\",\"body\":\"<p>Contact body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"tail\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Contact\",\"subtitle\":\"Contact page\",\"backgroundAssetRef\":\"@asset:asset-contact-team\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk to sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Back to platform\",\"target\":\"_self\"}}},\"main\":{\"type\":\"newsletter_form\",\"props\":{\"title\":\"Request a demo\",\"description\":\"Tell us your use case.\",\"formId\":\"@form:form-contact-demo\",\"submitLabel\":\"Submit request\"}},\"tail\":{\"type\":\"newsletter_form\",\"props\":{\"title\":\"Also subscribe\",\"description\":\"Product updates.\",\"formId\":\"@form:form-newsletter-signup\",\"submitLabel\":\"Subscribe\"}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"contact-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "contact",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "legal-en",
+      "parentExternalId": "home-en",
+      "contentTypeName": "StandardPage",
+      "fieldsJson": "{\"title\":\"Legal\",\"summary\":\"Terms and privacy info.\",\"body\":\"<p>Legal body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Legal\",\"subtitle\":\"Policy and compliance information.\",\"backgroundAssetRef\":\"@asset:asset-security-shield\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact legal\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Back home\",\"target\":\"_self\"}}},\"main\":{\"type\":\"text_block\",\"props\":{\"body\":\"<h2>Terms</h2><p>Demo legal copy.</p><h2>Privacy</h2><p>Demo privacy copy.</p>\",\"columns\":1}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"legal\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "legal",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "playground-en",
+      "parentExternalId": "home-en",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Playground\",\"summary\":\"Playground summary\",\"body\":\"<p>Playground body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"anchor\",\"main\",\"tail\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Brand\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Home\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Platform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Platform\",\"target\":\"_self\"}},{\"label\":\"Solutions\",\"description\":\"Use-case groups\",\"groupTitle\":\"Solutions\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"solutions/marketing\",\"text\":\"For Marketing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/commerce\",\"text\":\"For Commerce\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"solutions/enterprise\",\"text\":\"For Enterprises\",\"target\":\"_self\"}]},{\"label\":\"Resources\",\"description\":\"Blog and guides\",\"groupTitle\":\"Resources\",\"subLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"label\":\"Pricing\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"}},{\"label\":\"Contact\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Book a Demo\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Playground\",\"subtitle\":\"Playground page\",\"backgroundAssetRef\":\"@asset:asset-feature-board\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Talk to sales\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Back to platform\",\"target\":\"_self\"}}},\"anchor\":{\"type\":\"anchor_nav\",\"props\":{\"title\":\"Playground sections\",\"sticky\":true,\"smoothScroll\":true,\"sections\":[{\"label\":\"Features\",\"anchorId\":\"features\"},{\"label\":\"Highlights\",\"anchorId\":\"highlights\"},{\"label\":\"Stats\",\"anchorId\":\"stats\"},{\"label\":\"Testimonials\",\"anchorId\":\"testimonials\"},{\"label\":\"Pricing\",\"anchorId\":\"pricing\"},{\"label\":\"FAQ\",\"anchorId\":\"faq\"}]}},\"main\":{\"type\":\"card_slider\",\"props\":{\"title\":\"Card slider\",\"autoplay\":true,\"showArrows\":true,\"showDots\":true,\"cards\":[{\"imageAssetRef\":\"@asset:asset-article-1\",\"title\":\"Card one\",\"text\":\"Module showcase\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/blog/future-of-composable\",\"text\":\"Read\",\"target\":\"_self\"}},{\"imageAssetRef\":\"@asset:asset-article-2\",\"title\":\"Card two\",\"text\":\"Module showcase\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"resources/blog/localization-at-scale\",\"text\":\"Read\",\"target\":\"_self\"}}]}},\"tail\":{\"type\":\"testimonials_slider\",\"props\":{\"title\":\"Testimonials slider\",\"autoplay\":false,\"items\":[{\"quote\":\"Editing feels immediate and safe.\",\"name\":\"Priya M.\",\"role\":\"Content Lead\",\"avatarAssetRef\":\"@asset:asset-avatar-1\"},{\"quote\":\"Localized routing became straightforward.\",\"name\":\"Lars H.\",\"role\":\"Platform Owner\",\"avatarAssetRef\":\"@asset:asset-avatar-2\"}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"playground-en\"}",
+      "routes": [
+        {
+          "marketCode": "US",
+          "localeCode": "en-US",
+          "slug": "playground",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "home-de",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Startseite\",\"summary\":\"Startseite summary\",\"body\":\"<p>Startseite body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"tail\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Marke\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Start\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Plattform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Plattform\",\"target\":\"_self\"}},{\"label\":\"Preise\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Preise\",\"target\":\"_self\"}},{\"label\":\"Kontakt\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Kontakt\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Demo anfragen\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Startseite\",\"subtitle\":\"Startseite page\",\"backgroundAssetRef\":\"@asset:asset-hero-wave\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Plattform ansehen\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Preise vergleichen\",\"target\":\"_self\"}}},\"main\":{\"type\":\"stats_strip\",\"props\":{\"title\":\"Kennzahlen\",\"items\":[{\"value\":\"2\",\"suffix\":\"x\",\"label\":\"Schnellerer Launch\"},{\"value\":\"11\",\"suffix\":\"\",\"label\":\"Aktive Teams\"},{\"value\":\"0\",\"suffix\":\"\",\"label\":\"Freigabe-Blocker\"}]}},\"tail\":{\"type\":\"content_teasers\",\"props\":{\"title\":\"Hub Inhalte\",\"intro\":\"Lokalisierte Abschnitte fuer DE.\",\"items\":[{\"tag\":\"Artikel\",\"title\":\"Lokalisierung ohne Flaschenhaelse\",\"summary\":\"Routing und Workflows.\",\"imageAssetRef\":\"@asset:asset-article-2\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Mehr\",\"target\":\"_self\"}},{\"tag\":\"Guide\",\"title\":\"Launch Playbook\",\"summary\":\"Rollout checklist.\",\"imageAssetRef\":\"@asset:asset-guide-cover\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Anfragen\",\"target\":\"_self\"}}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"home-de\"}",
+      "routes": [
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "slug": "index",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "platform-de",
+      "parentExternalId": "home-de",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Plattform\",\"summary\":\"Plattform summary\",\"body\":\"<p>Plattform body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Marke\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Start\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Plattform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Plattform\",\"target\":\"_self\"}},{\"label\":\"Preise\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Preise\",\"target\":\"_self\"}},{\"label\":\"Kontakt\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Kontakt\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Demo anfragen\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Plattform\",\"subtitle\":\"Plattform page\",\"backgroundAssetRef\":\"@asset:asset-hero-grid\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Architekturgespraech\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Preisoptionen\",\"target\":\"_self\"}}},\"main\":{\"type\":\"feature_grid\",\"props\":{\"title\":\"Schwerpunkte in DE\",\"items\":[{\"icon\":\"pi-shield\",\"title\":\"Governance\",\"description\":\"Rollen, Freigaben und sichere Vorschau.\"},{\"icon\":\"pi-language\",\"title\":\"Lokale Ausspielung\",\"description\":\"Saubere Markt-/Sprachrouten.\"},{\"icon\":\"pi-sliders-h\",\"title\":\"Zielgruppen-Varianten\",\"description\":\"Deterministische A/B-Aussteuerung.\"}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"platform-de\"}",
+      "routes": [
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "slug": "platform",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "pricing-de",
+      "parentExternalId": "home-de",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Preise\",\"summary\":\"Preise summary\",\"body\":\"<p>Preise body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Marke\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Start\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Plattform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Plattform\",\"target\":\"_self\"}},{\"label\":\"Preise\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Preise\",\"target\":\"_self\"}},{\"label\":\"Kontakt\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Kontakt\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Demo anfragen\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Preise\",\"subtitle\":\"Preise page\",\"backgroundAssetRef\":\"@asset:asset-pricing-bg\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Angebot anfragen\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Plattform\",\"target\":\"_self\"}}},\"main\":{\"type\":\"pricing\",\"props\":{\"title\":\"Pakete\",\"tiers\":[{\"name\":\"Starter\",\"price\":\"0 EUR\",\"description\":\"Prototyp\",\"features\":[\"1 Site\",\"Basis\"],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Starten\",\"target\":\"_self\"}},{\"name\":\"Growth\",\"price\":\"199 EUR\",\"description\":\"Delivery Teams\",\"features\":[\"DAM\",\"Formulare\",\"Routing\"],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Testen\",\"target\":\"_self\"}},{\"name\":\"Enterprise\",\"price\":\"Individuell\",\"description\":\"Global\",\"features\":[\"SSO\",\"Governance\",\"Support\"],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Beratung\",\"target\":\"_self\"}}]}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"pricing-de\"}",
+      "routes": [
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "slug": "pricing",
+          "isCanonical": true
+        }
+      ]
+    },
+    {
+      "externalId": "contact-de",
+      "parentExternalId": "home-de",
+      "contentTypeName": "LandingPage",
+      "fieldsJson": "{\"title\":\"Kontakt\",\"summary\":\"Kontakt summary\",\"body\":\"<p>Kontakt body.</p>\",\"priority\":50,\"score\":88.5,\"isFeatured\":true,\"publishDate\":\"2026-02-01\",\"publishDateTime\":\"2026-02-01T10:00:00.000Z\",\"theme\":\"ocean\",\"tags\":[\"cms\",\"forms\"],\"relatedArticle\":\"@item:article-1-en\",\"heroLink\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Explore platform\",\"target\":\"_self\"},\"secondaryLinks\":[{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Pricing\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"https://contenthead.dev/docs\",\"text\":\"Docs\",\"target\":\"_blank\"}],\"heroAsset\":\"@asset:asset-hero-wave\",\"galleryAssets\":[\"@asset:asset-feature-board\",\"@asset:asset-integration-map\"],\"settingsJson\":{\"templateName\":\"Marketing Template\",\"density\":\"comfortable\"}}",
+      "compositionJson": "{\"areas\":[{\"name\":\"main\",\"components\":[\"header\",\"hero\",\"main\",\"footer\"]}]}",
+      "componentsJson": "{\"header\":{\"type\":\"main_menu\",\"props\":{\"brandLabel\":\"Demo Marke\",\"brandLink\":{\"kind\":\"internal\",\"routeSlug\":\"\",\"text\":\"Start\",\"target\":\"_self\"},\"sticky\":true,\"items\":[{\"label\":\"Plattform\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"platform\",\"text\":\"Plattform\",\"target\":\"_self\"}},{\"label\":\"Preise\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Preise\",\"target\":\"_self\"}},{\"label\":\"Kontakt\",\"link\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Kontakt\",\"target\":\"_self\"}}],\"cta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Demo anfragen\",\"target\":\"_self\"},\"localeLinks\":[{\"kind\":\"external\",\"url\":\"/US/en-US/index\",\"text\":\"EN\",\"target\":\"_self\"},{\"kind\":\"external\",\"url\":\"/DE/de-DE/index\",\"text\":\"DE\",\"target\":\"_self\"}]}},\"hero\":{\"type\":\"hero\",\"props\":{\"title\":\"Kontakt\",\"subtitle\":\"Kontakt page\",\"backgroundAssetRef\":\"@asset:asset-contact-team\",\"primaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Demo starten\",\"target\":\"_self\"},\"secondaryCta\":{\"kind\":\"internal\",\"routeSlug\":\"pricing\",\"text\":\"Preise\",\"target\":\"_self\"}}},\"main\":{\"type\":\"newsletter_form\",\"props\":{\"title\":\"Demo Anfrage\",\"description\":\"Teilen Sie Ziele und Zeitplan.\",\"formId\":\"@form:form-contact-demo\",\"submitLabel\":\"Absenden\"}},\"footer\":{\"type\":\"footer\",\"props\":{\"copyright\":\"2026 Demo Brand\",\"linkGroups\":[{\"title\":\"Platform\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"platform/features\",\"text\":\"Features\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"platform/security\",\"text\":\"Security\",\"target\":\"_self\"}]},{\"title\":\"Resources\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"resources/blog\",\"text\":\"Blog\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"resources/guides\",\"text\":\"Guides\",\"target\":\"_self\"}]},{\"title\":\"Company\",\"links\":[{\"kind\":\"internal\",\"routeSlug\":\"legal\",\"text\":\"Legal\",\"target\":\"_self\"},{\"kind\":\"internal\",\"routeSlug\":\"contact\",\"text\":\"Contact\",\"target\":\"_self\"}]}],\"socialLinks\":[{\"kind\":\"external\",\"url\":\"https://x.com/contenthead\",\"text\":\"X\",\"target\":\"_blank\"},{\"kind\":\"external\",\"url\":\"https://linkedin.com/company/contenthead\",\"text\":\"LinkedIn\",\"target\":\"_blank\"}]}}}",
+      "metadataJson": "{\"templateName\":\"Marketing Template\",\"category\":\"contact-de\"}",
+      "routes": [
+        {
+          "marketCode": "DE",
+          "localeCode": "de-DE",
+          "slug": "contact",
+          "isCanonical": true
+        }
+      ]
+    }
+  ]
+}
