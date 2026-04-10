@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
 import type { DataTableSortEvent } from 'primereact/datatable';
-import { Dropdown } from 'primereact/dropdown';
-import { InputText } from 'primereact/inputtext';
-import { Tag } from 'primereact/tag';
-import { Calendar } from 'primereact/calendar';
+
+import { Button, DatePicker, Select, Tag, TextInput } from '../../ui/atoms';
 
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
@@ -305,61 +302,60 @@ export function FormSubmissionsPage() {
         <div className="grid">
           <div className="col-12 md:col-6 xl:col-3">
             <label>Site</label>
-            <Dropdown
-              value={siteId}
-              options={siteOptions.map((entry) => ({ label: `${entry.name} (#${entry.id})`, value: entry.id }))}
-              onChange={(event) => {
-                setSiteId(Number(event.value));
-                setFirst(0);
+            <Select
+              value={String(siteId)}
+              options={siteOptions.map((entry) => ({ label: `${entry.name} (#${entry.id})`, value: String(entry.id) }))}
+              onChange={(next) => {
+                if (next !== undefined) { setSiteId(Number(next)); setFirst(0); }
               }}
             />
           </div>
           <div className="col-12 md:col-6 xl:col-3">
             <label>Form</label>
-            <Dropdown
-              value={formId}
-              options={[{ label: 'All forms', value: null }, ...formOptions.map((entry) => ({ label: entry.name, value: entry.id }))]}
-              onChange={(event) => {
-                setFormId(event.value ?? null);
+            <Select
+              value={formId !== null ? String(formId) : ''}
+              options={[{ label: 'All forms', value: '' }, ...formOptions.map((entry) => ({ label: entry.name, value: String(entry.id) }))]}
+              onChange={(next) => {
+                setFormId(next ? Number(next) : null);
                 setFirst(0);
               }}
             />
           </div>
           <div className="col-12 md:col-6 xl:col-3">
             <label>Status</label>
-            <Dropdown
-              value={statusFilter}
+            <Select
+              value={statusFilter ?? ''}
               options={[
-                { label: 'All statuses', value: null },
+                { label: 'All statuses', value: '' },
                 { label: 'new', value: 'new' },
                 { label: 'processed', value: 'processed' },
                 { label: 'needs_review', value: 'needs_review' }
               ]}
-              onChange={(event) => {
-                setStatusFilter(event.value ?? null);
+              onChange={(next) => {
+                setStatusFilter(next || null);
                 setFirst(0);
               }}
             />
           </div>
           <div className="col-12 md:col-6 xl:col-3">
             <label>Market</label>
-            <InputText value={marketFilter} onChange={(event) => { setMarketFilter(event.target.value); setFirst(0); }} placeholder="US" />
+            <TextInput value={marketFilter} onChange={(next) => { setMarketFilter(next); setFirst(0); }} placeholder="US" />
           </div>
           <div className="col-12 md:col-6 xl:col-3">
             <label>Locale</label>
-            <InputText value={localeFilter} onChange={(event) => { setLocaleFilter(event.target.value); setFirst(0); }} placeholder="en-US" />
+            <TextInput value={localeFilter} onChange={(next) => { setLocaleFilter(next); setFirst(0); }} placeholder="en-US" />
           </div>
           <div className="col-12 md:col-6 xl:col-3">
             <label>From</label>
-            <Calendar value={fromDate} onChange={(event) => { setFromDate((event.value as Date | null) ?? null); setFirst(0); }} showIcon />
+            <DatePicker value={fromDate} onChange={(next) => { setFromDate(next ?? null); setFirst(0); }} showIcon />
           </div>
           <div className="col-12 md:col-6 xl:col-3">
             <label>To</label>
-            <Calendar value={toDate} onChange={(event) => { setToDate((event.value as Date | null) ?? null); setFirst(0); }} showIcon />
+            <DatePicker value={toDate} onChange={(next) => { setToDate(next ?? null); setFirst(0); }} showIcon />
           </div>
           <div className="col-12 md:col-6 xl:col-3">
             <label>Search</label>
-            <InputText value={search} onChange={(event) => { setSearch(event.target.value); setFirst(0); }} placeholder="Search answers/meta/route" />
+            <TextInput value={search} onChange={(next) => { setSearch(next); setFirst(0); }} placeholder="Search answers/meta/route" />
           </div>
         </div>
         <small className="muted">Tip: group by `Form` and expand rows to inspect full submitted JSON payload and metadata.</small>

@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { Dropdown } from 'primereact/dropdown';
-import { InputSwitch } from 'primereact/inputswitch';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { MultiSelect } from 'primereact/multiselect';
 import { TabPanel, TabView } from 'primereact/tabview';
-import { Tag } from 'primereact/tag';
+
+import { Button, MultiSelect, Select, Switch, Tag, Textarea, TextInput } from '../../ui/atoms';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
@@ -658,9 +653,9 @@ export function ComponentRegistryPage() {
               <div className="split-layout-2">
                 <div>
                   <div className="table-toolbar">
-                    <InputText
+                    <TextInput
                       value={search}
-                      onChange={(event) => setSearch(event.target.value)}
+                      onChange={(next) => setSearch(next)}
                       placeholder="Search component types"
                     />
                   </div>
@@ -703,19 +698,19 @@ export function ComponentRegistryPage() {
                         <div className="form-grid">
                           <div className="form-row">
                             <label>Component ID</label>
-                            <InputText value={draft.id} readOnly />
+                            <TextInput value={draft.id} readOnly />
                           </div>
                           <div className="form-row">
                             <label>Label</label>
-                            <InputText value={draft.label} onChange={(event) => setDraft((prev) => (prev ? { ...prev, label: event.target.value } : prev))} />
+                            <TextInput value={draft.label} onChange={(next) => setDraft((prev) => (prev ? { ...prev, label: next } : prev))} />
                           </div>
                           <div className="form-row">
                             <label>Group</label>
-                            <InputText value={draft.groupName} onChange={(event) => setDraft((prev) => (prev ? { ...prev, groupName: event.target.value } : prev))} />
+                            <TextInput value={draft.groupName} onChange={(next) => setDraft((prev) => (prev ? { ...prev, groupName: next } : prev))} />
                           </div>
                           <div className="form-row">
                             <label>Enabled</label>
-                            <InputSwitch checked={draft.enabled} onChange={(event) => setDraft((prev) => (prev ? { ...prev, enabled: Boolean(event.value) } : prev))} />
+                            <Switch checked={draft.enabled} onChange={(next) => setDraft((prev) => (prev ? { ...prev, enabled: next } : prev))} />
                           </div>
                         </div>
                       </TabPanel>
@@ -798,16 +793,17 @@ export function ComponentRegistryPage() {
                             headerClassName="w-5rem"
                             bodyClassName="w-5rem"
                           />
-                          <Column header="Key" body={(row: PropDef, options) => <InputText value={row.key} onChange={(event) => updateProp(options.rowIndex, { key: event.target.value })} />} />
-                          <Column header="Label" body={(row: PropDef, options) => <InputText value={row.label} onChange={(event) => updateProp(options.rowIndex, { label: event.target.value })} />} />
+                          <Column header="Key" body={(row: PropDef, options) => <TextInput value={row.key} onChange={(next) => updateProp(options.rowIndex, { key: next })} />} />
+                          <Column header="Label" body={(row: PropDef, options) => <TextInput value={row.label} onChange={(next) => updateProp(options.rowIndex, { label: next })} />} />
                           <Column
                             header="Type"
                             body={(row: PropDef, options) => (
-                              <Dropdown
+                              <Select
                                 value={row.type}
                                 options={PROP_TYPE_OPTIONS}
-                                onChange={(event) => {
-                                  const nextType = event.value as PropType;
+                                onChange={(next) => {
+                                  if (!next) return;
+                                  const nextType = next as PropType;
                                   updateProp(options.rowIndex, {
                                     type: nextType,
                                     control: defaultControlForType(nextType)
@@ -816,9 +812,9 @@ export function ComponentRegistryPage() {
                               />
                             )}
                           />
-                          <Column header="Required" body={(row: PropDef, options) => <InputSwitch checked={row.required} onChange={(event) => updateProp(options.rowIndex, { required: Boolean(event.value) })} />} />
-                          <Column header="Default" body={(row: PropDef, options) => <InputText value={row.defaultValue} onChange={(event) => updateProp(options.rowIndex, { defaultValue: event.target.value })} />} />
-                          <Column header="Control" body={(row: PropDef, options) => <Dropdown value={row.control} options={CONTROL_OPTIONS} onChange={(event) => updateProp(options.rowIndex, { control: event.value as ControlType })} />} />
+                          <Column header="Required" body={(row: PropDef, options) => <Switch checked={row.required} onChange={(next) => updateProp(options.rowIndex, { required: next })} />} />
+                          <Column header="Default" body={(row: PropDef, options) => <TextInput value={row.defaultValue} onChange={(next) => updateProp(options.rowIndex, { defaultValue: next })} />} />
+                          <Column header="Control" body={(row: PropDef, options) => <Select value={row.control} options={CONTROL_OPTIONS} onChange={(next) => next && updateProp(options.rowIndex, { control: next as ControlType })} />} />
                           <Column
                             header="Ref Types"
                             body={(row: PropDef, options) => {
@@ -833,11 +829,8 @@ export function ComponentRegistryPage() {
                                 <MultiSelect
                                   value={selected}
                                   options={componentTypeOptions}
-                                  onChange={(event) => {
-                                    const next = Array.isArray(event.value)
-                                      ? event.value.filter((value): value is string => typeof value === 'string')
-                                      : [];
-                                    updateProp(options.rowIndex, { refComponentTypesText: next.join(', ') });
+                                  onChange={(next) => {
+                                    updateProp(options.rowIndex, { refComponentTypesText: (next ?? []).join(', ') });
                                   }}
                                   display="chip"
                                   filter
@@ -875,19 +868,19 @@ export function ComponentRegistryPage() {
                             <div className="form-grid">
                             <div className="form-row">
                               <label>{prop.key} control</label>
-                              <Dropdown value={prop.control} options={CONTROL_OPTIONS} onChange={(event) => updateProp(index, { control: event.value as ControlType })} />
+                              <Select value={prop.control} options={CONTROL_OPTIONS} onChange={(next) => next && updateProp(index, { control: next as ControlType })} />
                             </div>
                             {prop.type === 'select' ? (
                               <div className="form-row">
                                 <label>{prop.key} options</label>
-                                <InputTextarea rows={3} value={prop.optionsText} onChange={(event) => updateProp(index, { optionsText: event.target.value })} />
+                                <Textarea rows={3} value={prop.optionsText} onChange={(next) => updateProp(index, { optionsText: next })} />
                               </div>
                             ) : null}
                             {prop.type === 'objectList' ? (
                               <>
                                 <div className="form-row">
                                   <label>{prop.key} item label key</label>
-                                  <InputText value={prop.itemLabelKey} onChange={(event) => updateProp(index, { itemLabelKey: event.target.value })} placeholder="title" />
+                                  <TextInput value={prop.itemLabelKey} onChange={(next) => updateProp(index, { itemLabelKey: next })} placeholder="title" />
                                 </div>
                                 <div className="form-row">
                                   <label>{prop.key} nested fields JSON</label>
@@ -907,11 +900,8 @@ export function ComponentRegistryPage() {
                                 <MultiSelect
                                   value={prop.refComponentTypesText.split(',').map((value) => value.trim()).filter(Boolean)}
                                   options={componentTypeOptions}
-                                  onChange={(event) => {
-                                    const next = Array.isArray(event.value)
-                                      ? event.value.filter((value): value is string => typeof value === 'string')
-                                      : [];
-                                    updateProp(index, { refComponentTypesText: next.join(', ') });
+                                  onChange={(next) => {
+                                    updateProp(index, { refComponentTypesText: (next ?? []).join(', ') });
                                   }}
                                   display="chip"
                                   filter
@@ -931,9 +921,9 @@ export function ComponentRegistryPage() {
                             <div className="form-row" key={`preview-${prop.key}`}>
                               <label>{prop.label}{prop.required ? ' *' : ''}</label>
                               {prop.type === 'richtext' ? (
-                                <InputTextarea rows={4} value={previewValues[prop.key] ?? ''} onChange={(event) => setPreviewValues((prev) => ({ ...prev, [prop.key]: event.target.value }))} />
+                                <Textarea rows={4} value={previewValues[prop.key] ?? ''} onChange={(next) => setPreviewValues((prev) => ({ ...prev, [prop.key]: next }))} />
                               ) : prop.type === 'select' ? (
-                                <Dropdown
+                                <Select
                                   value={previewValues[prop.key] ?? ''}
                                   options={prop.optionsText
                                     .split('\n')
@@ -943,15 +933,14 @@ export function ComponentRegistryPage() {
                                       const [value, label] = line.split(':');
                                       return { value: (value ?? '').trim(), label: (label ?? value ?? '').trim() };
                                     })}
-                                  onChange={(event) => setPreviewValues((prev) => ({ ...prev, [prop.key]: String(event.value ?? '') }))}
+                                  onChange={(next) => setPreviewValues((prev) => ({ ...prev, [prop.key]: next ?? '' }))}
                                 />
                               ) : prop.type === 'componentRef' ? (
-                                <Dropdown
+                                <Select
                                   value={previewValues[prop.key] ?? ''}
                                   options={componentTypeOptions}
-                                  onChange={(event) => setPreviewValues((prev) => ({ ...prev, [prop.key]: String(event.value ?? '') }))}
+                                  onChange={(next) => setPreviewValues((prev) => ({ ...prev, [prop.key]: next ?? '' }))}
                                   filter
-                                  showClear
                                 />
                               ) : prop.type === 'stringList' || prop.type === 'contentLinkList' || prop.type === 'assetList' || prop.type === 'objectList' ? (
                                 <JsonSourceEditor
@@ -978,7 +967,7 @@ export function ComponentRegistryPage() {
                                   schema={looseJsonObjectSchema}
                                 />
                               ) : (
-                                <InputText value={previewValues[prop.key] ?? ''} onChange={(event) => setPreviewValues((prev) => ({ ...prev, [prop.key]: event.target.value }))} />
+                                <TextInput value={previewValues[prop.key] ?? ''} onChange={(next) => setPreviewValues((prev) => ({ ...prev, [prop.key]: next }))} />
                               )}
                             </div>
                           ))}

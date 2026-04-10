@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { Toast } from 'primereact/toast';
-import type { ToastMessage } from 'primereact/toast';
+import type { ToastMessage } from 'primereact/toast'; // intentional: adapts ToastOptions → PrimeReact at this boundary only
 import { PRIME_THEMES, type ThemeOption } from '../theme/themeList';
 import { applyScale, applyTheme } from '../theme/themeManager';
 import { createThemeBridgeSnapshot, type ThemeBridgeSnapshot } from '../theme/themeBridge';
 import { setGraphqlErrorNotifier } from '../lib/graphqlReliability';
-import { registerToastDispatcher, showError, showToast } from '../ui/toast';
+import { registerToastDispatcher, showError, showToast, type ToastOptions } from '../ui/toast';
 
 const THEME_STORAGE_KEY = 'contenthead.admin.theme';
 const SCALE_STORAGE_KEY = 'contenthead.admin.scale';
@@ -28,7 +28,7 @@ type UiContextValue = {
   setScale: (value: number) => void;
   layoutPreferences: LayoutPreferences;
   setLayoutPreferences: (value: Partial<LayoutPreferences>) => void;
-  toast: (message: ToastMessage, featureTag?: string) => void;
+  toast: (message: ToastOptions, featureTag?: string) => void;
   confirm: (options: { header: string; message: string; acceptLabel?: string; rejectLabel?: string }) => Promise<boolean>;
 };
 
@@ -74,7 +74,7 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     registerToastDispatcher((message) => {
-      toastRef.current?.show(message);
+      toastRef.current?.show(message as ToastMessage);
     });
     return () => registerToastDispatcher(null);
   }, []);

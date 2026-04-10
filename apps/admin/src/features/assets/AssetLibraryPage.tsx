@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
 import { Chips } from 'primereact/chips';
+
+import { Button, TextInput, Textarea } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { getApiBaseUrl } from '../../lib/api';
@@ -447,7 +446,7 @@ query AssetUsage($siteId: Int!, $assetIds: [Int!]!, $limitPerAsset: Int) {
         overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
       <WorkspaceToolbar>
-        <InputText value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search assets" />
+        <TextInput value={search} onChange={(next) => setSearch(next)} placeholder="Search assets" />
       </WorkspaceToolbar>
       <WorkspaceBody>
         <WorkspacePaneLayout
@@ -554,11 +553,11 @@ query AssetUsage($siteId: Int!, $assetIds: [Int!]!, $limitPerAsset: Int) {
             ) : (
               <div className="form-row asset-library-meta-form">
                 <label>Title</label>
-                <InputText value={selected.title ?? ''} onChange={(event) => setSelected({ ...selected, title: event.target.value })} />
+                <TextInput value={selected.title ?? ''} onChange={(next) => setSelected({ ...selected, title: next })} />
                 <label>Alt Text</label>
-                <InputText value={selected.altText ?? ''} onChange={(event) => setSelected({ ...selected, altText: event.target.value })} />
+                <TextInput value={selected.altText ?? ''} onChange={(next) => setSelected({ ...selected, altText: next })} />
                 <label>Description</label>
-                <InputTextarea rows={4} value={selected.description ?? ''} onChange={(event) => setSelected({ ...selected, description: event.target.value })} />
+                <Textarea rows={4} value={selected.description ?? ''} onChange={(next) => setSelected({ ...selected, description: next })} />
                 <label>Tags</label>
                 <Chips value={parseTags(selected.tagsJson)} onChange={(event) => setSelected({ ...selected, tagsJson: JSON.stringify(event.value ?? []) })} separator="," />
                 <div className="inline-actions">

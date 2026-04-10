@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
@@ -24,7 +23,7 @@ import {
 } from './builder/visualBuilderModel';
 import { VisualBuilderWorkspace } from './builder/VisualBuilderWorkspace';
 import { ForbiddenState, InspectorSection, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
-import { TextInput } from '../../ui/atoms';
+import { Button, TextInput } from '../../ui/atoms';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';

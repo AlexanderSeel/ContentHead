@@ -1,6 +1,13 @@
+export { Button } from './Button';
+export type { ButtonProps, ButtonSeverity } from './Button';
+export { Checkbox } from './Checkbox';
+export { Tag } from './Tag';
+export { Textarea } from './Textarea';
+export { Password } from './Password';
 export { TextInput } from './TextInput';
 export { NumberInput } from './NumberInput';
 export { Select } from './Select';
+export type { SelectOption } from './Select';
 export { MultiSelect } from './MultiSelect';
 export { Switch } from './Switch';
 export { DatePicker } from './DatePicker';

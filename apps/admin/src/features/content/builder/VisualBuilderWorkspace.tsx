@@ -1,5 +1,6 @@
-import { Button } from 'primereact/button';
 import type { ReactNode } from 'react';
+
+import { Button } from '../../../ui/atoms';
 
 import { SplitWorkspace } from '../../../ui/molecules/SplitWorkspace';
 import { ComponentList } from '../components/ComponentList';

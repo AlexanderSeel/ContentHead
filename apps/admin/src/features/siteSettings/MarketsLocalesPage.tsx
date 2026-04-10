@@ -2,11 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { TabView, TabPanel } from 'primereact/tabview';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { InputText } from 'primereact/inputtext';
-import { Checkbox } from 'primereact/checkbox';
-import { Button } from 'primereact/button';
-import { Dropdown } from 'primereact/dropdown';
 import { AutoComplete } from 'primereact/autocomplete';
+
+import { Button, Checkbox, Select, TextInput } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
@@ -104,12 +102,12 @@ export function MarketsLocalesPage() {
                   <Column header="Edit" body={(row: Market) => <Button text label="Edit" onClick={() => setMarketForm(row)} />} />
                 </DataTable>
                 <div className="form-grid">
-                  <InputText value={marketForm.code} onChange={(e) => setMarketForm((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))} placeholder="Code" />
-                  <InputText value={marketForm.name} onChange={(e) => setMarketForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Name" />
-                  <InputText value={marketForm.currency ?? ''} onChange={(e) => setMarketForm((prev) => ({ ...prev, currency: e.target.value }))} placeholder="Currency" />
-                  <InputText value={marketForm.timezone ?? ''} onChange={(e) => setMarketForm((prev) => ({ ...prev, timezone: e.target.value }))} placeholder="Timezone" />
-                  <label><Checkbox checked={marketForm.active} onChange={(e) => setMarketForm((prev) => ({ ...prev, active: Boolean(e.checked) }))} /> Active</label>
-                  <label><Checkbox checked={marketForm.isDefault} onChange={(e) => setMarketForm((prev) => ({ ...prev, isDefault: Boolean(e.checked) }))} /> Default</label>
+                  <TextInput value={marketForm.code} onChange={(next) => setMarketForm((prev) => ({ ...prev, code: next.toUpperCase() }))} placeholder="Code" />
+                  <TextInput value={marketForm.name} onChange={(next) => setMarketForm((prev) => ({ ...prev, name: next }))} placeholder="Name" />
+                  <TextInput value={marketForm.currency ?? ''} onChange={(next) => setMarketForm((prev) => ({ ...prev, currency: next }))} placeholder="Currency" />
+                  <TextInput value={marketForm.timezone ?? ''} onChange={(next) => setMarketForm((prev) => ({ ...prev, timezone: next }))} placeholder="Timezone" />
+                  <label><Checkbox checked={marketForm.active} onChange={(next) => setMarketForm((prev) => ({ ...prev, active: next }))} /> Active</label>
+                  <label><Checkbox checked={marketForm.isDefault} onChange={(next) => setMarketForm((prev) => ({ ...prev, isDefault: next }))} /> Default</label>
                   <Button label="Save Market" onClick={() => sdk.upsertMarket({ siteId, ...marketForm }).then(async () => { await refresh(); await refreshContext(); toast({ severity: 'success', summary: 'Market saved' }); })} />
                 </div>
               </TabPanel>
@@ -154,17 +152,16 @@ export function MarketsLocalesPage() {
                     }}
                     placeholder="Locale from catalog"
                   />
-                  <InputText value={localeOverrideName} onChange={(e) => setLocaleOverrideName(e.target.value)} placeholder="Display name override" />
-                  <Dropdown
-                    value={localeOverrideFallback}
+                  <TextInput value={localeOverrideName} onChange={(next) => setLocaleOverrideName(next)} placeholder="Display name override" />
+                  <Select
+                    value={localeOverrideFallback ?? ''}
                     options={localeOptions}
-                    onChange={(e) => setLocaleOverrideFallback(e.value ?? null)}
-                    showClear
+                    onChange={(next) => setLocaleOverrideFallback(next || null)}
                     filter
                     placeholder="Fallback locale override"
                   />
-                  <label><Checkbox checked={localeForm.active} onChange={(e) => setLocaleForm((prev) => ({ ...prev, active: Boolean(e.checked) }))} /> Active</label>
-                  <label><Checkbox checked={localeForm.isDefault} onChange={(e) => setLocaleForm((prev) => ({ ...prev, isDefault: Boolean(e.checked) }))} /> Default</label>
+                  <label><Checkbox checked={localeForm.active} onChange={(next) => setLocaleForm((prev) => ({ ...prev, active: next }))} /> Active</label>
+                  <label><Checkbox checked={localeForm.isDefault} onChange={(next) => setLocaleForm((prev) => ({ ...prev, isDefault: next }))} /> Default</label>
                   <Button
                     label="Save Locale"
                     onClick={async () => {
@@ -211,18 +208,18 @@ export function MarketsLocalesPage() {
                               <td key={`${market.code}-${locale.code}`}>
                                 <Checkbox
                                   checked={Boolean(item?.active)}
-                                  onChange={(event) =>
+                                  onChange={(next) =>
                                     setCombos((prev) => {
                                       const index = prev.findIndex((entry) => entry.marketCode === market.code && entry.localeCode === locale.code);
                                       if (index >= 0) {
-                                        const next = [...prev];
-                                        const current = next[index];
+                                        const arr = [...prev];
+                                        const current = arr[index];
                                         if (current) {
-                                          next[index] = { ...current, active: Boolean(event.checked) };
+                                          arr[index] = { ...current, active: next };
                                         }
-                                        return next;
+                                        return arr;
                                       }
-                                      return [...prev, { marketCode: market.code, localeCode: locale.code, active: Boolean(event.checked), isDefaultForMarket: false }];
+                                      return [...prev, { marketCode: market.code, localeCode: locale.code, active: next, isDefaultForMarket: false }];
                                     })
                                   }
                                 />
@@ -230,12 +227,12 @@ export function MarketsLocalesPage() {
                             );
                           })}
                           <td>
-                            <Dropdown
-                              value={marketDefaults[market.code] ?? null}
+                            <Select
+                              value={marketDefaults[market.code] ?? ''}
                               options={locales
                                 .filter((locale) => combos.some((entry) => entry.marketCode === market.code && entry.localeCode === locale.code && entry.active))
                                 .map((entry) => ({ label: entry.code, value: entry.code }))}
-                              onChange={(event) => setMarketDefaults((prev) => ({ ...prev, [market.code]: event.value }))}
+                              onChange={(next) => next !== undefined && setMarketDefaults((prev) => ({ ...prev, [market.code]: next }))}
                               filter
                               placeholder="Default locale"
                             />
@@ -246,8 +243,8 @@ export function MarketsLocalesPage() {
                   </table>
                 </div>
                 <div className="form-grid">
-                  <Dropdown value={defaultMarketCode} options={markets.filter((entry) => entry.active).map((entry) => ({ label: entry.code, value: entry.code }))} onChange={(event) => setDefaultMarketCode(String(event.value))} filter placeholder="Default market" />
-                  <Dropdown value={defaultLocaleCode} options={locales.filter((entry) => entry.active).map((entry) => ({ label: entry.code, value: entry.code }))} onChange={(event) => setDefaultLocaleCode(String(event.value))} filter placeholder="Default locale" />
+                  <Select value={defaultMarketCode} options={markets.filter((entry) => entry.active).map((entry) => ({ label: entry.code, value: entry.code }))} onChange={(next) => next !== undefined && setDefaultMarketCode(next)} filter placeholder="Default market" />
+                  <Select value={defaultLocaleCode} options={locales.filter((entry) => entry.active).map((entry) => ({ label: entry.code, value: entry.code }))} onChange={(next) => next !== undefined && setDefaultLocaleCode(next)} filter placeholder="Default locale" />
                   <Button
                     label="Save Matrix"
                     onClick={async () => {

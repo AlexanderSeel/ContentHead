@@ -1,4 +1,4 @@
-import { Dropdown } from 'primereact/dropdown';
+import { Select } from '../../ui/atoms';
 
 type Combo = { marketCode: string; localeCode: string; active: boolean };
 
@@ -21,12 +21,13 @@ export function MarketLocalePicker({
     }));
 
   return (
-    <Dropdown
+    <Select
       filter
       value={`${marketCode}::${localeCode}`}
       options={options}
-      onChange={(event) => {
-        const [nextMarket, nextLocale] = String(event.value).split('::');
+      onChange={(next) => {
+        if (!next) return;
+        const [nextMarket, nextLocale] = next.split('::');
         if (nextMarket && nextLocale) {
           onChange({ marketCode: nextMarket, localeCode: nextLocale });
         }

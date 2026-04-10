@@ -7,13 +7,15 @@ export function MultiSelect<T extends string | number>({
   options,
   onChange,
   placeholder,
-  display = 'chip'
+  display = 'chip',
+  disabled
 }: {
   value: T[];
   options: SelectOption<T>[];
   onChange: (next: T[]) => void;
   placeholder?: string;
   display?: 'chip' | 'comma';
+  disabled?: boolean;
 }) {
   return (
     <PrimeMultiSelect
@@ -24,6 +26,7 @@ export function MultiSelect<T extends string | number>({
       onChange={(event) => onChange((event.value as T[]) ?? [])}
       placeholder={placeholder}
       display={display}
+      disabled={disabled}
     />
   );
 }

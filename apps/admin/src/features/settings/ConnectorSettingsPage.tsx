@@ -1,14 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Accordion, AccordionTab } from 'primereact/accordion';
-import { Button } from 'primereact/button';
-import { Checkbox } from 'primereact/checkbox';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { Dropdown } from 'primereact/dropdown';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
-import { Tag } from 'primereact/tag';
+
+import { Button, Checkbox, Select, Tag, Textarea, TextInput } from '../../ui/atoms';
 
 import { useAuth } from '../../app/AuthContext';
 import { createAdminSdk } from '../../lib/sdk';
@@ -287,37 +283,35 @@ export function ConnectorSettingsPage({ domain }: { domain: ConnectorDomain }) {
                     <AccordionTab header="Basic">
                       <div className="form-row">
                         <label>Name</label>
-                        <InputText value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} />
+                        <TextInput value={selected.name} onChange={(next) => setSelected({ ...selected, name: next })} />
                       </div>
                       <div className="form-row">
                         <label>Type</label>
-                        <Dropdown
+                        <Select
                           value={selected.type}
                           options={providerOptions[domain]}
-                          optionLabel="label"
-                          optionValue="value"
-                          onChange={(event) =>
-                            setSelected({
+                          onChange={(next) =>
+                            next && setSelected({
                               ...selected,
-                              type: String(event.value),
-                              configJson: configHints[String(event.value)] ?? selected.configJson
+                              type: next,
+                              configJson: configHints[next] ?? selected.configJson
                             })
                           }
                         />
                         {selectedProvider ? <small>{selectedProvider.help}</small> : null}
                       </div>
                       <label>
-                        <Checkbox checked={selected.enabled} onChange={(event) => setSelected({ ...selected, enabled: Boolean(event.checked) })} /> Enabled
+                        <Checkbox checked={selected.enabled} onChange={(next) => setSelected({ ...selected, enabled: next })} /> Enabled
                       </label>
                       <label>
-                        <Checkbox checked={selected.isDefault} onChange={(event) => setSelected({ ...selected, isDefault: Boolean(event.checked) })} /> Default for {domain}
+                        <Checkbox checked={selected.isDefault} onChange={(next) => setSelected({ ...selected, isDefault: next })} /> Default for {domain}
                       </label>
                       {domain === 'db' ? <div className="status-panel">Core runtime still uses DuckDB. Other DB providers are stored for future activation.</div> : null}
                     </AccordionTab>
                     <AccordionTab header="Advanced">
                       <div className="form-row">
                         <label>Config JSON</label>
-                        <InputTextarea rows={12} value={selected.configJson} onChange={(event) => setSelected({ ...selected, configJson: event.target.value })} />
+                        <Textarea rows={12} value={selected.configJson} onChange={(next) => setSelected({ ...selected, configJson: next })} />
                         {!parsedConfigValid ? <small className="error-text">Config JSON must be valid JSON.</small> : null}
                       </div>
                     </AccordionTab>

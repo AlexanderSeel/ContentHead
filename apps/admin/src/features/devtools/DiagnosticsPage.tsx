@@ -1,14 +1,11 @@
 import { Accordion, AccordionTab } from 'primereact/accordion';
-import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputSwitch } from 'primereact/inputswitch';
-import { InputText } from 'primereact/inputtext';
 import { TabPanel, TabView } from 'primereact/tabview';
 import { useEffect, useMemo, useState } from 'react';
+
+import { Button, NumberInput, Select, Switch, TextInput } from '../../ui/atoms';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useUi } from '../../app/UiContext';
@@ -178,45 +175,41 @@ export function DiagnosticsPage() {
               <Card>
                 <div className="diagnostics-issues-toolbar">
                   <div className="diagnostics-issues-filters">
-                    <Dropdown
+                    <Select
                       value={levelFilter}
                       options={LEVEL_OPTIONS}
-                      optionLabel="label"
-                      optionValue="value"
-                      onChange={(event) => setLevelFilter(event.value as 'all' | IssueLevel)}
+                      onChange={(next) => next !== undefined && setLevelFilter(next as 'all' | IssueLevel)}
                     />
-                    <Dropdown
+                    <Select
                       value={sourceFilter}
                       options={SOURCE_OPTIONS}
-                      optionLabel="label"
-                      optionValue="value"
-                      onChange={(event) => setSourceFilter(event.value as 'all' | IssueSource)}
+                      onChange={(next) => next !== undefined && setSourceFilter(next as 'all' | IssueSource)}
                     />
-                    <InputText
+                    <TextInput
                       value={routeFilter}
-                      onChange={(event) => setRouteFilter(event.target.value)}
+                      onChange={(next) => setRouteFilter(next)}
                       placeholder="Filter route"
                     />
                   </div>
                   <div className="diagnostics-issues-actions">
                     <label className="diagnostics-toggle">
                       <span>Paused</span>
-                      <InputSwitch
+                      <Switch
                         checked={collectorState.paused}
-                        onChange={(event) => issueCollector.setPaused(Boolean(event.value))}
+                        onChange={(next) => issueCollector.setPaused(next)}
                       />
                     </label>
                     <label className="diagnostics-max">
                       <span>Max entries</span>
-                      <InputNumber
+                      <NumberInput
                         value={maxEntriesDraft}
                         min={10}
                         max={1000}
                         showButtons
-                        onValueChange={(event) => {
-                          const next = event.value ?? collectorState.maxEntries;
-                          setMaxEntriesDraft(next);
-                          issueCollector.setMaxEntries(next);
+                        onChange={(next) => {
+                          const value = next ?? collectorState.maxEntries;
+                          setMaxEntriesDraft(value);
+                          issueCollector.setMaxEntries(value);
                         }}
                       />
                     </label>

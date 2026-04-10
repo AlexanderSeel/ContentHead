@@ -1,11 +1,4 @@
-import { Calendar } from 'primereact/calendar';
-import { Checkbox } from 'primereact/checkbox';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { MultiSelect } from 'primereact/multiselect';
-
+import { Checkbox, DatePicker, MultiSelect, NumberInput, Select, Textarea, TextInput } from '../../../ui/atoms';
 import { ContentReferencePicker } from '../../../components/inputs/ContentReferencePicker';
 import type { ContentFieldDef } from '../../schema/fieldValidationUi';
 import { AssetListEditor, AssetRefEditor } from './AssetEditors';
@@ -29,23 +22,30 @@ export function FieldRenderer({ field, value, onChange, siteId, token, readOnly 
   const ui = field.uiConfig ?? {};
 
   if (field.type === 'boolean') {
-    return <Checkbox checked={Boolean(value)} onChange={(event) => onChange(Boolean(event.checked))} disabled={readOnly} />;
+    return <Checkbox checked={Boolean(value)} onChange={(next) => onChange(next)} disabled={readOnly} />;
   }
 
   if (field.type === 'number') {
-    return <InputNumber value={typeof value === 'number' ? value : null} onValueChange={(event) => onChange(event.value ?? null)} disabled={readOnly} />;
+    return <NumberInput value={typeof value === 'number' ? value : null} onChange={(next) => onChange(next)} disabled={readOnly} />;
   }
 
   if (field.type === 'date' || field.type === 'datetime') {
-    return <Calendar value={value ? new Date(String(value)) : null} onChange={(event) => onChange(event.value ? (event.value as Date).toISOString() : null)} showTime={field.type === 'datetime'} disabled={readOnly} />;
+    return (
+      <DatePicker
+        value={value ? new Date(String(value)) : null}
+        onChange={(next) => onChange(next ? next.toISOString() : null)}
+        showTime={field.type === 'datetime'}
+        disabled={readOnly}
+      />
+    );
   }
 
   if (field.type === 'select') {
-    return <Dropdown value={value ?? null} options={allowedOptions(field)} onChange={(event) => onChange(event.value)} placeholder={ui.placeholder ?? ''} disabled={Boolean(readOnly)} />;
+    return <Select value={value as string ?? null} options={allowedOptions(field)} onChange={(next) => onChange(next)} placeholder={ui.placeholder ?? ''} disabled={Boolean(readOnly)} />;
   }
 
   if (field.type === 'multiselect') {
-    return <MultiSelect value={Array.isArray(value) ? value : []} options={allowedOptions(field)} onChange={(event) => onChange(event.value)} placeholder={ui.placeholder ?? ''} disabled={Boolean(readOnly)} />;
+    return <MultiSelect value={Array.isArray(value) ? value as string[] : []} options={allowedOptions(field)} onChange={(next) => onChange(next)} placeholder={ui.placeholder ?? ''} disabled={Boolean(readOnly)} />;
   }
 
   if (field.type === 'reference') {
@@ -69,7 +69,7 @@ export function FieldRenderer({ field, value, onChange, siteId, token, readOnly 
   }
 
   if (field.type === 'json') {
-    return <InputTextarea rows={6} value={typeof value === 'string' ? value : JSON.stringify(value ?? {}, null, 2)} onChange={(event) => onChange(event.target.value)} readOnly={readOnly} />;
+    return <Textarea rows={6} value={typeof value === 'string' ? value : JSON.stringify(value ?? {}, null, 2)} onChange={(next) => onChange(next)} readOnly={readOnly} />;
   }
 
   if (field.type === 'richtext') {
@@ -86,8 +86,8 @@ export function FieldRenderer({ field, value, onChange, siteId, token, readOnly 
   }
 
   if (ui.multiline) {
-    return <InputTextarea rows={ui.rows ?? 3} value={String(value ?? '')} onChange={(event) => onChange(event.target.value)} readOnly={readOnly} placeholder={ui.placeholder ?? ''} />;
+    return <Textarea rows={ui.rows ?? 3} value={String(value ?? '')} onChange={(next) => onChange(next)} readOnly={readOnly} placeholder={ui.placeholder ?? ''} />;
   }
 
-  return <InputText value={String(value ?? '')} onChange={(event) => onChange(event.target.value)} readOnly={readOnly} placeholder={ui.placeholder ?? ''} />;
+  return <TextInput value={String(value ?? '')} onChange={(next) => onChange(next)} readOnly={readOnly} placeholder={ui.placeholder ?? ''} />;
 }

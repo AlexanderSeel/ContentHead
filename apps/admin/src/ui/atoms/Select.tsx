@@ -9,7 +9,9 @@ export function Select<T extends string | number>({
   placeholder,
   filter,
   showClear,
-  editable
+  editable,
+  className,
+  disabled
 }: {
   value: T | null;
   options: SelectOption<T>[];
@@ -18,16 +20,20 @@ export function Select<T extends string | number>({
   filter?: boolean;
   showClear?: boolean;
   editable?: boolean;
+  className?: string;
+  disabled?: boolean;
 }) {
   return (
     <Dropdown
       value={value}
       options={options}
       onChange={(event) => onChange((event.value as T | null) ?? null)}
-      {...(placeholder ? { placeholder } : {})}
-      {...(filter ? { filter: true } : {})}
-      {...(showClear ? { showClear: true } : {})}
-      {...(editable ? { editable: true } : {})}
+      placeholder={placeholder}
+      filter={filter}
+      showClear={showClear}
+      editable={editable}
+      className={className}
+      disabled={disabled}
     />
   );
 }

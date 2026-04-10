@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { Dropdown } from 'primereact/dropdown';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
+
+import { Button, Select, Textarea, TextInput } from '../../ui/atoms';
 import type { Rule } from '@contenthead/shared';
 
 import { createAdminSdk } from '../../lib/sdk';
@@ -69,19 +67,19 @@ export function VariantsPage() {
       <WorkspaceActionBar
         primary={
           <>
-            <Dropdown
+            <Select
               value={contentItemId}
               options={items.map((entry) => ({ label: `#${entry.id}`, value: entry.id }))}
-              onChange={(e) => loadItem(Number(e.value)).catch(() => undefined)}
+              onChange={(next) => next !== null && loadItem(next).catch(() => undefined)}
               placeholder="Content item"
             />
-            <Dropdown
+            <Select
               value={variantSetId}
               options={variantSets.map((entry) => ({ label: `Set #${entry.id}`, value: entry.id }))}
-              onChange={(e) => {
-                const id = Number(e.value);
-                setVariantSetId(id);
-                sdk.listVariants({ variantSetId: id }).then((res) => setVariants((res.listVariants ?? []) as Variant[]));
+              onChange={(next) => {
+                if (next === null) return;
+                setVariantSetId(next);
+                sdk.listVariants({ variantSetId: next }).then((res) => setVariants((res.listVariants ?? []) as Variant[]));
               }}
               placeholder="Variant set"
             />
@@ -162,14 +160,14 @@ export function VariantsPage() {
             <PaneRoot className="content-card">
               <PaneScroll>
                 <div className="form-grid">
-                  <InputText value={draft.key} onChange={(e) => setDraft((prev) => ({ ...prev, key: e.target.value }))} placeholder="Key" />
-                  <InputText value={String(draft.priority)} onChange={(e) => setDraft((prev) => ({ ...prev, priority: Number(e.target.value || '0') }))} placeholder="Priority" />
-                  <InputText value={String(draft.trafficAllocation)} onChange={(e) => setDraft((prev) => ({ ...prev, trafficAllocation: Number(e.target.value || '0') }))} placeholder="Traffic allocation" />
-                  <Dropdown value={draft.contentVersionId} options={versions.map((entry) => ({ label: `v${entry.versionNumber}`, value: entry.id }))} onChange={(e) => setDraft((prev) => ({ ...prev, contentVersionId: Number(e.value) }))} placeholder="Version" />
+                  <TextInput value={draft.key} onChange={(next) => setDraft((prev) => ({ ...prev, key: next }))} placeholder="Key" />
+                  <TextInput value={String(draft.priority)} onChange={(next) => setDraft((prev) => ({ ...prev, priority: Number(next || '0') }))} placeholder="Priority" />
+                  <TextInput value={String(draft.trafficAllocation)} onChange={(next) => setDraft((prev) => ({ ...prev, trafficAllocation: Number(next || '0') }))} placeholder="Traffic allocation" />
+                  <Select value={draft.contentVersionId} options={versions.map((entry) => ({ label: `v${entry.versionNumber}`, value: entry.id }))} onChange={(next) => next !== null && setDraft((prev) => ({ ...prev, contentVersionId: next }))} placeholder="Version" />
                 </div>
                 <div className="form-row mt-3">
                   <label>Rule JSON</label>
-                  <InputTextarea rows={8} value={draft.ruleJson} onChange={(e) => setDraft((prev) => ({ ...prev, ruleJson: e.target.value }))} />
+                  <Textarea rows={8} value={draft.ruleJson} onChange={(next) => setDraft((prev) => ({ ...prev, ruleJson: next }))} />
                 </div>
                 <div className="inline-actions mt-3">
                   <Button label="Rule Editor" text onClick={() => setRuleEditorOpen(true)} />

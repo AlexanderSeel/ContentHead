@@ -6,15 +6,10 @@ import { ContextMenu } from 'primereact/contextmenu';
 import { TreeTable } from 'primereact/treetable';
 import type { TreeNode } from 'primereact/treenode';
 import { DataTable } from 'primereact/datatable';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { Dropdown } from 'primereact/dropdown';
-import { Checkbox } from 'primereact/checkbox';
-import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
-import { Tag } from 'primereact/tag';
-import { MultiSelect } from 'primereact/multiselect';
+
+import { Button, Checkbox, MultiSelect, Select, Tag, Textarea, TextInput } from '../../ui/atoms';
 
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { getApiGraphqlUrl } from '../../lib/api';
@@ -3533,7 +3528,7 @@ export function ContentPagesPage() {
                 onChange={(value) => setRouteDraft((prev) => ({ ...prev, ...value }))}
               />
               <SlugEditor value={routeDraft.slug} onChange={(value) => setRouteDraft((prev) => ({ ...prev, slug: value }))} />
-              <label><Checkbox checked={routeDraft.isCanonical} onChange={(event) => setRouteDraft((prev) => ({ ...prev, isCanonical: Boolean(event.checked) }))} /> Canonical</label>
+              <label><Checkbox checked={routeDraft.isCanonical} onChange={(next) => setRouteDraft((prev) => ({ ...prev, isCanonical: next }))} /> Canonical</label>
               <Button
                 label="Save Route"
                 onClick={() =>
@@ -3599,11 +3594,12 @@ export function ContentPagesPage() {
           </TabPanel>
           <TabPanel header="Variants">
             <div className="form-grid">
-              <Dropdown
-                value={variantSetId}
-                options={variantSets.map((entry) => ({ label: `Set #${entry.id}`, value: entry.id }))}
-                onChange={(event) => {
-                  const id = Number(event.value);
+              <Select
+                value={variantSetId !== null ? String(variantSetId) : undefined}
+                options={variantSets.map((entry) => ({ label: `Set #${entry.id}`, value: String(entry.id) }))}
+                onChange={(next) => {
+                  if (!next) return;
+                  const id = Number(next);
                   setVariantSetId(id);
                   sdk.listVariants({ variantSetId: id }).then((res) => setVariants((res.listVariants ?? []) as Variant[]));
                 }}
@@ -3630,17 +3626,17 @@ export function ContentPagesPage() {
               <Column field="contentVersionId" header="Version" />
             </DataTable>
             <div className="form-grid">
-              <InputText value={variantDraft.key} onChange={(e) => setVariantDraft((prev) => ({ ...prev, key: e.target.value }))} placeholder="key" />
-              <InputText value={String(variantDraft.priority)} onChange={(e) => setVariantDraft((prev) => ({ ...prev, priority: Number(e.target.value || '0') }))} placeholder="priority" />
-              <InputText value={String(variantDraft.trafficAllocation)} onChange={(e) => setVariantDraft((prev) => ({ ...prev, trafficAllocation: Number(e.target.value || '0') }))} placeholder="traffic" />
-              <Dropdown
-                value={variantDraft.contentVersionId}
-                options={versions.map((entry) => ({ label: `v${entry.versionNumber}`, value: entry.id }))}
-                onChange={(e) => setVariantDraft((prev) => ({ ...prev, contentVersionId: Number(e.value) }))}
+              <TextInput value={variantDraft.key} onChange={(next) => setVariantDraft((prev) => ({ ...prev, key: next }))} placeholder="key" />
+              <TextInput value={String(variantDraft.priority)} onChange={(next) => setVariantDraft((prev) => ({ ...prev, priority: Number(next || '0') }))} placeholder="priority" />
+              <TextInput value={String(variantDraft.trafficAllocation)} onChange={(next) => setVariantDraft((prev) => ({ ...prev, trafficAllocation: Number(next || '0') }))} placeholder="traffic" />
+              <Select
+                value={variantDraft.contentVersionId !== null ? String(variantDraft.contentVersionId) : undefined}
+                options={versions.map((entry) => ({ label: `v${entry.versionNumber}`, value: String(entry.id) }))}
+                onChange={(next) => next && setVariantDraft((prev) => ({ ...prev, contentVersionId: Number(next) }))}
                 placeholder="version"
               />
             </div>
-            <div className="form-row"><label>Rule JSON</label><InputTextarea rows={4} value={variantDraft.ruleJson} onChange={(e) => setVariantDraft((prev) => ({ ...prev, ruleJson: e.target.value }))} /></div>
+            <div className="form-row"><label>Rule JSON</label><Textarea rows={4} value={variantDraft.ruleJson} onChange={(next) => setVariantDraft((prev) => ({ ...prev, ruleJson: next }))} /></div>
             <Button
               label="Save Variant"
               onClick={() =>
@@ -3665,7 +3661,7 @@ export function ContentPagesPage() {
                 <label>
                   <Checkbox
                     checked={aclInheritFromParent}
-                    onChange={(event) => setAclInheritFromParent(Boolean(event.checked))}
+                    onChange={(next) => setAclInheritFromParent(next)}
                   />{' '}
                   Inherit permissions from parent page
                 </label>
@@ -3691,12 +3687,12 @@ export function ContentPagesPage() {
                             <td key={`${principal.key}-${action}`}>
                               <Checkbox
                                 checked={hasAclAllow(principal.principalType, principal.principalId, action)}
-                                onChange={(event) =>
+                                onChange={(next) =>
                                   toggleAclAllow(
                                     principal.principalType,
                                     principal.principalId,
                                     action,
-                                    Boolean(event.checked)
+                                    next
                                   )
                                 }
                               />
@@ -3718,7 +3714,7 @@ export function ContentPagesPage() {
                 <label>
                   <Checkbox
                     checked={targetingInheritFromParent}
-                    onChange={(event) => setTargetingInheritFromParent(Boolean(event.checked))}
+                    onChange={(next) => setTargetingInheritFromParent(next)}
                   />{' '}
                   Inherit targeting from parent page
                 </label>
@@ -3727,43 +3723,39 @@ export function ContentPagesPage() {
               <div className="form-grid">
                 <div className="form-row">
                   <label>Allow visitor groups</label>
-                  <MultiSelect
+                  <MultiSelect<number>
                     value={targetingAllowGroupIds}
                     options={visitorGroups.map((entry) => ({ label: entry.name, value: entry.id }))}
-                    onChange={(event) => setTargetingAllowGroupIds((event.value as number[]) ?? [])}
+                    onChange={(next) => setTargetingAllowGroupIds(next ?? [])}
                     display="chip"
-                    filter
                   />
                 </div>
                 <div className="form-row">
                   <label>Deny visitor groups</label>
-                  <MultiSelect
+                  <MultiSelect<number>
                     value={targetingDenyGroupIds}
                     options={visitorGroups.map((entry) => ({ label: entry.name, value: entry.id }))}
-                    onChange={(event) => setTargetingDenyGroupIds((event.value as number[]) ?? [])}
+                    onChange={(next) => setTargetingDenyGroupIds(next ?? [])}
                     display="chip"
-                    filter
                   />
                 </div>
                 <div className="form-row">
                   <label>When denied</label>
-                  <Dropdown
+                  <Select
                     value={targetingDenyBehavior}
                     options={[
                       { label: 'Return 404', value: 'NOT_FOUND' },
                       { label: 'Fallback page', value: 'FALLBACK' }
                     ]}
-                    onChange={(event) =>
-                      setTargetingDenyBehavior((event.value as 'NOT_FOUND' | 'FALLBACK') ?? 'NOT_FOUND')
-                    }
+                    onChange={(next) => setTargetingDenyBehavior((next as 'NOT_FOUND' | 'FALLBACK') ?? 'NOT_FOUND')}
                   />
                 </div>
                 <div className="form-row">
                   <label>Fallback page (content item id)</label>
-                  <InputText
+                  <TextInput
                     value={targetingFallbackContentItemId == null ? '' : String(targetingFallbackContentItemId)}
-                    onChange={(event) => {
-                      const value = event.target.value.trim();
+                    onChange={(next) => {
+                      const value = next.trim();
                       setTargetingFallbackContentItemId(value ? Number(value) : null);
                     }}
                     placeholder="Optional"
@@ -3775,10 +3767,10 @@ export function ContentPagesPage() {
               </div>
               <div className="form-row">
                 <label>Preview targeting with sample context JSON</label>
-                <InputTextarea
+                <Textarea
                   rows={4}
                   value={targetingPreviewContextJson}
-                  onChange={(event) => setTargetingPreviewContextJson(event.target.value)}
+                  onChange={(next) => setTargetingPreviewContextJson(next)}
                 />
                 <div className="inline-actions">
                   <Button
@@ -3805,20 +3797,20 @@ export function ContentPagesPage() {
                 onClick={() => setRawEditable((prev) => !prev)}
               />
             </div>
-            <div className="form-row"><label>Fields JSON</label><InputTextarea rows={5} value={JSON.stringify(fields, null, 2)} readOnly={!rawEditable} onChange={(event) => {
+            <div className="form-row"><label>Fields JSON</label><Textarea rows={5} value={JSON.stringify(fields, null, 2)} readOnly={!rawEditable} onChange={(next) => {
               if (!rawEditable) {
                 return;
               }
               try {
-                const parsed = JSON.parse(event.target.value) as Record<string, unknown>;
+                const parsed = JSON.parse(next) as Record<string, unknown>;
                 setFields(parsed);
               } catch {
                 // keep valid data only
               }
             }} /></div>
-            <div className="form-row"><label>Composition JSON</label><InputTextarea rows={5} value={compositionJson} onChange={(e) => setCompositionJson(e.target.value)} readOnly={!rawEditable} /></div>
-            <div className="form-row"><label>Components JSON</label><InputTextarea rows={5} value={componentsJson} onChange={(e) => setComponentsJson(e.target.value)} readOnly={!rawEditable} /></div>
-            <div className="form-row"><label>Metadata JSON</label><InputTextarea rows={4} value={metadataJson} onChange={(e) => setMetadataJson(e.target.value)} readOnly={!rawEditable} /></div>
+            <div className="form-row"><label>Composition JSON</label><Textarea rows={5} value={compositionJson} onChange={(next) => setCompositionJson(next)} readOnly={!rawEditable} /></div>
+            <div className="form-row"><label>Components JSON</label><Textarea rows={5} value={componentsJson} onChange={(next) => setComponentsJson(next)} readOnly={!rawEditable} /></div>
+            <div className="form-row"><label>Metadata JSON</label><Textarea rows={4} value={metadataJson} onChange={(next) => setMetadataJson(next)} readOnly={!rawEditable} /></div>
           </TabPanel>
         </TabView>
       </div>
@@ -3885,28 +3877,31 @@ export function ContentPagesPage() {
       <WorkspaceActionBar
         primary={
           <>
-            <Dropdown value={selectedContentTypeId} options={types.map((entry) => ({ label: entry.name, value: entry.id }))} onChange={(event) => setSelectedContentTypeId(Number(event.value))} placeholder="Content type" />
-            <Dropdown
-              value={selectedTemplate?.id ?? null}
-              options={templates.map((entry) => ({ label: entry.name, value: entry.id }))}
-              filter
-              showClear
-              onChange={(event) => {
-                const next = templates.find((entry) => entry.id === Number(event.value)) ?? null;
-                setSelectedTemplate(next);
+            <Select
+              value={selectedContentTypeId !== null ? String(selectedContentTypeId) : undefined}
+              options={types.map((entry) => ({ label: entry.name, value: String(entry.id) }))}
+              onChange={(next) => next && setSelectedContentTypeId(Number(next))}
+              placeholder="Content type"
+            />
+            <Select
+              value={selectedTemplate?.id != null ? String(selectedTemplate.id) : undefined}
+              options={templates.map((entry) => ({ label: entry.name, value: String(entry.id) }))}
+              onChange={(next) => {
+                const found = next ? (templates.find((entry) => entry.id === Number(next)) ?? null) : null;
+                setSelectedTemplate(found);
                 setMetadataJson((prev) => {
                   try {
                     const parsed = JSON.parse(prev || '{}') as Record<string, unknown>;
                     return JSON.stringify({
                       ...parsed,
-                      templateId: next?.id ?? null,
-                      templateName: next?.name ?? null,
+                      templateId: found?.id ?? null,
+                      templateName: found?.name ?? null,
                       templateBoundAt: new Date().toISOString()
                     });
                   } catch {
                     return JSON.stringify({
-                      templateId: next?.id ?? null,
-                      templateName: next?.name ?? null,
+                      templateId: found?.id ?? null,
+                      templateName: found?.name ?? null,
                       templateBoundAt: new Date().toISOString()
                     });
                   }
@@ -3958,11 +3953,11 @@ export function ContentPagesPage() {
                 <>
                   <div className="form-row mb-3">
                     <label>Filter tree</label>
-                    <InputText value={treeFilter} onChange={(event) => setTreeFilter(event.target.value)} placeholder="Slug, title, status, archived" />
+                    <TextInput value={treeFilter} onChange={(next) => setTreeFilter(next)} placeholder="Slug, title, status, archived" />
                   </div>
                   <div className="inline-actions mb-3">
                     <label className="flex align-items-center gap-2">
-                      <Checkbox checked={showArchivedPages} onChange={(event) => setShowArchivedPages(Boolean(event.checked))} />
+                      <Checkbox checked={showArchivedPages} onChange={(next) => setShowArchivedPages(next)} />
                       <span>Show archived pages</span>
                     </label>
                   </div>
@@ -4115,19 +4110,18 @@ export function ContentPagesPage() {
       <Dialog header="Add Component" visible={showAddComponent} onHide={() => setShowAddComponent(false)} className="w-11 md:w-8 lg:w-6 xl:w-4">
         <div className="form-row">
           <label>Component Type</label>
-          <Dropdown
-            value={newComponentType}
+          <Select
+            value={newComponentType ?? undefined}
             options={availableComponentTypeOptions}
-            onChange={(event) => setNewComponentType(String(event.value))}
-            filter
+            onChange={(next) => setNewComponentType(next ?? null)}
           />
         </div>
         <div className="form-row">
           <label>Area</label>
-          <Dropdown
-            value={newComponentArea}
+          <Select
+            value={newComponentArea ?? undefined}
             options={configuredAreaNames.map((areaName) => ({ label: areaName, value: areaName }))}
-            onChange={(event) => setNewComponentArea(String(event.value))}
+            onChange={(next) => setNewComponentArea(next ?? null)}
           />
         </div>
         <div className="inline-actions mt-3">
@@ -4164,11 +4158,10 @@ export function ContentPagesPage() {
       >
         <div className="form-row">
           <label>Form</label>
-          <Dropdown
-            value={onPageFormPicker?.value ?? null}
-            options={formOptions.map((entry) => ({ label: entry.name, value: entry.id }))}
-            onChange={(event) => setOnPageFormPicker((prev) => (prev ? { ...prev, value: typeof event.value === 'number' ? event.value : null } : prev))}
-            showClear
+          <Select
+            value={onPageFormPicker?.value != null ? String(onPageFormPicker.value) : undefined}
+            options={formOptions.map((entry) => ({ label: entry.name, value: String(entry.id) }))}
+            onChange={(next) => setOnPageFormPicker((prev) => (prev ? { ...prev, value: next ? Number(next) : null } : prev))}
             placeholder="Select form"
           />
         </div>

@@ -1,5 +1,4 @@
-import { Button } from 'primereact/button';
-import { Dropdown } from 'primereact/dropdown';
+import { Button, Select } from '../../../ui/atoms';
 
 import { getComponentRegistryEntry } from './componentRegistry';
 
@@ -66,13 +65,14 @@ export function ComponentList({
                 <div className="inline-actions">
                   <Button text size="small" icon="pi pi-angle-up" onClick={(event) => { event.stopPropagation(); onMove(id, -1); }} />
                   <Button text size="small" icon="pi pi-angle-down" onClick={(event) => { event.stopPropagation(); onMove(id, 1); }} />
-                  <Dropdown
-                    value={area.name}
-                    options={areas.map((entry) => ({ label: entry.name, value: entry.name }))}
-                    onClick={(event) => event.stopPropagation()}
-                    onChange={(event) => onMoveToArea(id, String(event.value ?? area.name))}
-                    className="w-10rem"
-                  />
+                  <span onClick={(event) => event.stopPropagation()}>
+                    <Select
+                      value={area.name}
+                      options={areas.map((entry) => ({ label: entry.name, value: entry.name }))}
+                      onChange={(next) => onMoveToArea(id, next ?? area.name)}
+                      className="w-10rem"
+                    />
+                  </span>
                   <Button text size="small" icon="pi pi-copy" onClick={(event) => { event.stopPropagation(); onDuplicate(id); }} />
                   <Button text size="small" severity="danger" icon="pi pi-trash" onClick={(event) => { event.stopPropagation(); onDelete(id); }} />
                 </div>

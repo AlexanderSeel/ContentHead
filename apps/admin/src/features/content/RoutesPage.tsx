@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
 import { DataTable } from 'primereact/datatable';
-import { InputText } from 'primereact/inputtext';
-import { Checkbox } from 'primereact/checkbox';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
+
+import { Button, Checkbox, TextInput } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
@@ -185,7 +184,7 @@ export function RoutesPage() {
       <WorkspaceActionBar
         primary={
           <>
-            <InputText placeholder="Search slug or item id" value={search} onChange={(event) => setSearch(event.target.value)} />
+            <TextInput placeholder="Search slug or item id" value={search} onChange={(next) => setSearch(next)} />
             <Button label="Refresh" onClick={() => refresh()} />
           </>
         }
@@ -244,7 +243,7 @@ export function RoutesPage() {
                     onChange={(value) => setDraft((prev) => ({ ...prev, ...value }))}
                   />
                   <SlugEditor value={draft.slug} onChange={(value) => setDraft((prev) => ({ ...prev, slug: value }))} />
-                  <label><Checkbox checked={draft.isCanonical} onChange={(e) => setDraft((prev) => ({ ...prev, isCanonical: Boolean(e.checked) }))} /> Canonical</label>
+                  <label><Checkbox checked={draft.isCanonical} onChange={(next) => setDraft((prev) => ({ ...prev, isCanonical: next }))} /> Canonical</label>
                   <Button
                     label="Save Route"
                     onClick={() =>

@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import { Accordion, AccordionTab } from 'primereact/accordion';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { MultiSelect } from 'primereact/multiselect';
-import { Checkbox } from 'primereact/checkbox';
+
+import { Checkbox, MultiSelect, NumberInput, Select, Textarea, TextInput } from '../../ui/atoms';
 
 import { getNodeRegistryEntry, validateNodeConfig } from './nodeRegistry';
 
@@ -38,17 +34,17 @@ export function NodeInspector({
         <div className="form-row" key={field.key}>
           <label>{field.label}</label>
           {field.type === 'number' ? (
-            <InputNumber value={Number(config[field.key] ?? 0)} onValueChange={(event) => onChange({ ...config, [field.key]: event.value ?? 0 })} />
+            <NumberInput value={Number(config[field.key] ?? 0)} onChange={(next) => onChange({ ...config, [field.key]: next ?? 0 })} />
           ) : field.type === 'select' ? (
-            <Dropdown value={String(config[field.key] ?? '')} options={field.options ?? []} onChange={(event) => onChange({ ...config, [field.key]: event.value })} />
+            <Select value={String(config[field.key] ?? '')} options={field.options ?? []} onChange={(next) => onChange({ ...config, [field.key]: next })} />
           ) : field.type === 'multiselect' ? (
-            <MultiSelect value={Array.isArray(config[field.key]) ? config[field.key] : []} options={field.options ?? []} onChange={(event) => onChange({ ...config, [field.key]: event.value })} />
+            <MultiSelect value={Array.isArray(config[field.key]) ? config[field.key] as string[] : []} options={field.options ?? []} onChange={(next) => onChange({ ...config, [field.key]: next })} />
           ) : field.type === 'boolean' ? (
-            <Checkbox checked={Boolean(config[field.key])} onChange={(event) => onChange({ ...config, [field.key]: Boolean(event.checked) })} />
+            <Checkbox checked={Boolean(config[field.key])} onChange={(next) => onChange({ ...config, [field.key]: next })} />
           ) : field.type === 'textarea' ? (
-            <InputTextarea rows={4} value={String(config[field.key] ?? '')} onChange={(event) => onChange({ ...config, [field.key]: event.target.value })} />
+            <Textarea rows={4} value={String(config[field.key] ?? '')} onChange={(next) => onChange({ ...config, [field.key]: next })} />
           ) : (
-            <InputText value={String(config[field.key] ?? '')} onChange={(event) => onChange({ ...config, [field.key]: event.target.value })} />
+            <TextInput value={String(config[field.key] ?? '')} onChange={(next) => onChange({ ...config, [field.key]: next })} />
           )}
         </div>
       ))}
@@ -61,12 +57,12 @@ export function NodeInspector({
 
       <Accordion multiple activeIndex={advancedIndex} onTabChange={(event) => setAdvancedIndex(event.index)}>
         <AccordionTab header="Advanced JSON">
-          <InputTextarea
+          <Textarea
             rows={10}
             value={JSON.stringify(config, null, 2)}
-            onChange={(event) => {
+            onChange={(next) => {
               try {
-                const parsed = JSON.parse(event.target.value) as Record<string, unknown>;
+                const parsed = JSON.parse(next) as Record<string, unknown>;
                 onChange(parsed);
               } catch {
                 // keep invalid json local

@@ -1,5 +1,4 @@
-import { Button } from 'primereact/button';
-import { InputText } from 'primereact/inputtext';
+import { Button, TextInput } from '../../ui/atoms';
 
 function slugify(value: string): string {
   return value
@@ -25,7 +24,7 @@ export function SlugEditor({
     <div className="form-row">
       <label>Slug</label>
       <div className="inline-actions">
-        <InputText value={value} onChange={(event) => onChange(event.target.value)} placeholder="start" />
+        <TextInput value={value} onChange={(next) => onChange(next)} placeholder="start" />
         <Button
           size="small"
           type="button"

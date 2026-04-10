@@ -1,14 +1,19 @@
-import type { ToastMessage } from 'primereact/toast';
+export type ToastOptions = {
+  summary: string;
+  detail?: string;
+  severity?: 'success' | 'info' | 'warn' | 'error';
+  life?: number;
+};
 
 export type ToastFeatureTag = string | undefined;
 
 export type ToastEvent = {
-  message: ToastMessage;
+  message: ToastOptions;
   featureTag?: string | undefined;
   timestamp: string;
 };
 
-type ToastDispatcher = (message: ToastMessage) => void;
+type ToastDispatcher = (message: ToastOptions) => void;
 type ToastListener = (event: ToastEvent) => void;
 
 let dispatcher: ToastDispatcher | null = null;
@@ -25,7 +30,7 @@ export function subscribeToastEvents(listener: ToastListener): () => void {
   };
 }
 
-export function showToast(message: ToastMessage, featureTag?: string): void {
+export function showToast(message: ToastOptions, featureTag?: string): void {
   dispatcher?.(message);
   const event: ToastEvent = {
     message,

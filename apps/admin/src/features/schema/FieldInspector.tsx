@@ -1,11 +1,7 @@
 import { Accordion, AccordionTab } from 'primereact/accordion';
-import { Checkbox } from 'primereact/checkbox';
 import { Chips } from 'primereact/chips';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { MultiSelect } from 'primereact/multiselect';
+
+import { Checkbox, MultiSelect, NumberInput, Select, Textarea, TextInput } from '../../../ui/atoms';
 
 import {
   CONTENT_FIELD_TYPES,
@@ -87,66 +83,66 @@ export function FieldInspector({
         <AccordionTab header="Properties">
           <div className="form-row">
             <label>Key</label>
-            <InputText
+            <TextInput
               value={selected.key}
-              onChange={(event) => {
-                const nextKey = ensureUniqueFieldKey(event.target.value, fields, selected.key);
+              onChange={(next) => {
+                const nextKey = ensureUniqueFieldKey(next, fields, selected.key);
                 onChange(fields.map((entry) => (entry.key === selected.key ? { ...selected, key: nextKey } : entry)));
               }}
             />
           </div>
           <div className="form-row">
             <label>Label</label>
-            <InputText value={selected.label} onChange={(event) => apply({ label: event.target.value })} />
+            <TextInput value={selected.label} onChange={(next) => apply({ label: next })} />
           </div>
           <div className="form-row">
             <label>Description</label>
-            <InputTextarea rows={2} value={selected.description ?? ''} onChange={(event) => apply({ description: event.target.value })} />
+            <Textarea rows={2} value={selected.description ?? ''} onChange={(next) => apply({ description: next })} />
           </div>
           <div className="form-row">
             <label>Type</label>
-            <Dropdown value={selected.type} options={CONTENT_FIELD_TYPES} onChange={(event) => apply({ type: event.value })} />
+            <Select value={selected.type} options={CONTENT_FIELD_TYPES} onChange={(next) => next && apply({ type: next as ContentFieldDef['type'] })} />
           </div>
           <div className="form-row">
             <label>Placeholder</label>
-            <InputText value={uiConfig.placeholder ?? ''} onChange={(event) => apply({ uiConfig: { ...uiConfig, placeholder: event.target.value } })} />
+            <TextInput value={uiConfig.placeholder ?? ''} onChange={(next) => apply({ uiConfig: { ...uiConfig, placeholder: next } })} />
           </div>
           <div className="form-row">
             <label>Default Value</label>
-            <InputText
+            <TextInput
               value={uiConfig.defaultValue == null ? '' : String(uiConfig.defaultValue)}
-              onChange={(event) => apply({ uiConfig: { ...uiConfig, defaultValue: event.target.value } })}
+              onChange={(next) => apply({ uiConfig: { ...uiConfig, defaultValue: next } })}
             />
           </div>
         </AccordionTab>
 
         <AccordionTab header="Validation">
           <label>
-            <Checkbox checked={Boolean(selected.required)} onChange={(event) => apply({ required: Boolean(event.checked) })} /> Required
+            <Checkbox checked={Boolean(selected.required)} onChange={(next) => apply({ required: next })} /> Required
           </label>
           <div className="form-grid">
             <div className="form-row">
               <label>Min</label>
-              <InputNumber value={validations.min ?? null} onValueChange={(event) => apply({ validations: cleanValidations({ ...validations, ...(event.value == null ? {} : { min: event.value }) }) })} />
+              <NumberInput value={validations.min ?? null} onChange={(next) => apply({ validations: cleanValidations({ ...validations, ...(next == null ? {} : { min: next }) }) })} />
             </div>
             <div className="form-row">
               <label>Max</label>
-              <InputNumber value={validations.max ?? null} onValueChange={(event) => apply({ validations: cleanValidations({ ...validations, ...(event.value == null ? {} : { max: event.value }) }) })} />
+              <NumberInput value={validations.max ?? null} onChange={(next) => apply({ validations: cleanValidations({ ...validations, ...(next == null ? {} : { max: next }) }) })} />
             </div>
           </div>
           <div className="form-grid">
             <div className="form-row">
               <label>Min Length</label>
-              <InputNumber value={validations.minLength ?? null} onValueChange={(event) => apply({ validations: cleanValidations({ ...validations, ...(event.value == null ? {} : { minLength: event.value }) }) })} />
+              <NumberInput value={validations.minLength ?? null} onChange={(next) => apply({ validations: cleanValidations({ ...validations, ...(next == null ? {} : { minLength: next }) }) })} />
             </div>
             <div className="form-row">
               <label>Max Length</label>
-              <InputNumber value={validations.maxLength ?? null} onValueChange={(event) => apply({ validations: cleanValidations({ ...validations, ...(event.value == null ? {} : { maxLength: event.value }) }) })} />
+              <NumberInput value={validations.maxLength ?? null} onChange={(next) => apply({ validations: cleanValidations({ ...validations, ...(next == null ? {} : { maxLength: next }) }) })} />
             </div>
           </div>
           <div className="form-row">
             <label>Regex</label>
-            <InputText value={validations.regex ?? ''} onChange={(event) => apply({ validations: cleanValidations({ ...validations, ...(event.target.value ? { regex: event.target.value } : {}) }) })} />
+            <TextInput value={validations.regex ?? ''} onChange={(next) => apply({ validations: cleanValidations({ ...validations, ...(next ? { regex: next } : {}) }) })} />
           </div>
           <div className="form-row">
             <label>Allowed Values</label>
@@ -156,13 +152,13 @@ export function FieldInspector({
 
         <AccordionTab header="UI">
           <label>
-            <Checkbox checked={Boolean(uiConfig.multiline)} onChange={(event) => apply({ uiConfig: { ...uiConfig, multiline: Boolean(event.checked) } })} /> Multiline editor
+            <Checkbox checked={Boolean(uiConfig.multiline)} onChange={(next) => apply({ uiConfig: { ...uiConfig, multiline: next } })} /> Multiline editor
           </label>
           {selected.type === 'richtext' ? (
             <div className="form-row">
               <label>Rich Text Features</label>
               <div className="inline-actions">
-                <Dropdown
+                <Select
                   value={
                     JSON.stringify(uiConfig.richTextFeatures ?? DEFAULT_RICH_TEXT_FEATURES) === JSON.stringify(DEFAULT_RICH_TEXT_FEATURES)
                       ? 'default'
@@ -175,11 +171,10 @@ export function FieldInspector({
                     { label: 'Preset: Full', value: 'full' },
                     { label: 'Preset: Custom', value: 'custom' }
                   ]}
-                  onChange={(event) => {
-                    const value = String(event.value);
-                    if (value === 'default') {
+                  onChange={(next) => {
+                    if (next === 'default') {
                       apply({ uiConfig: cleanUiConfig({ ...uiConfig, richTextFeatures: [...DEFAULT_RICH_TEXT_FEATURES] }) });
-                    } else if (value === 'full') {
+                    } else if (next === 'full') {
                       apply({ uiConfig: cleanUiConfig({ ...uiConfig, richTextFeatures: [...FULL_RICH_TEXT_FEATURES] }) });
                     }
                   }}
@@ -188,12 +183,7 @@ export function FieldInspector({
               <MultiSelect
                 value={uiConfig.richTextFeatures ?? DEFAULT_RICH_TEXT_FEATURES}
                 options={RICH_TEXT_FEATURE_OPTIONS}
-                onChange={(event) =>
-                  apply({
-                    uiConfig: cleanUiConfig({ ...uiConfig, richTextFeatures: event.value as RichTextFeature[] })
-                  })
-                }
-                display="chip"
+                onChange={(next) => apply({ uiConfig: cleanUiConfig({ ...uiConfig, richTextFeatures: next as RichTextFeature[] }) })}
                 placeholder="Select toolbar features"
               />
               <small className="muted">Toolbar buttons and inline edit shortcuts.</small>
@@ -202,28 +192,28 @@ export function FieldInspector({
           <div className="form-grid">
             <div className="form-row">
               <label>Rows</label>
-              <InputNumber value={uiConfig.rows ?? null} onValueChange={(event) => apply({ uiConfig: cleanUiConfig({ ...uiConfig, ...(event.value == null ? {} : { rows: event.value }) }) })} />
+              <NumberInput value={uiConfig.rows ?? null} onChange={(next) => apply({ uiConfig: cleanUiConfig({ ...uiConfig, ...(next == null ? {} : { rows: next }) }) })} />
             </div>
             <div className="form-row">
               <label>Display Format</label>
-              <InputText value={uiConfig.displayFormat ?? ''} onChange={(event) => apply({ uiConfig: cleanUiConfig({ ...uiConfig, displayFormat: event.target.value }) })} />
+              <TextInput value={uiConfig.displayFormat ?? ''} onChange={(next) => apply({ uiConfig: cleanUiConfig({ ...uiConfig, displayFormat: next }) })} />
             </div>
           </div>
           <div className="form-row">
             <label>Section</label>
-            <InputText value={uiConfig.section ?? ''} onChange={(event) => apply({ uiConfig: cleanUiConfig({ ...uiConfig, section: event.target.value }) })} />
+            <TextInput value={uiConfig.section ?? ''} onChange={(next) => apply({ uiConfig: cleanUiConfig({ ...uiConfig, section: next }) })} />
           </div>
         </AccordionTab>
 
         <AccordionTab header="Advanced">
           <div className="form-row">
             <label>Validations JSON</label>
-            <InputTextarea
+            <Textarea
               rows={4}
               value={JSON.stringify(validations, null, 2)}
-              onChange={(event) => {
+              onChange={(next) => {
                 try {
-                  const parsed = JSON.parse(event.target.value) as ContentFieldDef['validations'];
+                  const parsed = JSON.parse(next) as ContentFieldDef['validations'];
                   apply({ validations: parsed ?? {} });
                 } catch {
                   // keep invalid JSON local
@@ -233,12 +223,12 @@ export function FieldInspector({
           </div>
           <div className="form-row">
             <label>UI Config JSON</label>
-            <InputTextarea
+            <Textarea
               rows={4}
               value={JSON.stringify(uiConfig, null, 2)}
-              onChange={(event) => {
+              onChange={(next) => {
                 try {
-                  const parsed = JSON.parse(event.target.value) as ContentFieldDef['uiConfig'];
+                  const parsed = JSON.parse(next) as ContentFieldDef['uiConfig'];
                   apply({ uiConfig: parsed ?? {} });
                 } catch {
                   // keep invalid JSON local

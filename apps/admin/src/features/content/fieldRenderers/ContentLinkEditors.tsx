@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { Dropdown } from 'primereact/dropdown';
-import { InputText } from 'primereact/inputtext';
+
+import { Button, Select, TextInput } from '../../../ui/atoms';
 
 import { type ContentLinkValue } from './LinkSelectorDialog';
 import { LinkPickerButton } from '../../../ui/atoms';
@@ -29,14 +28,14 @@ export function ContentLinkEditor({
       <div className="form-grid">
         <div className="form-row">
           <label>Link Text</label>
-          <InputText value={value?.text ?? ''} onChange={(event) => onChange({ ...(value ?? { kind: 'external' }), text: event.target.value })} />
+          <TextInput value={value?.text ?? ''} onChange={(next) => onChange({ ...(value ?? { kind: 'external' }), text: next })} />
         </div>
         <div className="form-row">
           <label>Target</label>
-          <Dropdown
+          <Select
             value={value?.target ?? '_self'}
             options={[{ label: 'Same tab', value: '_self' }, { label: 'New tab', value: '_blank' }]}
-            onChange={(event) => onChange({ ...(value ?? { kind: 'external' }), target: event.value })}
+            onChange={(next) => onChange({ ...(value ?? { kind: 'external' }), target: next ?? '_self' })}
           />
         </div>
       </div>

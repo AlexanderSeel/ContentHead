@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from 'primereact/button';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
 import { Accordion, AccordionTab } from 'primereact/accordion';
+
+import { Button, NumberInput, Select, Textarea, TextInput } from '../ui/atoms';
 import ReactFlow, { Background, Controls, MiniMap, type Connection, type Edge, type Node, type OnConnect } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -186,11 +183,12 @@ export function WorkflowDesignerSection({
           collapsible: true,
           content: (
             <div className="form-row">
-              <Dropdown
-                value={definitionId}
-                options={definitions.map((entry) => ({ label: `${entry.name} v${entry.version}`, value: entry.id }))}
-                onChange={(event) => {
-                  const id = Number(event.value);
+              <Select
+                value={definitionId !== null ? String(definitionId) : ''}
+                options={definitions.map((entry) => ({ label: `${entry.name} v${entry.version}`, value: String(entry.id) }))}
+                onChange={(next) => {
+                  if (!next) return;
+                  const id = Number(next);
                   const picked = definitions.find((entry) => entry.id === id);
                   if (!picked) {
                     return;
@@ -206,8 +204,8 @@ export function WorkflowDesignerSection({
                 }}
                 placeholder="Select workflow"
               />
-              <InputText value={definitionName} onChange={(event) => setDefinitionName(event.target.value)} placeholder="Workflow name" />
-              <InputNumber value={definitionVersion} min={1} onValueChange={(event) => setDefinitionVersion(event.value ?? 1)} />
+              <TextInput value={definitionName} onChange={(next) => setDefinitionName(next)} placeholder="Workflow name" />
+              <NumberInput value={definitionVersion} min={1} onChange={(next) => setDefinitionVersion(next ?? 1)} />
               <Button label="Save" onClick={() => saveDefinition().catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
               <h4 className="m-0 mt-2">Node Palette</h4>
               <Accordion multiple activeIndex={[0]}>
@@ -221,13 +219,13 @@ export function WorkflowDesignerSection({
               </Accordion>
               <Accordion multiple activeIndex={advancedTabs} onTabChange={(event) => setAdvancedTabs(event.index)}>
                 <AccordionTab header="Advanced: Input Schema JSON">
-                  <InputTextarea rows={4} value={inputSchemaJson} onChange={(event) => setInputSchemaJson(event.target.value)} />
+                  <Textarea rows={4} value={inputSchemaJson} onChange={(next) => setInputSchemaJson(next)} />
                 </AccordionTab>
                 <AccordionTab header="Advanced: Permissions JSON">
-                  <InputTextarea rows={4} value={permissionsJson} onChange={(event) => setPermissionsJson(event.target.value)} />
+                  <Textarea rows={4} value={permissionsJson} onChange={(next) => setPermissionsJson(next)} />
                 </AccordionTab>
                 <AccordionTab header="Run Context JSON">
-                  <InputTextarea rows={4} value={runContextJson} onChange={(event) => setRunContextJson(event.target.value)} />
+                  <Textarea rows={4} value={runContextJson} onChange={(next) => setRunContextJson(next)} />
                 </AccordionTab>
               </Accordion>
             </div>

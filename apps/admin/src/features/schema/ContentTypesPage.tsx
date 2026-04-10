@@ -1,14 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Button } from 'primereact/button';
-import { Checkbox } from 'primereact/checkbox';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
-import { Dropdown } from 'primereact/dropdown';
-import { InputText } from 'primereact/inputtext';
-import { MultiSelect } from 'primereact/multiselect';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
+
+import { Button, Checkbox, MultiSelect, Select, TextInput } from '../../ui/atoms';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
@@ -398,11 +395,11 @@ export function ContentTypesPage() {
                       <div className="content-types-meta-grid">
                         <div className="form-row">
                           <label>Name</label>
-                          <InputText value={selected.name} onChange={(event) => setSelected((prev) => (prev ? { ...prev, name: event.target.value } : prev))} />
+                          <TextInput value={selected.name} onChange={(next) => setSelected((prev) => (prev ? { ...prev, name: next } : prev))} />
                         </div>
                         <div className="form-row">
                           <label>Description</label>
-                          <InputText value={selected.description ?? ''} onChange={(event) => setSelected((prev) => (prev ? { ...prev, description: event.target.value } : prev))} />
+                          <TextInput value={selected.description ?? ''} onChange={(next) => setSelected((prev) => (prev ? { ...prev, description: next } : prev))} />
                         </div>
                       </div>
                     </section>
@@ -417,7 +414,7 @@ export function ContentTypesPage() {
                             className="w-full"
                             value={allowedComponents}
                             options={registryOptions}
-                            onChange={(event) => setAllowedComponents((event.value as string[]) ?? [])}
+                            onChange={(next) => setAllowedComponents(next ?? [])}
                             placeholder="Select allowed component types"
                             display="chip"
                             filter
@@ -427,9 +424,9 @@ export function ContentTypesPage() {
                         <div className="form-row">
                           <label>Add Area</label>
                           <div className="content-types-area-add">
-                            <InputText
+                            <TextInput
                               value={newAreaName}
-                              onChange={(event) => setNewAreaName(event.target.value)}
+                              onChange={(next) => setNewAreaName(next)}
                               placeholder="e.g. header"
                             />
                             <Button label="Add" onClick={addArea} disabled={!newAreaName.trim()} />
@@ -455,10 +452,10 @@ export function ContentTypesPage() {
                               className="w-full"
                               value={areaRestrictions[areaName] ?? []}
                               options={registryOptions.filter((option) => allowedComponents.includes(option.value))}
-                              onChange={(event) =>
+                              onChange={(next) =>
                                 setAreaRestrictions((prev) => ({
                                   ...prev,
-                                  [areaName]: (event.value as string[]) ?? []
+                                  [areaName]: next ?? []
                                 }))
                               }
                               placeholder={`Restrict ${areaName} area (optional)`}
@@ -519,28 +516,27 @@ export function ContentTypesPage() {
       <Dialog header="Add Field" visible={showAddField} onHide={() => setShowAddField(false)} className="w-11 md:w-8 lg:w-6 xl:w-4">
         <div className="form-row">
           <label>Label</label>
-          <InputText
+          <TextInput
             value={newFieldLabel}
-            onChange={(event) => {
-              const value = event.target.value;
-              setNewFieldLabel(value);
+            onChange={(next) => {
+              setNewFieldLabel(next);
               if (!newFieldKey) {
-                setNewFieldKey(suggestFieldKey(value));
+                setNewFieldKey(suggestFieldKey(next));
               }
             }}
           />
         </div>
         <div className="form-row">
           <label>Key</label>
-          <InputText value={newFieldKey} onChange={(event) => setNewFieldKey(event.target.value)} placeholder="Auto from label" />
+          <TextInput value={newFieldKey} onChange={(next) => setNewFieldKey(next)} placeholder="Auto from label" />
           <small className="muted">{`Will be saved as: ${resolvedNewFieldKey}`}</small>
         </div>
         <div className="form-row">
           <label>Type</label>
-          <Dropdown value={newFieldType} options={CONTENT_FIELD_TYPES} onChange={(event) => setNewFieldType(event.value as ContentFieldType)} />
+          <Select value={newFieldType} options={CONTENT_FIELD_TYPES} onChange={(next) => next && setNewFieldType(next as ContentFieldType)} />
         </div>
         <label>
-          <Checkbox checked={newFieldRequired} onChange={(event) => setNewFieldRequired(Boolean(event.checked))} /> Required
+          <Checkbox checked={newFieldRequired} onChange={(next) => setNewFieldRequired(next)} /> Required
         </label>
         <div className="inline-actions mt-3">
           <Button label="Cancel" text onClick={() => setShowAddField(false)} />

@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react';
 import { GraphiQL } from 'graphiql';
 import type { Fetcher, FetcherOpts, Storage as GraphiQLStorage } from '@graphiql/toolkit';
-import { Button } from 'primereact/button';
-import { InputText } from 'primereact/inputtext';
-
 import { useAuth } from '../../app/AuthContext';
+import { Button, TextInput } from '../../ui/atoms';
 import { WorkspaceBody, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout, WorkspaceToolbar } from '../../ui/molecules';
 
 import 'graphiql/style.css';
@@ -82,9 +80,9 @@ export function GraphiQLPage() {
             label={useSessionToken ? 'Session Auth: On' : 'Session Auth: Off'}
             onClick={() => setUseSessionToken((prev) => !prev)}
           />
-          <InputText
+          <TextInput
             value={previewToken}
-            onChange={(event) => setPreviewToken(event.target.value)}
+            onChange={(next) => setPreviewToken(next)}
             placeholder="x-preview-token (optional)"
           />
         </div>
@@ -101,7 +99,7 @@ export function GraphiQLPage() {
             content: (
               <div className="form-row">
                 <label>Endpoint</label>
-                <InputText value={endpoint} readOnly />
+                <TextInput value={endpoint} readOnly />
                 <small className="muted">Use the center editor to run queries and mutations.</small>
               </div>
             )

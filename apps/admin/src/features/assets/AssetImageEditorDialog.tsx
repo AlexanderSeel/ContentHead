@@ -1,15 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog } from 'primereact/dialog';
 import { TabPanel, TabView } from 'primereact/tabview';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { Button } from 'primereact/button';
-import { Checkbox } from 'primereact/checkbox';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { InputNumber } from 'primereact/inputnumber';
-import { Dropdown } from 'primereact/dropdown';
 import { Slider } from 'primereact/slider';
+
+import { Button, Checkbox, NumberInput, Select, Textarea, TextInput } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { getApiBaseUrl } from '../../lib/api';
@@ -236,42 +232,40 @@ function PresetDraftDialog({
     <Dialog header="Preset" visible={visible} onHide={onHide} className="w-10 md:w-7 lg:w-5">
       <div className="form-row">
         <label>Name</label>
-        <InputText value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
+        <TextInput value={draft.name} onChange={(next) => setDraft({ ...draft, name: next })} />
 
         <label>Width</label>
-        <InputNumber
+        <NumberInput
           value={draft.width}
-          onValueChange={(event) => setDraft({ ...draft, width: Number(event.value ?? 0) })}
+          onChange={(next) => setDraft({ ...draft, width: Number(next ?? 0) })}
           min={1}
           max={8000}
-          useGrouping={false}
         />
 
         <label>Height</label>
-        <InputNumber
+        <NumberInput
           value={draft.height}
-          onValueChange={(event) => setDraft({ ...draft, height: Number(event.value ?? 0) })}
+          onChange={(next) => setDraft({ ...draft, height: Number(next ?? 0) })}
           min={1}
           max={8000}
-          useGrouping={false}
         />
 
         <label>Mode</label>
-        <Dropdown
+        <Select
           value={draft.mode}
           options={[{ label: 'Cover', value: 'cover' }, { label: 'Contain', value: 'contain' }]}
-          onChange={(event) => setDraft({ ...draft, mode: event.value as 'cover' | 'contain' })}
+          onChange={(next) => next && setDraft({ ...draft, mode: next as 'cover' | 'contain' })}
         />
 
         <label>Format</label>
-        <Dropdown
+        <Select
           value={draft.format ?? 'webp'}
           options={[
             { label: 'WebP', value: 'webp' },
             { label: 'JPEG', value: 'jpeg' },
             { label: 'PNG', value: 'png' }
           ]}
-          onChange={(event) => setDraft({ ...draft, format: event.value as 'webp' | 'jpeg' | 'png' })}
+          onChange={(next) => next && setDraft({ ...draft, format: next as 'webp' | 'jpeg' | 'png' })}
         />
 
         <label>Quality: {draft.quality ?? 80}</label>
@@ -285,7 +279,7 @@ function PresetDraftDialog({
         <label>
           <Checkbox
             checked={draft.useFocalPoint !== false}
-            onChange={(event) => setDraft({ ...draft, useFocalPoint: Boolean(event.checked) })}
+            onChange={(next) => setDraft({ ...draft, useFocalPoint: next })}
           />{' '}
           Use focal point
         </label>
@@ -1263,7 +1257,7 @@ export function AssetImageEditorDialog({
               <TabPanel header="Crop & Focal">
                 <div className="form-row">
                   <label>
-                    <Checkbox checked={showThirds} onChange={(event) => setShowThirds(Boolean(event.checked))} /> Show rule-of-thirds
+                    <Checkbox checked={showThirds} onChange={(next) => setShowThirds(next)} /> Show rule-of-thirds
                   </label>
                   <small className="muted">
                     Focal: {(focal.x * 100).toFixed(1)}% / {(focal.y * 100).toFixed(1)}%
@@ -1271,8 +1265,7 @@ export function AssetImageEditorDialog({
                   <label>
                     <Checkbox
                       checked={mainCropMode}
-                      onChange={(event) => {
-                        const next = Boolean(event.checked);
+                      onChange={(next) => {
                         setMainCropMode(next);
                         if (next && mainCrop.w >= 0.995 && mainCrop.h >= 0.995) {
                           const inset = selectedPreset ? fitCropToAspect({ x: 0.08, y: 0.08, w: 0.84, h: 0.84 }, aspect) : { x: 0.08, y: 0.08, w: 0.84, h: 0.84 };
@@ -1286,7 +1279,7 @@ export function AssetImageEditorDialog({
                   <label>
                     <Checkbox
                       checked={lockCropAspect}
-                      onChange={(event) => setLockCropAspect(Boolean(event.checked))}
+                      onChange={(next) => setLockCropAspect(next)}
                       disabled={!selectedPreset}
                     />{' '}
                     Lock to selected preset aspect ({selectedPreset ? `${selectedPreset.width}:${selectedPreset.height}` : 'n/a'})
@@ -1312,7 +1305,7 @@ export function AssetImageEditorDialog({
 
                   <label>Image tools</label>
                   <label>
-                    <Checkbox checked={blurBackground} onChange={(event) => setBlurBackground(Boolean(event.checked))} /> Blur background layer
+                    <Checkbox checked={blurBackground} onChange={(next) => setBlurBackground(next)} /> Blur background layer
                   </label>
                   {blurBackground ? (
                     <>
@@ -1322,27 +1315,27 @@ export function AssetImageEditorDialog({
                   ) : null}
 
                   <label>
-                    <Checkbox checked={removeBackground} onChange={(event) => setRemoveBackground(Boolean(event.checked))} /> Remove background (preview)
+                    <Checkbox checked={removeBackground} onChange={(next) => setRemoveBackground(next)} /> Remove background (preview)
                   </label>
                   {removeBackground ? (
                     <>
                       <small className="muted">{backgroundRemoving ? `IMG.LY processing... ${backgroundRemovalProgress}%` : 'IMG.LY model settings'}</small>
-                      <Dropdown
+                      <Select
                         value={backgroundModel}
                         options={[
                           { label: 'Fast (isnet_quint8)', value: 'isnet_quint8' },
                           { label: 'Balanced (isnet_fp16)', value: 'isnet_fp16' },
                           { label: 'Quality (isnet)', value: 'isnet' }
                         ]}
-                        onChange={(event) => setBackgroundModel(event.value as BgRemovalModel)}
+                        onChange={(next) => next && setBackgroundModel(next as BgRemovalModel)}
                       />
-                      <Dropdown
+                      <Select
                         value={backgroundDevice}
                         options={[
                           { label: 'GPU (if available)', value: 'gpu' },
                           { label: 'CPU', value: 'cpu' }
                         ]}
-                        onChange={(event) => setBackgroundDevice(event.value as BgRemovalDevice)}
+                        onChange={(next) => next && setBackgroundDevice(next as BgRemovalDevice)}
                       />
                     </>
                   ) : null}
@@ -1365,10 +1358,10 @@ export function AssetImageEditorDialog({
                     <Button text label="Rotate -90" onClick={() => setImageRotation((prev) => ((prev - 90) % 360 + 360) % 360)} />
                     <Button text label="Rotate +90" onClick={() => setImageRotation((prev) => ((prev + 90) % 360 + 360) % 360)} />
                     <label>
-                      <Checkbox checked={imageFlipX} onChange={(event) => setImageFlipX(Boolean(event.checked))} /> Flip X
+                      <Checkbox checked={imageFlipX} onChange={(next) => setImageFlipX(next)} /> Flip X
                     </label>
                     <label>
-                      <Checkbox checked={imageFlipY} onChange={(event) => setImageFlipY(Boolean(event.checked))} /> Flip Y
+                      <Checkbox checked={imageFlipY} onChange={(next) => setImageFlipY(next)} /> Flip Y
                     </label>
                   </div>
                   <Button
@@ -1389,7 +1382,7 @@ export function AssetImageEditorDialog({
                   />
 
                   <label>
-                    <Checkbox checked={paintMode} onChange={(event) => setPaintMode(Boolean(event.checked))} /> Paint over
+                    <Checkbox checked={paintMode} onChange={(next) => setPaintMode(next)} /> Paint over
                   </label>
                   {paintMode ? (
                     <>
@@ -1532,11 +1525,11 @@ export function AssetImageEditorDialog({
               <TabPanel header="POIs">
                 <div className="inline-actions mb-2">
                   <label>
-                    <Checkbox checked={poiMode} onChange={(event) => setPoiMode(Boolean(event.checked))} /> POI mode (click image to add)
+                    <Checkbox checked={poiMode} onChange={(next) => setPoiMode(next)} /> POI mode (click image to add)
                   </label>
                 </div>
                 <DataTable value={pois} size="small">
-                  <Column field="label" header="Label" body={(row: Poi, options) => <InputText value={row.label ?? ''} onChange={(event) => setPois((prev) => prev.map((entry, idx) => (idx === options.rowIndex ? { ...entry, label: event.target.value } : entry)))} />} />
+                  <Column field="label" header="Label" body={(row: Poi, options) => <TextInput value={row.label ?? ''} onChange={(next) => setPois((prev) => prev.map((entry, idx) => (idx === options.rowIndex ? { ...entry, label: next } : entry)))} />} />
                   <Column
                     header="Link"
                     body={(row: Poi, options) => (
@@ -1572,10 +1565,10 @@ export function AssetImageEditorDialog({
                     body={(row: Poi, options) => (
                       <Checkbox
                         checked={row.visible !== false}
-                        onChange={(event) =>
+                        onChange={(next) =>
                           setPois((prev) =>
                             prev.map((entry, idx) =>
-                              idx === options.rowIndex ? { ...entry, visible: Boolean(event.checked) } : entry
+                              idx === options.rowIndex ? { ...entry, visible: next } : entry
                             )
                           )
                         }
@@ -1594,13 +1587,13 @@ export function AssetImageEditorDialog({
               <TabPanel header="Metadata">
                 <div className="form-row">
                   <label>Title</label>
-                  <InputText value={title} onChange={(event) => setTitle(event.target.value)} />
+                  <TextInput value={title} onChange={(next) => setTitle(next)} />
                   <label>Alt text</label>
-                  <InputText value={altText} onChange={(event) => setAltText(event.target.value)} />
+                  <TextInput value={altText} onChange={(next) => setAltText(next)} />
                   <label>Description</label>
-                  <InputTextarea value={description} onChange={(event) => setDescription(event.target.value)} rows={4} />
+                  <Textarea value={description} onChange={(next) => setDescription(next)} rows={4} />
                   <label>Tags (comma separated)</label>
-                  <InputText value={tags.join(', ')} onChange={(event) => setTags(event.target.value.split(',').map((entry) => entry.trim()).filter(Boolean))} />
+                  <TextInput value={tags.join(', ')} onChange={(next) => setTags(next.split(',').map((entry) => entry.trim()).filter(Boolean))} />
                 </div>
               </TabPanel>
 
@@ -1609,9 +1602,9 @@ export function AssetImageEditorDialog({
                   <summary>JSON (advanced)</summary>
                   <div className="form-row mt-2">
                     <label>POIs JSON</label>
-                    <InputTextarea value={poisJsonDraft} onChange={(event) => setPoisJsonDraft(event.target.value)} rows={6} />
+                    <Textarea value={poisJsonDraft} onChange={(next) => setPoisJsonDraft(next)} rows={6} />
                     <label>Rendition presets JSON</label>
-                    <InputTextarea value={presetsJsonDraft} onChange={(event) => setPresetsJsonDraft(event.target.value)} rows={6} />
+                    <Textarea value={presetsJsonDraft} onChange={(next) => setPresetsJsonDraft(next)} rows={6} />
                     <Button label="Apply advanced JSON" text onClick={applyAdvancedJson} />
                   </div>
                 </details>

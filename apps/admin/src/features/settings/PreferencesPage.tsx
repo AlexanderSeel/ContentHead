@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { Dropdown } from 'primereact/dropdown';
 import { Slider } from 'primereact/slider';
-import { Tag } from 'primereact/tag';
+
+import { Button, Select, Tag } from '../../ui/atoms';
 
 import { useUi } from '../../app/UiContext';
 import { getLayoutStorageOverview, resetAllLayoutStorage, resetLayoutStorageKey, type LayoutStorageEntry } from '../../lib/layoutSettings';
@@ -58,12 +57,10 @@ export function PreferencesPage() {
           <div className="form-grid">
             <div className="form-row">
               <label>Theme</label>
-              <Dropdown
+              <Select
                 value={theme}
                 options={themes}
-                optionLabel="label"
-                optionValue="value"
-                onChange={(event) => setTheme(String(event.value))}
+                onChange={(next) => next && setTheme(next)}
                 placeholder="Theme"
                 filter
               />

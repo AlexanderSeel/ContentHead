@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Card } from 'primereact/card';
-import { Dropdown } from 'primereact/dropdown';
-import { InputText } from 'primereact/inputtext';
-import { Button } from 'primereact/button';
+
+import { Button, Select, TextInput } from '../../ui/atoms';
 import { buildLocalizedPath, validateUrlPattern } from '@contenthead/shared';
 
 import { useAdminContext } from '../../app/AdminContext';
@@ -54,20 +53,20 @@ export function SiteOverviewPage() {
 
         <h3>URL Pattern</h3>
         <div className="form-grid">
-          <Dropdown
+          <Select
             value={patternMode}
             options={URL_PATTERN_PRESETS}
-            onChange={(event) => {
-              const value = String(event.value);
-              setPatternMode(value);
-              if (value !== '__custom__') {
-                setCustomPattern(value);
+            onChange={(next) => {
+              if (!next) return;
+              setPatternMode(next);
+              if (next !== '__custom__') {
+                setCustomPattern(next);
               }
             }}
           />
-          <InputText
+          <TextInput
             value={customPattern}
-            onChange={(event) => setCustomPattern(event.target.value)}
+            onChange={(next) => setCustomPattern(next)}
             disabled={patternMode !== '__custom__'}
             placeholder="/{market}/{locale}"
           />

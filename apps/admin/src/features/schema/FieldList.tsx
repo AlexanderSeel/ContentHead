@@ -1,7 +1,7 @@
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { Button } from 'primereact/button';
-import { Checkbox } from 'primereact/checkbox';
+
+import { Button, Checkbox } from '../../../ui/atoms';
 
 import type { ContentFieldDef } from './fieldValidationUi';
 
@@ -54,7 +54,7 @@ export function FieldList({
         <Column
           header="Req"
           body={(row: ContentFieldDef) => (
-            <Checkbox checked={Boolean(row.required)} onChange={(event) => onRequired(row.key, Boolean(event.checked))} />
+            <Checkbox checked={Boolean(row.required)} onChange={(next) => onRequired(row.key, next)} />
           )}
           headerClassName="w-4rem"
           bodyClassName="w-4rem"

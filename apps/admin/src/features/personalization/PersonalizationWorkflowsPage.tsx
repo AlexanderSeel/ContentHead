@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from 'primereact/button';
-import { Dropdown } from 'primereact/dropdown';
-import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
+
+import { Button, Select, TextInput } from '../../ui/atoms';
 import type { Rule } from '@contenthead/shared';
 
 import { useAuth } from '../../app/AuthContext';
@@ -362,10 +361,10 @@ export function PersonalizationWorkflowsPage() {
           {wizardStep === 1 ? (
             <div className="form-row">
               <h4>Step 1: Pick a page/content item</h4>
-              <Dropdown
+              <Select
                 value={contentItemId}
                 options={items.map((entry) => ({ label: `#${entry.id}`, value: entry.id }))}
-                onChange={(event) => loadContentItem(Number(event.value)).catch((error: unknown) => setStatus(formatErrorMessage(error)))}
+                onChange={(next) => next !== null && loadContentItem(next).catch((error: unknown) => setStatus(formatErrorMessage(error)))}
                 placeholder="Select content item"
                 filter
               />
@@ -386,27 +385,27 @@ export function PersonalizationWorkflowsPage() {
                     <h5 className="mt-0 mb-2">Variant {index + 1}</h5>
                     <div className="form-row">
                       <label>Key</label>
-                      <InputText value={variant.key} onChange={(event) => updateVariant(index, { key: event.target.value })} placeholder="variant key" />
+                      <TextInput value={variant.key} onChange={(next) => updateVariant(index, { key: next })} placeholder="variant key" />
                     </div>
                     <div className="form-row">
                       <label>Headline</label>
-                      <InputText value={variant.headline} onChange={(event) => updateVariant(index, { headline: event.target.value })} placeholder="Headline" />
+                      <TextInput value={variant.headline} onChange={(next) => updateVariant(index, { headline: next })} placeholder="Headline" />
                     </div>
                     <div className="form-row">
                       <label>Hero text</label>
-                      <InputText value={variant.hero} onChange={(event) => updateVariant(index, { hero: event.target.value })} placeholder="Hero message" />
+                      <TextInput value={variant.hero} onChange={(next) => updateVariant(index, { hero: next })} placeholder="Hero message" />
                     </div>
                     <div className="form-grid">
                       <div className="form-row">
                         <label>Accent color</label>
-                        <InputText value={variant.accentColor} onChange={(event) => updateVariant(index, { accentColor: event.target.value })} placeholder="var(--primary-color)" />
+                        <TextInput value={variant.accentColor} onChange={(next) => updateVariant(index, { accentColor: next })} placeholder="var(--primary-color)" />
                       </div>
                       <div className="form-row">
                         <label>Content version</label>
-                        <Dropdown
+                        <Select
                           value={variant.contentVersionId}
                           options={versions.map((entry) => ({ label: `v${entry.versionNumber}`, value: entry.id }))}
-                          onChange={(event) => updateVariant(index, { contentVersionId: Number(event.value) })}
+                          onChange={(next) => next !== null && updateVariant(index, { contentVersionId: next })}
                           placeholder="Version"
                         />
                       </div>
@@ -440,14 +439,14 @@ export function PersonalizationWorkflowsPage() {
           {wizardStep === 4 ? (
             <div className="form-row">
               <h4>Step 4: Choose rollout strategy</h4>
-              <Dropdown
+              <Select
                 value={rolloutStrategy}
                 options={[
                   { label: 'A/B split', value: 'ab_split' },
                   { label: 'Targeted only', value: 'targeted_only' },
                   { label: 'Staged rollout (future)', value: 'staged_rollout' }
                 ]}
-                onChange={(event) => setRolloutStrategy(event.value as RolloutStrategy)}
+                onChange={(next) => next && setRolloutStrategy(next as RolloutStrategy)}
               />
               <small className="muted">
                 Staged rollout is available as a planning option and currently maps to targeted-only activation behavior.

@@ -1,14 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from 'primereact/button';
-import { Checkbox } from 'primereact/checkbox';
 import { Chips } from 'primereact/chips';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
+
+import { Button, Checkbox, NumberInput, Select, Textarea, TextInput } from '../../../ui/atoms';
 
 import {
   type ComponentUiField,
@@ -321,17 +317,17 @@ export function ComponentInspector({
     );
     if (field.type === 'number') {
       return (
-        <InputNumber
+        <NumberInput
           value={typeof value === 'number' ? value : null}
-          onValueChange={(event) => onChangeValue(event.value ?? 0)}
+          onChange={(next) => onChangeValue(next ?? 0)}
         />
       );
     }
     if (field.type === 'select') {
-      return <Dropdown value={value ?? null} options={field.options ?? []} onChange={(event) => onChangeValue(event.value)} />;
+      return <Select value={String(value ?? '')} options={(field.options ?? []).map((opt) => typeof opt === 'object' && opt !== null ? opt as { label: string; value: string } : { label: String(opt), value: String(opt) })} onChange={(next) => onChangeValue(next)} />;
     }
     if (field.type === 'boolean') {
-      return <Checkbox checked={Boolean(value)} onChange={(event) => onChangeValue(Boolean(event.checked))} />;
+      return <Checkbox checked={Boolean(value)} onChange={(next) => onChangeValue(next)} />;
     }
     if (field.type === 'assetRef') {
       return (
@@ -375,10 +371,10 @@ export function ComponentInspector({
     }
     if (field.type === 'formRef') {
       return (
-        <Dropdown
-          value={typeof value === 'number' ? value : null}
-          options={forms.map((entry) => ({ label: entry.name, value: entry.id }))}
-          onChange={(event) => onChangeValue(event.value)}
+        <Select
+          value={typeof value === 'number' ? String(value) : ''}
+          options={forms.map((entry) => ({ label: entry.name, value: String(entry.id) }))}
+          onChange={(next) => onChangeValue(next ? Number(next) : null)}
           placeholder="Select form"
         />
       );
@@ -386,12 +382,11 @@ export function ComponentInspector({
     if (field.type === 'componentRef') {
       return (
         <div className="form-row">
-          <Dropdown
-            value={typeof value === 'string' ? value : null}
+          <Select
+            value={typeof value === 'string' ? value : ''}
             options={filteredComponentRefs.map((entry) => ({ label: entry.label, value: entry.id }))}
-            onChange={(event) => onChangeValue(typeof event.value === 'string' ? event.value : '')}
+            onChange={(next) => onChangeValue(next ?? '')}
             filter
-            showClear
             placeholder="Select component"
           />
           {filteredComponentRefs.length === 0 && Array.isArray(field.refComponentTypes) && field.refComponentTypes.length > 0 ? (
@@ -413,28 +408,27 @@ export function ComponentInspector({
         <div className="form-grid">
           <div className="form-row">
             <label className="muted">Component</label>
-            <Dropdown
-              value={componentId || null}
+            <Select
+              value={componentId || ''}
               options={filteredComponentRefs.map((entry) => ({ label: entry.label, value: entry.id }))}
-              onChange={(event) =>
+              onChange={(next) =>
                 onChangeValue({
-                  componentId: typeof event.value === 'string' ? event.value : '',
+                  componentId: next ?? '',
                   path
                 })
               }
               filter
-              showClear
               placeholder="Select component"
             />
           </div>
           <div className="form-row">
             <label className="muted">Object path</label>
-            <InputText
+            <TextInput
               value={path}
-              onChange={(event) =>
+              onChange={(next) =>
                 onChangeValue({
                   componentId,
-                  path: event.target.value
+                  path: next
                 })
               }
               placeholder="items.0.title"
@@ -496,12 +490,12 @@ export function ComponentInspector({
       if (value && typeof value === 'object') {
         return renderJsonFallback(Array.isArray(value) ? looseArrayJsonSchema : looseObjectJsonSchema);
       }
-      return <InputTextarea rows={4} value={String(value ?? '')} onChange={(event) => onChangeValue(event.target.value)} />;
+      return <Textarea rows={4} value={String(value ?? '')} onChange={(next) => onChangeValue(next)} />;
     }
     if (value && typeof value === 'object') {
       return renderJsonFallback(Array.isArray(value) ? looseArrayJsonSchema : looseObjectJsonSchema);
     }
-    return <InputText value={String(value ?? '')} onChange={(event) => onChangeValue(event.target.value)} />;
+    return <TextInput value={String(value ?? '')} onChange={(next) => onChangeValue(next)} />;
   }
 
   if (!component) {

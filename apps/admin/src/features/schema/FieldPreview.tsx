@@ -1,11 +1,4 @@
-import { Calendar } from 'primereact/calendar';
-import { Checkbox } from 'primereact/checkbox';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { MultiSelect } from 'primereact/multiselect';
-
+import { Checkbox, DatePicker, MultiSelect, NumberInput, Select, Textarea, TextInput } from '../../ui/atoms';
 import type { ContentFieldDef } from './fieldValidationUi';
 import { RichTextEditor } from '../content/fieldRenderers/RichTextEditor';
 
@@ -18,25 +11,25 @@ export function FieldPreview({ field }: { field: ContentFieldDef | null }) {
   const allowed = (field.validations?.allowedValues ?? []).map((entry) => ({ label: entry, value: entry }));
 
   if (field.type === 'boolean') {
-    return <Checkbox checked={Boolean(ui.defaultValue)} />;
+    return <Checkbox checked={Boolean(ui.defaultValue)} onChange={() => undefined} />;
   }
   if (field.type === 'number') {
-    return <InputNumber value={typeof ui.defaultValue === 'number' ? ui.defaultValue : null} />;
+    return <NumberInput value={typeof ui.defaultValue === 'number' ? ui.defaultValue : null} onChange={() => undefined} />;
   }
   if (field.type === 'date' || field.type === 'datetime') {
-    return <Calendar value={ui.defaultValue ? new Date(String(ui.defaultValue)) : null} showTime={field.type === 'datetime'} />;
+    return <DatePicker value={ui.defaultValue ? new Date(String(ui.defaultValue)) : null} onChange={() => undefined} showTime={field.type === 'datetime'} />;
   }
   if (field.type === 'select') {
-    return <Dropdown options={allowed} placeholder={ui.placeholder ?? ''} />;
+    return <Select value={null} options={allowed} onChange={() => undefined} placeholder={ui.placeholder ?? ''} />;
   }
   if (field.type === 'multiselect') {
-    return <MultiSelect options={allowed} placeholder={ui.placeholder ?? ''} />;
+    return <MultiSelect value={[]} options={allowed} onChange={() => undefined} placeholder={ui.placeholder ?? ''} />;
   }
   if (field.type === 'contentLink') {
-    return <InputText value="internal: /sample-route" readOnly />;
+    return <TextInput value="internal: /sample-route" readOnly />;
   }
   if (field.type === 'contentLinkList') {
-    return <InputTextarea rows={3} value='[{"kind":"external","url":"https://example.com"}]' readOnly />;
+    return <Textarea rows={3} value='[{"kind":"external","url":"https://example.com"}]' onChange={() => undefined} readOnly />;
   }
   if (field.type === 'richtext') {
     return (
@@ -49,8 +42,8 @@ export function FieldPreview({ field }: { field: ContentFieldDef | null }) {
     );
   }
   if (ui.multiline) {
-    return <InputTextarea rows={ui.rows ?? 4} value={String(ui.defaultValue ?? '')} />;
+    return <Textarea rows={ui.rows ?? 4} value={String(ui.defaultValue ?? '')} onChange={() => undefined} />;
   }
 
-  return <InputText value={String(ui.defaultValue ?? '')} placeholder={ui.placeholder ?? ''} />;
+  return <TextInput value={String(ui.defaultValue ?? '')} placeholder={ui.placeholder ?? ''} />;
 }

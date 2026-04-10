@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { Checkbox } from 'primereact/checkbox';
+
+import { Button, Checkbox, NumberInput, Select } from '../../../ui/atoms';
 
 import { createAdminSdk } from '../../../lib/sdk';
 import { getApiBaseUrl } from '../../../lib/api';
@@ -102,7 +100,7 @@ export function AssetRefEditor({
         )}
       </div>
       <div className="inline-actions mt-2">
-        <Dropdown
+        <Select
           value={selection.renditionKind ?? 'medium'}
           options={[
             { label: 'Original', value: 'original' },
@@ -111,34 +109,31 @@ export function AssetRefEditor({
             { label: 'Medium', value: 'medium' },
             { label: 'Large', value: 'large' }
           ]}
-          onChange={(event) => onChange({ ...selection, renditionKind: String(event.value) })}
+          onChange={(next) => onChange({ ...selection, renditionKind: next ?? 'medium' })}
         />
-        <Dropdown
+        <Select
           value={selection.fitMode ?? 'cover'}
           options={[{ label: 'Cover', value: 'cover' }, { label: 'Contain', value: 'contain' }]}
-          onChange={(event) => onChange({ ...selection, fitMode: String(event.value) })}
+          onChange={(next) => onChange({ ...selection, fitMode: next ?? 'cover' })}
         />
-        <InputNumber
+        <NumberInput
           value={selection.customWidth ?? null}
-          onValueChange={(event) => {
-            const width = Number(event.value ?? 0);
-            if (width > 0) {
-              onChange({ ...selection, customWidth: width });
+          onChange={(next) => {
+            if (next && next > 0) {
+              onChange({ ...selection, customWidth: next });
               return;
             }
-            const next = { ...selection } as { assetId: number | null; renditionKind?: string; fitMode?: string };
-            onChange(next);
+            const { customWidth: _removed, ...rest } = selection as any;
+            onChange(rest);
           }}
-          placeholder="Custom width"
           min={1}
           max={2400}
-          useGrouping={false}
         />
-        <Dropdown
+        <Select
           value={selection.presetId ?? null}
           options={presetOptions}
-          onChange={(event) => {
-            const next = { ...selection } as {
+          onChange={(next) => {
+            const next2 = { ...selection } as {
               assetId: number | null;
               renditionKind?: string;
               fitMode?: string;
@@ -146,12 +141,12 @@ export function AssetRefEditor({
               presetId?: string;
               showPois?: boolean;
             };
-            if (event.value) {
-              next.presetId = String(event.value);
+            if (next) {
+              next2.presetId = next;
             } else {
-              delete next.presetId;
+              delete next2.presetId;
             }
-            onChange(next);
+            onChange(next2);
           }}
           placeholder="Preset"
           showClear
@@ -160,7 +155,7 @@ export function AssetRefEditor({
         <label>
           <Checkbox
             checked={Boolean(selection.showPois)}
-            onChange={(event) => onChange({ ...selection, showPois: Boolean(event.checked) })}
+            onChange={(next) => onChange({ ...selection, showPois: next })}
             disabled={!selectedId}
           />{' '}
           Show POIs

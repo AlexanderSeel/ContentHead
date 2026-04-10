@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { FileUpload } from 'primereact/fileupload';
-import { InputTextarea } from 'primereact/inputtextarea';
 import { ProgressBar } from 'primereact/progressbar';
+
+import { Button, Textarea } from '../../ui/atoms';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
@@ -1830,7 +1830,7 @@ mutation DbAdminResetSiteData($siteId: Int!) {
               />
               <div className="form-row mt-3">
                 <label>Snapshot JSON</label>
-                <InputTextarea rows={12} value={importJson} onChange={(event) => setImportJson(event.target.value)} />
+                <Textarea rows={12} value={importJson} onChange={(next) => setImportJson(next)} />
               </div>
               <div className="inline-actions mt-3">
                 <Button label="Import JSON" severity="success" onClick={() => void importSnapshot()} disabled={!importJson.trim()} loading={working} />

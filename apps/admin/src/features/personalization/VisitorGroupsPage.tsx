@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
+
+import { Button, Textarea, TextInput } from '../../ui/atoms';
 import type { Rule } from '@contenthead/shared';
 
 import { useAuth } from '../../app/AuthContext';
@@ -125,9 +124,9 @@ export function VisitorGroupsPage() {
           ) : (
             <div className="form-row mt-3">
               <label>Name</label>
-              <InputText value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} />
+              <TextInput value={selected.name} onChange={(next) => setSelected({ ...selected, name: next })} />
               <label>Rule JSON</label>
-              <InputTextarea rows={8} value={selected.ruleJson} onChange={(event) => setSelected({ ...selected, ruleJson: event.target.value })} />
+              <Textarea rows={8} value={selected.ruleJson} onChange={(next) => setSelected({ ...selected, ruleJson: next })} />
               <div className="inline-actions">
                 <Button label="Rule Editor" text onClick={() => setRuleEditorOpen(true)} />
               </div>

@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from 'primereact/button';
-
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
-import { DatePicker, NumberInput, Select, TextInput } from '../../ui/atoms';
+import { Button, DatePicker, NumberInput, Select, TextInput } from '../../ui/atoms';
 import { EntityEditor, EntityTable, PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { deleteEntity, insertEntity, listEntities, updateEntity } from '../core/dbEntityApi';

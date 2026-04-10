@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { TabPanel, TabView } from 'primereact/tabview';
 import { Dialog } from 'primereact/dialog';
-import { InputText } from 'primereact/inputtext';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { Button } from 'primereact/button';
-import { Checkbox } from 'primereact/checkbox';
+
+import { Button, Checkbox, TextInput } from '../../../ui/atoms';
 
 import { createAdminSdk } from '../../../lib/sdk';
 
@@ -73,7 +72,7 @@ export function LinkSelectorDialog({
         <TabPanel header="Internal">
           <div className="form-row">
             <label>Find route</label>
-            <InputText value={query} onChange={(event) => setQuery(event.target.value)} placeholder="slug or content item id" />
+            <TextInput value={query} onChange={(next) => setQuery(next)} placeholder="slug or content item id" />
           </div>
           <DataTable value={filtered} size="small">
             <Column field="contentItemId" header="Item" />
@@ -106,26 +105,26 @@ export function LinkSelectorDialog({
           <div className="form-grid mt-3">
             <div className="form-row">
               <label>Link text (optional)</label>
-              <InputText value={linkText} onChange={(event) => setLinkText(event.target.value)} placeholder="Use selected text if empty" />
+              <TextInput value={linkText} onChange={(next) => setLinkText(next)} placeholder="Use selected text if empty" />
             </div>
             <div className="form-row">
               <label>Anchor (optional)</label>
-              <InputText value={anchor} onChange={(event) => setAnchor(event.target.value)} placeholder="section-id" />
+              <TextInput value={anchor} onChange={(next) => setAnchor(next)} placeholder="section-id" />
             </div>
           </div>
         </TabPanel>
         <TabPanel header="External">
           <div className="form-row">
             <label>URL</label>
-            <InputText value={externalUrl} onChange={(event) => setExternalUrl(event.target.value)} placeholder="https://example.com" />
+            <TextInput value={externalUrl} onChange={(next) => setExternalUrl(next)} placeholder="https://example.com" />
             {!/^https?:\/\//i.test(externalUrl) ? <small className="error-text">Use http:// or https://</small> : null}
           </div>
           <div className="form-row">
             <label>Link text (optional)</label>
-            <InputText value={linkText} onChange={(event) => setLinkText(event.target.value)} placeholder="Use selected text if empty" />
+            <TextInput value={linkText} onChange={(next) => setLinkText(next)} placeholder="Use selected text if empty" />
           </div>
           <label>
-            <Checkbox checked={openInNewTab} onChange={(event) => setOpenInNewTab(Boolean(event.checked))} /> Open in new tab
+            <Checkbox checked={openInNewTab} onChange={(next) => setOpenInNewTab(next)} /> Open in new tab
           </label>
           <div className="inline-actions mt-3">
             <Button

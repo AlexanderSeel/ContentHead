@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
-import { InputText } from 'primereact/inputtext';
-import { Password } from 'primereact/password';
-import { MultiSelect } from 'primereact/multiselect';
-import { Checkbox } from 'primereact/checkbox';
-import { Tag } from 'primereact/tag';
+import { Button, Checkbox, MultiSelect, Password, Tag, TextInput } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
@@ -144,13 +139,13 @@ export function UsersPage() {
                   <div className="form-row">
                     <h3 className="m-0">Create user</h3>
                     <label>Username</label>
-                    <InputText value={newUser.username} onChange={(event) => setNewUser({ ...newUser, username: event.target.value })} />
+                    <TextInput value={newUser.username} onChange={(next) => setNewUser({ ...newUser, username: next })} />
                     <label>Display name</label>
-                    <InputText value={newUser.displayName} onChange={(event) => setNewUser({ ...newUser, displayName: event.target.value })} />
+                    <TextInput value={newUser.displayName} onChange={(next) => setNewUser({ ...newUser, displayName: next })} />
                     <label>Password</label>
-                    <Password value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} feedback={false} toggleMask />
+                    <Password value={newUser.password} onChange={(next) => setNewUser({ ...newUser, password: next })} toggleMask />
                     <label>
-                      <Checkbox checked={newUser.active} onChange={(event) => setNewUser({ ...newUser, active: Boolean(event.checked) })} /> Active
+                      <Checkbox checked={newUser.active} onChange={(next) => setNewUser({ ...newUser, active: next })} /> Active
                     </label>
                     <WorkspaceGrid
                       value={users}
@@ -178,28 +173,23 @@ export function UsersPage() {
                 ) : (
                   <div className="form-row">
                     <label>Display name</label>
-                    <InputText value={selected.displayName} onChange={(event) => setSelected({ ...selected, displayName: event.target.value })} />
+                    <TextInput value={selected.displayName} onChange={(next) => setSelected({ ...selected, displayName: next })} />
                     <label>
-                      <Checkbox checked={selected.active} onChange={(event) => setSelected({ ...selected, active: Boolean(event.checked) })} /> Active
+                      <Checkbox checked={selected.active} onChange={(next) => setSelected({ ...selected, active: next })} /> Active
                     </label>
                     <label>Roles</label>
                     <MultiSelect
                       value={selected.roleIds}
                       options={roles.map((entry) => ({ label: entry.name, value: entry.id }))}
-                      onChange={(event) => setSelected({ ...selected, roleIds: event.value as number[] })}
+                      onChange={(next) => setSelected({ ...selected, roleIds: next })}
                     />
                     <label>Reset password</label>
-                    <Password value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} feedback={false} toggleMask />
+                    <Password value={resetPassword} onChange={(next) => setResetPassword(next)} toggleMask />
                     <label>Groups</label>
                     <MultiSelect
                       value={selected.groupIds ?? []}
                       options={groups.map((entry) => ({ label: entry.name, value: entry.id }))}
-                      onChange={(event) =>
-                        setSelected({
-                          ...selected,
-                          groupIds: event.value as number[]
-                        })
-                      }
+                      onChange={(next) => setSelected({ ...selected, groupIds: next })}
                     />
                   </div>
                 )

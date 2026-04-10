@@ -1,5 +1,6 @@
-import { Button } from 'primereact/button';
 import { useLocation } from 'react-router-dom';
+
+import { Button } from '../ui/atoms';
 
 export function Sidebar({ onClose }: { onClose: () => void }) {
   const location = useLocation();

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { InputText } from 'primereact/inputtext';
-import { Button } from 'primereact/button';
+
+import { Button, TextInput } from '../../../ui/atoms';
 
 export type CTypeListItem = {
   id: number;
@@ -39,7 +39,7 @@ export function ContentTypeList({
   return (
     <div className="p-fluid">
       <div className="table-toolbar">
-        <InputText value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search types" />
+        <TextInput value={search} onChange={(next) => setSearch(next)} placeholder="Search types" />
         <Button label="Create" onClick={onCreate} />
       </div>
       <DataTable

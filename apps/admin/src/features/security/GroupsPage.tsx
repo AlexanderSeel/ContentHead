@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
+
+import { Button, Textarea, TextInput } from '../../ui/atoms';
 
 import { useAuth } from '../../app/AuthContext';
 import { createAdminSdk } from '../../lib/sdk';
@@ -104,9 +103,9 @@ export function GroupsPage() {
               {selected ? (
                 <div className="form-row mt-3">
                   <label>Name</label>
-                  <InputText value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} />
+                  <TextInput value={selected.name} onChange={(next) => setSelected({ ...selected, name: next })} />
                   <label>Description</label>
-                  <InputTextarea rows={3} value={selected.description ?? ''} onChange={(event) => setSelected({ ...selected, description: event.target.value })} />
+                  <Textarea rows={3} value={selected.description ?? ''} onChange={(next) => setSelected({ ...selected, description: next })} />
                 </div>
               ) : (
                 <p className="muted mt-3">Select or create a group.</p>

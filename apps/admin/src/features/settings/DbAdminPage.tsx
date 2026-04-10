@@ -1,18 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Accordion, AccordionTab } from 'primereact/accordion';
-import { Button } from 'primereact/button';
-import { Calendar } from 'primereact/calendar';
-import { Checkbox } from 'primereact/checkbox';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputSwitch } from 'primereact/inputswitch';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { Tag } from 'primereact/tag';
 import { TabPanel, TabView } from 'primereact/tabview';
+
+import { Button, Checkbox, DatePicker, NumberInput, Select, Switch, Tag, Textarea, TextInput } from '../../ui/atoms';
 
 import { useAuth } from '../../app/AuthContext';
 import { useUi } from '../../app/UiContext';
@@ -620,7 +613,7 @@ export function DbAdminPage() {
       return (
         <Checkbox
           checked={Boolean(value)}
-          onChange={(event) => setDraftRow((prev) => ({ ...prev, [column.name]: Boolean(event.checked) }))}
+          onChange={(next) => setDraftRow((prev) => ({ ...prev, [column.name]: next }))}
           disabled={disabled}
         />
       );
@@ -628,9 +621,9 @@ export function DbAdminPage() {
     if (kind === 'number') {
       const numeric = typeof value === 'number' ? value : value === null || value === undefined ? null : Number(value);
       return (
-        <InputNumber
-          value={Number.isFinite(numeric) ? numeric : null}
-          onValueChange={(event) => setDraftRow((prev) => ({ ...prev, [column.name]: event.value ?? null }))}
+        <NumberInput
+          value={Number.isFinite(numeric) ? (numeric as number) : null}
+          onChange={(next) => setDraftRow((prev) => ({ ...prev, [column.name]: next ?? null }))}
           disabled={disabled}
         />
       );
@@ -647,9 +640,9 @@ export function DbAdminPage() {
       }
       const showTime = column.type.toLowerCase().includes('time');
       return (
-        <Calendar
+        <DatePicker
           value={dateValue}
-          onChange={(event) => setDraftRow((prev) => ({ ...prev, [column.name]: event.value ?? null }))}
+          onChange={(next) => setDraftRow((prev) => ({ ...prev, [column.name]: next ?? null }))}
           showTime={showTime}
           showSeconds={showTime}
           dateFormat="yy-mm-dd"
@@ -660,18 +653,18 @@ export function DbAdminPage() {
     if (kind === 'json') {
       const textValue = typeof value === 'string' ? value : JSON.stringify(value ?? null);
       return (
-        <InputTextarea
+        <Textarea
           rows={3}
           value={textValue}
-          onChange={(event) => setDraftRow((prev) => ({ ...prev, [column.name]: event.target.value }))}
+          onChange={(next) => setDraftRow((prev) => ({ ...prev, [column.name]: next }))}
           disabled={disabled}
         />
       );
     }
     return (
-      <InputText
+      <TextInput
         value={value === null || value === undefined ? '' : String(value)}
-        onChange={(event) => setDraftRow((prev) => ({ ...prev, [column.name]: event.target.value }))}
+        onChange={(next) => setDraftRow((prev) => ({ ...prev, [column.name]: next }))}
         disabled={disabled}
       />
     );
@@ -749,26 +742,26 @@ export function DbAdminPage() {
       <WorkspaceToolbar defaultExpanded>
         <div className="table-toolbar">
           <div className="inline-actions">
-            <InputText placeholder="Search tables" value={tableSearch} onChange={(event) => setTableSearch(event.target.value)} />
-            <InputText placeholder="Global row search" value={globalRowSearch} onChange={(event) => setGlobalRowSearch(event.target.value)} />
+            <TextInput placeholder="Search tables" value={tableSearch} onChange={(next) => setTableSearch(next)} />
+            <TextInput placeholder="Global row search" value={globalRowSearch} onChange={(next) => setGlobalRowSearch(next)} />
           </div>
           <div className="inline-actions">
-            <Dropdown
+            <Select
               value={filterColumn}
               options={(tableInfo?.columns ?? []).map((column) => ({ label: column.name, value: column.name }))}
-              onChange={(event) => setFilterColumn(event.value as string)}
+              onChange={(next) => next !== undefined && setFilterColumn(next)}
               placeholder="Filter column"
             />
-            <Dropdown value={filterOp} options={FILTER_OPS} onChange={(event) => setFilterOp(event.value as string)} />
-            <InputText
+            <Select value={filterOp} options={FILTER_OPS} onChange={(next) => next !== undefined && setFilterOp(next)} />
+            <TextInput
               placeholder="Filter value"
               value={filterValue}
-              onChange={(event) => setFilterValue(event.target.value)}
+              onChange={(next) => setFilterValue(next)}
               disabled={['is_null', 'not_null'].includes(filterOp)}
             />
             <label className="flex align-items-center gap-2">
               Reveal sensitive
-              <InputSwitch checked={revealSensitiveColumns} onChange={(event) => setRevealSensitiveColumns(Boolean(event.value))} />
+              <Switch checked={revealSensitiveColumns} onChange={(next) => setRevealSensitiveColumns(next)} />
             </label>
           </div>
         </div>
@@ -1001,24 +994,24 @@ export function DbAdminPage() {
                       <AccordionTab header="Advanced: SQL Console">
                         <div className="form-row">
                           <label>Query</label>
-                          <InputTextarea rows={8} value={sqlQuery} onChange={(event) => setSqlQuery(event.target.value)} />
+                          <Textarea rows={8} value={sqlQuery} onChange={(next) => setSqlQuery(next)} />
                           <label>Params (JSON array)</label>
-                          <InputTextarea rows={3} value={sqlParams} onChange={(event) => setSqlParams(event.target.value)} />
+                          <Textarea rows={3} value={sqlParams} onChange={(next) => setSqlParams(next)} />
                           <label>Enable Writes</label>
                           <div className="inline-actions">
-                            <InputText
+                            <TextInput
                               placeholder="Type ENABLE WRITE"
                               value={sqlConfirm}
-                              onChange={(event) => setSqlConfirm(event.target.value)}
+                              onChange={(next) => setSqlConfirm(next)}
                             />
-                            <InputSwitch
+                            <Switch
                               checked={sqlAllowWrites}
-                              onChange={(event) => {
-                                if (event.value && sqlConfirm.trim().toUpperCase() !== 'ENABLE WRITE') {
+                              onChange={(next) => {
+                                if (next && sqlConfirm.trim().toUpperCase() !== 'ENABLE WRITE') {
                                   setStatus('Type ENABLE WRITE to enable SQL writes.');
                                   return;
                                 }
-                                setSqlAllowWrites(Boolean(event.value));
+                                setSqlAllowWrites(next);
                               }}
                             />
                           </div>

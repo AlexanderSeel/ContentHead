@@ -1,15 +1,11 @@
 
 import { useEffect, useMemo, useState, type DragEvent } from 'react';
-import { Button } from 'primereact/button';
-import { Checkbox } from 'primereact/checkbox';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
 import { Sidebar } from 'primereact/sidebar';
 import { TabPanel, TabView } from 'primereact/tabview';
+
+import { Button, Checkbox, NumberInput, Select, Textarea, TextInput } from '../ui/atoms';
 import { evaluateFieldConditions, type Rule } from '@contenthead/shared';
 import { RuleEditorDialog } from '../components/rules/RuleEditorDialog';
 
@@ -192,7 +188,7 @@ function renderFieldInput(
     return (
       <div>
         <label>
-          <Checkbox checked={Boolean(value)} onChange={(event) => onChange(field.key, Boolean(event.checked))} disabled={disabled} />
+          <Checkbox checked={Boolean(value)} onChange={(next) => onChange(field.key, next)} disabled={disabled} />
           <span className="ml-2">{field.label}{required ? ' *' : ''}</span>
         </label>
         {errors[field.key] ? <small className="error-text">{errors[field.key]}</small> : null}
@@ -204,12 +200,12 @@ function renderFieldInput(
     return (
       <div className="form-row">
         <label>{field.label}{required ? ' *' : ''}</label>
-        <InputTextarea
+        <Textarea
           rows={3}
           value={String(value ?? '')}
           placeholder={placeholder}
           disabled={disabled}
-          onChange={(event) => onChange(field.key, event.target.value)}
+          onChange={(next) => onChange(field.key, next)}
         />
         {errors[field.key] ? <small className="error-text">{errors[field.key]}</small> : null}
       </div>
@@ -219,11 +215,11 @@ function renderFieldInput(
   return (
     <div className="form-row">
       <label>{field.label}{required ? ' *' : ''}</label>
-      <InputText
+      <TextInput
         value={String(value ?? '')}
         placeholder={placeholder}
         disabled={disabled}
-        onChange={(event) => onChange(field.key, event.target.value)}
+        onChange={(next) => onChange(field.key, next)}
       />
       {errors[field.key] ? <small className="error-text">{errors[field.key]}</small> : null}
     </div>
@@ -778,11 +774,12 @@ export function FormBuilderSection({
   return (
     <section className="form-builder-v2">
       <div className="form-builder-top-actions">
-        <Dropdown
-          value={formId}
-          options={forms.map((entry) => ({ label: `${entry.name} (#${entry.id})`, value: entry.id }))}
-          onChange={(event) => {
-            const selected = Number(event.value);
+        <Select
+          value={formId !== null ? String(formId) : ''}
+          options={forms.map((entry) => ({ label: `${entry.name} (#${entry.id})`, value: String(entry.id) }))}
+          onChange={(next) => {
+            if (!next) return;
+            const selected = Number(next);
             const form = forms.find((entry) => entry.id === selected);
             setFormId(selected);
             setFormName(form?.name ?? '');
@@ -792,9 +789,9 @@ export function FormBuilderSection({
           }}
           placeholder="Select form"
         />
-        <InputText value={formName} onChange={(event) => { setFormName(event.target.value); setFormDirty(true); }} placeholder="Form name" />
-        <InputText value={formDescription} onChange={(event) => { setFormDescription(event.target.value); setFormDirty(true); }} placeholder="Description" />
-        <label><Checkbox checked={formActive} onChange={(event) => { setFormActive(Boolean(event.checked)); setFormDirty(true); }} /> Active</label>
+        <TextInput value={formName} onChange={(next) => { setFormName(next); setFormDirty(true); }} placeholder="Form name" />
+        <TextInput value={formDescription} onChange={(next) => { setFormDescription(next); setFormDirty(true); }} placeholder="Description" />
+        <label><Checkbox checked={formActive} onChange={(next) => { setFormActive(next); setFormDirty(true); }} /> Active</label>
         <Button label="Save" onClick={() => saveAllDraftChanges().catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
         <Button label={formActive ? 'Deactivate' : 'Activate'} severity="secondary" onClick={() => {
           setFormActive((prev) => !prev);
@@ -809,7 +806,7 @@ export function FormBuilderSection({
         <aside className="form-builder-sidebar-left">
           <h4>Steps</h4>
           <div className="form-row">
-            <InputText value={stepName} onChange={(event) => setStepName(event.target.value)} placeholder="New step name" />
+            <TextInput value={stepName} onChange={(next) => setStepName(next)} placeholder="New step name" />
             <Button label="Add Step" onClick={() => addStep().catch((error: unknown) => onStatus(formatErrorMessage(error)))} disabled={!formId} />
           </div>
 
@@ -916,10 +913,10 @@ export function FormBuilderSection({
                               <small>{previewText || 'No placeholder'}</small>
                             </div>
                             <div className="designer-card-actions">
-                              <Dropdown
-                                value={clamp(item.span, 1, 12)}
-                                options={Array.from({ length: 12 }).map((_, idx) => ({ label: `Span ${idx + 1}`, value: idx + 1 }))}
-                                onChange={(event) => setFieldSpan(field, Number(event.value))}
+                              <Select
+                                value={String(clamp(item.span, 1, 12))}
+                                options={Array.from({ length: 12 }).map((_, idx) => ({ label: `Span ${idx + 1}`, value: String(idx + 1) }))}
+                                onChange={(next) => next && setFieldSpan(field, Number(next))}
                               />
                               <Button text size="small" label={parseJsonObject<FormValidationSet>(field.validationsJson, {}).required ? 'Req On' : 'Req Off'} onClick={() => {
                                 const validations = parseJsonObject<FormValidationSet>(field.validationsJson, {});
@@ -944,13 +941,13 @@ export function FormBuilderSection({
             <TabPanel header="Preview">
               <div className="preview-toolbar">
                 <label>
-                  <Checkbox checked={evaluateConditions} onChange={(event) => setEvaluateConditions(Boolean(event.checked))} /> Evaluate conditions
+                  <Checkbox checked={evaluateConditions} onChange={(next) => setEvaluateConditions(next)} /> Evaluate conditions
                 </label>
                 <Button label="Test with answers" onClick={() => setShowTestDrawer(true)} text />
               </div>
               <div className="form-row">
                 <label>Simulate context (JSON)</label>
-                <InputTextarea rows={4} value={previewContextJson} onChange={(event) => setPreviewContextJson(event.target.value)} />
+                <Textarea rows={4} value={previewContextJson} onChange={(next) => setPreviewContextJson(next)} />
               </div>
 
               {layoutRows.map((row, rowIndex) => (
@@ -984,11 +981,10 @@ export function FormBuilderSection({
               <DataTable value={[...steps].sort((a, b) => a.position - b.position || a.id - b.id)} size="small">
                 <Column field="id" header="ID" />
                 <Column field="name" header="Name" body={(row: FormStep) => (
-                  <InputText
+                  <TextInput
                     value={row.name}
-                    onChange={(event) => {
-                      const nextName = event.target.value;
-                      setSteps((prev) => prev.map((step) => step.id === row.id ? { ...step, name: nextName } : step));
+                    onChange={(next) => {
+                      setSteps((prev) => prev.map((step) => step.id === row.id ? { ...step, name: next } : step));
                       markStepDirty(row.id);
                     }}
                   />
@@ -1027,77 +1023,78 @@ export function FormBuilderSection({
               <TabPanel header="Properties">
                 <div className="form-row">
                   <label>Key</label>
-                  <InputText
+                  <TextInput
                     value={selectedField.key}
-                    onChange={(event) => {
-                      const next = safeSlug(event.target.value);
-                      const duplicate = fields.some((field) => field.id !== selectedField.id && field.key === next);
+                    onChange={(next) => {
+                      const slug = safeSlug(next);
+                      const duplicate = fields.some((field) => field.id !== selectedField.id && field.key === slug);
                       if (duplicate) {
-                        onStatus(`Field key ${next} already exists`);
+                        onStatus(`Field key ${slug} already exists`);
                         return;
                       }
-                      updateFieldByKey(selectedField, { key: next });
+                      updateFieldByKey(selectedField, { key: slug });
                     }}
                   />
                 </div>
                 <div className="form-row">
                   <label>Label</label>
-                  <InputText value={selectedField.label} onChange={(event) => updateFieldByKey(selectedField, { label: event.target.value })} />
+                  <TextInput value={selectedField.label} onChange={(next) => updateFieldByKey(selectedField, { label: next })} />
                 </div>
                 <div className="form-row">
                   <label>Help Text</label>
-                  <InputTextarea rows={2} value={typeof parsedUiConfig.helpText === 'string' ? parsedUiConfig.helpText : ''} onChange={(event) => patchSelectedUiConfig({ helpText: event.target.value })} />
+                  <Textarea rows={2} value={typeof parsedUiConfig.helpText === 'string' ? parsedUiConfig.helpText : ''} onChange={(next) => patchSelectedUiConfig({ helpText: next })} />
                 </div>
                 <div className="form-row">
                   <label>Placeholder</label>
-                  <InputText value={typeof parsedUiConfig.placeholder === 'string' ? parsedUiConfig.placeholder : ''} onChange={(event) => patchSelectedUiConfig({ placeholder: event.target.value })} />
+                  <TextInput value={typeof parsedUiConfig.placeholder === 'string' ? parsedUiConfig.placeholder : ''} onChange={(next) => patchSelectedUiConfig({ placeholder: next })} />
                 </div>
                 <div className="form-row">
                   <label>Default Value</label>
-                  <InputText value={typeof parsedUiConfig.defaultValue === 'string' ? parsedUiConfig.defaultValue : ''} onChange={(event) => patchSelectedUiConfig({ defaultValue: event.target.value })} />
+                  <TextInput value={typeof parsedUiConfig.defaultValue === 'string' ? parsedUiConfig.defaultValue : ''} onChange={(next) => patchSelectedUiConfig({ defaultValue: next })} />
                 </div>
                 <div className="form-row">
                   <label>Field Type</label>
-                  <Dropdown
+                  <Select
                     value={normalizeFieldType(selectedField.fieldType)}
                     options={[...FIELD_OPTIONS, ...LAYOUT_ELEMENT_OPTIONS]}
-                    onChange={(event) => updateFieldByKey(selectedField, { fieldType: String(event.value) })}
+                    onChange={(next) => next && updateFieldByKey(selectedField, { fieldType: next })}
                   />
                 </div>
                 <div className="form-row">
                   <label>Layout Span</label>
-                  <Dropdown
-                    value={parsedUiConfig.layout?.span ?? 12}
-                    options={Array.from({ length: 12 }).map((_, idx) => ({ label: String(idx + 1), value: idx + 1 }))}
-                    onChange={(event) => {
+                  <Select
+                    value={String(parsedUiConfig.layout?.span ?? 12)}
+                    options={Array.from({ length: 12 }).map((_, idx) => ({ label: String(idx + 1), value: String(idx + 1) }))}
+                    onChange={(next) => {
+                      if (!next) return;
                       const current = parsedUiConfig.layout ?? { row: 0, order: 0, span: 12 };
-                      patchSelectedUiConfig({ layout: { ...current, span: Number(event.value) } });
+                      patchSelectedUiConfig({ layout: { ...current, span: Number(next) } });
                     }}
                   />
                 </div>
                 <div className="form-grid">
                   <div className="form-row">
                     <label>Span MD</label>
-                    <InputNumber value={parsedUiConfig.layout?.spanMd ?? null} onValueChange={(event) => {
+                    <NumberInput value={parsedUiConfig.layout?.spanMd ?? null} onChange={(next) => {
                       const current = parsedUiConfig.layout ?? { row: 0, order: 0, span: 12 };
                       const nextLayout: Record<string, unknown> = { ...current };
-                      if (event.value == null) {
+                      if (next == null) {
                         delete nextLayout.spanMd;
                       } else {
-                        nextLayout.spanMd = event.value;
+                        nextLayout.spanMd = next;
                       }
                       patchSelectedUiConfig({ layout: nextLayout });
                     }} />
                   </div>
                   <div className="form-row">
                     <label>Span LG</label>
-                    <InputNumber value={parsedUiConfig.layout?.spanLg ?? null} onValueChange={(event) => {
+                    <NumberInput value={parsedUiConfig.layout?.spanLg ?? null} onChange={(next) => {
                       const current = parsedUiConfig.layout ?? { row: 0, order: 0, span: 12 };
                       const nextLayout: Record<string, unknown> = { ...current };
-                      if (event.value == null) {
+                      if (next == null) {
                         delete nextLayout.spanLg;
                       } else {
-                        nextLayout.spanLg = event.value;
+                        nextLayout.spanLg = next;
                       }
                       patchSelectedUiConfig({ layout: nextLayout });
                     }} />
@@ -1107,24 +1104,24 @@ export function FormBuilderSection({
 
               <TabPanel header="Validation">
                 <label>
-                  <Checkbox checked={Boolean(parsedValidations.required)} onChange={(event) => patchSelectedValidation({ required: Boolean(event.checked) })} /> Required
+                  <Checkbox checked={Boolean(parsedValidations.required)} onChange={(next) => patchSelectedValidation({ required: next })} /> Required
                 </label>
                 <div className="form-grid">
                   <div className="form-row">
                     <label>Min</label>
-                    <InputNumber value={parsedValidations.min ?? null} onValueChange={(event) => patchSelectedValidation(event.value == null ? {} : { min: event.value })} />
+                    <NumberInput value={parsedValidations.min ?? null} onChange={(next) => patchSelectedValidation(next == null ? {} : { min: next })} />
                   </div>
                   <div className="form-row">
                     <label>Max</label>
-                    <InputNumber value={parsedValidations.max ?? null} onValueChange={(event) => patchSelectedValidation(event.value == null ? {} : { max: event.value })} />
+                    <NumberInput value={parsedValidations.max ?? null} onChange={(next) => patchSelectedValidation(next == null ? {} : { max: next })} />
                   </div>
                 </div>
                 <div className="form-row">
                   <label>Regex</label>
-                  <InputText value={parsedValidations.regex ?? ''} onChange={(event) => patchSelectedValidation(event.target.value ? { regex: event.target.value } : {})} />
+                  <TextInput value={parsedValidations.regex ?? ''} onChange={(next) => patchSelectedValidation(next ? { regex: next } : {})} />
                 </div>
                 <label>
-                  <Checkbox checked={Boolean(parsedValidations.email)} onChange={(event) => patchSelectedValidation({ email: Boolean(event.checked) })} /> Email format
+                  <Checkbox checked={Boolean(parsedValidations.email)} onChange={(next) => patchSelectedValidation({ email: next })} /> Email format
                 </label>
               </TabPanel>
 
@@ -1136,32 +1133,32 @@ export function FormBuilderSection({
                 </div>
                 <div className="form-row">
                   <label>Show If</label>
-                  <Dropdown value={showIfDraft.field} options={fieldKeyOptions} onChange={(event) => patchSelectedCondition('showIf', { ...showIfDraft, field: String(event.value) })} />
-                  <Dropdown value={showIfDraft.op} options={[...COMPARATORS]} onChange={(event) => patchSelectedCondition('showIf', { ...showIfDraft, op: event.value as Comparator })} />
-                  <InputText value={showIfDraft.value} onChange={(event) => patchSelectedCondition('showIf', { ...showIfDraft, value: event.target.value })} />
+                  <Select value={showIfDraft.field} options={fieldKeyOptions} onChange={(next) => next !== undefined && patchSelectedCondition('showIf', { ...showIfDraft, field: next })} />
+                  <Select value={showIfDraft.op} options={[...COMPARATORS]} onChange={(next) => next && patchSelectedCondition('showIf', { ...showIfDraft, op: next as Comparator })} />
+                  <TextInput value={showIfDraft.value} onChange={(next) => patchSelectedCondition('showIf', { ...showIfDraft, value: next })} />
                 </div>
                 <div className="form-row">
                   <label>Required If</label>
-                  <Dropdown value={requiredIfDraft.field} options={fieldKeyOptions} onChange={(event) => patchSelectedCondition('requiredIf', { ...requiredIfDraft, field: String(event.value) })} />
-                  <Dropdown value={requiredIfDraft.op} options={[...COMPARATORS]} onChange={(event) => patchSelectedCondition('requiredIf', { ...requiredIfDraft, op: event.value as Comparator })} />
-                  <InputText value={requiredIfDraft.value} onChange={(event) => patchSelectedCondition('requiredIf', { ...requiredIfDraft, value: event.target.value })} />
+                  <Select value={requiredIfDraft.field} options={fieldKeyOptions} onChange={(next) => next !== undefined && patchSelectedCondition('requiredIf', { ...requiredIfDraft, field: next })} />
+                  <Select value={requiredIfDraft.op} options={[...COMPARATORS]} onChange={(next) => next && patchSelectedCondition('requiredIf', { ...requiredIfDraft, op: next as Comparator })} />
+                  <TextInput value={requiredIfDraft.value} onChange={(next) => patchSelectedCondition('requiredIf', { ...requiredIfDraft, value: next })} />
                 </div>
                 <div className="form-row">
                   <label>Enabled If</label>
-                  <Dropdown value={enabledIfDraft.field} options={fieldKeyOptions} onChange={(event) => patchSelectedCondition('enabledIf', { ...enabledIfDraft, field: String(event.value) })} />
-                  <Dropdown value={enabledIfDraft.op} options={[...COMPARATORS]} onChange={(event) => patchSelectedCondition('enabledIf', { ...enabledIfDraft, op: event.value as Comparator })} />
-                  <InputText value={enabledIfDraft.value} onChange={(event) => patchSelectedCondition('enabledIf', { ...enabledIfDraft, value: event.target.value })} />
+                  <Select value={enabledIfDraft.field} options={fieldKeyOptions} onChange={(next) => next !== undefined && patchSelectedCondition('enabledIf', { ...enabledIfDraft, field: next })} />
+                  <Select value={enabledIfDraft.op} options={[...COMPARATORS]} onChange={(next) => next && patchSelectedCondition('enabledIf', { ...enabledIfDraft, op: next as Comparator })} />
+                  <TextInput value={enabledIfDraft.value} onChange={(next) => patchSelectedCondition('enabledIf', { ...enabledIfDraft, value: next })} />
                 </div>
               </TabPanel>
 
               <TabPanel header="Advanced">
                 <div className="form-row">
                   <label>uiConfig JSON</label>
-                  <InputTextarea rows={8} value={selectedField.uiConfigJson} onChange={(event) => updateFieldByKey(selectedField, { uiConfigJson: event.target.value })} />
+                  <Textarea rows={8} value={selectedField.uiConfigJson} onChange={(next) => updateFieldByKey(selectedField, { uiConfigJson: next })} />
                 </div>
                 <div className="form-row">
                   <label>validations JSON</label>
-                  <InputTextarea rows={6} value={selectedField.validationsJson} onChange={(event) => updateFieldByKey(selectedField, { validationsJson: event.target.value })} />
+                  <Textarea rows={6} value={selectedField.validationsJson} onChange={(next) => updateFieldByKey(selectedField, { validationsJson: next })} />
                 </div>
               </TabPanel>
             </TabView>
@@ -1175,7 +1172,7 @@ export function FormBuilderSection({
         {scopedFields.map((field) => (
           <div className="form-row" key={`drawer-${field.id}`}>
             <label>{field.label} ({field.key})</label>
-            <InputText value={String(previewAnswers[field.key] ?? '')} onChange={(event) => setPreviewAnswers((prev) => ({ ...prev, [field.key]: event.target.value }))} />
+            <TextInput value={String(previewAnswers[field.key] ?? '')} onChange={(next) => setPreviewAnswers((prev) => ({ ...prev, [field.key]: next }))} />
           </div>
         ))}
       </Sidebar>
