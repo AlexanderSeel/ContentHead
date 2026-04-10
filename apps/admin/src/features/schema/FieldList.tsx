@@ -1,7 +1,7 @@
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 
-import { Button, Checkbox } from '../../../ui/atoms';
+import { Button, Checkbox } from '../../ui/atoms';
 
 import type { ContentFieldDef } from './fieldValidationUi';
 

@@ -15,7 +15,7 @@ export function EmptyState({
     <Card className="empty-state">
       <h3>{title}</h3>
       <p>{description}</p>
-      {actionLabel ? <Button label={actionLabel} onClick={onAction} /> : null}
+      {actionLabel && onAction ? <Button label={actionLabel} onClick={onAction} /> : null}
     </Card>
   );
 }

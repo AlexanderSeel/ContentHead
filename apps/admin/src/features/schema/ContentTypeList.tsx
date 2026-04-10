@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 
-import { Button, TextInput } from '../../../ui/atoms';
+import { Button, TextInput } from '../../ui/atoms';
 
 export type CTypeListItem = {
   id: number;

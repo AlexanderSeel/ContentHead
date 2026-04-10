@@ -1,7 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
-import { Toast } from 'primereact/toast';
-import type { ToastMessage } from 'primereact/toast'; // intentional: adapts ToastOptions → PrimeReact at this boundary only
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import * as ToastPrimitive from '@radix-ui/react-toast';
+import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import { PRIME_THEMES, type ThemeOption } from '../theme/themeList';
 import { applyScale, applyTheme } from '../theme/themeManager';
 import { createThemeBridgeSnapshot, type ThemeBridgeSnapshot } from '../theme/themeBridge';
@@ -16,7 +15,6 @@ export type LayoutPreferences = {
   density: 'comfortable' | 'compact';
   showWorkspacePanel: boolean;
 };
-
 
 type UiContextValue = {
   theme: string;
@@ -33,6 +31,24 @@ type UiContextValue = {
 };
 
 const UiContext = createContext<UiContextValue | null>(null);
+
+// ─── Toast state ────────────────────────────────────────────────────────────
+
+type ActiveToast = ToastOptions & { id: number };
+let toastSeq = 0;
+
+// ─── Confirm state ───────────────────────────────────────────────────────────
+
+type ConfirmState = {
+  open: boolean;
+  header: string;
+  message: string;
+  acceptLabel: string;
+  rejectLabel: string;
+  resolve: (result: boolean) => void;
+};
+
+// ─── Provider ────────────────────────────────────────────────────────────────
 
 export function UiProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<string>(() => localStorage.getItem(THEME_STORAGE_KEY) ?? PRIME_THEMES[0]!.value);
@@ -53,7 +69,10 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
       return { density: 'comfortable', showWorkspacePanel: true };
     }
   });
-  const toastRef = useRef<Toast>(null);
+
+  const [toasts, setToasts] = useState<ActiveToast[]>([]);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+  const confirmResolveRef = useRef<((result: boolean) => void) | null>(null);
 
   useEffect(() => {
     const applied = applyTheme(theme);
@@ -74,7 +93,7 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     registerToastDispatcher((message) => {
-      toastRef.current?.show(message as ToastMessage);
+      setToasts((prev) => [...prev, { ...message, id: ++toastSeq }]);
     });
     return () => registerToastDispatcher(null);
   }, []);
@@ -90,6 +109,22 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
     });
     return () => setGraphqlErrorNotifier(null);
   }, []);
+
+  const confirm = useCallback(
+    (options: { header: string; message: string; acceptLabel?: string; rejectLabel?: string }) =>
+      new Promise<boolean>((resolve) => {
+        confirmResolveRef.current = resolve;
+        setConfirmState({
+          open: true,
+          header: options.header,
+          message: options.message,
+          acceptLabel: options.acceptLabel ?? 'Confirm',
+          rejectLabel: options.rejectLabel ?? 'Cancel',
+          resolve
+        });
+      }),
+    []
+  );
 
   const value = useMemo<UiContextValue>(
     () => ({
@@ -107,26 +142,106 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
           ...next
         })),
       toast: (message, featureTag) => showToast(message, featureTag),
-      confirm: (options) =>
-        new Promise((resolve) => {
-          confirmDialog({
-            header: options.header,
-            message: options.message,
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: options.acceptLabel ?? 'Confirm',
-            rejectLabel: options.rejectLabel ?? 'Cancel',
-            accept: () => resolve(true),
-            reject: () => resolve(false)
-          });
-        })
+      confirm
     }),
-    [theme, themeMode, scale, layoutPreferences]
+    [theme, themeMode, scale, layoutPreferences, confirm]
   );
+
+  const severityClass: Record<string, string> = {
+    success: 'p-toast-message-success',
+    info: 'p-toast-message-info',
+    warn: 'p-toast-message-warn',
+    error: 'p-toast-message-error'
+  };
+
+  const severityIcon: Record<string, string> = {
+    success: 'pi-check-circle',
+    info: 'pi-info-circle',
+    warn: 'pi-exclamation-triangle',
+    error: 'pi-times-circle'
+  };
 
   return (
     <UiContext.Provider value={value}>
-      <Toast ref={toastRef} />
-      <ConfirmDialog />
+      <ToastPrimitive.Provider swipeDirection="right">
+        {toasts.map((t) => (
+          <ToastPrimitive.Root
+            key={t.id}
+            className={`p-toast-message p-component ${severityClass[t.severity ?? 'info'] ?? 'p-toast-message-info'}`}
+            duration={t.life ?? 3000}
+            onOpenChange={(open) => {
+              if (!open) setToasts((prev) => prev.filter((x) => x.id !== t.id));
+            }}
+          >
+            <div className="p-toast-message-content">
+              <span className={`p-toast-message-icon pi ${severityIcon[t.severity ?? 'info'] ?? 'pi-info-circle'}`} />
+              <div className="p-toast-message-text">
+                <ToastPrimitive.Title className="p-toast-summary">{t.summary}</ToastPrimitive.Title>
+                {t.detail && (
+                  <ToastPrimitive.Description className="p-toast-detail">{t.detail}</ToastPrimitive.Description>
+                )}
+              </div>
+              <ToastPrimitive.Close className="p-toast-icon-close p-link">
+                <span className="p-toast-icon-close-icon pi pi-times" />
+              </ToastPrimitive.Close>
+            </div>
+          </ToastPrimitive.Root>
+        ))}
+        <ToastPrimitive.Viewport className="p-toast p-toast-top-right p-component" />
+      </ToastPrimitive.Provider>
+
+      <AlertDialog.Root
+        open={confirmState?.open ?? false}
+        onOpenChange={(open) => {
+          if (!open) {
+            confirmResolveRef.current?.(false);
+            setConfirmState(null);
+          }
+        }}
+      >
+        <AlertDialog.Portal>
+          <AlertDialog.Overlay className="p-dialog-mask p-component-overlay" style={{ position: 'fixed', inset: 0, zIndex: 1100 }} />
+          <AlertDialog.Content
+            className="p-dialog p-confirm-dialog p-component"
+            style={{ position: 'fixed', zIndex: 1101 }}
+          >
+            <div className="p-dialog-header">
+              <span className="p-dialog-title">{confirmState?.header}</span>
+            </div>
+            <div className="p-dialog-content">
+              <i className="p-confirm-dialog-icon pi pi-exclamation-triangle" />
+              <span className="p-confirm-dialog-message">{confirmState?.message}</span>
+            </div>
+            <div className="p-dialog-footer">
+              <AlertDialog.Cancel asChild>
+                <button
+                  className="p-button p-component p-button-text"
+                  type="button"
+                  onClick={() => {
+                    confirmResolveRef.current?.(false);
+                    setConfirmState(null);
+                  }}
+                >
+                  <span className="p-button-label">{confirmState?.rejectLabel ?? 'Cancel'}</span>
+                </button>
+              </AlertDialog.Cancel>
+              <AlertDialog.Action asChild>
+                <button
+                  className="p-button p-component"
+                  type="button"
+                  onClick={() => {
+                    confirmResolveRef.current?.(true);
+                    setConfirmState(null);
+                  }}
+                >
+                  <span className="p-button-label">{confirmState?.acceptLabel ?? 'Confirm'}</span>
+                </button>
+              </AlertDialog.Action>
+            </div>
+          </AlertDialog.Content>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
+
       {children}
     </UiContext.Provider>
   );

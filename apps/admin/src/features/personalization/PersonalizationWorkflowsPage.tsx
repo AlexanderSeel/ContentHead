@@ -351,7 +351,7 @@ export function PersonalizationWorkflowsPage() {
               <Button
                 key={step}
                 text={wizardStep !== step}
-                severity={wizardStep === step ? 'info' : undefined}
+                {...(wizardStep === step ? { severity: 'info' as const } : {})}
                 label={`Step ${step}`}
                 onClick={() => setWizardStep(step)}
               />

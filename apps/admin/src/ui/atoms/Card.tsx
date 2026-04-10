@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { Card as PrimeCard } from 'primereact/card';
 
 export function Card({
   title,
@@ -12,9 +11,14 @@ export function Card({
   className?: string;
   children?: ReactNode;
 }) {
+  const classes = ['p-card', 'p-component', className].filter(Boolean).join(' ');
   return (
-    <PrimeCard title={title} subTitle={subTitle} className={className}>
-      {children}
-    </PrimeCard>
+    <div className={classes}>
+      <div className="p-card-body">
+        {title && <div className="p-card-title">{title}</div>}
+        {subTitle && <div className="p-card-subtitle">{subTitle}</div>}
+        <div className="p-card-content">{children}</div>
+      </div>
+    </div>
   );
 }

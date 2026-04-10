@@ -8,7 +8,14 @@
       "Bash(grep -rA2 \"<Dialog$\" apps/admin/src --include=\"*.tsx\")",
       "Bash(ls apps/admin/src/ui/atoms/*.css apps/admin/src/ui/atoms/*.scss apps/admin/src/styles/)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}, indent=2\\)\\)\")",
-      "Bash(pnpm --filter @contenthead/admin add @radix-ui/react-checkbox @radix-ui/react-switch)"
+      "Bash(pnpm --filter @contenthead/admin add @radix-ui/react-checkbox @radix-ui/react-switch)",
+      "Bash(pnpm --filter @contenthead/admin exec tsc --noEmit)",
+      "Bash(pnpm exec:*)",
+      "Bash(pnpm --filter @contenthead/admin add @radix-ui/react-dialog @radix-ui/react-tabs @radix-ui/react-accordion @radix-ui/react-tooltip)",
+      "Bash(grep -l \"from 'primereact/\" \"c:/dev/my/ContentHead/apps/admin/src/ui/atoms\"/*.tsx)",
+      "Bash(pnpm --filter @contenthead/admin add @radix-ui/react-toast @radix-ui/react-alert-dialog)",
+      "Bash(pnpm --filter @contenthead/admin add @radix-ui/react-select @radix-ui/react-popover)",
+      "Bash(xargs -I{} sh -c 'echo \"--- {} ---\" && grep \"from '\"'\"'primereact/\" \"{}\"')"
     ]
   }
 }

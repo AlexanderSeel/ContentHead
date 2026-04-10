@@ -4183,20 +4183,20 @@ export function ContentPagesPage() {
       >
         <div className="form-row">
           <label>Field Path</label>
-          <InputText value={onPageListDialog?.path ?? ''} readOnly />
+          <TextInput value={onPageListDialog?.path ?? ''} readOnly />
         </div>
         {onPageListDialog?.mode === 'json' ? (
           <div className="form-row">
             <label>Array JSON</label>
-            <InputTextarea
+            <Textarea
               rows={14}
               value={onPageListDialog?.draftJson ?? '[]'}
-              onChange={(event) =>
+              onChange={(next) =>
                 setOnPageListDialog((prev) =>
                   prev
                     ? {
                         ...prev,
-                        draftJson: event.target.value
+                        draftJson: next
                       }
                     : prev
                 )
@@ -4261,15 +4261,15 @@ export function ContentPagesPage() {
             </div>
             <div className="form-row">
               <label>Raw JSON (fallback)</label>
-              <InputTextarea
+              <Textarea
                 rows={8}
                 value={onPageListDialog?.draftJson ?? '[]'}
-                onChange={(event) =>
+                onChange={(next) =>
                   setOnPageListDialog((prev) =>
                     prev
                       ? {
                           ...prev,
-                          draftJson: event.target.value
+                          draftJson: next
                         }
                       : prev
                   )
@@ -4319,35 +4319,35 @@ export function ContentPagesPage() {
                   {field?.type === 'boolean' ? (
                     <Checkbox
                       checked={Boolean(value)}
-                      onChange={(event) =>
-                        setOnPageListObjectFieldValue(key, Boolean(event.checked))
+                      onChange={(next) =>
+                        setOnPageListObjectFieldValue(key, next)
                       }
                     />
                   ) : field?.type === 'multiline' ? (
-                    <InputTextarea
+                    <Textarea
                       rows={4}
                       value={String(value ?? '')}
-                      onChange={(event) =>
-                        setOnPageListObjectFieldValue(key, event.target.value)
+                      onChange={(next) =>
+                        setOnPageListObjectFieldValue(key, next)
                       }
                     />
                   ) : field?.type === 'number' ? (
-                    <InputText
+                    <TextInput
                       value={String(value ?? '')}
-                      onChange={(event) =>
-                        setOnPageListObjectFieldValue(key, Number.isFinite(Number(event.target.value)) ? Number(event.target.value) : 0)
+                      onChange={(next) =>
+                        setOnPageListObjectFieldValue(key, Number.isFinite(Number(next)) ? Number(next) : 0)
                       }
                     />
                   ) : field?.type === 'stringList' ? (
-                    <InputTextarea
+                    <Textarea
                       rows={4}
                       value={Array.isArray(value) ? value.map((entry) => String(entry)).join('\n') : ''}
-                      onChange={(event) =>
+                      onChange={(next) =>
                         setOnPageListItemEditor((prev) => {
                           if (!prev || !prev.value || typeof prev.value !== 'object' || Array.isArray(prev.value)) {
                             return prev;
                           }
-                          const lines = event.target.value
+                          const lines = next
                             .split('\n')
                             .map((line) => line.trim())
                             .filter(Boolean);
@@ -4366,14 +4366,14 @@ export function ContentPagesPage() {
                         const target = rawLink.target === '_blank' ? '_blank' : '_self';
                         return (
                           <>
-                            <Dropdown
+                            <Select
                               value={linkKind}
                               options={[
                                 { label: 'Internal', value: 'internal' },
                                 { label: 'External', value: 'external' }
                               ]}
-                              onChange={(event) => {
-                                const nextKind = event.value === 'external' ? 'external' : 'internal';
+                              onChange={(next) => {
+                                const nextKind = next === 'external' ? 'external' : 'internal';
                                 const nextLink: ContentLinkValue = {
                                   kind: nextKind,
                                   ...(typeof rawLink.url === 'string' ? { url: rawLink.url } : {}),
@@ -4394,14 +4394,14 @@ export function ContentPagesPage() {
                                 setOnPageListObjectFieldValue(key, nextLink);
                               }}
                             />
-                            <InputText
+                            <TextInput
                               value={String(rawLink.text ?? '')}
                               placeholder="Link text"
-                              onChange={(event) =>
+                              onChange={(next) =>
                                 setOnPageListObjectFieldValue(key, {
                                   kind: linkKind,
                                   ...(typeof rawLink.url === 'string' ? { url: rawLink.url } : {}),
-                                  ...(event.target.value.trim() ? { text: event.target.value } : {}),
+                                  ...(next.trim() ? { text: next } : {}),
                                   target,
                                   ...(typeof rawLink.contentItemId === 'number' ? { contentItemId: rawLink.contentItemId } : {}),
                                   ...(typeof rawLink.routeSlug === 'string' ? { routeSlug: rawLink.routeSlug } : {}),
@@ -4409,13 +4409,13 @@ export function ContentPagesPage() {
                                 } as ContentLinkValue)
                               }
                             />
-                            <InputText
+                            <TextInput
                               value={String(rawLink.url ?? '')}
                               placeholder={linkKind === 'external' ? 'https://example.com' : '/path#anchor'}
-                              onChange={(event) =>
+                              onChange={(next) =>
                                 setOnPageListObjectFieldValue(key, {
                                   kind: linkKind,
-                                  ...(event.target.value.trim() ? { url: event.target.value } : {}),
+                                  ...(next.trim() ? { url: next } : {}),
                                   ...(typeof rawLink.text === 'string' ? { text: rawLink.text } : {}),
                                   target,
                                   ...(typeof rawLink.contentItemId === 'number' ? { contentItemId: rawLink.contentItemId } : {}),
@@ -4424,18 +4424,18 @@ export function ContentPagesPage() {
                                 } as ContentLinkValue)
                               }
                             />
-                            <Dropdown
+                            <Select
                               value={target}
                               options={[
                                 { label: 'Same tab', value: '_self' },
                                 { label: 'New tab', value: '_blank' }
                               ]}
-                              onChange={(event) =>
+                              onChange={(next) =>
                                 setOnPageListObjectFieldValue(key, {
                                   kind: linkKind,
                                   ...(typeof rawLink.url === 'string' ? { url: rawLink.url } : {}),
                                   ...(typeof rawLink.text === 'string' ? { text: rawLink.text } : {}),
-                                  target: event.value === '_blank' ? '_blank' : '_self',
+                                  target: next === '_blank' ? '_blank' : '_self',
                                   ...(typeof rawLink.contentItemId === 'number' ? { contentItemId: rawLink.contentItemId } : {}),
                                   ...(typeof rawLink.routeSlug === 'string' ? { routeSlug: rawLink.routeSlug } : {}),
                                   ...(typeof rawLink.anchor === 'string' ? { anchor: rawLink.anchor } : {})
@@ -4448,21 +4448,21 @@ export function ContentPagesPage() {
                     </div>
                   ) : (
                     value && typeof value === 'object' ? (
-                      <InputTextarea
+                      <Textarea
                         rows={4}
                         value={JSON.stringify(value, null, 2)}
-                        onChange={(event) => {
+                        onChange={(next) => {
                           try {
-                            setOnPageListObjectFieldValue(key, JSON.parse(event.target.value));
+                            setOnPageListObjectFieldValue(key, JSON.parse(next));
                           } catch {
                             // keep current value while typing invalid JSON
                           }
                         }}
                       />
                     ) : (
-                      <InputText
+                      <TextInput
                         value={String(value ?? '')}
-                        onChange={(event) => setOnPageListObjectFieldValue(key, event.target.value)}
+                        onChange={(next) => setOnPageListObjectFieldValue(key, next)}
                       />
                     )
                   )}
@@ -4475,26 +4475,26 @@ export function ContentPagesPage() {
             <label>Value</label>
             <Checkbox
               checked={Boolean(onPageListItemEditor.value)}
-              onChange={(event) =>
-                setOnPageListItemEditor((prev) => (prev ? { ...prev, value: Boolean(event.checked) } : prev))
+              onChange={(next) =>
+                setOnPageListItemEditor((prev) => (prev ? { ...prev, value: next } : prev))
               }
             />
           </div>
         ) : (
           <div className="form-row">
             <label>Value</label>
-            <InputText
+            <TextInput
               value={String(onPageListItemEditor?.value ?? '')}
-              onChange={(event) =>
+              onChange={(next) =>
                 setOnPageListItemEditor((prev) => {
                   if (!prev) {
                     return prev;
                   }
                   if (prev.mode === 'number') {
-                    const parsed = Number(event.target.value);
+                    const parsed = Number(next);
                     return { ...prev, value: Number.isFinite(parsed) ? parsed : 0 };
                   }
-                  return { ...prev, value: event.target.value };
+                  return { ...prev, value: next };
                 })
               }
             />
@@ -4509,36 +4509,36 @@ export function ContentPagesPage() {
         <div className="form-grid">
           <div className="form-row">
             <label>Mode</label>
-            <Dropdown
+            <Select
               value={aiMode}
               options={[
                 { label: 'Propose copy for selected field', value: 'copy' },
                 { label: 'Suggest selected component props', value: 'props' },
                 { label: 'Translate selected text', value: 'translate' }
               ]}
-              onChange={(event) => setAiMode(event.value as AiMode)}
+              onChange={(next) => setAiMode(next as AiMode)}
             />
           </div>
           <div className="form-row">
             <label>Selected path</label>
-            <InputText value={selectedFieldPath ?? ''} readOnly />
+            <TextInput value={selectedFieldPath ?? ''} readOnly />
           </div>
         </div>
         {aiMode === 'translate' ? (
           <div className="form-grid">
             <div className="form-row">
               <label>Target market</label>
-              <Dropdown value={targetMarketCode} options={Array.from(new Set(combos.map((entry) => entry.marketCode))).map((entry) => ({ label: entry, value: entry }))} onChange={(event) => setTargetMarketCode(String(event.value))} />
+              <Select value={targetMarketCode} options={Array.from(new Set(combos.map((entry) => entry.marketCode))).map((entry) => ({ label: entry, value: entry }))} onChange={(next) => setTargetMarketCode(String(next))} />
             </div>
             <div className="form-row">
               <label>Target locale</label>
-              <Dropdown value={targetLocaleCode} options={combos.filter((entry) => entry.marketCode === targetMarketCode).map((entry) => ({ label: entry.localeCode, value: entry.localeCode }))} onChange={(event) => setTargetLocaleCode(String(event.value))} />
+              <Select value={targetLocaleCode} options={combos.filter((entry) => entry.marketCode === targetMarketCode).map((entry) => ({ label: entry.localeCode, value: entry.localeCode }))} onChange={(next) => setTargetLocaleCode(String(next))} />
             </div>
           </div>
         ) : null}
         <div className="form-row">
           <label>Prompt</label>
-          <InputTextarea rows={4} value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Tone, audience, constraints" />
+          <Textarea rows={4} value={aiPrompt} onChange={(next) => setAiPrompt(next)} placeholder="Tone, audience, constraints" />
         </div>
         <div className="inline-actions mt-3">
           <Button label="Generate Suggestion" onClick={generateAiSuggestion} />
@@ -4547,7 +4547,7 @@ export function ContentPagesPage() {
         </div>
         <div className="form-row mt-3">
           <label>Suggestion</label>
-          <InputTextarea rows={8} value={aiSuggestion} onChange={(event) => setAiSuggestion(event.target.value)} />
+          <Textarea rows={8} value={aiSuggestion} onChange={(next) => setAiSuggestion(next)} />
         </div>
       </DialogPanel>
       {status ? <div className="status-panel" role="alert">{status}</div> : null}

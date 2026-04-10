@@ -192,7 +192,7 @@ export function DiagnosticsPage() {
                     <label className="diagnostics-toggle">
                       <span>Paused</span>
                       <Switch
-                        checked={collectorState.paused}
+                        value={collectorState.paused}
                         onChange={(next) => issueCollector.setPaused(next)}
                       />
                     </label>

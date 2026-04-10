@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Tree } from 'primereact/tree';
-import { DialogPanel } from '../../ui/atoms';
 import type { TreeNode } from 'primereact/treenode';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';

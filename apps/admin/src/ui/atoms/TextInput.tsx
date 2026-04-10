@@ -1,19 +1,25 @@
-import { InputText } from 'primereact/inputtext';
-
-type Option = {
+export function TextInput({
+  value,
+  onChange,
+  placeholder,
+  readOnly,
+  disabled
+}: {
   value: string;
   onChange?: (next: string) => void;
   placeholder?: string;
   readOnly?: boolean;
-};
-
-export function TextInput({ value, onChange, placeholder, readOnly }: Option) {
+  disabled?: boolean;
+}) {
   return (
-    <InputText
+    <input
+      type="text"
+      className="p-inputtext p-component"
       value={value}
-      onChange={onChange ? (event) => onChange(event.target.value) : undefined}
+      onChange={onChange ? (e) => onChange(e.target.value) : undefined}
       placeholder={placeholder}
       readOnly={readOnly}
+      disabled={disabled}
     />
   );
 }

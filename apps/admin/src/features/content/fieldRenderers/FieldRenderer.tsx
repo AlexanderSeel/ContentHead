@@ -22,11 +22,11 @@ export function FieldRenderer({ field, value, onChange, siteId, token, readOnly 
   const ui = field.uiConfig ?? {};
 
   if (field.type === 'boolean') {
-    return <Checkbox checked={Boolean(value)} onChange={(next) => onChange(next)} disabled={readOnly} />;
+    return <Checkbox checked={Boolean(value)} onChange={(next) => onChange(next)} disabled={Boolean(readOnly)} />;
   }
 
   if (field.type === 'number') {
-    return <NumberInput value={typeof value === 'number' ? value : null} onChange={(next) => onChange(next)} disabled={readOnly} />;
+    return <NumberInput value={typeof value === 'number' ? value : null} onChange={(next) => onChange(next)} disabled={Boolean(readOnly)} />;
   }
 
   if (field.type === 'date' || field.type === 'datetime') {
@@ -35,7 +35,7 @@ export function FieldRenderer({ field, value, onChange, siteId, token, readOnly 
         value={value ? new Date(String(value)) : null}
         onChange={(next) => onChange(next ? next.toISOString() : null)}
         showTime={field.type === 'datetime'}
-        disabled={readOnly}
+        disabled={Boolean(readOnly)}
       />
     );
   }
@@ -69,7 +69,7 @@ export function FieldRenderer({ field, value, onChange, siteId, token, readOnly 
   }
 
   if (field.type === 'json') {
-    return <Textarea rows={6} value={typeof value === 'string' ? value : JSON.stringify(value ?? {}, null, 2)} onChange={(next) => onChange(next)} readOnly={readOnly} />;
+    return <Textarea rows={6} value={typeof value === 'string' ? value : JSON.stringify(value ?? {}, null, 2)} onChange={(next) => onChange(next)} readOnly={Boolean(readOnly)} />;
   }
 
   if (field.type === 'richtext') {
@@ -86,8 +86,8 @@ export function FieldRenderer({ field, value, onChange, siteId, token, readOnly 
   }
 
   if (ui.multiline) {
-    return <Textarea rows={ui.rows ?? 3} value={String(value ?? '')} onChange={(next) => onChange(next)} readOnly={readOnly} placeholder={ui.placeholder ?? ''} />;
+    return <Textarea rows={ui.rows ?? 3} value={String(value ?? '')} onChange={(next) => onChange(next)} readOnly={Boolean(readOnly)} placeholder={ui.placeholder ?? ''} />;
   }
 
-  return <TextInput value={String(value ?? '')} onChange={(next) => onChange(next)} readOnly={readOnly} placeholder={ui.placeholder ?? ''} />;
+  return <TextInput value={String(value ?? '')} onChange={(next) => onChange(next)} readOnly={Boolean(readOnly)} placeholder={ui.placeholder ?? ''} />;
 }

@@ -1,8 +1,8 @@
 export type ToastOptions = {
   summary: string;
-  detail?: string;
-  severity?: 'success' | 'info' | 'warn' | 'error';
-  life?: number;
+  detail?: string | undefined;
+  severity?: 'success' | 'info' | 'warn' | 'error' | undefined;
+  life?: number | undefined;
 };
 
 export type ToastFeatureTag = string | undefined;

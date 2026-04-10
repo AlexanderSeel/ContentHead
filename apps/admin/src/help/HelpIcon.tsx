@@ -1,13 +1,9 @@
-import { useId } from 'react';
 import { Button, Tooltip } from '../ui/atoms';
 
 export function HelpIcon({ tooltip, onClick }: { tooltip: string; onClick: () => void }) {
-  const id = useId().replace(/:/g, '_');
-
   return (
-    <>
-      <Tooltip target={`#${id}`} content={tooltip} position="top" />
-      <Button id={id} text rounded icon="pi pi-question-circle" aria-label="Help" onClick={onClick} />
-    </>
+    <Tooltip content={tooltip} position="top">
+      <Button text rounded icon="pi pi-question-circle" aria-label="Help" onClick={onClick} />
+    </Tooltip>
   );
 }

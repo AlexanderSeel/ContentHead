@@ -1,4 +1,4 @@
-import type { ToastMessage } from 'primereact/toast';
+import type { ToastOptions } from '../toast';
 
 export type CommandPlacement =
   | 'primary'
@@ -25,7 +25,7 @@ export type CommandContext = {
   userRoles?: string[];
   userPermissions?: string[];
   featureFlags?: Record<string, boolean>;
-  toast?: (message: ToastMessage, featureTag?: string) => void;
+  toast?: (message: ToastOptions, featureTag?: string) => void;
   confirm?: (options: { header: string; message: string; acceptLabel?: string; rejectLabel?: string }) => Promise<boolean>;
   [key: string]: unknown;
 };

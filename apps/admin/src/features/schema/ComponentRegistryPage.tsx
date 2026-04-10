@@ -708,7 +708,7 @@ export function ComponentRegistryPage() {
                           </div>
                           <div className="form-row">
                             <label>Enabled</label>
-                            <Switch checked={draft.enabled} onChange={(next) => setDraft((prev) => (prev ? { ...prev, enabled: next } : prev))} />
+                            <Switch value={draft.enabled} onChange={(next) => setDraft((prev) => (prev ? { ...prev, enabled: next } : prev))} />
                           </div>
                         </div>
                       </TabItem>
@@ -810,7 +810,7 @@ export function ComponentRegistryPage() {
                               />
                             )}
                           />
-                          <Column header="Required" body={(row: PropDef, options) => <Switch checked={row.required} onChange={(next) => updateProp(options.rowIndex, { required: next })} />} />
+                          <Column header="Required" body={(row: PropDef, options) => <Switch value={row.required} onChange={(next) => updateProp(options.rowIndex, { required: next })} />} />
                           <Column header="Default" body={(row: PropDef, options) => <TextInput value={row.defaultValue} onChange={(next) => updateProp(options.rowIndex, { defaultValue: next })} />} />
                           <Column header="Control" body={(row: PropDef, options) => <Select value={row.control} options={CONTROL_OPTIONS} onChange={(next) => next && updateProp(options.rowIndex, { control: next as ControlType })} />} />
                           <Column

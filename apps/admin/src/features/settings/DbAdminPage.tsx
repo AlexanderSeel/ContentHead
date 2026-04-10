@@ -759,7 +759,7 @@ export function DbAdminPage() {
             />
             <label className="flex align-items-center gap-2">
               Reveal sensitive
-              <Switch checked={revealSensitiveColumns} onChange={(next) => setRevealSensitiveColumns(next)} />
+              <Switch value={revealSensitiveColumns} onChange={(next) => setRevealSensitiveColumns(next)} />
             </label>
           </div>
         </div>
@@ -1003,7 +1003,7 @@ export function DbAdminPage() {
                               onChange={(next) => setSqlConfirm(next)}
                             />
                             <Switch
-                              checked={sqlAllowWrites}
+                              value={sqlAllowWrites}
                               onChange={(next) => {
                                 if (next && sqlConfirm.trim().toUpperCase() !== 'ENABLE WRITE') {
                                   setStatus('Type ENABLE WRITE to enable SQL writes.');

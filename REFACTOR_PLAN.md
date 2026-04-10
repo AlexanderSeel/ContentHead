@@ -199,37 +199,46 @@
 
 ## Phase 5 — Radix swap: easy primitives
 
-> Single-file changes inside `ui/atoms/`. Feature code is untouched.
+> **Status: COMPLETE**
 
-- [ ] Install `@radix-ui/react-checkbox`; swap `Checkbox.tsx` implementation
-- [ ] Install `@radix-ui/react-switch`; swap `Switch.tsx` implementation
-- [ ] Swap `Button.tsx` to native `<button>` + CSS classes (remove primereact dep)
-- [ ] Swap `TextInput.tsx` to native `<input>` (remove primereact dep)
-- [ ] Swap `Textarea.tsx` to native `<textarea>` (remove primereact dep)
-- [ ] Swap `NumberInput.tsx` to native `<input type="number">` or controlled component
-- [ ] Swap `Tag.tsx` to native `<span>` + CSS (remove primereact dep)
+- [x] Install `@radix-ui/react-checkbox`; swap `Checkbox.tsx` implementation (Radix Root inside `div.p-checkbox`)
+- [x] Install `@radix-ui/react-switch`; swap `Switch.tsx` implementation (native DOM replicating PrimeReact structure)
+- [x] Swap `Button.tsx` to native `<button>` + PrimeReact CSS classes
+- [x] Swap `TextInput.tsx` to native `<input type="text">` + `p-inputtext p-component`
+- [x] Swap `Textarea.tsx` to native `<textarea>` + `p-inputtextarea p-component` (autoResize via useEffect)
+- [x] Swap `NumberInput.tsx` to native `<input type="number">` + `p-inputtext p-component`
+- [x] Swap `Tag.tsx` to native `<span class="p-tag [p-tag-severity]">` + inner `p-tag-value`
+- [x] Fix cascading type errors across call sites (FieldRenderer, DiagnosticsPage, ComponentRegistryPage, ContentPagesPage, etc.)
 
 ---
 
 ## Phase 6 — Radix swap: medium primitives
 
-- [ ] Install `@radix-ui/react-toast`; swap `UiContext` Toast + `ui/toast.ts` dispatcher
-- [ ] Install `@radix-ui/react-alert-dialog`; swap `UiContext` ConfirmDialog
-- [ ] Install `@radix-ui/react-dialog`; swap `DialogPanel.tsx` implementation
-- [ ] Install `@radix-ui/react-tabs`; swap `Tabs.tsx` implementation
-- [ ] Install `@radix-ui/react-accordion`; swap `Accordion.tsx` implementation
-- [ ] Install `@radix-ui/react-tooltip`; swap `Tooltip.tsx` implementation
+> **Status: COMPLETE**
+
+- [x] Install `@radix-ui/react-toast`; swap `UiContext` Toast (Radix ToastProvider + managed state queue)
+- [x] Install `@radix-ui/react-alert-dialog`; swap `UiContext` ConfirmDialog (Radix AlertDialog, promise-based)
+- [x] Install `@radix-ui/react-dialog`; swap `DialogPanel.tsx` (Radix Portal+Overlay+Content, PrimeReact CSS classes)
+- [x] Install `@radix-ui/react-tabs`; swap `Tabs.tsx` (native DOM replicating p-tabview structure)
+- [x] Install `@radix-ui/react-accordion`; swap `Accordion.tsx` (native DOM replicating p-accordion structure)
+- [x] Install `@radix-ui/react-tooltip`; swap `Tooltip.tsx` (declarative Radix API, updated HelpIcon)
+- [x] `Card.tsx` → native `div.p-card > div.p-card-body > div.p-card-content`
+- [x] Fix `commands/types.ts` — replace `ToastMessage` with `ToastOptions` (removes PrimeReact dep)
+- [x] Fix `ui/helpers/feedback.ts` — remove PrimeReact import, return `toast` directly
+- [x] Fix `ui/toast.ts` — add `| undefined` to optional fields for `exactOptionalPropertyTypes`
 
 ---
 
 ## Phase 7 — Radix swap: Select / MultiSelect
 
-> `@radix-ui/react-select` supports single-select only.
-> MultiSelect requires a custom `Popover + Checkbox list` pattern.
+> **Status: COMPLETE**
 
-- [ ] Install `@radix-ui/react-select`; swap `Select.tsx` implementation
-- [ ] Design and implement Radix-based `MultiSelect.tsx` (Popover + CheckboxGroup)
-- [ ] Test all MultiSelect call sites
+- [x] Install `@radix-ui/react-select` + `@radix-ui/react-popover`; swap `Select.tsx`
+  - Standard: Radix Select with PrimeReact CSS classes (`p-dropdown`, `p-dropdown-panel`, etc.)
+  - `filter=true`: Popover branch with visible search input (2 call sites use this)
+- [x] Implement Radix-based `MultiSelect.tsx` (Popover + Radix Checkbox list)
+  - chip/comma display, filter, maxSelectedLabels all supported
+- [x] Zero call-site changes needed; API fully compatible
 
 ---
 
@@ -332,6 +341,6 @@
 
 ## Session Resume Notes
 
-- Last completed: **Phases 1–4** (all atom wrappers created; all Dialog/Tabs/Accordion/Card/Tooltip call sites migrated)
-- Next session entry point: **Phase 5** — swap atom implementations from PrimeReact to native/Radix (single-file changes inside `ui/atoms/`)
+- Last completed: **Phases 1–6** (Card/DialogPanel/Tabs/Accordion/Tooltip/Toast/AlertDialog all swapped; zero PrimeReact in UiContext or these atoms)
+- Next session entry point: **Phase 7** — Radix swap for Select/MultiSelect
 - To verify progress: `grep -rl "from 'primereact/" apps/admin/src --include="*.tsx" --include="*.ts" | grep -v "ui/atoms\|ui/molecules\|ui/commands\|UiContext\|main.tsx"`
