@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
-import { Button, Checkbox, Select, Tag, Textarea, TextInput } from '../../ui/atoms';
+import { Accordion, AccordionItem, Button, Checkbox, Select, Tag, Textarea, TextInput } from '../../ui/atoms';
 
 import { useAuth } from '../../app/AuthContext';
 import { createAdminSdk } from '../../lib/sdk';
@@ -280,7 +279,7 @@ export function ConnectorSettingsPage({ domain }: { domain: ConnectorDomain }) {
                   <p className="muted">Select or create a connector.</p>
                 ) : (
                   <Accordion multiple activeIndex={[0]}>
-                    <AccordionTab header="Basic">
+                    <AccordionItem header="Basic">
                       <div className="form-row">
                         <label>Name</label>
                         <TextInput value={selected.name} onChange={(next) => setSelected({ ...selected, name: next })} />
@@ -307,19 +306,19 @@ export function ConnectorSettingsPage({ domain }: { domain: ConnectorDomain }) {
                         <Checkbox checked={selected.isDefault} onChange={(next) => setSelected({ ...selected, isDefault: next })} /> Default for {domain}
                       </label>
                       {domain === 'db' ? <div className="status-panel">Core runtime still uses DuckDB. Other DB providers are stored for future activation.</div> : null}
-                    </AccordionTab>
-                    <AccordionTab header="Advanced">
+                    </AccordionItem>
+                    <AccordionItem header="Advanced">
                       <div className="form-row">
                         <label>Config JSON</label>
                         <Textarea rows={12} value={selected.configJson} onChange={(next) => setSelected({ ...selected, configJson: next })} />
                         {!parsedConfigValid ? <small className="error-text">Config JSON must be valid JSON.</small> : null}
                       </div>
-                    </AccordionTab>
-                    <AccordionTab header="Security / Secrets">
+                    </AccordionItem>
+                    <AccordionItem header="Security / Secrets">
                       <div className="form-row">
                         <small>Secret fields are stored in connector config and should be managed carefully. UI masks values after reload.</small>
                       </div>
-                    </AccordionTab>
+                    </AccordionItem>
                   </Accordion>
                 )}
                 {testResult ? <div className="status-panel">{testResult}</div> : null}

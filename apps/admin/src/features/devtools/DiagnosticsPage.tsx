@@ -1,11 +1,8 @@
-import { Accordion, AccordionTab } from 'primereact/accordion';
-import { Card } from 'primereact/card';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { TabPanel, TabView } from 'primereact/tabview';
 import { useEffect, useMemo, useState } from 'react';
 
-import { Button, NumberInput, Select, Switch, TextInput } from '../../ui/atoms';
+import { Accordion, AccordionItem, Button, Card, NumberInput, Select, Switch, TabItem, Tabs, TextInput } from '../../ui/atoms';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useUi } from '../../app/UiContext';
@@ -170,8 +167,8 @@ export function DiagnosticsPage() {
       <WorkspaceHeader title="Diagnostics" subtitle="Build, GraphQL, runtime and issue diagnostics." />
       <WorkspaceBody>
         <div className="pane paneScroll form-row diagnostics-page-shell">
-          <TabView activeIndex={activeTab} onTabChange={(event) => setActiveTab(event.index)}>
-            <TabPanel header="Issues">
+          <Tabs activeIndex={activeTab} onTabChange={(index) => setActiveTab(index)}>
+            <TabItem header="Issues">
               <Card>
                 <div className="diagnostics-issues-toolbar">
                   <div className="diagnostics-issues-filters">
@@ -308,9 +305,9 @@ export function DiagnosticsPage() {
                   </div>
                 )}
               </Card>
-            </TabPanel>
+            </TabItem>
 
-            <TabPanel header="Overview">
+            <TabItem header="Overview">
               <Card>
                 <div className="diagnostics-grid">
                   <div className="status-panel">
@@ -363,21 +360,21 @@ export function DiagnosticsPage() {
               <Accordion
                 multiple
                 activeIndex={overviewSections}
-                onTabChange={(event) => setOverviewSections(event.index)}
+                onTabChange={(index) => setOverviewSections(index)}
                 className="diagnostics-overview-accordion"
               >
-                <AccordionTab header="GraphQL Errors (Last 20)">
+                <AccordionItem header="GraphQL Errors (Last 20)">
                   {graphqlErrors.length === 0 ? (
                     <div className="status-panel">No GraphQL errors captured.</div>
                   ) : (
                     <Accordion
                       multiple
                       activeIndex={graphqlSections}
-                      onTabChange={(event) => setGraphqlSections(event.index)}
+                      onTabChange={(index) => setGraphqlSections(index)}
                       className="diagnostics-events-accordion"
                     >
                       {graphqlErrors.map((entry) => (
-                        <AccordionTab
+                        <AccordionItem
                           key={`${entry.timestamp}-${entry.operationName}`}
                           header={`${entry.operationName} • ${new Date(entry.timestamp).toLocaleString()}`}
                         >
@@ -385,37 +382,37 @@ export function DiagnosticsPage() {
                             <div>{entry.message}</div>
                             <pre>{JSON.stringify(entry.variables, null, 2)}</pre>
                           </div>
-                        </AccordionTab>
+                        </AccordionItem>
                       ))}
                     </Accordion>
                   )}
-                </AccordionTab>
+                </AccordionItem>
 
-                <AccordionTab header="Preview Bridge (Last 20)">
+                <AccordionItem header="Preview Bridge (Last 20)">
                   {previewDiagnostics.length === 0 ? (
                     <div className="status-panel">No preview bridge events captured.</div>
                   ) : (
                     <Accordion
                       multiple
                       activeIndex={previewSections}
-                      onTabChange={(event) => setPreviewSections(event.index)}
+                      onTabChange={(index) => setPreviewSections(index)}
                       className="diagnostics-events-accordion"
                     >
                       {previewDiagnostics.map((entry) => (
-                        <AccordionTab
+                        <AccordionItem
                           key={`${entry.timestamp}-${entry.direction}-${entry.event}`}
                           header={`${entry.event} • ${entry.direction}${typeof entry.ok === 'boolean' ? ` • ${entry.ok ? 'ok' : 'error'}` : ''} • ${new Date(entry.timestamp).toLocaleString()}`}
                         >
                           <div className="status-panel diagnostics-error-item">
                             <pre>{JSON.stringify(entry.payload, null, 2)}</pre>
                           </div>
-                        </AccordionTab>
+                        </AccordionItem>
                       ))}
                     </Accordion>
                   )}
-                </AccordionTab>
+                </AccordionItem>
 
-                <AccordionTab header="Security / RBAC Diagnostics">
+                <AccordionItem header="Security / RBAC Diagnostics">
                   {securityError ? (
                     <ForbiddenState title="Security diagnostics unavailable" reason={securityError} />
                   ) : !securityInfo ? (
@@ -444,9 +441,9 @@ export function DiagnosticsPage() {
                       </div>
                     </div>
                   )}
-                </AccordionTab>
+                </AccordionItem>
 
-                <AccordionTab header="Theme Diagnostics">
+                <AccordionItem header="Theme Diagnostics">
                   <div className="diagnostics-grid">
                     {tokens.map((tokenName) => (
                       <div key={tokenName} className="status-panel">
@@ -455,10 +452,10 @@ export function DiagnosticsPage() {
                       </div>
                     ))}
                   </div>
-                </AccordionTab>
+                </AccordionItem>
               </Accordion>
-            </TabPanel>
-          </TabView>
+            </TabItem>
+          </Tabs>
         </div>
       </WorkspaceBody>
     </WorkspacePage>

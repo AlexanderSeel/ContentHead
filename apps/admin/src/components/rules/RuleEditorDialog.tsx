@@ -1,10 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Dialog } from 'primereact/dialog';
-import { Dropdown } from 'primereact/dropdown';
-import { InputText } from 'primereact/inputtext';
-import { Button } from 'primereact/button';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { TabPanel, TabView } from 'primereact/tabview';
+import { Button, DialogPanel, Select, TabItem, Tabs, Textarea, TextInput } from '../../ui/atoms';
 import { evaluateRule, type Rule, type RuleContext } from '@contenthead/shared';
 import { HelpDialog } from '../../help/HelpDialog';
 import { HelpIcon } from '../../help/HelpIcon';
@@ -85,7 +80,7 @@ export function RuleEditorDialog({
 
   return (
     <>
-      <Dialog
+      <DialogPanel
         header={(
           <div className="inline-actions justify-content-between w-full">
             <span>Rule Editor</span>
@@ -99,22 +94,22 @@ export function RuleEditorDialog({
         onHide={onHide}
         className="w-11 lg:w-9 xl:w-8"
       >
-      <TabView>
-        <TabPanel header="Visual">
+      <Tabs>
+        <TabItem header="Visual">
           <div className="form-row">
             <label>Group Mode</label>
-            <Dropdown value={mode} options={[{ label: 'ALL', value: 'all' }, { label: 'ANY', value: 'any' }]} onChange={(event) => setMode(event.value as GroupMode)} />
+            <Select<GroupMode> value={mode} options={[{ label: 'ALL', value: 'all' }, { label: 'ANY', value: 'any' }]} onChange={(next) => setMode(next ?? 'all')} />
           </div>
 
           {rows.map((row, index) => (
             <div key={`row-${index}`} className="form-grid">
-              <Dropdown
+              <Select<string>
                 value={row.field}
                 options={fields.length > 0 ? fields : [{ label: 'country', value: 'country' }]}
-                onChange={(event) => setRows((prev) => prev.map((entry, i) => (i === index ? { ...entry, field: String(event.value) } : entry)))}
+                onChange={(next) => setRows((prev) => prev.map((entry, i) => (i === index ? { ...entry, field: next ?? '' } : entry)))}
                 filter
               />
-              <Dropdown
+              <Select<Comparator>
                 value={row.op}
                 options={[
                   { label: 'eq', value: 'eq' },
@@ -125,9 +120,9 @@ export function RuleEditorDialog({
                   { label: 'lt', value: 'lt' },
                   { label: 'regex', value: 'regex' }
                 ]}
-                onChange={(event) => setRows((prev) => prev.map((entry, i) => (i === index ? { ...entry, op: event.value as Comparator } : entry)))}
+                onChange={(next) => setRows((prev) => prev.map((entry, i) => (i === index ? { ...entry, op: next ?? 'eq' } : entry)))}
               />
-              <InputText value={row.value} onChange={(event) => setRows((prev) => prev.map((entry, i) => (i === index ? { ...entry, value: event.target.value } : entry)))} placeholder="Value" />
+              <TextInput value={row.value} onChange={(next) => setRows((prev) => prev.map((entry, i) => (i === index ? { ...entry, value: next } : entry)))} placeholder="Value" />
               <Button text severity="danger" icon="pi pi-trash" onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))} />
             </div>
           ))}
@@ -142,24 +137,24 @@ export function RuleEditorDialog({
 
           <div className="form-row">
             <label>Test context JSON</label>
-            <InputTextarea rows={4} value={testContext} onChange={(event) => setTestContext(event.target.value)} />
+            <Textarea rows={4} value={testContext} onChange={(next) => setTestContext(next)} />
             <small>Result: {testResult}</small>
           </div>
-        </TabPanel>
+        </TabItem>
 
-        <TabPanel header="Advanced JSON">
+        <TabItem header="Advanced JSON">
           <div className="form-row">
             <label>Rule JSON</label>
-            <InputTextarea
+            <Textarea
               rows={12}
               value={jsonValue}
-              onChange={(event) => {
-                setJsonValue(event.target.value);
+              onChange={(next) => {
+                setJsonValue(next);
                 try {
-                  const parsed = JSON.parse(event.target.value) as Rule;
-                  const next = parseRuleToRows(parsed);
-                  setMode(next.mode);
-                  setRows(next.rows);
+                  const parsed = JSON.parse(next) as Rule;
+                  const nextRows = parseRuleToRows(parsed);
+                  setMode(nextRows.mode);
+                  setRows(nextRows.rows);
                   setJsonError('');
                 } catch (error) {
                   setJsonError(error instanceof Error ? error.message : 'Invalid JSON');
@@ -178,9 +173,9 @@ export function RuleEditorDialog({
               }
             }} />
           </div>
-        </TabPanel>
-      </TabView>
-      </Dialog>
+        </TabItem>
+      </Tabs>
+      </DialogPanel>
       <HelpDialog topicKey="rules" visible={helpOpen} onHide={() => setHelpOpen(false)} />
     </>
   );

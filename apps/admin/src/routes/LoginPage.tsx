@@ -1,7 +1,4 @@
-import { Button } from 'primereact/button';
-import { Card } from 'primereact/card';
-import { InputText } from 'primereact/inputtext';
-import { Password } from 'primereact/password';
+import { Button, Card, TextInput, Password } from '../ui/atoms';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -42,11 +39,11 @@ export function LoginPage() {
       <Card title="ContentHead Studio Login" subTitle="Sign in to the admin backend">
         <div className="form-row">
           <label>Username</label>
-          <InputText value={username} onChange={(event) => setUsername(event.target.value)} />
+          <TextInput value={username} onChange={(next) => setUsername(next)} />
         </div>
         <div className="form-row">
           <label>Password</label>
-          <Password value={password} feedback={false} toggleMask onChange={(event) => setPassword(event.target.value)} />
+          <Password value={password} toggleMask onChange={(next) => setPassword(next)} />
         </div>
         {error ? <p className="error-text">{error}</p> : null}
         <Button

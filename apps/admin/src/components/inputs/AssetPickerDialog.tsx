@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Dialog } from 'primereact/dialog';
 import { Tree } from 'primereact/tree';
+import { DialogPanel } from '../../ui/atoms';
 import type { TreeNode } from 'primereact/treenode';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { InputText } from 'primereact/inputtext';
-import { Button } from 'primereact/button';
+import { Button, DialogPanel, TextInput } from '../../ui/atoms';
 
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { getApiBaseUrl } from '../../lib/api';
@@ -122,7 +121,7 @@ export function AssetPickerDialog({
   const apiBase = getApiBaseUrl();
 
   return (
-    <Dialog header="Asset Picker" visible={visible} onHide={onHide} className="w-11">
+    <DialogPanel header="Asset Picker" visible={visible} onHide={onHide} className="w-11">
       <div className="grid">
         <div className="content-card p-2 col-12 xl:col-2">
           <Tree
@@ -143,7 +142,7 @@ export function AssetPickerDialog({
         <div className="content-card p-3 col-12 xl:col-6">
           <div className="form-row mb-2">
             <label>Search assets</label>
-            <InputText value={search} onChange={(event) => setSearch(event.target.value)} placeholder="filename or title" />
+            <TextInput value={search} onChange={(next) => setSearch(next)} placeholder="filename or title" />
           </div>
           <DataTable
             value={assets}
@@ -221,7 +220,7 @@ export function AssetPickerDialog({
         onHide={() => setImageEditorAssetId(null)}
         onSaved={() => refresh().catch(() => undefined)}
       />
-    </Dialog>
+    </DialogPanel>
   );
 }
 

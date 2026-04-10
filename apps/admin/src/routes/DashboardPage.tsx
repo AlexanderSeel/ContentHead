@@ -1,6 +1,5 @@
-import { Card } from 'primereact/card';
-
 import { useAdminContext } from '../app/AdminContext';
+import { Card } from '../ui/atoms';
 import { WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../ui/molecules';
 
 export function DashboardPage() {

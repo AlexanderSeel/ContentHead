@@ -1,7 +1,6 @@
-import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Chips } from 'primereact/chips';
 
-import { Checkbox, MultiSelect, NumberInput, Select, Textarea, TextInput } from '../../../ui/atoms';
+import { Accordion, AccordionItem, Checkbox, MultiSelect, NumberInput, Select, Textarea, TextInput } from '../../../ui/atoms';
 
 import {
   CONTENT_FIELD_TYPES,
@@ -80,7 +79,7 @@ export function FieldInspector({
   return (
     <div className="p-fluid">
       <Accordion activeIndex={0}>
-        <AccordionTab header="Properties">
+        <AccordionItem header="Properties">
           <div className="form-row">
             <label>Key</label>
             <TextInput
@@ -114,9 +113,9 @@ export function FieldInspector({
               onChange={(next) => apply({ uiConfig: { ...uiConfig, defaultValue: next } })}
             />
           </div>
-        </AccordionTab>
+        </AccordionItem>
 
-        <AccordionTab header="Validation">
+        <AccordionItem header="Validation">
           <label>
             <Checkbox checked={Boolean(selected.required)} onChange={(next) => apply({ required: next })} /> Required
           </label>
@@ -148,9 +147,9 @@ export function FieldInspector({
             <label>Allowed Values</label>
             <Chips value={validations.allowedValues ?? []} onChange={(event) => apply({ validations: cleanValidations({ ...validations, allowedValues: event.value as string[] }) })} separator="," />
           </div>
-        </AccordionTab>
+        </AccordionItem>
 
-        <AccordionTab header="UI">
+        <AccordionItem header="UI">
           <label>
             <Checkbox checked={Boolean(uiConfig.multiline)} onChange={(next) => apply({ uiConfig: { ...uiConfig, multiline: next } })} /> Multiline editor
           </label>
@@ -203,9 +202,9 @@ export function FieldInspector({
             <label>Section</label>
             <TextInput value={uiConfig.section ?? ''} onChange={(next) => apply({ uiConfig: cleanUiConfig({ ...uiConfig, section: next }) })} />
           </div>
-        </AccordionTab>
+        </AccordionItem>
 
-        <AccordionTab header="Advanced">
+        <AccordionItem header="Advanced">
           <div className="form-row">
             <label>Validations JSON</label>
             <Textarea
@@ -236,7 +235,7 @@ export function FieldInspector({
               }}
             />
           </div>
-        </AccordionTab>
+        </AccordionItem>
       </Accordion>
     </div>
   );

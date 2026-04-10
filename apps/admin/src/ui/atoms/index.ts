@@ -1,5 +1,10 @@
+export { Accordion, AccordionItem } from './Accordion';
 export { Button } from './Button';
 export type { ButtonProps, ButtonSeverity } from './Button';
+export { Card } from './Card';
+export { DialogPanel } from './DialogPanel';
+export { Tabs, TabItem } from './Tabs';
+export { Tooltip } from './Tooltip';
 export { Checkbox } from './Checkbox';
 export { Tag } from './Tag';
 export { Textarea } from './Textarea';

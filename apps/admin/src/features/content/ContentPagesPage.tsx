@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { TabPanel, TabView } from 'primereact/tabview';
 import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
 import { TreeTable } from 'primereact/treetable';
 import type { TreeNode } from 'primereact/treenode';
 import { DataTable } from 'primereact/datatable';
-import { Dialog } from 'primereact/dialog';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
-import { Button, Checkbox, MultiSelect, Select, Tag, Textarea, TextInput } from '../../ui/atoms';
+import { Button, Checkbox, DialogPanel, MultiSelect, Select, TabItem, Tabs, Tag, Textarea, TextInput } from '../../ui/atoms';
 
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { getApiGraphqlUrl } from '../../lib/api';
@@ -3363,8 +3361,8 @@ export function ContentPagesPage() {
     return (
       <div className={editorPaneClassName}>
         {loadingItem ? <div className="status-panel">Loading content item #{selectedItemId}...</div> : null}
-        <TabView activeIndex={centerTabIndex} onTabChange={(event) => setCenterTabIndex(event.index)}>
-          <TabPanel header="Fields">
+        <Tabs activeIndex={centerTabIndex} onTabChange={(index) => setCenterTabIndex(index)}>
+          <TabItem header="Fields">
             <div className="content-card">
               {fieldDefs.length === 0 ? <p className="muted">No fields defined for this content type.</p> : null}
               {fieldDefs.map((def) => {
@@ -3395,9 +3393,9 @@ export function ContentPagesPage() {
                 );
               })}
             </div>
-          </TabPanel>
+          </TabItem>
 
-          <TabPanel header="Components">
+          <TabItem header="Components">
             <div className="components-tab-shell splitFill">
               <VisualBuilderWorkspace
                 palette={availableComponentTypeOptions.map((entry) => ({
@@ -3502,8 +3500,8 @@ export function ContentPagesPage() {
                 )}
               />
             </div>
-          </TabPanel>
-          <TabPanel header="Routes">
+          </TabItem>
+          <TabItem header="Routes">
             <DataTable value={routes.filter((route) => route.contentItemId === selectedItemId)} size="small">
               <Column field="slug" header="Slug" />
               <Column field="marketCode" header="Market" />
@@ -3547,8 +3545,8 @@ export function ContentPagesPage() {
                 }
               />
             </div>
-          </TabPanel>
-          <TabPanel header="Versions">
+          </TabItem>
+          <TabItem header="Versions">
             <div className="inline-actions mb-2">
               <Button
                 label="Use Selected As Draft"
@@ -3591,8 +3589,8 @@ export function ContentPagesPage() {
               <Column field="createdBy" header="By" />
               <Column field="comment" header="Comment" />
             </DataTable>
-          </TabPanel>
-          <TabPanel header="Variants">
+          </TabItem>
+          <TabItem header="Variants">
             <div className="form-grid">
               <Select
                 value={variantSetId !== null ? String(variantSetId) : undefined}
@@ -3653,8 +3651,8 @@ export function ContentPagesPage() {
                   : Promise.resolve())
               }
             />
-          </TabPanel>
-          <TabPanel header="Permissions">
+          </TabItem>
+          <TabItem header="Permissions">
             <details className="cms-collapsible" open>
               <summary>ACL Matrix</summary>
               <div className="form-row">
@@ -3788,8 +3786,8 @@ export function ContentPagesPage() {
                 ) : null}
               </div>
             </details>
-          </TabPanel>
-          <TabPanel header="Advanced">
+          </TabItem>
+          <TabItem header="Advanced">
             <div className="inline-actions">
               <Button
                 label={rawEditable ? 'Lock JSON Editing' : 'Enable JSON Editing'}
@@ -3811,8 +3809,8 @@ export function ContentPagesPage() {
             <div className="form-row"><label>Composition JSON</label><Textarea rows={5} value={compositionJson} onChange={(next) => setCompositionJson(next)} readOnly={!rawEditable} /></div>
             <div className="form-row"><label>Components JSON</label><Textarea rows={5} value={componentsJson} onChange={(next) => setComponentsJson(next)} readOnly={!rawEditable} /></div>
             <div className="form-row"><label>Metadata JSON</label><Textarea rows={4} value={metadataJson} onChange={(next) => setMetadataJson(next)} readOnly={!rawEditable} /></div>
-          </TabPanel>
-        </TabView>
+          </TabItem>
+        </Tabs>
       </div>
     );
   };
@@ -4107,7 +4105,7 @@ export function ContentPagesPage() {
           </SplitterPanel>
         </Splitter>
       </WorkspaceBody>
-      <Dialog header="Add Component" visible={showAddComponent} onHide={() => setShowAddComponent(false)} className="w-11 md:w-8 lg:w-6 xl:w-4">
+      <DialogPanel header="Add Component" visible={showAddComponent} onHide={() => setShowAddComponent(false)} className="w-11 md:w-8 lg:w-6 xl:w-4">
         <div className="form-row">
           <label>Component Type</label>
           <Select
@@ -4128,7 +4126,7 @@ export function ContentPagesPage() {
           <Button label="Cancel" text onClick={() => setShowAddComponent(false)} />
           <Button label="Add" onClick={addComponent} disabled={!newComponentType || availableComponentTypeOptions.length === 0} />
         </div>
-      </Dialog>
+      </DialogPanel>
       {onPageAssetPicker ? (
         <AssetPickerDialog
           visible={onPageAssetPicker.visible}
@@ -4150,7 +4148,7 @@ export function ContentPagesPage() {
           onApply={applyOnPageLinkSelection}
         />
       ) : null}
-      <Dialog
+      <DialogPanel
         header="Select Form"
         visible={Boolean(onPageFormPicker?.visible)}
         onHide={() => setOnPageFormPicker(null)}
@@ -4173,8 +4171,8 @@ export function ContentPagesPage() {
             disabled={!onPageFormPicker}
           />
         </div>
-      </Dialog>
-      <Dialog
+      </DialogPanel>
+      <DialogPanel
         header="Manage List Items"
         visible={Boolean(onPageListDialog?.visible)}
         onHide={() => {
@@ -4299,8 +4297,8 @@ export function ContentPagesPage() {
           />
           <Button label="Apply" onClick={applyOnPageListSelection} disabled={!onPageListDialog} />
         </div>
-      </Dialog>
-      <Dialog
+      </DialogPanel>
+      <DialogPanel
         header="Edit List Item"
         visible={Boolean(onPageListItemEditor)}
         onHide={() => setOnPageListItemEditor(null)}
@@ -4506,8 +4504,8 @@ export function ContentPagesPage() {
           <Button label="Cancel" text onClick={() => setOnPageListItemEditor(null)} />
           <Button label="Apply" onClick={applyOnPageListItemEditor} />
         </div>
-      </Dialog>
-      <Dialog header="Ask AI" visible={aiDialogOpen} onHide={() => setAiDialogOpen(false)} className="w-11 lg:w-9 xl:w-8">
+      </DialogPanel>
+      <DialogPanel header="Ask AI" visible={aiDialogOpen} onHide={() => setAiDialogOpen(false)} className="w-11 lg:w-9 xl:w-8">
         <div className="form-grid">
           <div className="form-row">
             <label>Mode</label>
@@ -4551,7 +4549,7 @@ export function ContentPagesPage() {
           <label>Suggestion</label>
           <InputTextarea rows={8} value={aiSuggestion} onChange={(event) => setAiSuggestion(event.target.value)} />
         </div>
-      </Dialog>
+      </DialogPanel>
       {status ? <div className="status-panel" role="alert">{status}</div> : null}
     </WorkspacePage>
   );

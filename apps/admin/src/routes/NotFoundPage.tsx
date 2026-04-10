@@ -1,5 +1,4 @@
-import { Card } from 'primereact/card';
-import { Button } from 'primereact/button';
+import { Button, Card } from '../ui/atoms';
 import { useNavigate } from 'react-router-dom';
 
 export function NotFoundPage() {

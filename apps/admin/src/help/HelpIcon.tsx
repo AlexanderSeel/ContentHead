@@ -1,6 +1,5 @@
 import { useId } from 'react';
-import { Button } from 'primereact/button';
-import { Tooltip } from 'primereact/tooltip';
+import { Button, Tooltip } from '../ui/atoms';
 
 export function HelpIcon({ tooltip, onClick }: { tooltip: string; onClick: () => void }) {
   const id = useId().replace(/:/g, '_');

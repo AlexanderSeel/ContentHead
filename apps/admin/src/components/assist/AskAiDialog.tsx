@@ -1,9 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Dialog } from 'primereact/dialog';
-import { Dropdown } from 'primereact/dropdown';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { Button } from 'primereact/button';
-import { Checkbox } from 'primereact/checkbox';
+import { Button, Checkbox, DialogPanel, Select, Textarea } from '../../ui/atoms';
 
 export type AskAiContextType = 'types' | 'content' | 'forms' | 'workflows' | 'graphql' | 'general';
 
@@ -89,11 +85,11 @@ export function AskAiDialog({
   };
 
   return (
-    <Dialog header="Ask AI" visible={visible} onHide={onHide} className="w-11 lg:w-9 xl:w-8">
+    <DialogPanel header="Ask AI" visible={visible} onHide={onHide} className="w-11 lg:w-9 xl:w-8">
       <div className="form-grid">
         <div className="form-row">
           <label>Context</label>
-          <Dropdown
+          <Select<AskAiContextType>
             value={contextType}
             options={[
               { label: 'Content Types', value: 'types' },
@@ -103,26 +99,27 @@ export function AskAiDialog({
               { label: 'GraphQL', value: 'graphql' },
               { label: 'General', value: 'general' }
             ]}
-            onChange={(event) => setContextType(event.value as AskAiContextType)}
+            onChange={(next) => setContextType(next ?? 'general')}
           />
         </div>
         <div className="form-row">
           <label>Template</label>
-          <Dropdown
+          <Select<number>
+            value={null}
             options={templateOptions.map((entry, index) => ({ label: entry.label, value: index }))}
             placeholder="Use template"
-            onChange={(event) => setPrompt(templateOptions[Number(event.value)]?.prompt ?? '')}
+            onChange={(next) => setPrompt(templateOptions[next ?? 0]?.prompt ?? '')}
           />
         </div>
       </div>
 
       <div className="form-row">
         <label>Prompt</label>
-        <InputTextarea rows={6} value={prompt} onChange={(event) => setPrompt(event.target.value)} />
+        <Textarea rows={6} value={prompt} onChange={(next) => setPrompt(next)} />
       </div>
 
       <label>
-        <Checkbox checked={includeContext} onChange={(event) => setIncludeContext(Boolean(event.checked))} /> Include current context
+        <Checkbox checked={includeContext} onChange={(next) => setIncludeContext(next)} /> Include current context
       </label>
 
       <div className="inline-actions mt-3">
@@ -134,9 +131,8 @@ export function AskAiDialog({
 
       <div className="form-row mt-3">
         <label>Response</label>
-        <InputTextarea rows={10} value={response} onChange={(event) => setResponse(event.target.value)} />
+        <Textarea rows={10} value={response} onChange={(next) => setResponse(next)} />
       </div>
-    </Dialog>
+    </DialogPanel>
   );
 }
-

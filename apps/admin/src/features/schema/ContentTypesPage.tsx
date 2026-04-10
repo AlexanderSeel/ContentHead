@@ -2,10 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { Dialog } from 'primereact/dialog';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
-import { Button, Checkbox, MultiSelect, Select, TextInput } from '../../ui/atoms';
+import { Button, Checkbox, DialogPanel, MultiSelect, Select, TextInput } from '../../ui/atoms';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
@@ -513,7 +512,7 @@ export function ContentTypesPage() {
         </Splitter>
       </WorkspaceBody>
 
-      <Dialog header="Add Field" visible={showAddField} onHide={() => setShowAddField(false)} className="w-11 md:w-8 lg:w-6 xl:w-4">
+      <DialogPanel header="Add Field" visible={showAddField} onHide={() => setShowAddField(false)} className="w-11 md:w-8 lg:w-6 xl:w-4">
         <div className="form-row">
           <label>Label</label>
           <TextInput
@@ -542,7 +541,7 @@ export function ContentTypesPage() {
           <Button label="Cancel" text onClick={() => setShowAddField(false)} />
           <Button label="Add" onClick={addField} disabled={!newFieldLabel.trim()} />
         </div>
-      </Dialog>
+      </DialogPanel>
     </WorkspacePage>
   );
 }

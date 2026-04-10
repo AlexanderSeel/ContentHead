@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { TabView, TabPanel } from 'primereact/tabview';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { AutoComplete } from 'primereact/autocomplete';
 
-import { Button, Checkbox, Select, TextInput } from '../../ui/atoms';
+import { Button, Checkbox, Select, TabItem, Tabs, TextInput } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
@@ -90,8 +89,8 @@ export function MarketsLocalesPage() {
       <WorkspaceBody>
         <PaneRoot className="content-card">
           <PaneScroll>
-            <TabView>
-              <TabPanel header="Markets">
+            <Tabs>
+              <TabItem header="Markets">
                 <DataTable value={markets} size="small">
                   <Column field="code" header="Code" />
                   <Column field="name" header="Name" />
@@ -110,8 +109,8 @@ export function MarketsLocalesPage() {
                   <label><Checkbox checked={marketForm.isDefault} onChange={(next) => setMarketForm((prev) => ({ ...prev, isDefault: next }))} /> Default</label>
                   <Button label="Save Market" onClick={() => sdk.upsertMarket({ siteId, ...marketForm }).then(async () => { await refresh(); await refreshContext(); toast({ severity: 'success', summary: 'Market saved' }); })} />
                 </div>
-              </TabPanel>
-              <TabPanel header="Locales">
+              </TabItem>
+              <TabItem header="Locales">
                 <DataTable value={locales} size="small">
                   <Column field="code" header="Code" />
                   <Column field="name" header="Display Name" />
@@ -178,8 +177,8 @@ export function MarketsLocalesPage() {
                     }}
                   />
                 </div>
-              </TabPanel>
-              <TabPanel header="Matrix">
+              </TabItem>
+              <TabItem header="Matrix">
                 {matrixWarnings.length > 0 ? (
                   <div className="status-panel">
                     {matrixWarnings.map((warning) => (
@@ -266,8 +265,8 @@ export function MarketsLocalesPage() {
                     }}
                   />
                 </div>
-              </TabPanel>
-            </TabView>
+              </TabItem>
+            </Tabs>
           </PaneScroll>
         </PaneRoot>
       </WorkspaceBody>

@@ -79,115 +79,121 @@
 
 ## Phase 2 — Migrate Files Using Only Wrapped Atoms
 
+> **Status: COMPLETE**
+>
 > Files that only use components that already have atom wrappers.
 > `DataTable`/`Column`/`Splitter`/`ContextMenu` stay where present.
 
 ### 2A — Single-atom files (Button only or trivial)
 
-- [ ] `layout/Sidebar.tsx` — `Button [→ atom]`
-- [ ] `extensions/schedulerBooking/SchedulerBookingPage.tsx` — `Button [→ atom]`
-- [ ] `extensions/schedulerBooking/BookingInspectorPanel.tsx` — `Button [→ atom]`
-- [ ] `features/content/builder/VisualBuilderWorkspace.tsx` — `Button [→ atom]`
-- [ ] `components/inputs/MarketLocalePicker.tsx` — `Dropdown [→ Select atom]`
+- [x] `layout/Sidebar.tsx` — `Button [→ atom]`
+- [x] `extensions/schedulerBooking/SchedulerBookingPage.tsx` — `Button [→ atom]`
+- [x] `extensions/schedulerBooking/BookingInspectorPanel.tsx` — `Button [→ atom]`
+- [x] `features/content/builder/VisualBuilderWorkspace.tsx` — `Button [→ atom]`
+- [x] `components/inputs/MarketLocalePicker.tsx` — `Dropdown [→ Select atom]`
 
 ### 2B — Simple multi-atom files (no structural PrimeReact)
 
-- [ ] `features/security/GroupsPage.tsx` — `Button`, `InputText`, `InputTextarea [→ atoms]` · `DataTable/Column [stays]`
-- [ ] `features/security/RolesPage.tsx` — `Button`, `InputText`, `InputTextarea`, `MultiSelect`, `Tag [→ atoms]` · `Column [stays]`
-- [ ] `features/siteSettings/SiteOverviewPage.tsx` — `Button`, `InputText`, `Dropdown [→ atoms]` · `Card [needs atom]`
-- [ ] `routes/AccessDeniedPage.tsx` — `Button [→ atom]` · `Card [needs atom]`
-- [ ] `routes/NotFoundPage.tsx` — `Button [→ atom]` · `Card [needs atom]`
+- [x] `features/security/GroupsPage.tsx` — `Button`, `InputText`, `InputTextarea [→ atoms]` · `DataTable/Column [stays]`
+- [x] `features/security/RolesPage.tsx` — `Button`, `InputText`, `InputTextarea`, `MultiSelect`, `Tag [→ atoms]` · `Column [stays]`
+- [x] `features/siteSettings/SiteOverviewPage.tsx` — `Button`, `InputText`, `Dropdown [→ atoms]` · `Card [needs atom]`
+- [x] `routes/AccessDeniedPage.tsx` — `Button [→ atom]` · `Card [needs atom]`
+- [x] `routes/NotFoundPage.tsx` — `Button [→ atom]` · `Card [needs atom]`
 - [ ] `routes/DashboardPage.tsx` — `Card [needs atom]`
-- [ ] `features/devtools/GraphiQLPage.tsx` — `Button`, `InputText [→ atoms]`
-- [ ] `components/inputs/SlugEditor.tsx` — `Button`, `InputText [→ atoms]`
-- [ ] `features/content/components/ComponentList.tsx` — `Button`, `Dropdown [→ atoms]`
-- [ ] `features/personalization/VisitorGroupsPage.tsx` — `Button`, `InputText`, `InputTextarea [→ atoms]` · `DataTable/Column [stays]`
-- [ ] `features/personalization/VariantsPage.tsx` — `Button`, `InputText`, `InputTextarea`, `Dropdown [→ atoms]` · `DataTable/Column/Splitter [stays]`
-- [ ] `features/personalization/PersonalizationWorkflowsPage.tsx` — `Button`, `InputText`, `Dropdown [→ atoms]` · `Message [stays]`
-- [ ] `features/content/fieldRenderers/FieldRenderer.tsx` — all replaceable: `Calendar`, `Checkbox`, `Dropdown`, `InputNumber`, `InputText`, `InputTextarea`, `MultiSelect [→ atoms]`
-- [ ] `features/content/fieldRenderers/FieldPreview.tsx` — all replaceable: `Calendar`, `Checkbox`, `Dropdown`, `InputNumber`, `InputText`, `InputTextarea`, `MultiSelect [→ atoms]`
-- [ ] `features/content/fieldRenderers/AssetEditors.tsx` — `Button`, `Dropdown`, `InputNumber`, `Checkbox [→ atoms]` · `DataTable/Column [stays]`
-- [ ] `features/content/fieldRenderers/ContentLinkEditors.tsx` — `Button`, `InputText`, `Dropdown [→ atoms]` · `DataTable/Column [stays]`
-- [ ] `features/schema/ContentTypeList.tsx` — `Button`, `InputText [→ atoms]` · `DataTable/Column [stays]`
-- [ ] `features/schema/FieldList.tsx` — `Button`, `Checkbox [→ atoms]` · `DataTable/Column [stays]`
-- [ ] `features/content/RoutesPage.tsx` — `Button`, `InputText`, `Checkbox [→ atoms]` · `DataTable/Column/ContextMenu/Splitter [stays]`
-- [ ] `features/content/TemplatesPage.tsx` — no wrappable non-DataTable imports · `DataTable/Column/ContextMenu [stays]`
-- [ ] `features/assets/AssetLibraryPage.tsx` — `Button`, `InputText`, `InputTextarea [→ atoms]` · `DataTable/Column/ContextMenu/Chips [stays]`
+- [x] `features/devtools/GraphiQLPage.tsx` — `Button`, `InputText [→ atoms]`
+- [x] `components/inputs/SlugEditor.tsx` — `Button`, `InputText [→ atoms]`
+- [x] `features/content/components/ComponentList.tsx` — `Button`, `Dropdown [→ atoms]`
+- [x] `features/personalization/VisitorGroupsPage.tsx` — `Button`, `InputText`, `InputTextarea [→ atoms]` · `DataTable/Column [stays]`
+- [x] `features/personalization/VariantsPage.tsx` — `Button`, `InputText`, `InputTextarea`, `Dropdown [→ atoms]` · `DataTable/Column/Splitter [stays]`
+- [x] `features/personalization/PersonalizationWorkflowsPage.tsx` — `Button`, `InputText`, `Dropdown [→ atoms]` · `Message [stays]`
+- [x] `features/content/fieldRenderers/FieldRenderer.tsx` — all replaceable: `Calendar`, `Checkbox`, `Dropdown`, `InputNumber`, `InputText`, `InputTextarea`, `MultiSelect [→ atoms]`
+- [x] `features/content/fieldRenderers/FieldPreview.tsx` — all replaceable: `Calendar`, `Checkbox`, `Dropdown`, `InputNumber`, `InputText`, `InputTextarea`, `MultiSelect [→ atoms]`
+- [x] `features/content/fieldRenderers/AssetEditors.tsx` — `Button`, `Dropdown`, `InputNumber`, `Checkbox [→ atoms]` · `DataTable/Column [stays]`
+- [x] `features/content/fieldRenderers/ContentLinkEditors.tsx` — `Button`, `InputText`, `Dropdown [→ atoms]` · `DataTable/Column [stays]`
+- [x] `features/schema/ContentTypeList.tsx` — `Button`, `InputText [→ atoms]` · `DataTable/Column [stays]`
+- [x] `features/schema/FieldList.tsx` — `Button`, `Checkbox [→ atoms]` · `DataTable/Column [stays]`
+- [x] `features/content/RoutesPage.tsx` — `Button`, `InputText`, `Checkbox [→ atoms]` · `DataTable/Column/ContextMenu/Splitter [stays]`
+- [x] `features/content/TemplatesPage.tsx` — no wrappable non-DataTable imports · `DataTable/Column/ContextMenu [stays]`
+- [x] `features/assets/AssetLibraryPage.tsx` — `Button`, `InputText`, `InputTextarea [→ atoms]` · `DataTable/Column/ContextMenu/Chips [stays]`
+- [x] `routes/LoginPage.tsx` — `Button`, `InputText`, `Password [→ atoms]` · `Card [needs atom]`
+- [x] `components/common/EmptyState.tsx` — `Button [→ atom]` · `Card [needs atom]`
 
 ### 2C — Files with Accordion/TabView/Dialog still present (partial migration)
 
 > Migrate only the replaceable atoms; Accordion/TabView/Dialog stay until Phase 4.
 
-- [ ] `features/schema/FieldInspector.tsx` — `Checkbox`, `Dropdown`, `InputNumber`, `InputText`, `InputTextarea`, `MultiSelect [→ atoms]` · `Accordion/Chips [stays]`
-- [ ] `features/workflows/NodeInspector.tsx` — `Dropdown`, `InputNumber`, `InputText`, `InputTextarea`, `MultiSelect`, `Checkbox [→ atoms]` · `Accordion [stays]`
-- [ ] `features/workflows/WorkflowRunsPage.tsx` — `Button [→ atom]` · `DataTable/Column/ContextMenu/Accordion [stays]`
-- [ ] `features/settings/ConnectorSettingsPage.tsx` — `Button`, `Checkbox`, `InputText`, `InputTextarea`, `Dropdown`, `Tag [→ atoms]` · `Accordion/Splitter/DataTable/Column [stays]`
-- [ ] `features/settings/DbAdminPage.tsx` — `Button`, `Calendar`, `Checkbox`, `Dropdown`, `InputNumber`, `InputSwitch`, `InputText`, `InputTextarea`, `Tag [→ atoms]` · `Accordion/TabView/DataTable/Column [stays]`
-- [ ] `features/settings/DuckDbAdminPage.tsx` — `Button`, `InputTextarea [→ atoms]` · `Dialog/FileUpload/ProgressBar [stays]`
-- [ ] `features/settings/PreferencesPage.tsx` — `Button`, `Dropdown`, `Tag [→ atoms]` · `DataTable/Column/Slider [stays]`
-- [ ] `features/forms/FormSubmissionsPage.tsx` — `Button`, `InputText`, `Dropdown`, `Tag`, `Calendar [→ atoms]` · `DataTable/Column/ContextMenu [stays]` · type import `DataTableSortEvent [stays]`
-- [ ] `features/devtools/DiagnosticsPage.tsx` — `Button`, `Dropdown`, `InputNumber`, `InputText`, `InputSwitch [→ atoms]` · `Accordion/TabView/Card/DataTable/Column [stays]`
-- [ ] `features/siteSettings/MarketsLocalesPage.tsx` — `Button`, `InputText`, `Checkbox`, `Dropdown [→ atoms]` · `TabView/DataTable/Column/AutoComplete [stays]`
-- [ ] `features/schema/ContentTypesPage.tsx` — `Button`, `Checkbox`, `Dropdown`, `InputText`, `MultiSelect [→ atoms]` · `Dialog/DataTable/Column/Splitter [stays]`
-- [ ] `features/schema/ComponentRegistryPage.tsx` — `Button`, `Dropdown`, `InputSwitch`, `InputText`, `InputTextarea`, `MultiSelect`, `Tag [→ atoms]` · `TabView/DataTable/Column [stays]`
-- [ ] `extensions/customerOrganisation/CustomerOrganisationPage.tsx` — `Button [→ atom]` · `TabView [stays]`
-- [ ] `features/WorkflowDesignerSection.tsx` — `Button`, `Dropdown`, `InputNumber`, `InputText`, `InputTextarea [→ atoms]` · `Accordion [stays]`
-- [ ] `features/content/components/ComponentInspector.tsx` — `Button`, `Checkbox`, `Dropdown`, `InputNumber`, `InputText`, `InputTextarea [→ atoms]` · `Dialog/DataTable/Column/Chips [stays]`
-- [ ] `components/rules/RuleEditorDialog.tsx` — `Button`, `Dropdown`, `InputText`, `InputTextarea [→ atoms]` · `Dialog/TabView [stays]`
-- [ ] `components/assist/AskAiDialog.tsx` — `Button`, `Dropdown`, `InputTextarea`, `Checkbox [→ atoms]` · `Dialog [stays]`
-- [ ] `features/content/fieldRenderers/LinkSelectorDialog.tsx` — `Button`, `InputText`, `Checkbox [→ atoms]` · `Dialog/TabView/DataTable/Column [stays]`
-- [ ] `components/inputs/AssetPickerDialog.tsx` — `Button`, `InputText [→ atoms]` · `Dialog/Tree/DataTable/Column [stays]`
-- [ ] `help/HelpDialog.tsx` — `Dialog [stays]`
-- [ ] `help/HelpIcon.tsx` — `Button [→ atom]` · `Tooltip [stays]`
-- [ ] `features/FormBuilderSection.tsx` _(1,202 lines)_ — `Button`, `Checkbox`, `Dropdown`, `InputNumber`, `InputText`, `InputTextarea [→ atoms]` · `DataTable/Column/TabView/Sidebar [stays]`
-- [ ] `features/assets/AssetImageEditorDialog.tsx` _(1,633 lines)_ — `Button`, `InputText`, `InputTextarea`, `Checkbox`, `InputNumber`, `Dropdown [→ atoms]` · `Dialog/TabView/DataTable/Column/Slider [stays]`
-- [ ] `features/content/ContentPagesPage.tsx` _(4,566 lines)_ — ⚠️ large file, migrate atoms only
+- [x] `features/schema/FieldInspector.tsx` — `Checkbox`, `Dropdown`, `InputNumber`, `InputText`, `InputTextarea`, `MultiSelect [→ atoms]` · `Accordion/Chips [stays]`
+- [x] `features/workflows/NodeInspector.tsx` — `Dropdown`, `InputNumber`, `InputText`, `InputTextarea`, `MultiSelect`, `Checkbox [→ atoms]` · `Accordion [stays]`
+- [x] `features/workflows/WorkflowRunsPage.tsx` — `Button [→ atom]` · `DataTable/Column/ContextMenu/Accordion [stays]`
+- [x] `features/settings/ConnectorSettingsPage.tsx` — `Button`, `Checkbox`, `InputText`, `InputTextarea`, `Dropdown`, `Tag [→ atoms]` · `Accordion/Splitter/DataTable/Column [stays]`
+- [x] `features/settings/DbAdminPage.tsx` — `Button`, `Calendar`, `Checkbox`, `Dropdown`, `InputNumber`, `InputSwitch`, `InputText`, `InputTextarea`, `Tag [→ atoms]` · `Accordion/TabView/DataTable/Column [stays]`
+- [x] `features/settings/DuckDbAdminPage.tsx` — `Button`, `InputTextarea [→ atoms]` · `Dialog/FileUpload/ProgressBar [stays]`
+- [x] `features/settings/PreferencesPage.tsx` — `Button`, `Dropdown`, `Tag [→ atoms]` · `DataTable/Column/Slider [stays]`
+- [x] `features/forms/FormSubmissionsPage.tsx` — `Button`, `InputText`, `Dropdown`, `Tag`, `Calendar [→ atoms]` · `DataTable/Column/ContextMenu [stays]` · type import `DataTableSortEvent [stays]`
+- [x] `features/devtools/DiagnosticsPage.tsx` — `Button`, `Dropdown`, `InputNumber`, `InputText`, `InputSwitch [→ atoms]` · `Accordion/TabView/Card/DataTable/Column [stays]`
+- [x] `features/siteSettings/MarketsLocalesPage.tsx` — `Button`, `InputText`, `Checkbox`, `Dropdown [→ atoms]` · `TabView/DataTable/Column/AutoComplete [stays]`
+- [x] `features/schema/ContentTypesPage.tsx` — `Button`, `Checkbox`, `Dropdown`, `InputText`, `MultiSelect [→ atoms]` · `Dialog/DataTable/Column/Splitter [stays]`
+- [x] `features/schema/ComponentRegistryPage.tsx` — `Button`, `Dropdown`, `InputSwitch`, `InputText`, `InputTextarea`, `MultiSelect`, `Tag [→ atoms]` · `TabView/DataTable/Column [stays]`
+- [x] `extensions/customerOrganisation/CustomerOrganisationPage.tsx` — `Button [→ atom]` · `TabView [stays]`
+- [x] `features/WorkflowDesignerSection.tsx` — `Button`, `Dropdown`, `InputNumber`, `InputText`, `InputTextarea [→ atoms]` · `Accordion [stays]`
+- [x] `features/content/components/ComponentInspector.tsx` — `Button`, `Checkbox`, `Dropdown`, `InputNumber`, `InputText`, `InputTextarea [→ atoms]` · `Dialog/DataTable/Column/Chips [stays]`
+- [x] `components/rules/RuleEditorDialog.tsx` — `Button`, `Dropdown`, `InputText`, `InputTextarea [→ atoms]` · `Dialog/TabView [stays]`
+- [x] `components/assist/AskAiDialog.tsx` — `Button`, `Dropdown`, `InputTextarea`, `Checkbox [→ atoms]` · `Dialog [stays]`
+- [x] `features/content/fieldRenderers/LinkSelectorDialog.tsx` — `Button`, `InputText`, `Checkbox [→ atoms]` · `Dialog/TabView/DataTable/Column [stays]`
+- [x] `components/inputs/AssetPickerDialog.tsx` — `Button`, `InputText [→ atoms]` · `Dialog/Tree/DataTable/Column [stays]`
+- [x] `help/HelpDialog.tsx` — `Dialog [stays]`
+- [x] `help/HelpIcon.tsx` — `Button [→ atom]` · `Tooltip [stays]`
+- [x] `features/FormBuilderSection.tsx` _(1,202 lines)_ — `Button`, `Checkbox`, `Dropdown`, `InputNumber`, `InputText`, `InputTextarea [→ atoms]` · `DataTable/Column/TabView/Sidebar [stays]`
+- [x] `features/assets/AssetImageEditorDialog.tsx` _(1,633 lines)_ — `Button`, `InputText`, `InputTextarea`, `Checkbox`, `InputNumber`, `Dropdown [→ atoms]` · `Dialog/TabView/DataTable/Column/Slider [stays]`
+- [x] `features/content/ContentPagesPage.tsx` _(4,566 lines)_ — ⚠️ large file, migrate atoms only
 
 ---
 
 ## Phase 3 — Create Structural Atom Wrappers
 
-> No feature code changes. Just create the wrapper files.
+> **Status: COMPLETE**
 
-- [ ] Create `ui/atoms/DialogPanel.tsx` — wraps `primereact/dialog` · export `{ DialogPanel }`
-- [ ] Create `ui/atoms/Tabs.tsx` — wraps `primereact/tabview` · export `{ Tabs, TabItem }`
-- [ ] Create `ui/atoms/Accordion.tsx` — wraps `primereact/accordion` · export `{ Accordion, AccordionItem }`
-- [ ] Create `ui/atoms/Card.tsx` — wraps `primereact/card` (or native `<div>`) · export `{ Card }`
-- [ ] Create `ui/atoms/Tooltip.tsx` — wraps `primereact/tooltip` · export `{ Tooltip }`
-- [ ] Update `ui/atoms/index.ts` — export all new atoms
+- [x] Create `ui/atoms/DialogPanel.tsx` — wraps `primereact/dialog` · export `{ DialogPanel }`
+- [x] Create `ui/atoms/Tabs.tsx` — wraps `primereact/tabview` · export `{ Tabs, TabItem }`
+- [x] Create `ui/atoms/Accordion.tsx` — wraps `primereact/accordion` · export `{ Accordion, AccordionItem }`
+- [x] Create `ui/atoms/Card.tsx` — wraps `primereact/card` (or native `<div>`) · export `{ Card }`
+- [x] Create `ui/atoms/Tooltip.tsx` — wraps `primereact/tooltip` · export `{ Tooltip }`
+- [x] Update `ui/atoms/index.ts` — export all new atoms
 
 ---
 
 ## Phase 4 — Migrate Dialog / Tabs / Accordion / Card / Tooltip call sites
 
-> Depends on Phase 3 atoms being created.
+> **Status: COMPLETE**
 
-- [ ] `help/HelpDialog.tsx` — `Dialog [→ DialogPanel atom]`
-- [ ] `components/assist/AskAiDialog.tsx` — `Dialog [→ DialogPanel atom]`
-- [ ] `components/rules/RuleEditorDialog.tsx` — `Dialog [→ DialogPanel atom]`, `TabView [→ Tabs atom]`
-- [ ] `features/content/fieldRenderers/LinkSelectorDialog.tsx` — `Dialog [→ DialogPanel]`, `TabView [→ Tabs]`
-- [ ] `components/inputs/AssetPickerDialog.tsx` — `Dialog [→ DialogPanel]`
-- [ ] `features/schema/ContentTypesPage.tsx` — `Dialog [→ DialogPanel]`
-- [ ] `features/schema/FieldInspector.tsx` — `Accordion [→ Accordion atom]`
-- [ ] `features/workflows/NodeInspector.tsx` — `Accordion [→ Accordion atom]`
-- [ ] `features/workflows/WorkflowRunsPage.tsx` — `Accordion [→ Accordion atom]`
-- [ ] `features/settings/ConnectorSettingsPage.tsx` — `Accordion [→ Accordion atom]`
-- [ ] `features/settings/DbAdminPage.tsx` — `Accordion [→ Accordion atom]`, `TabView [→ Tabs atom]`
-- [ ] `features/devtools/DiagnosticsPage.tsx` — `Accordion [→ Accordion atom]`, `TabView [→ Tabs atom]`, `Card [→ Card atom]`
-- [ ] `features/siteSettings/MarketsLocalesPage.tsx` — `TabView [→ Tabs atom]`
-- [ ] `features/schema/ComponentRegistryPage.tsx` — `TabView [→ Tabs atom]`
-- [ ] `extensions/customerOrganisation/CustomerOrganisationPage.tsx` — `TabView [→ Tabs atom]`
-- [ ] `features/WorkflowDesignerSection.tsx` — `Accordion [→ Accordion atom]`
-- [ ] `features/content/components/ComponentInspector.tsx` — `Dialog [→ DialogPanel atom]`
-- [ ] `features/settings/DuckDbAdminPage.tsx` — `Dialog [→ DialogPanel atom]`
-- [ ] `routes/AccessDeniedPage.tsx` — `Card [→ Card atom]`
-- [ ] `routes/NotFoundPage.tsx` — `Card [→ Card atom]`
-- [ ] `routes/DashboardPage.tsx` — `Card [→ Card atom]`
-- [ ] `features/siteSettings/SiteOverviewPage.tsx` — `Card [→ Card atom]`
-- [ ] `components/common/EmptyState.tsx` — `Card [→ Card atom]`
-- [ ] `help/HelpIcon.tsx` — `Tooltip [→ Tooltip atom]`
-- [ ] `features/assets/AssetImageEditorDialog.tsx` — `Dialog [→ DialogPanel]`, `TabView [→ Tabs]`
-- [ ] `features/FormBuilderSection.tsx` — `TabView [→ Tabs]`
+- [x] `help/HelpDialog.tsx` — `Dialog [→ DialogPanel atom]`
+- [x] `components/assist/AskAiDialog.tsx` — `Dialog [→ DialogPanel atom]`
+- [x] `components/rules/RuleEditorDialog.tsx` — `Dialog [→ DialogPanel atom]`, `TabView [→ Tabs atom]`
+- [x] `features/content/fieldRenderers/LinkSelectorDialog.tsx` — `Dialog [→ DialogPanel]`, `TabView [→ Tabs]`
+- [x] `components/inputs/AssetPickerDialog.tsx` — `Dialog [→ DialogPanel]`
+- [x] `features/schema/ContentTypesPage.tsx` — `Dialog [→ DialogPanel]`
+- [x] `features/schema/FieldInspector.tsx` — `Accordion [→ Accordion atom]`
+- [x] `features/workflows/NodeInspector.tsx` — `Accordion [→ Accordion atom]`
+- [x] `features/workflows/WorkflowRunsPage.tsx` — `Accordion [→ Accordion atom]`
+- [x] `features/settings/ConnectorSettingsPage.tsx` — `Accordion [→ Accordion atom]`
+- [x] `features/settings/DbAdminPage.tsx` — `Accordion [→ Accordion atom]`, `TabView [→ Tabs atom]`
+- [x] `features/devtools/DiagnosticsPage.tsx` — `Accordion [→ Accordion atom]`, `TabView [→ Tabs atom]`, `Card [→ Card atom]`
+- [x] `features/siteSettings/MarketsLocalesPage.tsx` — `TabView [→ Tabs atom]`
+- [x] `features/schema/ComponentRegistryPage.tsx` — `TabView [→ Tabs atom]`
+- [x] `extensions/customerOrganisation/CustomerOrganisationPage.tsx` — `TabView [→ Tabs atom]`
+- [x] `features/WorkflowDesignerSection.tsx` — `Accordion [→ Accordion atom]`
+- [x] `features/content/components/ComponentInspector.tsx` — `Dialog [→ DialogPanel atom]`
+- [x] `features/settings/DuckDbAdminPage.tsx` — `Dialog [→ DialogPanel atom]`
+- [x] `routes/AccessDeniedPage.tsx` — `Card [→ Card atom]`
+- [x] `routes/NotFoundPage.tsx` — `Card [→ Card atom]`
+- [x] `routes/DashboardPage.tsx` — `Card [→ Card atom]`
+- [x] `routes/LoginPage.tsx` — `Card [→ Card atom]`
+- [x] `features/siteSettings/SiteOverviewPage.tsx` — `Card [→ Card atom]`
+- [x] `components/common/EmptyState.tsx` — `Card [→ Card atom]`
+- [x] `help/HelpIcon.tsx` — `Tooltip [→ Tooltip atom]`
+- [x] `features/assets/AssetImageEditorDialog.tsx` — `Dialog [→ DialogPanel]`, `TabView [→ Tabs]`
+- [x] `features/FormBuilderSection.tsx` — `TabView [→ Tabs]`
+- [x] `features/content/ContentPagesPage.tsx` — `Dialog [→ DialogPanel]`, `TabView [→ Tabs]`
 
 ---
 
@@ -326,6 +332,6 @@
 
 ## Session Resume Notes
 
-- Last completed: **Phase 1** (all tasks done) + `UsersPage.tsx` migrated
-- Next session entry point: **Phase 2A** — start with `layout/Sidebar.tsx` (trivial) and work down
+- Last completed: **Phases 1–4** (all atom wrappers created; all Dialog/Tabs/Accordion/Card/Tooltip call sites migrated)
+- Next session entry point: **Phase 5** — swap atom implementations from PrimeReact to native/Radix (single-file changes inside `ui/atoms/`)
 - To verify progress: `grep -rl "from 'primereact/" apps/admin/src --include="*.tsx" --include="*.ts" | grep -v "ui/atoms\|ui/molecules\|ui/commands\|UiContext\|main.tsx"`

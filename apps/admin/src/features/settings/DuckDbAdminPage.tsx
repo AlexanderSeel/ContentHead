@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Dialog } from 'primereact/dialog';
 import { FileUpload } from 'primereact/fileupload';
 import { ProgressBar } from 'primereact/progressbar';
 
-import { Button, Textarea } from '../../ui/atoms';
+import { Button, DialogPanel, Textarea } from '../../ui/atoms';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
@@ -1848,7 +1847,7 @@ mutation DbAdminResetSiteData($siteId: Int!) {
         </WorkspaceBody>
       )}
       {status && !forbiddenReason ? <div className="status-panel" role="alert">{status}</div> : null}
-      <Dialog
+      <DialogPanel
         header="Import Progress"
         visible={importProgressOpen}
         onHide={() => {
@@ -1881,7 +1880,7 @@ mutation DbAdminResetSiteData($siteId: Int!) {
             ))}
           </div>
         </div>
-      </Dialog>
+      </DialogPanel>
     </WorkspacePage>
   );
 }

@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Chips } from 'primereact/chips';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { Dialog } from 'primereact/dialog';
 
-import { Button, Checkbox, NumberInput, Select, Textarea, TextInput } from '../../../ui/atoms';
+import { Button, Checkbox, DialogPanel, NumberInput, Select, Textarea, TextInput } from '../../../ui/atoms';
 
 import {
   type ComponentUiField,
@@ -272,7 +271,7 @@ export function ComponentInspector({
           />
         </DataTable>
 
-        <Dialog
+        <DialogPanel
           header="Edit item"
           visible={editingIndex != null}
           onHide={() => setEditingIndex(null)}
@@ -290,7 +289,7 @@ export function ComponentInspector({
             <Button label="Cancel" text onClick={() => setEditingIndex(null)} />
             <Button label="Apply" onClick={apply} />
           </div>
-        </Dialog>
+        </DialogPanel>
       </div>
     );
   }

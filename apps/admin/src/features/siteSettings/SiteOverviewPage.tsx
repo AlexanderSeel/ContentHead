@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Card } from 'primereact/card';
-
-import { Button, Select, TextInput } from '../../ui/atoms';
+import { Button, Card, Select, TextInput } from '../../ui/atoms';
 import { buildLocalizedPath, validateUrlPattern } from '@contenthead/shared';
 
 import { useAdminContext } from '../../app/AdminContext';

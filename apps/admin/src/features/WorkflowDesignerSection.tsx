@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Accordion, AccordionTab } from 'primereact/accordion';
-
-import { Button, NumberInput, Select, Textarea, TextInput } from '../ui/atoms';
+import { Accordion, AccordionItem, Button, NumberInput, Select, Textarea, TextInput } from '../ui/atoms';
 import ReactFlow, { Background, Controls, MiniMap, type Connection, type Edge, type Node, type OnConnect } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -209,24 +207,24 @@ export function WorkflowDesignerSection({
               <Button label="Save" onClick={() => saveDefinition().catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
               <h4 className="m-0 mt-2">Node Palette</h4>
               <Accordion multiple activeIndex={[0]}>
-                <AccordionTab header="All Nodes">
+                <AccordionItem header="All Nodes">
                   <div className="sample-list">
                     {nodeRegistry.map((entry) => (
                       <Button key={entry.type} text icon={entry.icon} label={entry.label} onClick={() => addNode(entry.type)} />
                     ))}
                   </div>
-                </AccordionTab>
+                </AccordionItem>
               </Accordion>
-              <Accordion multiple activeIndex={advancedTabs} onTabChange={(event) => setAdvancedTabs(event.index)}>
-                <AccordionTab header="Advanced: Input Schema JSON">
+              <Accordion multiple activeIndex={advancedTabs} onTabChange={(index) => setAdvancedTabs(index)}>
+                <AccordionItem header="Advanced: Input Schema JSON">
                   <Textarea rows={4} value={inputSchemaJson} onChange={(next) => setInputSchemaJson(next)} />
-                </AccordionTab>
-                <AccordionTab header="Advanced: Permissions JSON">
+                </AccordionItem>
+                <AccordionItem header="Advanced: Permissions JSON">
                   <Textarea rows={4} value={permissionsJson} onChange={(next) => setPermissionsJson(next)} />
-                </AccordionTab>
-                <AccordionTab header="Run Context JSON">
+                </AccordionItem>
+                <AccordionItem header="Run Context JSON">
                   <Textarea rows={4} value={runContextJson} onChange={(next) => setRunContextJson(next)} />
-                </AccordionTab>
+                </AccordionItem>
               </Accordion>
             </div>
           )

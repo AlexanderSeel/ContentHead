@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { TabPanel, TabView } from 'primereact/tabview';
 
-import { Button, Checkbox, DatePicker, NumberInput, Select, Switch, Tag, Textarea, TextInput } from '../../ui/atoms';
+import { Accordion, AccordionItem, Button, Checkbox, DatePicker, NumberInput, Select, Switch, TabItem, Tabs, Tag, Textarea, TextInput } from '../../ui/atoms';
 
 import { useAuth } from '../../app/AuthContext';
 import { useUi } from '../../app/UiContext';
@@ -909,13 +907,13 @@ export function DbAdminPage() {
               minSize: 14,
               collapsible: true,
               content: (
-                <TabView className="db-admin-inspector-tabs">
-                  <TabPanel header="Inspector">
+                <Tabs>
+                  <TabItem header="Inspector">
                     {!tableInfo ? (
                       <p className="muted">Select a table to inspect rows.</p>
                     ) : (
                       <Accordion multiple activeIndex={[0]}>
-                        <AccordionTab header="Basic">
+                        <AccordionItem header="Basic">
                           <div className="inline-actions mb-3">
                             <Button
                               label="Save"
@@ -958,12 +956,12 @@ export function DbAdminPage() {
                               </div>
                             ))}
                           </div>
-                        </AccordionTab>
-                        <AccordionTab header="Advanced" />
+                        </AccordionItem>
+                        <AccordionItem header="Advanced" />
                       </Accordion>
                     )}
-                  </TabPanel>
-                  <TabPanel header="Schema">
+                  </TabItem>
+                  <TabItem header="Schema">
                     {!tableInfo ? (
                       <p className="muted">Select a table to view schema details.</p>
                     ) : (
@@ -988,10 +986,10 @@ export function DbAdminPage() {
                         )}
                       </>
                     )}
-                  </TabPanel>
-                  <TabPanel header="SQL Console">
-                    <Accordion multiple activeIndex={sqlAdvancedTabs} onTabChange={(event) => setSqlAdvancedTabs(event.index)}>
-                      <AccordionTab header="Advanced: SQL Console">
+                  </TabItem>
+                  <TabItem header="SQL Console">
+                    <Accordion multiple activeIndex={sqlAdvancedTabs} onTabChange={(index) => setSqlAdvancedTabs(index)}>
+                      <AccordionItem header="Advanced: SQL Console">
                         <div className="form-row">
                           <label>Query</label>
                           <Textarea rows={8} value={sqlQuery} onChange={(next) => setSqlQuery(next)} />
@@ -1046,10 +1044,10 @@ export function DbAdminPage() {
                             )}
                           </div>
                         ) : null}
-                      </AccordionTab>
+                      </AccordionItem>
                     </Accordion>
-                  </TabPanel>
-                  </TabView>
+                  </TabItem>
+                  </Tabs>
               )
             }}
           />

@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { TabPanel, TabView } from 'primereact/tabview';
-
-import { Button, MultiSelect, Select, Switch, Tag, Textarea, TextInput } from '../../ui/atoms';
+import { Button, MultiSelect, Select, Switch, TabItem, Tabs, Tag, Textarea, TextInput } from '../../ui/atoms';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
@@ -693,8 +691,8 @@ export function ComponentRegistryPage() {
                   {!draft ? (
                     <p className="muted">Select a component to edit.</p>
                   ) : (
-                    <TabView activeIndex={tabIndex} onTabChange={(event) => setTabIndex(event.index)}>
-                      <TabPanel header="Basics">
+                    <Tabs activeIndex={tabIndex} onTabChange={(index) => setTabIndex(index)}>
+                      <TabItem header="Basics">
                         <div className="form-grid">
                           <div className="form-row">
                             <label>Component ID</label>
@@ -713,8 +711,8 @@ export function ComponentRegistryPage() {
                             <Switch checked={draft.enabled} onChange={(next) => setDraft((prev) => (prev ? { ...prev, enabled: next } : prev))} />
                           </div>
                         </div>
-                      </TabPanel>
-                      <TabPanel header="Props">
+                      </TabItem>
+                      <TabItem header="Props">
                         <div className="inline-actions mb-2">
                           <Button
                             label="Add Prop"
@@ -856,8 +854,8 @@ export function ComponentRegistryPage() {
                             bodyClassName="w-5rem"
                           />
                         </DataTable>
-                      </TabPanel>
-                      <TabPanel header="UI">
+                      </TabItem>
+                      <TabItem header="UI">
                         <p className="muted">Control mapping per prop, with typed JSON source editors for nested schemas.</p>
                         {draft.props.map((prop, index) => (
                           <div key={`${prop.key}-${index}`} className="content-card mb-3">
@@ -913,8 +911,8 @@ export function ComponentRegistryPage() {
                             </div>
                           </div>
                         ))}
-                      </TabPanel>
-                      <TabPanel header="Preview">
+                      </TabItem>
+                      <TabItem header="Preview">
                         <div className="content-card">
                           <p className="muted">Props inspector preview</p>
                           {draft.props.map((prop) => (
@@ -972,8 +970,8 @@ export function ComponentRegistryPage() {
                             </div>
                           ))}
                         </div>
-                      </TabPanel>
-                      <TabPanel header="Advanced JSON">
+                      </TabItem>
+                      <TabItem header="Advanced JSON">
                         <div className="form-row">
                           <label>Schema JSON</label>
                           <JsonSourceEditor
@@ -994,8 +992,8 @@ export function ComponentRegistryPage() {
                             schema={uiMetaJsonSchema}
                           />
                         </div>
-                      </TabPanel>
-                    </TabView>
+                      </TabItem>
+                    </Tabs>
                   )}
                   {validation.length > 0 ? (
                     <div className="status-panel" role="alert">

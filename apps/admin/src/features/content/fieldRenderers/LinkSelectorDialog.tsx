@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { TabPanel, TabView } from 'primereact/tabview';
-import { Dialog } from 'primereact/dialog';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 
-import { Button, Checkbox, TextInput } from '../../../ui/atoms';
+import { Button, Checkbox, DialogPanel, TabItem, Tabs, TextInput } from '../../../ui/atoms';
 
 import { createAdminSdk } from '../../../lib/sdk';
 
@@ -67,9 +65,9 @@ export function LinkSelectorDialog({
   }, [routes, query]);
 
   return (
-    <Dialog header="Select Link" visible={visible} onHide={onHide} className="w-11 lg:w-10 xl:w-9">
-      <TabView>
-        <TabPanel header="Internal">
+    <DialogPanel header="Select Link" visible={visible} onHide={onHide} className="w-11 lg:w-10 xl:w-9">
+      <Tabs>
+        <TabItem header="Internal">
           <div className="form-row">
             <label>Find route</label>
             <TextInput value={query} onChange={(next) => setQuery(next)} placeholder="slug or content item id" />
@@ -112,8 +110,8 @@ export function LinkSelectorDialog({
               <TextInput value={anchor} onChange={(next) => setAnchor(next)} placeholder="section-id" />
             </div>
           </div>
-        </TabPanel>
-        <TabPanel header="External">
+        </TabItem>
+        <TabItem header="External">
           <div className="form-row">
             <label>URL</label>
             <TextInput value={externalUrl} onChange={(next) => setExternalUrl(next)} placeholder="https://example.com" />
@@ -143,9 +141,9 @@ export function LinkSelectorDialog({
               }}
             />
           </div>
-        </TabPanel>
-      </TabView>
-    </Dialog>
+        </TabItem>
+      </Tabs>
+    </DialogPanel>
   );
 }
 

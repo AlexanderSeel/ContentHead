@@ -4,7 +4,11 @@
       "Bash(find /c/dev/my/ContentHead/apps/admin/src -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\) -exec wc -l {} \\\\;)",
       "Bash(xargs grep:*)",
       "Bash(wc -l /c/dev/my/ContentHead/apps/admin/src/ui/atoms/*.tsx /c/dev/my/ContentHead/apps/admin/src/ui/molecules/*.tsx)",
-      "Bash(xargs wc:*)"
+      "Bash(xargs wc:*)",
+      "Bash(grep -rA2 \"<Dialog$\" apps/admin/src --include=\"*.tsx\")",
+      "Bash(ls apps/admin/src/ui/atoms/*.css apps/admin/src/ui/atoms/*.scss apps/admin/src/styles/)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}, indent=2\\)\\)\")",
+      "Bash(pnpm --filter @contenthead/admin add @radix-ui/react-checkbox @radix-ui/react-switch)"
     ]
   }
 }

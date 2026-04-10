@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Accordion, AccordionTab } from 'primereact/accordion';
 
-import { Checkbox, MultiSelect, NumberInput, Select, Textarea, TextInput } from '../../ui/atoms';
+import { Accordion, AccordionItem, Checkbox, MultiSelect, NumberInput, Select, Textarea, TextInput } from '../../ui/atoms';
 
 import { getNodeRegistryEntry, validateNodeConfig } from './nodeRegistry';
 
@@ -55,8 +54,8 @@ export function NodeInspector({
         </div>
       ) : null}
 
-      <Accordion multiple activeIndex={advancedIndex} onTabChange={(event) => setAdvancedIndex(event.index)}>
-        <AccordionTab header="Advanced JSON">
+      <Accordion multiple activeIndex={advancedIndex} onTabChange={(index) => setAdvancedIndex(index)}>
+        <AccordionItem header="Advanced JSON">
           <Textarea
             rows={10}
             value={JSON.stringify(config, null, 2)}
@@ -69,7 +68,7 @@ export function NodeInspector({
               }
             }}
           />
-        </AccordionTab>
+        </AccordionItem>
       </Accordion>
     </>
   );

@@ -2,9 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
-import { Accordion, AccordionTab } from 'primereact/accordion';
-
-import { Button } from '../../ui/atoms';
+import { Accordion, AccordionItem, Button } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
@@ -184,12 +182,12 @@ export function WorkflowRunsPage() {
               <div className="status-panel">Select a run to inspect context and logs.</div>
             ) : (
               <Accordion multiple activeIndex={[0]}>
-                <AccordionTab header={`Basic: Run #${selected.id} Context`}>
+                <AccordionItem header={`Basic: Run #${selected.id} Context`}>
                   <pre>{JSON.stringify(JSON.parse(selected.contextJson || '{}'), null, 2)}</pre>
-                </AccordionTab>
-                <AccordionTab header="Advanced: Timeline / Logs">
+                </AccordionItem>
+                <AccordionItem header="Advanced: Timeline / Logs">
                   <pre>{JSON.stringify(JSON.parse(selected.logsJson || '[]'), null, 2)}</pre>
-                </AccordionTab>
+                </AccordionItem>
               </Accordion>
             )
           }}

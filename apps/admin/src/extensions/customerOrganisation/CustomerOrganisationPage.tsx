@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from 'primereact/button';
-import { TabPanel, TabView } from 'primereact/tabview';
+import { Button, TabItem, Tabs, TextInput, NumberInput } from '../../ui/atoms';
 
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
-import { TextInput, NumberInput } from '../../ui/atoms';
 import { EntityEditor, EntityTable, PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { deleteEntity, insertEntity, listEntities, updateEntity } from '../core/dbEntityApi';
@@ -78,8 +76,8 @@ export function CustomerOrganisationPage() {
       <WorkspaceBody>
         <PaneRoot className="content-card">
           <PaneScroll>
-            <TabView>
-              <TabPanel header="Organisations">
+            <Tabs>
+              <TabItem header="Organisations">
                 <div className="inline-actions mb-3">
                   <Button
                     label="Add Organisation"
@@ -114,8 +112,8 @@ export function CustomerOrganisationPage() {
                     }
                   ]}
                 />
-              </TabPanel>
-              <TabPanel header="Customers">
+              </TabItem>
+              <TabItem header="Customers">
                 <div className="inline-actions mb-3">
                   <Button
                     label="Add Customer"
@@ -161,8 +159,8 @@ export function CustomerOrganisationPage() {
                     }
                   ]}
                 />
-              </TabPanel>
-            </TabView>
+              </TabItem>
+            </Tabs>
           </PaneScroll>
         </PaneRoot>
       </WorkspaceBody>

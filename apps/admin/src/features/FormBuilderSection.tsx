@@ -3,9 +3,7 @@ import { useEffect, useMemo, useState, type DragEvent } from 'react';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Sidebar } from 'primereact/sidebar';
-import { TabPanel, TabView } from 'primereact/tabview';
-
-import { Button, Checkbox, NumberInput, Select, Textarea, TextInput } from '../ui/atoms';
+import { Button, Checkbox, NumberInput, Select, TabItem, Tabs, Textarea, TextInput } from '../ui/atoms';
 import { evaluateFieldConditions, type Rule } from '@contenthead/shared';
 import { RuleEditorDialog } from '../components/rules/RuleEditorDialog';
 
@@ -872,8 +870,8 @@ export function FormBuilderSection({
         </aside>
 
         <main className="form-builder-center">
-          <TabView activeIndex={builderTab} onTabChange={(event) => setBuilderTab(event.index)}>
-            <TabPanel header="Designer">
+          <Tabs activeIndex={builderTab} onTabChange={(index) => setBuilderTab(index)}>
+            <TabItem header="Designer">
               <div className="designer-header">
                 <h4>{steps.find((entry) => entry.id === selectedStepId)?.name ?? 'Select step'}</h4>
                 <small>12-column grid. Drag from palette or drag cards to reorder.</small>
@@ -936,9 +934,9 @@ export function FormBuilderSection({
                   Drop here to create a new row
                 </div>
               </div>
-            </TabPanel>
+            </TabItem>
 
-            <TabPanel header="Preview">
+            <TabItem header="Preview">
               <div className="preview-toolbar">
                 <label>
                   <Checkbox checked={evaluateConditions} onChange={(next) => setEvaluateConditions(next)} /> Evaluate conditions
@@ -972,9 +970,9 @@ export function FormBuilderSection({
                   })}
                 </div>
               ))}
-            </TabPanel>
+            </TabItem>
 
-            <TabPanel header="Structure">
+            <TabItem header="Structure">
               <p className="muted">Structure edits sync directly into Designer layout metadata.</p>
 
               <h4>Steps</h4>
@@ -1012,15 +1010,15 @@ export function FormBuilderSection({
                   )}
                 />
               </DataTable>
-            </TabPanel>
-          </TabView>
+            </TabItem>
+          </Tabs>
         </main>
 
         <aside className="form-builder-sidebar-right">
           <h4>Inspector</h4>
           {!selectedField ? <p className="muted">Select a field on the canvas.</p> : (
-            <TabView activeIndex={inspectorTab} onTabChange={(event) => setInspectorTab(event.index)}>
-              <TabPanel header="Properties">
+            <Tabs activeIndex={inspectorTab} onTabChange={(index) => setInspectorTab(index)}>
+              <TabItem header="Properties">
                 <div className="form-row">
                   <label>Key</label>
                   <TextInput
@@ -1100,9 +1098,9 @@ export function FormBuilderSection({
                     }} />
                   </div>
                 </div>
-              </TabPanel>
+              </TabItem>
 
-              <TabPanel header="Validation">
+              <TabItem header="Validation">
                 <label>
                   <Checkbox checked={Boolean(parsedValidations.required)} onChange={(next) => patchSelectedValidation({ required: next })} /> Required
                 </label>
@@ -1123,9 +1121,9 @@ export function FormBuilderSection({
                 <label>
                   <Checkbox checked={Boolean(parsedValidations.email)} onChange={(next) => patchSelectedValidation({ email: next })} /> Email format
                 </label>
-              </TabPanel>
+              </TabItem>
 
-              <TabPanel header="Conditions">
+              <TabItem header="Conditions">
                 <div className="inline-actions">
                   <Button text label="Edit Show If" onClick={() => { setRuleEditorTarget('showIf'); setRuleEditorOpen(true); }} />
                   <Button text label="Edit Required If" onClick={() => { setRuleEditorTarget('requiredIf'); setRuleEditorOpen(true); }} />
@@ -1149,9 +1147,9 @@ export function FormBuilderSection({
                   <Select value={enabledIfDraft.op} options={[...COMPARATORS]} onChange={(next) => next && patchSelectedCondition('enabledIf', { ...enabledIfDraft, op: next as Comparator })} />
                   <TextInput value={enabledIfDraft.value} onChange={(next) => patchSelectedCondition('enabledIf', { ...enabledIfDraft, value: next })} />
                 </div>
-              </TabPanel>
+              </TabItem>
 
-              <TabPanel header="Advanced">
+              <TabItem header="Advanced">
                 <div className="form-row">
                   <label>uiConfig JSON</label>
                   <Textarea rows={8} value={selectedField.uiConfigJson} onChange={(next) => updateFieldByKey(selectedField, { uiConfigJson: next })} />
@@ -1160,8 +1158,8 @@ export function FormBuilderSection({
                   <label>validations JSON</label>
                   <Textarea rows={6} value={selectedField.validationsJson} onChange={(next) => updateFieldByKey(selectedField, { validationsJson: next })} />
                 </div>
-              </TabPanel>
-            </TabView>
+              </TabItem>
+            </Tabs>
           )}
         </aside>
       </div>

@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Dialog } from 'primereact/dialog';
-import { TabPanel, TabView } from 'primereact/tabview';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Slider } from 'primereact/slider';
 
-import { Button, Checkbox, NumberInput, Select, Textarea, TextInput } from '../../ui/atoms';
+import { Button, Checkbox, DialogPanel, NumberInput, Select, TabItem, Tabs, Textarea, TextInput } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { getApiBaseUrl } from '../../lib/api';
@@ -229,7 +227,7 @@ function PresetDraftDialog({
   }, [value]);
 
   return (
-    <Dialog header="Preset" visible={visible} onHide={onHide} className="w-10 md:w-7 lg:w-5">
+    <DialogPanel header="Preset" visible={visible} onHide={onHide} className="w-10 md:w-7 lg:w-5">
       <div className="form-row">
         <label>Name</label>
         <TextInput value={draft.name} onChange={(next) => setDraft({ ...draft, name: next })} />
@@ -301,7 +299,7 @@ function PresetDraftDialog({
           }}
         />
       </div>
-    </Dialog>
+    </DialogPanel>
   );
 }
 
@@ -937,7 +935,7 @@ export function AssetImageEditorDialog({
   };
 
   return (
-    <Dialog
+    <DialogPanel
       header={`Edit Image${asset?.originalName ? `: ${asset.originalName}` : ''}`}
       visible={visible}
       onHide={onHide}
@@ -1253,8 +1251,8 @@ export function AssetImageEditorDialog({
           </div>
 
           <div style={{ minWidth: 0, maxHeight: '72vh', overflow: 'auto', paddingRight: 4 }}>
-            <TabView activeIndex={activeTabIndex} onTabChange={(event) => setActiveTabIndex(event.index)}>
-              <TabPanel header="Crop & Focal">
+            <Tabs activeIndex={activeTabIndex} onTabChange={(index) => setActiveTabIndex(index)}>
+              <TabItem header="Crop & Focal">
                 <div className="form-row">
                   <label>
                     <Checkbox checked={showThirds} onChange={(next) => setShowThirds(next)} /> Show rule-of-thirds
@@ -1399,9 +1397,9 @@ export function AssetImageEditorDialog({
                     Tools are non-destructive preview edits in DAM editor.
                   </small>
                 </div>
-              </TabPanel>
+              </TabItem>
 
-              <TabPanel header="Renditions">
+              <TabItem header="Renditions">
                 <div
                   style={{
                     display: 'grid',
@@ -1520,9 +1518,9 @@ export function AssetImageEditorDialog({
                     )}
                   </div>
                 </div>
-              </TabPanel>
+              </TabItem>
 
-              <TabPanel header="POIs">
+              <TabItem header="POIs">
                 <div className="inline-actions mb-2">
                   <label>
                     <Checkbox checked={poiMode} onChange={(next) => setPoiMode(next)} /> POI mode (click image to add)
@@ -1582,9 +1580,9 @@ export function AssetImageEditorDialog({
                     )}
                   />
                 </DataTable>
-              </TabPanel>
+              </TabItem>
 
-              <TabPanel header="Metadata">
+              <TabItem header="Metadata">
                 <div className="form-row">
                   <label>Title</label>
                   <TextInput value={title} onChange={(next) => setTitle(next)} />
@@ -1595,9 +1593,9 @@ export function AssetImageEditorDialog({
                   <label>Tags (comma separated)</label>
                   <TextInput value={tags.join(', ')} onChange={(next) => setTags(next.split(',').map((entry) => entry.trim()).filter(Boolean))} />
                 </div>
-              </TabPanel>
+              </TabItem>
 
-              <TabPanel header="Advanced">
+              <TabItem header="Advanced">
                 <details>
                   <summary>JSON (advanced)</summary>
                   <div className="form-row mt-2">
@@ -1608,8 +1606,8 @@ export function AssetImageEditorDialog({
                     <Button label="Apply advanced JSON" text onClick={applyAdvancedJson} />
                   </div>
                 </details>
-              </TabPanel>
-            </TabView>
+              </TabItem>
+            </Tabs>
           </div>
         </div>
       ) : null}
@@ -1621,6 +1619,6 @@ export function AssetImageEditorDialog({
       {status ? <small className="muted">{status}</small> : null}
 
       <PresetDraftDialog visible={presetDialogOpen} value={presetDraft} onHide={() => setPresetDialogOpen(false)} onApply={applyPresetDialog} />
-    </Dialog>
+    </DialogPanel>
   );
 }
