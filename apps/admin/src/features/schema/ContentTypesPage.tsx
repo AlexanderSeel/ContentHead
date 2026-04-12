@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Splitter, SplitterPanel } from 'primereact/splitter';
-
 import { Button, Checkbox, DialogPanel, MultiSelect, Select, TextInput } from '../../ui/atoms';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
 import { useUi } from '../../app/UiContext';
 import { createAdminSdk } from '../../lib/sdk';
-import { DataGrid, PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, PaneRoot, PaneScroll, Splitter, SplitterPanel, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import type { Command, CommandContext } from '../../ui/commands/types';

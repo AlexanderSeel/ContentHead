@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ContextMenu } from 'primereact/contextmenu';
-import { Splitter, SplitterPanel } from 'primereact/splitter';
-
 import { Button, Checkbox, TextInput } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
@@ -17,7 +14,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadCsv, downloadJson, routeStartsWith } from '../../ui/commands/utils';
-import { DataGrid, PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { ContextMenuHandle, ContextMenuPanel, DataGrid, PaneRoot, PaneScroll, Splitter, SplitterPanel, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type Route = { id: number; contentItemId: number; marketCode: string; localeCode: string; slug: string; isCanonical: boolean };
 
@@ -112,7 +109,7 @@ export function RoutesPage() {
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<Route>({ id: 0, contentItemId: 0, marketCode: 'US', localeCode: 'en-US', slug: '', isCanonical: true });
   const [selectedContextRoute, setSelectedContextRoute] = useState<Route | null>(null);
-  const rowContextMenuRef = useRef<ContextMenu>(null);
+  const rowContextMenuRef = useRef<ContextMenuHandle>(null);
 
   const refresh = async () => {
     const routesRes = await sdk.listRoutes({ siteId, marketCode: null, localeCode: null });
@@ -189,7 +186,7 @@ export function RoutesPage() {
         overflow={<CommandMenuButton commands={headerOverflowCommands} context={headerContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
       />
       <WorkspaceBody>
-        <ContextMenu ref={rowContextMenuRef} model={rowContextMenuItems} />
+        <ContextMenuPanel ref={rowContextMenuRef} model={rowContextMenuItems} />
         <Splitter className="splitFill">
           <SplitterPanel size={62} minSize={38}>
             <PaneRoot className="content-card">

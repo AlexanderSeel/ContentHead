@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Splitter, SplitterPanel } from 'primereact/splitter';
-
 import { Button, Select, Textarea, TextInput } from '../../ui/atoms';
 import type { Rule } from '@contenthead/shared';
 
 import { createAdminSdk } from '../../lib/sdk';
-import { DataGrid, PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, PaneRoot, PaneScroll, Splitter, SplitterPanel, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { RuleEditorDialog } from '../../components/rules/RuleEditorDialog';

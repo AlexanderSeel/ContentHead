@@ -11,3 +11,11 @@ export { WorkspacePaneLayout, WorkspacePanelToggleButton, type WorkspaceManagedP
 export { PaneRoot, PaneScroll } from './Pane';
 
 export { ForbiddenState } from './ForbiddenState';
+export { ContextMenuPanel } from './ContextMenuPanel';
+export type { ContextMenuHandle } from './ContextMenuPanel';
+export { Splitter, SplitterPanel } from './SplitterLayout';
+export type { SplitterProps, SplitterPanelProps } from './SplitterLayout';
+export { Tree } from './TreePanel';
+export type { TreeNode } from './TreePanel';
+export { TreeTable, Column } from './TreeTablePanel';
+export type { TreeTableProps, ColumnProps } from './TreeTablePanel';

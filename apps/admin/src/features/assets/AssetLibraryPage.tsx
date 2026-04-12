@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Column } from 'primereact/column';
-import { ContextMenu } from 'primereact/contextmenu';
-import { Chips } from 'primereact/chips';
 
-import { Button, TextInput, Textarea } from '../../ui/atoms';
+import { Button, Chips, TextInput, Textarea } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { getApiBaseUrl } from '../../lib/api';
@@ -17,7 +15,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
-import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout, WorkspaceToolbar } from '../../ui/molecules';
+import { ContextMenuHandle, ContextMenuPanel, ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout, WorkspaceToolbar } from '../../ui/molecules';
 import { AssetImageEditorDialog } from './AssetImageEditorDialog';
 
 type AssetRow = {
@@ -149,7 +147,7 @@ export function AssetLibraryPage() {
   const [forbiddenReason, setForbiddenReason] = useState('');
   const [contextAsset, setContextAsset] = useState<AssetRow | null>(null);
   const [imageEditorAssetId, setImageEditorAssetId] = useState<number | null>(null);
-  const contextMenuRef = useRef<ContextMenu>(null);
+  const contextMenuRef = useRef<ContextMenuHandle>(null);
 
   const handleError = (error: unknown) => {
     const message = formatErrorMessage(error);
@@ -460,7 +458,7 @@ query AssetUsage($siteId: Int!, $assetIds: [Int!]!, $limitPerAsset: Int) {
             collapsible: true,
             content: (
               <>
-                <ContextMenu ref={contextMenuRef} model={contextItems} />
+                <ContextMenuPanel ref={contextMenuRef} model={contextItems} />
                 <WorkspaceGrid
                   className="asset-library-table"
                   value={assets}

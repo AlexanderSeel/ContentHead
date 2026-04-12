@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Column } from 'primereact/column';
-import { ContextMenu } from 'primereact/contextmenu';
 import type { DataTableSortEvent } from 'primereact/datatable';
 
 import { Button, DatePicker, Select, Tag, TextInput } from '../../ui/atoms';
@@ -15,7 +14,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { routeStartsWith } from '../../ui/commands/utils';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
+import { ContextMenuHandle, ContextMenuPanel, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
 
 type SubmissionRow = {
   id: number;
@@ -159,7 +158,7 @@ export function FormSubmissionsPage() {
   const [sortField, setSortField] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [contextRow, setContextRow] = useState<SubmissionRow | null>(null);
-  const contextMenuRef = useRef<ContextMenu>(null);
+  const contextMenuRef = useRef<ContextMenuHandle>(null);
 
   const loadSites = async () => {
     const res = await sdk.listSites();
@@ -375,7 +374,7 @@ export function FormSubmissionsPage() {
             onClick={() => runBulkStatus('needs_review').catch(() => undefined)}
           />
         </div>
-        <ContextMenu ref={contextMenuRef} model={contextItems} />
+        <ContextMenuPanel ref={contextMenuRef} model={contextItems} />
         <WorkspaceGrid
           value={rows}
           tableProps={{

@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AutoComplete } from 'primereact/autocomplete';
-
-import { Button, Checkbox, Select, TabItem, Tabs, TextInput } from '../../ui/atoms';
+import { AutoComplete, Button, Checkbox, Select, TabItem, Tabs, TextInput } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';

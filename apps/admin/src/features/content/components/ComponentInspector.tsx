@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Chips } from 'primereact/chips';
-
-import { Button, Checkbox, DialogPanel, NumberInput, Select, Textarea, TextInput } from '../../../ui/atoms';
+import { Button, Checkbox, Chips, DialogPanel, NumberInput, Select, Textarea, TextInput } from '../../../ui/atoms';
 
 import {
   type ComponentUiField,

@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Slider } from 'primereact/slider';
-
-import { Button, Select, Tag } from '../../ui/atoms';
+import { Button, Select, Slider, Tag } from '../../ui/atoms';
 
 import { useUi } from '../../app/UiContext';
 import { getLayoutStorageOverview, resetAllLayoutStorage, resetLayoutStorageKey, type LayoutStorageEntry } from '../../lib/layoutSettings';

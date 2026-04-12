@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ContextMenu } from 'primereact/contextmenu';
 
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
@@ -20,7 +19,7 @@ import {
   type ComponentRecord
 } from './builder/visualBuilderModel';
 import { VisualBuilderWorkspace } from './builder/VisualBuilderWorkspace';
-import { DataGrid, ForbiddenState, InspectorSection, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { ContextMenuHandle, ContextMenuPanel, DataGrid, ForbiddenState, InspectorSection, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { Button, TextInput } from '../../ui/atoms';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
@@ -162,7 +161,7 @@ export function TemplatesPage() {
   const [affectedDrafts, setAffectedDrafts] = useState<Array<{ itemId: number; versionId: number; versionNumber: number }>>([]);
   const [loadingImpact, setLoadingImpact] = useState(false);
   const [contextTemplate, setContextTemplate] = useState<Template | null>(null);
-  const contextMenuRef = useRef<ContextMenu>(null);
+  const contextMenuRef = useRef<ContextMenuHandle>(null);
 
   const builderState = useMemo(() => parseBuilderState(draft.compositionJson, draft.componentsJson), [draft.compositionJson, draft.componentsJson]);
 
@@ -334,7 +333,7 @@ export function TemplatesPage() {
         </WorkspaceBody>
       ) : (
         <>
-          <ContextMenu ref={contextMenuRef} model={contextItems} />
+          <ContextMenuPanel ref={contextMenuRef} model={contextItems} />
           <DataGrid
             data={templates}
             rowKey="id"

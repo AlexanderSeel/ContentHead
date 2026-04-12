@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ContextMenu } from 'primereact/contextmenu';
 import { Accordion, AccordionItem, Button } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
@@ -11,7 +10,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout } from '../../ui/molecules';
+import { ContextMenuHandle, ContextMenuPanel, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout } from '../../ui/molecules';
 
 type WorkflowRun = { id: number; definitionId: number; status: string; currentNodeId?: string | null; logsJson: string; contextJson: string };
 
@@ -87,7 +86,7 @@ export function WorkflowRunsPage() {
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [selected, setSelected] = useState<WorkflowRun | null>(null);
   const [contextRun, setContextRun] = useState<WorkflowRun | null>(null);
-  const contextMenuRef = useRef<ContextMenu>(null);
+  const contextMenuRef = useRef<ContextMenuHandle>(null);
 
   const refresh = async () => {
     const list = await sdk.listWorkflowRuns({ definitionId: null });
@@ -146,7 +145,7 @@ export function WorkflowRunsPage() {
             collapsible: true,
             content: (
               <>
-                <ContextMenu ref={contextMenuRef} model={contextItems} />
+                <ContextMenuPanel ref={contextMenuRef} model={contextItems} />
                 <WorkspaceGrid
                   data={runs}
                   rowKey="id"

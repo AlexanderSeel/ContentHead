@@ -1,6 +1,4 @@
-import { Chips } from 'primereact/chips';
-
-import { Accordion, AccordionItem, Checkbox, MultiSelect, NumberInput, Select, Textarea, TextInput } from '../../ui/atoms';
+import { Accordion, AccordionItem, Checkbox, Chips, MultiSelect, NumberInput, Select, Textarea, TextInput } from '../../ui/atoms';
 
 import {
   CONTENT_FIELD_TYPES,

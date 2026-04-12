@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import type { ReactNode, SyntheticEvent } from 'react';
-import { ContextMenu } from 'primereact/contextmenu';
+import { ContextMenuPanel } from './ContextMenuPanel';
+import type { ContextMenuHandle } from './ContextMenuPanel';
 import {
   createColumnHelper,
   flexRender,
@@ -33,7 +34,7 @@ export function EntityTable<T extends Record<string, unknown>>({
   rowCommands?: (row: T) => Command<CommandContext & { row: T }>[];
   commandContext?: CommandContext;
 }) {
-  const contextMenuRef = useRef<ContextMenu>(null);
+  const contextMenuRef = useRef<ContextMenuHandle>(null);
   const [contextRow, setContextRow] = useState<T | null>(null);
 
   const contextMenuItems = useMemo(() => {
@@ -101,7 +102,7 @@ export function EntityTable<T extends Record<string, unknown>>({
 
   return (
     <>
-      <ContextMenu ref={contextMenuRef} model={contextMenuItems} />
+      <ContextMenuPanel ref={contextMenuRef} model={contextMenuItems} />
       <div className={`p-datatable p-component ${sizeClass}`}>
         <div className="p-datatable-wrapper">
           <table role="table">

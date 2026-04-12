@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Slider } from 'primereact/slider';
-
-import { Button, Checkbox, DialogPanel, NumberInput, Select, TabItem, Tabs, Textarea, TextInput } from '../../ui/atoms';
+import { Button, Checkbox, DialogPanel, NumberInput, Select, Slider, TabItem, Tabs, Textarea, TextInput } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
 import { getApiBaseUrl } from '../../lib/api';

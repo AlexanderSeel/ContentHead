@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Splitter, SplitterPanel } from 'primereact/splitter';
-
 import { Accordion, AccordionItem, Button, Checkbox, Select, Tag, Textarea, TextInput } from '../../ui/atoms';
 
 import { useAuth } from '../../app/AuthContext';
@@ -8,7 +6,7 @@ import { createAdminSdk } from '../../lib/sdk';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
-import { DataGrid, ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, ForbiddenState, Splitter, SplitterPanel, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type ConnectorDomain = 'auth' | 'db' | 'dam' | 'ai';
 

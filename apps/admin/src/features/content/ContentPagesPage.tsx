@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ContextMenu } from 'primereact/contextmenu';
-import { TreeTable } from 'primereact/treetable';
-import type { TreeNode } from 'primereact/treenode';
-import { Splitter, SplitterPanel } from 'primereact/splitter';
-
 import { Button, Checkbox, DialogPanel, MultiSelect, Select, TabItem, Tabs, Tag, Textarea, TextInput } from '../../ui/atoms';
 
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
@@ -45,13 +40,13 @@ import type { CmsActionId, CmsBridgeMessage, CmsActionsMessage, CmsActionRequest
 import { handleInlineEditPatchMessage } from './inlineEditBridge';
 import { recordPreviewDiagnostics } from './previewDiagnostics';
 import { extensionInspectorPanels } from '../../extensions/core/registry';
-import { DataGrid, InspectorSection } from '../../ui/molecules';
+import { Column, ContextMenuHandle, ContextMenuPanel, DataGrid, InspectorSection, Splitter, SplitterPanel, TreeTable, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage, useWorkspaceFrame } from '../../ui/molecules';
+import type { TreeNode } from '../../ui/molecules';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
-import { WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage, useWorkspaceFrame } from '../../ui/molecules';
 
 type CType = {
   id: number;
@@ -887,7 +882,7 @@ export function ContentPagesPage() {
   }, []);
 
   const previewIframeRef = useRef<HTMLIFrameElement | null>(null);
-  const treeContextMenuRef = useRef<ContextMenu>(null);
+  const treeContextMenuRef = useRef<ContextMenuHandle>(null);
   const leftPaneExpandedSizeRef = useRef(28);
   const saveTimerRef = useRef<number | null>(null);
   const inlineSaveTimerRef = useRef<number | null>(null);
@@ -3947,7 +3942,7 @@ export function ContentPagesPage() {
         >
           <SplitterPanel size={workspaceSizes[0] ?? 28} minSize={leftPaneCollapsed ? 4 : 20}>
             <div className={`paneRoot paneScroll cms-pane cms-left-pane${leftPaneCollapsed ? ' cms-left-pane-collapsed' : ''}`}>
-              <ContextMenu ref={treeContextMenuRef} model={treeContextMenuItems} />
+              <ContextMenuPanel ref={treeContextMenuRef} model={treeContextMenuItems} />
               <div className="inline-actions justify-content-between mb-2">
                 <strong>Page Tree</strong>
               </div>

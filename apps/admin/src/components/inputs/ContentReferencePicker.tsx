@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AutoComplete } from 'primereact/autocomplete';
+import { AutoComplete } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
 
