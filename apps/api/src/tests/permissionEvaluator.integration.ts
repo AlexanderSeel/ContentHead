@@ -19,6 +19,7 @@ async function main() {
 
   const auth = new InternalAuthProvider(db, 'test-secret', '1d');
 
+  const seedAdmin = await auth.createUser({ username: 'admin', password: 'admin123!', displayName: 'Seed Admin' });
   const admin = await auth.createUser({ username: 'admin-user', password: 'admin123!', displayName: 'Admin User' });
   const editor = await auth.createUser({ username: 'editor-user', password: 'editor123!', displayName: 'Editor User' });
 
@@ -32,6 +33,21 @@ async function main() {
 
   const adminEval = await checkPermission(db, { userId: admin.id, action: 'SECURITY_MANAGE' });
   assert.equal(adminEval.allowed, true, 'admin role should always be allowed');
+
+  const healedSeedAdminEval = await checkPermission(db, { userId: seedAdmin.id, action: 'CONTENT_READ' });
+  assert.equal(healedSeedAdminEval.allowed, true, 'configured seed admin should self-heal missing admin role');
+  assert.equal(healedSeedAdminEval.roles.includes('admin'), true, 'configured seed admin should resolve admin role');
+
+  const healedRoleLink = await db.get<{ roleCount: number }>(
+    `
+SELECT COUNT(*) as roleCount
+FROM user_roles ur
+INNER JOIN roles r ON r.id = ur.role_id
+WHERE ur.user_id = ? AND lower(r.name) = 'admin'
+`,
+    [seedAdmin.id]
+  );
+  assert.equal(Number(healedRoleLink?.roleCount ?? 0), 1, 'configured seed admin should be linked to admin role');
 
   const editorAllowed = await checkPermission(db, { userId: editor.id, action: 'CONTENT_READ' });
   assert.equal(editorAllowed.allowed, true, 'editor should retain CONTENT_READ');

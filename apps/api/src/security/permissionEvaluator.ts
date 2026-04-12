@@ -1,3 +1,4 @@
+import { config } from '../config.js';
 import type { DbClient } from '../db/DbClient.js';
 import { listUserPermissions } from './service.js';
 
@@ -27,6 +28,14 @@ WHERE ur.user_id = ?
   return Array.from(new Set(rows.map((row) => row.name)));
 }
 
+async function getUsername(db: DbClient, userId: number): Promise<string | null> {
+  const row = await db.get<{ username: string }>(
+    'SELECT lower(username) as username FROM users WHERE id = ?',
+    [userId]
+  );
+  return row?.username ?? null;
+}
+
 export async function checkPermission(db: DbClient, input: PermissionCheckInput): Promise<PermissionEvaluation> {
   const action = input.action.trim();
   if (!action) {
@@ -43,6 +52,24 @@ export async function checkPermission(db: DbClient, input: PermissionCheckInput)
 
   if (roles.includes('admin')) {
     return { allowed: true, reason: 'Allowed via admin role', permissions, roles };
+  }
+
+  const seedAdminUsername = config.seedAdminUsername.trim().toLowerCase();
+  if (seedAdminUsername) {
+    const username = await getUsername(db, input.userId);
+    if (username === seedAdminUsername) {
+      await ensureUserHasRole(db, input.userId, 'admin');
+      const [healedRoles, healedPermissions] = await Promise.all([
+        listRoleNames(db, input.userId),
+        listUserPermissions(db, input.userId)
+      ]);
+      return {
+        allowed: true,
+        reason: 'Allowed via configured seed admin account',
+        permissions: healedPermissions,
+        roles: healedRoles.includes('admin') ? healedRoles : [...healedRoles, 'admin']
+      };
+    }
   }
 
   const allCandidates = [action, ...(input.fallbackActions ?? [])].map((entry) => entry.trim()).filter(Boolean);

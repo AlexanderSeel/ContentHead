@@ -108,11 +108,147 @@ body {
   border-radius: 10px;
   padding: 0.2rem 0.35rem;
   background: var(--surface-card);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3rem;
 }
 
 .admin-topbar .p-menubar-root-list {
   flex: 1 1 auto;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.admin-topbar .p-menubar-start,
+.admin-topbar .p-menubar-end {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.admin-topbar .p-menubar .p-menuitem {
+  list-style: none;
+  position: relative;
+}
+
+.admin-topbar .p-menubar .p-menuitem-link {
+  border: 0;
+  background: transparent;
+  color: var(--text-color);
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  font: inherit;
+}
+
+.admin-topbar .p-menubar .p-menuitem-link:hover,
+.admin-topbar .p-menubar .p-menuitem-link:focus-visible,
+.admin-topbar .p-menubar .p-menuitem-active > .p-menuitem-link,
+.admin-topbar .p-menubar .p-menuitem-active [data-state='open'].p-menuitem-link {
+  background: color-mix(in srgb, var(--primary-color), transparent 84%);
+  color: var(--text-color);
+  outline: none;
+}
+
+.admin-topbar .p-menubar .p-menuitem-icon,
+.admin-topbar .p-menubar .p-submenu-icon {
+  flex: 0 0 auto;
+}
+
+.admin-topbar .p-menubar-panel,
+.topbar-nav-panel,
+.topbar-popup-menu {
+  min-width: 14rem;
+  border: 1px solid color-mix(in srgb, var(--surface-border), transparent 35%);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-card), var(--surface-ground) 10%);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.16);
+  padding: 0.35rem;
+  z-index: 30;
+}
+
+.topbar-nav-list,
+.topbar-nav-panel .p-submenu-list,
+.topbar-popup-menu .p-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.topbar-nav-panel .p-menuitem,
+.topbar-nav-list .p-menuitem,
+.topbar-popup-menu .p-menuitem {
+  margin: 0;
+  list-style: none;
+}
+
+.topbar-nav-panel .p-menuitem-link,
+.topbar-nav-list .p-menuitem-link,
+.topbar-popup-menu .p-menuitem-link {
+  width: 100%;
+  justify-content: flex-start;
+  border: 0;
+  background: transparent;
+  color: var(--text-color);
+  text-decoration: none;
+  font: inherit;
+  box-shadow: none;
+  appearance: none;
+}
+
+.topbar-nav-panel {
+  min-width: 13rem;
+}
+
+.topbar-nav-panel .topbar-nav-list {
+  min-width: 0;
+}
+
+.topbar-nav-panel .p-menuitem-link {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+}
+
+.topbar-nav-panel .p-menuitem-link:hover,
+.topbar-nav-panel .p-menuitem-link:focus-visible {
+  background: color-mix(in srgb, var(--primary-color), transparent 90%);
+  outline: none;
+}
+
+.topbar-nav-panel .p-menuitem-link .p-menuitem-text,
+.topbar-popup-menu .p-menuitem-link .p-menuitem-text {
+  color: inherit;
+}
+
+.topbar-nav-trigger {
+  min-height: 2.35rem;
+}
+
+.topbar-popup-menu .p-menuitem-separator {
+  height: 1px;
+  margin: 0.2rem 0;
+  background: color-mix(in srgb, var(--surface-border), transparent 20%);
+}
+
+.topbar-popup-menu .p-menuitem-separator-label {
+  padding: 0.45rem 0.6rem 0.25rem;
+  color: var(--text-color-secondary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .topbar-brand {
@@ -803,6 +939,43 @@ body {
   width: max-content;
   min-width: 12rem;
   overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--surface-border), transparent 35%);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-card), var(--surface-ground) 10%);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.16);
+  padding: 0.35rem;
+}
+
+.ch-command-menu-popup .p-menu-list,
+.ch-command-menu-popup .p-submenu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.ch-command-menu-popup .p-submenu-list {
+  padding-left: 0;
+}
+
+.ch-command-menu-popup .p-menuitem,
+.ch-command-menu-popup .p-menuitem-content,
+.ch-command-menu-popup .p-menuitem-group {
+  min-width: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.ch-command-menu-popup .p-menuitem-group-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.65rem 0.2rem;
+  color: var(--text-color-secondary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .ch-command-menu-popup > .p-tieredmenu-root-list {
@@ -820,11 +993,38 @@ body {
 .ch-command-menu-popup .p-menuitem-link {
   max-width: min(340px, calc(100vw - 32px));
   min-width: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  justify-content: flex-start;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-color);
+  text-decoration: none;
+  font: inherit;
+  box-shadow: none;
+  appearance: none;
 }
 
-.ch-command-menu-popup .p-menuitem,
-.ch-command-menu-popup .p-menuitem-content {
-  min-width: 0;
+.ch-command-menu-popup .p-menuitem-link:hover,
+.ch-command-menu-popup .p-menuitem-link:focus-visible {
+  background: color-mix(in srgb, var(--primary-color), transparent 90%);
+  outline: none;
+}
+
+.ch-command-menu-popup .p-menuitem-link.p-disabled,
+.ch-command-menu-popup .p-menuitem-link:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ch-command-menu-popup .p-menuitem-separator {
+  height: 1px;
+  margin: 0.2rem 0;
+  background: color-mix(in srgb, var(--surface-border), transparent 20%);
 }
 
 .ch-command-menu-popup .p-menuitem-text {
@@ -1590,6 +1790,15 @@ body {
 }
 
 @media (max-width: 900px) {
+  .admin-topbar .p-menubar {
+    flex-wrap: wrap;
+  }
+
+  .admin-topbar .p-menubar-root-list {
+    order: 3;
+    width: 100%;
+  }
+
   .topbar-context-trigger .p-button-label {
     display: none;
   }

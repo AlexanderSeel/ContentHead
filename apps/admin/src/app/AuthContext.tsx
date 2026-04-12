@@ -1,8 +1,9 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { createAdminSdk } from '../lib/sdk';
 
 type AuthContextValue = {
+  authReady: boolean;
   token: string | null;
   userId: string | null;
   username: string | null;
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
+  const [authReady, setAuthReady] = useState<boolean>(() => localStorage.getItem(TOKEN_KEY) == null);
   const [userId, setUserId] = useState<string | null>(() => {
     const fromStorage = localStorage.getItem(USER_ID_KEY);
     if (fromStorage) {
@@ -28,12 +30,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
   const [username, setUsername] = useState<string | null>(() => localStorage.getItem(USER_KEY));
 
+  const clearAuthState = useCallback(() => {
+    setToken(null);
+    setUserId(null);
+    setUsername(null);
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_ID_KEY);
+    localStorage.removeItem(USER_KEY);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!token) {
+      setAuthReady(true);
+      return () => {
+        active = false;
+      };
+    }
+
+    setAuthReady(false);
+    const sdk = createAdminSdk(token);
+
+    void sdk.safe
+      .me()
+      .then((result) => {
+        if (!active) {
+          return;
+        }
+
+        const me = result.ok ? result.data.me : null;
+        if (!me?.id || !me.username) {
+          clearAuthState();
+          setAuthReady(true);
+          return;
+        }
+
+        const nextUserId = String(me.id);
+        setUserId(nextUserId);
+        setUsername(me.username);
+        localStorage.setItem(USER_ID_KEY, nextUserId);
+        localStorage.setItem(USER_KEY, me.username);
+        setAuthReady(true);
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+        clearAuthState();
+        setAuthReady(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [token, clearAuthState]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
+      authReady,
       token,
       userId,
       username,
-      isAuthenticated: Boolean(token),
+      isAuthenticated: authReady && Boolean(token),
       login: async (user: string, password: string) => {
         const sdk = createAdminSdk(null);
         const result = await sdk.login({ username: user, password });
@@ -50,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(nextToken);
         setUserId(nextUserId);
         setUsername(result.login?.user?.username ?? user);
+        setAuthReady(true);
         localStorage.setItem(TOKEN_KEY, nextToken);
         if (nextUserId) {
           localStorage.setItem(USER_ID_KEY, nextUserId);
@@ -60,15 +120,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return true;
       },
       logout: () => {
-        setToken(null);
-        setUserId(null);
-        setUsername(null);
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_ID_KEY);
-        localStorage.removeItem(USER_KEY);
+        clearAuthState();
+        setAuthReady(true);
       }
     }),
-    [token, userId, username]
+    [authReady, token, userId, username, clearAuthState]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

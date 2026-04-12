@@ -3,6 +3,7 @@ import { GraphQLError } from 'graphql';
 
 import type { InternalAuthProvider } from '../auth/InternalAuthProvider.js';
 import type { DbClient } from '../db/DbClient.js';
+import { config } from '../config.js';
 import {
   type ComponentTypeSettingRecord,
   type ContentItemRecord,
@@ -236,6 +237,7 @@ import {
   upsertInternalRole
 } from '../security/service.js';
 import { checkPermission } from '../security/permissionEvaluator.js';
+import { ensureUserHasRole } from '../security/permissionEvaluator.js';
 import { cacheKey, requestCache } from '../cache/requestCache.js';
 
 export type GraphqlContext = {
@@ -2079,6 +2081,10 @@ builder.mutationType({
         const user = await ctx.auth.validateCredentials(args.username, args.password);
         if (!user) {
           return null;
+        }
+
+        if (user.username.trim().toLowerCase() === config.seedAdminUsername.trim().toLowerCase()) {
+          await ensureUserHasRole(ctx.db, user.id, 'admin');
         }
 
         return {

@@ -362,7 +362,7 @@ export function WorkspaceOverflowMenu({
         />
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content className="p-menu p-component" align="end" sideOffset={4}>
+        <Popover.Content className="p-menu p-component ch-command-menu-popup" align="end" sideOffset={4}>
           <ul className="p-menu-list">
             {renderMenuItems(model, () => setOpen(false))}
           </ul>

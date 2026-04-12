@@ -21,15 +21,15 @@ function NavAreaDropdown({ area }: { area: NavArea }) {
     <li className={`p-menuitem${isActive ? ' p-menuitem-active' : ''}`}>
       <Popover.Root open={open} onOpenChange={setOpen}>
         <Popover.Trigger asChild>
-          <button type="button" className="p-menuitem-link">
+          <button type="button" className="p-menuitem-link topbar-nav-trigger">
             {area.icon ? <span className={`p-menuitem-icon ${area.icon}`} aria-hidden /> : null}
             <span className="p-menuitem-text">{area.label}</span>
             <span className="p-submenu-icon pi pi-angle-down" aria-hidden />
           </button>
         </Popover.Trigger>
         <Popover.Portal>
-          <Popover.Content className="p-menubar-panel" sideOffset={0} align="start">
-            <ul className="p-submenu-list">
+          <Popover.Content className="p-menubar-panel topbar-nav-panel" sideOffset={6} align="start">
+            <ul className="p-submenu-list topbar-nav-list">
               {area.items.map((item) => (
                 <li key={item.to} className="p-menuitem">
                   <Popover.Close asChild>
