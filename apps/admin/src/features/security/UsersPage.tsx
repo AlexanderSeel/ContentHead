@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Column } from 'primereact/column';
 import { Button, Checkbox, MultiSelect, Password, Tag, TextInput } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
@@ -148,17 +147,16 @@ export function UsersPage() {
                       <Checkbox checked={newUser.active} onChange={(next) => setNewUser({ ...newUser, active: next })} /> Active
                     </label>
                     <WorkspaceGrid
-                      value={users}
-                      tableProps={{
-                        selectionMode: 'single',
-                        selection: selected,
-                        onSelectionChange: (event: any) => setSelected((event.value as UserRow) ?? null)
-                      }}
-                    >
-                      <Column field="username" header="Username" />
-                      <Column field="displayName" header="Display Name" />
-                      <Column field="active" header="Active" body={(row: UserRow) => (row.active ? 'Yes' : 'No')} />
-                    </WorkspaceGrid>
+                      data={users}
+                      rowKey="id"
+                      selectedRow={selected}
+                      onRowSelect={(row) => setSelected(row)}
+                      columns={[
+                        { key: 'username', header: 'Username' },
+                        { key: 'displayName', header: 'Display Name' },
+                        { key: 'active', header: 'Active', cell: (row) => (row.active ? 'Yes' : 'No') }
+                      ]}
+                    />
                   </div>
                 )
               }}

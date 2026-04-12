@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
 import { Slider } from 'primereact/slider';
 
 import { Button, Checkbox, DialogPanel, NumberInput, Select, TabItem, Tabs, Textarea, TextInput } from '../../ui/atoms';
@@ -10,6 +8,7 @@ import { getApiBaseUrl } from '../../lib/api';
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { LinkPickerButton } from '../../ui/atoms';
 import type { ContentLinkValue } from '../content/fieldRenderers/LinkSelectorDialog';
+import { DataGrid } from '../../ui/molecules';
 import './AssetImageEditorDialog.css';
 
 type Point = { x: number; y: number };
@@ -1413,36 +1412,37 @@ export function AssetImageEditorDialog({
                       <Button label="Add preset" onClick={openCreatePreset} />
                       <Button label="Generate missing renditions" onClick={generateMissing} text />
                     </div>
-                    <DataTable
-                      value={presets}
-                      size="small"
-                      scrollable
+                    <DataGrid
+                      data={presets}
+                      rowKey="id"
                       scrollHeight="22rem"
-                      selectionMode="single"
-                      selection={selectedPreset ?? undefined}
-                      onSelectionChange={(event) => setSelectedPresetId((event.value as Preset | null)?.id ?? null)}
-                    >
-                      <Column field="name" header="Name" />
-                      <Column header="Size" body={(row: Preset) => `${row.width}x${row.height}`} />
-                      <Column field="mode" header="Mode" />
-                      <Column field="format" header="Format" />
-                      <Column
-                        header="Status"
-                        body={(row: Preset) => {
-                          const hit = renditions.find((entry) => entry.presetId === row.id);
-                          return hit ? `Generated (${formatBytes(hit.bytes)})` : 'Missing';
-                        }}
-                      />
-                      <Column
-                        header="Actions"
-                        body={(row: Preset) => (
-                          <div className="inline-actions">
-                            <Button text label="Edit" onClick={() => openEditPreset(row)} />
-                            <Button text severity="danger" label="Delete" onClick={() => setPresets((prev) => prev.filter((entry) => entry.id !== row.id))} />
-                          </div>
-                        )}
-                      />
-                    </DataTable>
+                      selectedRow={selectedPreset ?? null}
+                      onRowSelect={(row) => setSelectedPresetId(row?.id ?? null)}
+                      columns={[
+                        { key: 'name', header: 'Name' },
+                        { key: '__size', header: 'Size', cell: (row) => `${row.width}x${row.height}` },
+                        { key: 'mode', header: 'Mode' },
+                        { key: 'format', header: 'Format' },
+                        {
+                          key: '__status',
+                          header: 'Status',
+                          cell: (row) => {
+                            const hit = renditions.find((entry) => entry.presetId === row.id);
+                            return hit ? `Generated (${formatBytes(hit.bytes)})` : 'Missing';
+                          }
+                        },
+                        {
+                          key: '__actions',
+                          header: 'Actions',
+                          cell: (row) => (
+                            <div className="inline-actions">
+                              <Button text label="Edit" onClick={() => openEditPreset(row)} />
+                              <Button text severity="danger" label="Delete" onClick={() => setPresets((prev) => prev.filter((entry) => entry.id !== row.id))} />
+                            </div>
+                          )
+                        }
+                      ]}
+                    />
                   </div>
 
                   <div style={{ minWidth: 0 }}>
@@ -1526,60 +1526,73 @@ export function AssetImageEditorDialog({
                     <Checkbox checked={poiMode} onChange={(next) => setPoiMode(next)} /> POI mode (click image to add)
                   </label>
                 </div>
-                <DataTable value={pois} size="small">
-                  <Column field="label" header="Label" body={(row: Poi, options) => <TextInput value={row.label ?? ''} onChange={(next) => setPois((prev) => prev.map((entry, idx) => (idx === options.rowIndex ? { ...entry, label: next } : entry)))} />} />
-                  <Column
-                    header="Link"
-                    body={(row: Poi, options) => (
-                      <div className="inline-actions">
-                        <LinkPickerButton
-                          token={token}
-                          siteId={siteId}
-                          value={row.link ?? null}
-                          onChange={(next) => setPois((prev) => prev.map((entry, idx) => (idx === options.rowIndex ? { ...entry, link: next } : entry)))}
-                          label="Set link"
+                <DataGrid
+                  data={pois}
+                  columns={[
+                    {
+                      key: 'label',
+                      header: 'Label',
+                      cell: (row, index) => (
+                        <TextInput
+                          value={row.label ?? ''}
+                          onChange={(next) => setPois((prev) => prev.map((entry, idx) => (idx === index ? { ...entry, label: next } : entry)))}
                         />
-                        <Button
-                          text
-                          label="Clear"
-                          onClick={() =>
+                      )
+                    },
+                    {
+                      key: '__link',
+                      header: 'Link',
+                      cell: (row, index) => (
+                        <div className="inline-actions">
+                          <LinkPickerButton
+                            token={token}
+                            siteId={siteId}
+                            value={row.link ?? null}
+                            onChange={(next) => setPois((prev) => prev.map((entry, idx) => (idx === index ? { ...entry, link: next } : entry)))}
+                            label="Set link"
+                          />
+                          <Button
+                            text
+                            label="Clear"
+                            onClick={() =>
+                              setPois((prev) =>
+                                prev.map((entry, idx) => {
+                                  if (idx !== index) {
+                                    return entry;
+                                  }
+                                  const next = { ...entry };
+                                  delete next.link;
+                                  return next;
+                                })
+                              )
+                            }
+                          />
+                        </div>
+                      )
+                    },
+                    {
+                      key: 'visible',
+                      header: 'Visible',
+                      cell: (row, index) => (
+                        <Checkbox
+                          checked={row.visible !== false}
+                          onChange={(next) =>
                             setPois((prev) =>
-                              prev.map((entry, idx) => {
-                                if (idx !== options.rowIndex) {
-                                  return entry;
-                                }
-                                const next = { ...entry };
-                                delete next.link;
-                                return next;
-                              })
+                              prev.map((entry, idx) => (idx === index ? { ...entry, visible: next } : entry))
                             )
                           }
                         />
-                      </div>
-                    )}
-                  />
-                  <Column
-                    header="Visible"
-                    body={(row: Poi, options) => (
-                      <Checkbox
-                        checked={row.visible !== false}
-                        onChange={(next) =>
-                          setPois((prev) =>
-                            prev.map((entry, idx) =>
-                              idx === options.rowIndex ? { ...entry, visible: next } : entry
-                            )
-                          )
-                        }
-                      />
-                    )}
-                  />
-                  <Column
-                    header=""
-                    body={(_row: Poi, options) => (
-                      <Button text severity="danger" label="Delete" onClick={() => setPois((prev) => prev.filter((_, idx) => idx !== options.rowIndex))} />
-                    )}
-                  />
-                </DataTable>
+                      )
+                    },
+                    {
+                      key: '__delete',
+                      header: '',
+                      cell: (_row, index) => (
+                        <Button text severity="danger" label="Delete" onClick={() => setPois((prev) => prev.filter((_, idx) => idx !== index))} />
+                      )
+                    }
+                  ]}
+                />
               </TabItem>
 
               <TabItem header="Metadata">

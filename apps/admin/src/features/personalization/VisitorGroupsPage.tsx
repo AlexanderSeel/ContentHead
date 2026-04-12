@@ -1,7 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
-
 import { Button, Textarea, TextInput } from '../../ui/atoms';
 import type { Rule } from '@contenthead/shared';
 
@@ -10,7 +7,7 @@ import { useAdminContext } from '../../app/AdminContext';
 import { createAdminSdk } from '../../lib/sdk';
 import { RuleEditorDialog } from '../../components/rules/RuleEditorDialog';
 import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
-import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type VisitorGroup = {
   id: number;
@@ -109,16 +106,16 @@ export function VisitorGroupsPage() {
           />
           <WorkspaceBody>
         <div className="paneRoot paneScroll">
-          <DataTable
-            value={rows}
-            size="small"
-            selectionMode="single"
-            selection={selected}
-            onSelectionChange={(event) => setSelected((event.value as VisitorGroup) ?? null)}
-          >
-            <Column field="name" header="Name" />
-            <Column field="id" header="ID" />
-          </DataTable>
+          <DataGrid
+            data={rows}
+            rowKey="id"
+            selectedRow={selected}
+            onRowSelect={(row) => setSelected(row)}
+            columns={[
+              { key: 'name', header: 'Name' },
+              { key: 'id', header: 'ID' }
+            ]}
+          />
           {!selected ? (
             <p className="muted mt-3">Select or create a visitor group.</p>
           ) : (

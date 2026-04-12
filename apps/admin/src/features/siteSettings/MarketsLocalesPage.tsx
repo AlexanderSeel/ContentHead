@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
 import { AutoComplete } from 'primereact/autocomplete';
 
 import { Button, Checkbox, Select, TabItem, Tabs, TextInput } from '../../ui/atoms';
@@ -8,7 +6,7 @@ import { Button, Checkbox, Select, TabItem, Tabs, TextInput } from '../../ui/ato
 import { createAdminSdk } from '../../lib/sdk';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
-import { PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { useUi } from '../../app/UiContext';
 
 type LocaleCatalog = { code: string; name: string; language: string; region: string };
@@ -91,15 +89,19 @@ export function MarketsLocalesPage() {
           <PaneScroll>
             <Tabs>
               <TabItem header="Markets">
-                <DataTable value={markets} size="small">
-                  <Column field="code" header="Code" />
-                  <Column field="name" header="Name" />
-                  <Column field="currency" header="Currency" />
-                  <Column field="timezone" header="Timezone" />
-                  <Column field="active" header="Active" body={(row: Market) => (row.active ? 'Yes' : 'No')} />
-                  <Column field="isDefault" header="Default" body={(row: Market) => (row.isDefault ? 'Yes' : 'No')} />
-                  <Column header="Edit" body={(row: Market) => <Button text label="Edit" onClick={() => setMarketForm(row)} />} />
-                </DataTable>
+                <DataGrid
+                  data={markets}
+                  rowKey="code"
+                  columns={[
+                    { key: 'code', header: 'Code' },
+                    { key: 'name', header: 'Name' },
+                    { key: 'currency', header: 'Currency' },
+                    { key: 'timezone', header: 'Timezone' },
+                    { key: 'active', header: 'Active', cell: (row) => (row.active ? 'Yes' : 'No') },
+                    { key: 'isDefault', header: 'Default', cell: (row) => (row.isDefault ? 'Yes' : 'No') },
+                    { key: '__edit', header: 'Edit', cell: (row) => <Button text label="Edit" onClick={() => setMarketForm(row)} /> }
+                  ]}
+                />
                 <div className="form-grid">
                   <TextInput value={marketForm.code} onChange={(next) => setMarketForm((prev) => ({ ...prev, code: next.toUpperCase() }))} placeholder="Code" />
                   <TextInput value={marketForm.name} onChange={(next) => setMarketForm((prev) => ({ ...prev, name: next }))} placeholder="Name" />
@@ -111,27 +113,32 @@ export function MarketsLocalesPage() {
                 </div>
               </TabItem>
               <TabItem header="Locales">
-                <DataTable value={locales} size="small">
-                  <Column field="code" header="Code" />
-                  <Column field="name" header="Display Name" />
-                  <Column field="fallbackLocaleCode" header="Fallback" />
-                  <Column field="active" header="Active" body={(row: Locale) => (row.active ? 'Yes' : 'No')} />
-                  <Column field="isDefault" header="Default" body={(row: Locale) => (row.isDefault ? 'Yes' : 'No')} />
-                  <Column
-                    header="Edit"
-                    body={(row: Locale) => (
-                      <Button
-                        text
-                        label="Edit"
-                        onClick={() => {
-                          setLocaleForm(row);
-                          setLocaleOverrideName(row.name);
-                          setLocaleOverrideFallback(row.fallbackLocaleCode ?? null);
-                        }}
-                      />
-                    )}
-                  />
-                </DataTable>
+                <DataGrid
+                  data={locales}
+                  rowKey="code"
+                  columns={[
+                    { key: 'code', header: 'Code' },
+                    { key: 'name', header: 'Display Name' },
+                    { key: 'fallbackLocaleCode', header: 'Fallback' },
+                    { key: 'active', header: 'Active', cell: (row) => (row.active ? 'Yes' : 'No') },
+                    { key: 'isDefault', header: 'Default', cell: (row) => (row.isDefault ? 'Yes' : 'No') },
+                    {
+                      key: '__edit',
+                      header: 'Edit',
+                      cell: (row) => (
+                        <Button
+                          text
+                          label="Edit"
+                          onClick={() => {
+                            setLocaleForm(row);
+                            setLocaleOverrideName(row.name);
+                            setLocaleOverrideFallback(row.fallbackLocaleCode ?? null);
+                          }}
+                        />
+                      )
+                    }
+                  ]}
+                />
                 <div className="form-grid">
                   <AutoComplete
                     value={localeForm.code}

@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
-import { DataTable } from 'primereact/datatable';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import { Button, Checkbox, TextInput } from '../../ui/atoms';
@@ -19,7 +17,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadCsv, downloadJson, routeStartsWith } from '../../ui/commands/utils';
-import { PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type Route = { id: number; contentItemId: number; marketCode: string; localeCode: string; slug: string; isCanonical: boolean };
 
@@ -196,38 +194,40 @@ export function RoutesPage() {
           <SplitterPanel size={62} minSize={38}>
             <PaneRoot className="content-card">
               <PaneScroll>
-                <DataTable
-                  value={filteredRoutes}
-                  size="small"
-                  onContextMenu={(event) => {
-                    setSelectedContextRoute(event.data as Route);
-                    window.requestAnimationFrame(() => rowContextMenuRef.current?.show(event.originalEvent));
+                <DataGrid
+                  data={filteredRoutes}
+                  rowKey="id"
+                  onRowContextMenu={(row, event) => {
+                    setSelectedContextRoute(row);
+                    window.requestAnimationFrame(() => rowContextMenuRef.current?.show(event as unknown as React.SyntheticEvent));
                   }}
-                >
-                  <Column field="id" header="ID" />
-                  <Column field="contentItemId" header="Item" />
-                  <Column field="marketCode" header="Market" />
-                  <Column field="localeCode" header="Locale" />
-                  <Column field="slug" header="Slug" />
-                  <Column field="isCanonical" header="Canonical" body={(row: Route) => (row.isCanonical ? 'Yes' : 'No')} />
-                  <Column
-                    header="Actions"
-                    body={(row: Route) => {
-                      const rowContext: RoutesPageRowContext = {
-                        ...baseContext,
-                        row,
-                        editRow: setDraft,
-                        duplicateRow: (entry) => setDraft({ ...entry, id: 0, slug: `${entry.slug}-copy` }),
-                        deleteRow: async (entry) => {
-                          await sdk.deleteRoute({ id: entry.id });
-                          await refresh();
-                          toast({ severity: 'success', summary: `Route #${entry.id} deleted` });
-                        }
-                      };
-                      return <CommandMenuButton commands={commandRegistry.getCommands(rowContext, 'rowOverflow')} context={rowContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />;
-                    }}
-                  />
-                </DataTable>
+                  columns={[
+                    { key: 'id', header: 'ID' },
+                    { key: 'contentItemId', header: 'Item' },
+                    { key: 'marketCode', header: 'Market' },
+                    { key: 'localeCode', header: 'Locale' },
+                    { key: 'slug', header: 'Slug' },
+                    { key: 'isCanonical', header: 'Canonical', cell: (row) => (row.isCanonical ? 'Yes' : 'No') },
+                    {
+                      key: '__actions',
+                      header: 'Actions',
+                      cell: (row) => {
+                        const rowContext: RoutesPageRowContext = {
+                          ...baseContext,
+                          row,
+                          editRow: setDraft,
+                          duplicateRow: (entry) => setDraft({ ...entry, id: 0, slug: `${entry.slug}-copy` }),
+                          deleteRow: async (entry) => {
+                            await sdk.deleteRoute({ id: entry.id });
+                            await refresh();
+                            toast({ severity: 'success', summary: `Route #${entry.id} deleted` });
+                          }
+                        };
+                        return <CommandMenuButton commands={commandRegistry.getCommands(rowContext, 'rowOverflow')} context={rowContext} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />;
+                      }
+                    }
+                  ]}
+                />
               </PaneScroll>
             </PaneRoot>
           </SplitterPanel>

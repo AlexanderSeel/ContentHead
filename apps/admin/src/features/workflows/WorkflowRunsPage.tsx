@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
 import { Accordion, AccordionItem, Button } from '../../ui/atoms';
 
@@ -149,26 +148,25 @@ export function WorkflowRunsPage() {
               <>
                 <ContextMenu ref={contextMenuRef} model={contextItems} />
                 <WorkspaceGrid
-                  value={runs}
-                  tableProps={{
-                    selectionMode: 'single',
-                    selection: selected,
-                    onSelectionChange: (event: any) => setSelected(event.value as WorkflowRun),
-                    onContextMenu: (event: any) => {
-                      setContextRun(event.data as WorkflowRun);
-                      window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
-                    }
+                  data={runs}
+                  rowKey="id"
+                  selectedRow={selected}
+                  onRowSelect={(row) => setSelected(row)}
+                  onRowContextMenu={(row, event) => {
+                    setContextRun(row);
+                    contextMenuRef.current?.show(event as unknown as React.SyntheticEvent);
                   }}
                   rowOverflow={{
                     commandsForRow: (row) => commandRegistry.getCommands(rowContextFor(row), 'rowOverflow'),
                     contextForRow: rowContextFor
                   }}
-                >
-                  <Column field="id" header="Run ID" />
-                  <Column field="definitionId" header="Definition" />
-                  <Column field="status" header="Status" />
-                  <Column field="currentNodeId" header="Current Node" />
-                </WorkspaceGrid>
+                  columns={[
+                    { key: 'id', header: 'Run ID' },
+                    { key: 'definitionId', header: 'Definition' },
+                    { key: 'status', header: 'Status' },
+                    { key: 'currentNodeId', header: 'Current Node' }
+                  ]}
+                />
               </>
             )
           }}

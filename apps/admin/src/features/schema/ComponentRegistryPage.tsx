@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
 import { Button, MultiSelect, Select, Switch, TabItem, Tabs, Tag, Textarea, TextInput } from '../../ui/atoms';
 
 import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
 import { createAdminSdk } from '../../lib/sdk';
 import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
-import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import type { DataGridColumn } from '../../ui/molecules';
 import { JsonSourceEditor } from '../../ui/atoms/JsonSourceEditor';
 import {
   resolveComponentRegistry,
@@ -657,35 +656,37 @@ export function ComponentRegistryPage() {
                       placeholder="Search component types"
                     />
                   </div>
-                  <DataTable
-                    value={filteredRows}
-                    size="small"
-                    paginator
-                    rows={12}
-                    selectionMode="single"
-                    selection={selectedRow}
-                    onSelectionChange={(event) => setSelectedId((event.value as ResolvedComponentRegistryEntry | null)?.id ?? null)}
-                  >
-                    <Column field="id" header="ID" headerClassName="w-12rem" bodyClassName="w-12rem" />
-                    <Column
-                      header="Type"
-                      body={(entry: ResolvedComponentRegistryEntry) => (
-                        <div>
-                          <strong>{entry.label}</strong>
-                          <div className="muted">{entry.description}</div>
-                        </div>
-                      )}
-                    />
-                    <Column field="groupName" header="Group" headerClassName="w-10rem" bodyClassName="w-10rem" />
-                    <Column
-                      header="Status"
-                      body={(entry: ResolvedComponentRegistryEntry) => (
-                        <Tag value={entry.enabled ? 'Enabled' : 'Disabled'} severity={entry.enabled ? 'success' : 'danger'} />
-                      )}
-                      headerClassName="w-8rem"
-                      bodyClassName="w-8rem"
-                    />
-                  </DataTable>
+                  <DataGrid
+                    data={filteredRows}
+                    rowKey="id"
+                    pageSize={12}
+                    selectedRow={selectedRow}
+                    onRowSelect={(row) => setSelectedId(row?.id ?? null)}
+                    columns={[
+                      { key: 'id', header: 'ID', width: '12rem', headerClassName: 'w-12rem', bodyClassName: 'w-12rem' },
+                      {
+                        key: '__type',
+                        header: 'Type',
+                        cell: (entry) => (
+                          <div>
+                            <strong>{entry.label}</strong>
+                            <div className="muted">{entry.description}</div>
+                          </div>
+                        )
+                      },
+                      { key: 'groupName', header: 'Group', width: '10rem', headerClassName: 'w-10rem', bodyClassName: 'w-10rem' },
+                      {
+                        key: '__status',
+                        header: 'Status',
+                        width: '8rem',
+                        headerClassName: 'w-8rem',
+                        bodyClassName: 'w-8rem',
+                        cell: (entry) => (
+                          <Tag value={entry.enabled ? 'Enabled' : 'Disabled'} severity={entry.enabled ? 'success' : 'danger'} />
+                        )
+                      }
+                    ]}
+                  />
                 </div>
                 <div>
                   {!draft ? (
@@ -743,117 +744,107 @@ export function ComponentRegistryPage() {
                             }
                           />
                         </div>
-                        <DataTable value={draft.props} size="small">
-                          <Column
-                            header="#"
-                            body={(_row, options) => (
-                              <div className="inline-actions">
-                                <Button
-                                  text
-                                  icon="pi pi-angle-up"
-                                  size="small"
-                                  onClick={() =>
-                                    setDraft((prev) => {
-                                      if (!prev || options.rowIndex <= 0) {
-                                        return prev;
-                                      }
-                                      const next = [...prev.props];
-                                      const [entry] = next.splice(options.rowIndex, 1);
-                                      if (!entry) {
-                                        return prev;
-                                      }
-                                      next.splice(options.rowIndex - 1, 0, entry);
-                                      return { ...prev, props: next };
-                                    })
-                                  }
-                                />
-                                <Button
-                                  text
-                                  icon="pi pi-angle-down"
-                                  size="small"
-                                  onClick={() =>
-                                    setDraft((prev) => {
-                                      if (!prev || options.rowIndex >= prev.props.length - 1) {
-                                        return prev;
-                                      }
-                                      const next = [...prev.props];
-                                      const [entry] = next.splice(options.rowIndex, 1);
-                                      if (!entry) {
-                                        return prev;
-                                      }
-                                      next.splice(options.rowIndex + 1, 0, entry);
-                                      return { ...prev, props: next };
-                                    })
-                                  }
-                                />
-                              </div>
-                            )}
-                            headerClassName="w-5rem"
-                            bodyClassName="w-5rem"
-                          />
-                          <Column header="Key" body={(row: PropDef, options) => <TextInput value={row.key} onChange={(next) => updateProp(options.rowIndex, { key: next })} />} />
-                          <Column header="Label" body={(row: PropDef, options) => <TextInput value={row.label} onChange={(next) => updateProp(options.rowIndex, { label: next })} />} />
-                          <Column
-                            header="Type"
-                            body={(row: PropDef, options) => (
-                              <Select
-                                value={row.type}
-                                options={PROP_TYPE_OPTIONS}
-                                onChange={(next) => {
-                                  if (!next) return;
-                                  const nextType = next as PropType;
-                                  updateProp(options.rowIndex, {
-                                    type: nextType,
-                                    control: defaultControlForType(nextType)
-                                  });
-                                }}
-                              />
-                            )}
-                          />
-                          <Column header="Required" body={(row: PropDef, options) => <Switch value={row.required} onChange={(next) => updateProp(options.rowIndex, { required: next })} />} />
-                          <Column header="Default" body={(row: PropDef, options) => <TextInput value={row.defaultValue} onChange={(next) => updateProp(options.rowIndex, { defaultValue: next })} />} />
-                          <Column header="Control" body={(row: PropDef, options) => <Select value={row.control} options={CONTROL_OPTIONS} onChange={(next) => next && updateProp(options.rowIndex, { control: next as ControlType })} />} />
-                          <Column
-                            header="Ref Types"
-                            body={(row: PropDef, options) => {
-                              if (row.type !== 'componentRef' && row.type !== 'objectRef' && row.type !== 'objectList') {
-                                return <span className="muted">-</span>;
-                              }
-                              const selected = row.refComponentTypesText
-                                .split(',')
-                                .map((value) => value.trim())
-                                .filter(Boolean);
-                              return (
-                                <MultiSelect
-                                  value={selected}
-                                  options={componentTypeOptions}
+                        <DataGrid<PropDef>
+                          data={draft.props}
+                          columns={[
+                            {
+                              key: '__order',
+                              header: '#',
+                              width: '5rem',
+                              headerClassName: 'w-5rem',
+                              bodyClassName: 'w-5rem',
+                              cell: (_row, index) => (
+                                <div className="inline-actions">
+                                  <Button
+                                    text
+                                    icon="pi pi-angle-up"
+                                    size="small"
+                                    onClick={() =>
+                                      setDraft((prev) => {
+                                        if (!prev || index <= 0) return prev;
+                                        const next = [...prev.props];
+                                        const [entry] = next.splice(index, 1);
+                                        if (!entry) return prev;
+                                        next.splice(index - 1, 0, entry);
+                                        return { ...prev, props: next };
+                                      })
+                                    }
+                                  />
+                                  <Button
+                                    text
+                                    icon="pi pi-angle-down"
+                                    size="small"
+                                    onClick={() =>
+                                      setDraft((prev) => {
+                                        if (!prev || index >= prev.props.length - 1) return prev;
+                                        const next = [...prev.props];
+                                        const [entry] = next.splice(index, 1);
+                                        if (!entry) return prev;
+                                        next.splice(index + 1, 0, entry);
+                                        return { ...prev, props: next };
+                                      })
+                                    }
+                                  />
+                                </div>
+                              )
+                            },
+                            { key: 'key', header: 'Key', cell: (row, index) => <TextInput value={row.key} onChange={(next) => updateProp(index, { key: next })} /> },
+                            { key: 'label', header: 'Label', cell: (row, index) => <TextInput value={row.label} onChange={(next) => updateProp(index, { label: next })} /> },
+                            {
+                              key: 'type',
+                              header: 'Type',
+                              cell: (row, index) => (
+                                <Select
+                                  value={row.type}
+                                  options={PROP_TYPE_OPTIONS}
                                   onChange={(next) => {
-                                    updateProp(options.rowIndex, { refComponentTypesText: (next ?? []).join(', ') });
+                                    if (!next) return;
+                                    const nextType = next as PropType;
+                                    updateProp(index, { type: nextType, control: defaultControlForType(nextType) });
                                   }}
-                                  display="chip"
-                                  filter
-                                  placeholder="Select component types"
-                                  maxSelectedLabels={2}
                                 />
-                              );
-                            }}
-                          />
-                          <Column
-                            header="Actions"
-                            body={(_row, options) => (
-                              <Button
-                                text
-                                severity="danger"
-                                icon="pi pi-trash"
-                                onClick={() =>
-                                  setDraft((prev) => (prev ? { ...prev, props: prev.props.filter((_, index) => index !== options.rowIndex) } : prev))
+                              )
+                            },
+                            { key: 'required', header: 'Required', cell: (row, index) => <Switch value={row.required} onChange={(next) => updateProp(index, { required: next })} /> },
+                            { key: 'defaultValue', header: 'Default', cell: (row, index) => <TextInput value={row.defaultValue} onChange={(next) => updateProp(index, { defaultValue: next })} /> },
+                            { key: 'control', header: 'Control', cell: (row, index) => <Select value={row.control} options={CONTROL_OPTIONS} onChange={(next) => next && updateProp(index, { control: next as ControlType })} /> },
+                            {
+                              key: 'refComponentTypesText',
+                              header: 'Ref Types',
+                              cell: (row, index) => {
+                                if (row.type !== 'componentRef' && row.type !== 'objectRef' && row.type !== 'objectList') {
+                                  return <span className="muted">-</span>;
                                 }
-                              />
-                            )}
-                            headerClassName="w-5rem"
-                            bodyClassName="w-5rem"
-                          />
-                        </DataTable>
+                                const selected = row.refComponentTypesText.split(',').map((v) => v.trim()).filter(Boolean);
+                                return (
+                                  <MultiSelect
+                                    value={selected}
+                                    options={componentTypeOptions}
+                                    onChange={(next) => updateProp(index, { refComponentTypesText: (next ?? []).join(', ') })}
+                                    filter
+                                    placeholder="Select component types"
+                                    maxSelectedLabels={2}
+                                  />
+                                );
+                              }
+                            },
+                            {
+                              key: '__actions',
+                              header: 'Actions',
+                              width: '5rem',
+                              headerClassName: 'w-5rem',
+                              bodyClassName: 'w-5rem',
+                              cell: (_row, index) => (
+                                <Button
+                                  text
+                                  severity="danger"
+                                  icon="pi pi-trash"
+                                  onClick={() => setDraft((prev) => (prev ? { ...prev, props: prev.props.filter((_, i) => i !== index) } : prev))}
+                                />
+                              )
+                            }
+                          ] satisfies DataGridColumn<PropDef>[]}
+                        />
                       </TabItem>
                       <TabItem header="UI">
                         <p className="muted">Control mapping per prop, with typed JSON source editors for nested schemas.</p>

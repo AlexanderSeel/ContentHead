@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import { Button, Checkbox, DialogPanel, MultiSelect, Select, TextInput } from '../../ui/atoms';
@@ -10,7 +8,7 @@ import { useAdminContext } from '../../app/AdminContext';
 import { useAuth } from '../../app/AuthContext';
 import { useUi } from '../../app/UiContext';
 import { createAdminSdk } from '../../lib/sdk';
-import { PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import type { Command, CommandContext } from '../../ui/commands/types';
@@ -496,12 +494,16 @@ export function ContentTypesPage() {
                 <div className="form-row mt-3">
                   <label>Usage</label>
                   {selected?.id ? (
-                    <DataTable value={selectedTypeUsage} size="small" emptyMessage="No content items/routes use this type yet.">
-                      <Column field="contentItemId" header="Item ID" />
-                      <Column field="slug" header="Slug" />
-                      <Column field="marketCode" header="Market" />
-                      <Column field="localeCode" header="Locale" />
-                    </DataTable>
+                    <DataGrid
+                      data={selectedTypeUsage}
+                      emptyMessage="No content items/routes use this type yet."
+                      columns={[
+                        { key: 'contentItemId', header: 'Item ID' },
+                        { key: 'slug', header: 'Slug' },
+                        { key: 'marketCode', header: 'Market' },
+                        { key: 'localeCode', header: 'Locale' }
+                      ]}
+                    />
                   ) : (
                     <p className="muted">Select a content type to view usage.</p>
                   )}

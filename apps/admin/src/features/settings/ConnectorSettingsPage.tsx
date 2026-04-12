@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import { Accordion, AccordionItem, Button, Checkbox, Select, Tag, Textarea, TextInput } from '../../ui/atoms';
@@ -10,7 +8,7 @@ import { createAdminSdk } from '../../lib/sdk';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
-import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type ConnectorDomain = 'auth' | 'db' | 'dam' | 'ai';
 
@@ -253,22 +251,21 @@ export function ConnectorSettingsPage({ domain }: { domain: ConnectorDomain }) {
           <SplitterPanel size={40} minSize={28}>
             <div className="paneRoot">
               <div className="paneScroll">
-                <DataTable
-                  value={rows}
-                  size="small"
-                  selectionMode="single"
-                  selection={selected}
-                  onSelectionChange={(event) => {
-                    const next = (event.value as ConnectorRow) ?? null;
+                <DataGrid
+                  data={rows}
+                  rowKey="name"
+                  selectedRow={selected}
+                  onRowSelect={(next) => {
                     setSelected(next);
                     setSelectedBaseline(next ? { ...next } : null);
                   }}
-                >
-                  <Column field="name" header="Name" />
-                  <Column field="type" header="Type" />
-                  <Column field="enabled" header="Enabled" body={(row: ConnectorRow) => (row.enabled ? 'Yes' : 'No')} />
-                  <Column field="isDefault" header="Default" body={(row: ConnectorRow) => (row.isDefault ? 'Yes' : 'No')} />
-                </DataTable>
+                  columns={[
+                    { key: 'name', header: 'Name' },
+                    { key: 'type', header: 'Type' },
+                    { key: 'enabled', header: 'Enabled', cell: (row) => (row.enabled ? 'Yes' : 'No') },
+                    { key: 'isDefault', header: 'Default', cell: (row) => (row.isDefault ? 'Yes' : 'No') }
+                  ]}
+                />
               </div>
             </div>
           </SplitterPanel>

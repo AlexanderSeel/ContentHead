@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Chips } from 'primereact/chips';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
 
 import { Button, Checkbox, DialogPanel, NumberInput, Select, Textarea, TextInput } from '../../../ui/atoms';
 
@@ -17,6 +15,8 @@ import { ContentLinkEditor, ContentLinkListEditor } from '../fieldRenderers/Cont
 import { AssetListEditor, AssetRefEditor } from '../fieldRenderers/AssetEditors';
 import { RichTextEditor } from '../fieldRenderers/RichTextEditor';
 import { JsonSourceEditor } from '../../../ui/atoms/JsonSourceEditor';
+import { DataGrid } from '../../../ui/molecules';
+import type { DataGridColumn } from '../../../ui/molecules';
 
 type ComponentRecord = {
   id: string;
@@ -220,56 +220,61 @@ export function ComponentInspector({
         <div className="inline-actions">
           <Button label="Add item" onClick={() => setEditingIndex(items.length)} />
         </div>
-        <DataTable value={items} size="small" className="cms-object-list-table">
-          {fields.length > 0 ? (
-            fields.slice(0, 2).map((field) => (
-              <Column
-                key={field.key}
-                header={field.label}
-                body={(row: Record<string, unknown>) => {
-                  const summary = renderFieldSummary(field, row[field.key]);
-                  return <span className="cms-cell-ellipsis" title={summary}>{summary}</span>;
-                }}
-              />
-            ))
-          ) : (
-            <Column
-              header="Item"
-              body={(row: Record<string, unknown>) => {
-                try {
-                  return JSON.stringify(row);
-                } catch {
-                  return '[object]';
-                }
-              }}
-            />
-          )}
-          <Column
-            header="Order"
-            style={{ width: '5.5rem' }}
-            body={(_row: Record<string, unknown>, options) => (
-              <div className="inline-actions">
-                <Button text icon="pi pi-angle-up" onClick={() => move(options.rowIndex, -1)} />
-                <Button text icon="pi pi-angle-down" onClick={() => move(options.rowIndex, 1)} />
-              </div>
-            )}
-          />
-          <Column
-            header="Actions"
-            style={{ width: '7.5rem' }}
-            body={(_row: Record<string, unknown>, options) => (
-              <div className="inline-actions">
-                <Button text label="Edit" onClick={() => setEditingIndex(options.rowIndex)} />
-                <Button
-                  text
-                  severity="danger"
-                  label="Remove"
-                  onClick={() => onChangeValue(items.filter((_, idx) => idx !== options.rowIndex))}
-                />
-              </div>
-            )}
-          />
-        </DataTable>
+        <DataGrid
+          data={items}
+          className="cms-object-list-table"
+          columns={[
+            ...(fields.length > 0
+              ? fields.slice(0, 2).map<DataGridColumn<Record<string, unknown>>>((field) => ({
+                  key: field.key,
+                  header: field.label,
+                  cell: (row) => {
+                    const summary = renderFieldSummary(field, row[field.key]);
+                    return <span className="cms-cell-ellipsis" title={summary}>{summary}</span>;
+                  }
+                }))
+              : [
+                  {
+                    key: '__item',
+                    header: 'Item',
+                    cell: (row) => {
+                      try {
+                        return JSON.stringify(row);
+                      } catch {
+                        return '[object]';
+                      }
+                    }
+                  } satisfies DataGridColumn<Record<string, unknown>>
+                ]),
+            {
+              key: '__order',
+              header: 'Order',
+              width: '5.5rem',
+              cell: (_row, index) => (
+                <div className="inline-actions">
+                  <Button text icon="pi pi-angle-up" onClick={() => move(index, -1)} />
+                  <Button text icon="pi pi-angle-down" onClick={() => move(index, 1)} />
+                </div>
+              )
+            },
+            {
+              key: '__actions',
+              header: 'Actions',
+              width: '7.5rem',
+              cell: (_row, index) => (
+                <div className="inline-actions">
+                  <Button text label="Edit" onClick={() => setEditingIndex(index)} />
+                  <Button
+                    text
+                    severity="danger"
+                    label="Remove"
+                    onClick={() => onChangeValue(items.filter((_, idx) => idx !== index))}
+                  />
+                </div>
+              )
+            }
+          ]}
+        />
 
         <DialogPanel
           header="Edit item"

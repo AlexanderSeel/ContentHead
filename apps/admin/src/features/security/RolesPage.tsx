@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Column } from 'primereact/column';
 
 import { Button, MultiSelect, Tag, Textarea, TextInput } from '../../ui/atoms';
 
@@ -106,16 +105,15 @@ export function RolesPage() {
                 collapsible: true,
                 content: (
                   <WorkspaceGrid
-                    value={roles}
-                    tableProps={{
-                      selectionMode: 'single',
-                      selection: selected,
-                      onSelectionChange: (event: any) => setSelected((event.value as RoleRow) ?? null)
-                    }}
-                  >
-                    <Column field="name" header="Role" />
-                    <Column field="permissions" header="Permissions" body={(row: RoleRow) => row.permissions.join(', ')} />
-                  </WorkspaceGrid>
+                    data={roles}
+                    rowKey="id"
+                    selectedRow={selected}
+                    onRowSelect={(row) => setSelected(row)}
+                    columns={[
+                      { key: 'name', header: 'Role' },
+                      { key: 'permissions', header: 'Permissions', cell: (row) => row.permissions.join(', ') }
+                    ]}
+                  />
                 )
               }}
               center={{

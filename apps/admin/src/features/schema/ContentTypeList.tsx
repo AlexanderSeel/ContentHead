@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
 
 import { Button, TextInput } from '../../ui/atoms';
+import { DataGrid } from '../../ui/molecules';
 
 export type CTypeListItem = {
   id: number;
@@ -42,21 +41,16 @@ export function ContentTypeList({
         <TextInput value={search} onChange={(next) => setSearch(next)} placeholder="Search types" />
         <Button label="Create" onClick={onCreate} />
       </div>
-      <DataTable
-        value={filtered}
-        size="small"
-        selectionMode="single"
-        selection={selected}
-        onSelectionChange={(event) => {
-          const next = event.value as CTypeListItem | null;
-          if (next) {
-            onSelect(next);
-          }
-        }}
-      >
-        <Column field="id" header="ID" headerClassName="w-5rem" bodyClassName="w-5rem" />
-        <Column field="name" header="Name" />
-      </DataTable>
+      <DataGrid
+        data={filtered}
+        rowKey="id"
+        selectedRow={selected}
+        onRowSelect={(row) => { if (row) onSelect(row); }}
+        columns={[
+          { key: 'id', header: 'ID', width: '5rem', headerClassName: 'w-5rem', bodyClassName: 'w-5rem' },
+          { key: 'name', header: 'Name' }
+        ]}
+      />
     </div>
   );
 }

@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
 
 import { useAuth } from '../../app/AuthContext';
@@ -22,7 +20,7 @@ import {
   type ComponentRecord
 } from './builder/visualBuilderModel';
 import { VisualBuilderWorkspace } from './builder/VisualBuilderWorkspace';
-import { ForbiddenState, InspectorSection, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, ForbiddenState, InspectorSection, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { Button, TextInput } from '../../ui/atoms';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
@@ -337,25 +335,26 @@ export function TemplatesPage() {
       ) : (
         <>
           <ContextMenu ref={contextMenuRef} model={contextItems} />
-          <DataTable
-            value={templates}
-        size="small"
-        selectionMode="single"
-        selection={draft.id ? draft : null}
-        onSelectionChange={(event) => setDraft((event.value as Template) ?? DEFAULT_TEMPLATE)}
-        onContextMenu={(event) => {
-          setContextTemplate(event.data as Template);
-          window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
-        }}
-      >
-        <Column field="id" header="ID" />
-        <Column field="name" header="Name" />
-        <Column field="updatedAt" header="Updated" />
-        <Column
-          header="Actions"
-          body={(row: Template) => <CommandMenuButton commands={commandRegistry.getCommands(rowContextFor(row), 'rowOverflow')} context={rowContextFor(row)} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />}
-        />
-      </DataTable>
+          <DataGrid
+            data={templates}
+            rowKey="id"
+            selectedRow={draft.id ? draft : null}
+            onRowSelect={(row) => setDraft(row ?? DEFAULT_TEMPLATE)}
+            onRowContextMenu={(row, event) => {
+              setContextTemplate(row);
+              window.requestAnimationFrame(() => contextMenuRef.current?.show(event as unknown as React.SyntheticEvent));
+            }}
+            columns={[
+              { key: 'id', header: 'ID' },
+              { key: 'name', header: 'Name' },
+              { key: 'updatedAt', header: 'Updated' },
+              {
+                key: '__actions',
+                header: 'Actions',
+                cell: (row) => <CommandMenuButton commands={commandRegistry.getCommands(rowContextFor(row), 'rowOverflow')} context={rowContextFor(row)} buttonLabel="" buttonIcon="pi pi-ellipsis-h" text />
+              }
+            ]}
+          />
 
       <div className="mt-3">
         <VisualBuilderWorkspace

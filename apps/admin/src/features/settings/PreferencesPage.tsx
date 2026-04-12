@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
 import { Slider } from 'primereact/slider';
 
 import { Button, Select, Tag } from '../../ui/atoms';
 
 import { useUi } from '../../app/UiContext';
 import { getLayoutStorageOverview, resetAllLayoutStorage, resetLayoutStorageKey, type LayoutStorageEntry } from '../../lib/layoutSettings';
-import { WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 export function PreferencesPage() {
   const { theme, themes, setTheme, scale, setScale, confirm, toast } = useUi();
@@ -88,30 +86,37 @@ export function PreferencesPage() {
             </div>
           </div>
 
-          <DataTable value={layoutEntries} size="small" dataKey="storageKey" emptyMessage="No layout settings found.">
-            <Column field="section" header="Section" />
-            <Column field="summary" header="State" />
-            <Column
-              header="Status"
-              body={(entry: LayoutStorageEntry) => (
-                <Tag value={entry.exists ? 'Customized' : 'Default'} severity={entry.exists ? 'info' : 'success'} />
-              )}
-              style={{ width: '9rem' }}
-            />
-            <Column
-              header="Actions"
-              body={(entry: LayoutStorageEntry) => (
-                <Button
-                  label="Reset"
-                  text
-                  severity="danger"
-                  onClick={() => void resetLayout(entry)}
-                  disabled={!entry.exists}
-                />
-              )}
-              style={{ width: '7rem' }}
-            />
-          </DataTable>
+          <DataGrid
+            data={layoutEntries}
+            rowKey="storageKey"
+            emptyMessage="No layout settings found."
+            columns={[
+              { key: 'section', header: 'Section' },
+              { key: 'summary', header: 'State' },
+              {
+                key: 'exists',
+                header: 'Status',
+                width: '9rem',
+                cell: (entry) => (
+                  <Tag value={entry.exists ? 'Customized' : 'Default'} severity={entry.exists ? 'info' : 'success'} />
+                )
+              },
+              {
+                key: '__actions',
+                header: 'Actions',
+                width: '7rem',
+                cell: (entry) => (
+                  <Button
+                    label="Reset"
+                    text
+                    severity="danger"
+                    onClick={() => void resetLayout(entry)}
+                    disabled={!entry.exists}
+                  />
+                )
+              }
+            ]}
+          />
           <small className="muted mt-2">Reset takes effect the next time you open the related section.</small>
         </section>
       </WorkspaceBody>

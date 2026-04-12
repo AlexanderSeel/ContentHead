@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
-
 import { Button, Select, TextInput } from '../../../ui/atoms';
+import { DataGrid } from '../../../ui/molecules';
 
 import { type ContentLinkValue } from './LinkSelectorDialog';
 import { LinkPickerButton } from '../../../ui/atoms';
@@ -76,29 +74,34 @@ export function ContentLinkListEditor({
       <div className="inline-actions">
         <Button label="Add Link" onClick={() => setEditingIndex(value.length)} />
       </div>
-      <DataTable value={value} size="small">
-        <Column field="kind" header="Kind" />
-        <Column field="url" header="URL" body={(row: ContentLinkValue) => row.url ?? `#${row.contentItemId ?? ''}`} />
-        <Column field="text" header="Text" />
-        <Column
-          header="Order"
-          body={(_row: ContentLinkValue, options) => (
-            <div className="inline-actions">
-              <Button text icon="pi pi-angle-up" onClick={() => move(options.rowIndex, -1)} />
-              <Button text icon="pi pi-angle-down" onClick={() => move(options.rowIndex, 1)} />
-            </div>
-          )}
-        />
-        <Column
-          header="Actions"
-          body={(_row: ContentLinkValue, options) => (
-            <div className="inline-actions">
-              <Button text label="Edit" onClick={() => setEditingIndex(options.rowIndex)} />
-              <Button text severity="danger" label="Remove" onClick={() => onChange(value.filter((_, idx) => idx !== options.rowIndex))} />
-            </div>
-          )}
-        />
-      </DataTable>
+      <DataGrid
+        data={value}
+        columns={[
+          { key: 'kind', header: 'Kind' },
+          { key: 'url', header: 'URL', cell: (row) => row.url ?? `#${row.contentItemId ?? ''}` },
+          { key: 'text', header: 'Text' },
+          {
+            key: '__order',
+            header: 'Order',
+            cell: (_row, index) => (
+              <div className="inline-actions">
+                <Button text icon="pi pi-angle-up" onClick={() => move(index, -1)} />
+                <Button text icon="pi pi-angle-down" onClick={() => move(index, 1)} />
+              </div>
+            )
+          },
+          {
+            key: '__actions',
+            header: 'Actions',
+            cell: (_row, index) => (
+              <div className="inline-actions">
+                <Button text label="Edit" onClick={() => setEditingIndex(index)} />
+                <Button text severity="danger" label="Remove" onClick={() => onChange(value.filter((_, idx) => idx !== index))} />
+              </div>
+            )
+          }
+        ]}
+      />
 
       {editingIndex != null ? (
         <div className="inline-actions">

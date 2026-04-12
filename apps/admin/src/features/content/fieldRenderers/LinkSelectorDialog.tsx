@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
 
 import { Button, Checkbox, DialogPanel, TabItem, Tabs, TextInput } from '../../../ui/atoms';
+import { DataGrid } from '../../../ui/molecules';
 
 import { createAdminSdk } from '../../../lib/sdk';
 
@@ -72,34 +71,38 @@ export function LinkSelectorDialog({
             <label>Find route</label>
             <TextInput value={query} onChange={(next) => setQuery(next)} placeholder="slug or content item id" />
           </div>
-          <DataTable value={filtered} size="small">
-            <Column field="contentItemId" header="Item" />
-            <Column field="slug" header="Slug" />
-            <Column field="marketCode" header="Market" />
-            <Column field="localeCode" header="Locale" />
-            <Column
-              header="Select"
-              body={(row: RouteRow) => (
-                <Button
-                  text
-                  label="Use"
-                  onClick={() => {
-                    const hash = anchor.trim() ? `#${anchor.trim().replace(/^#/, '')}` : '';
-                    onApply({
-                      kind: 'internal',
-                      contentItemId: row.contentItemId,
-                      routeSlug: row.slug,
-                      url: `/${row.slug}${hash}`,
-                      ...(anchor.trim() ? { anchor: anchor.trim() } : {}),
-                      ...(linkText.trim() ? { text: linkText.trim() } : {}),
-                      target: '_self'
-                    });
-                    onHide();
-                  }}
-                />
-              )}
-            />
-          </DataTable>
+          <DataGrid
+            data={filtered}
+            columns={[
+              { key: 'contentItemId', header: 'Item' },
+              { key: 'slug', header: 'Slug' },
+              { key: 'marketCode', header: 'Market' },
+              { key: 'localeCode', header: 'Locale' },
+              {
+                key: '__select',
+                header: 'Select',
+                cell: (row) => (
+                  <Button
+                    text
+                    label="Use"
+                    onClick={() => {
+                      const hash = anchor.trim() ? `#${anchor.trim().replace(/^#/, '')}` : '';
+                      onApply({
+                        kind: 'internal',
+                        contentItemId: row.contentItemId,
+                        routeSlug: row.slug,
+                        url: `/${row.slug}${hash}`,
+                        ...(anchor.trim() ? { anchor: anchor.trim() } : {}),
+                        ...(linkText.trim() ? { text: linkText.trim() } : {}),
+                        target: '_self'
+                      });
+                      onHide();
+                    }}
+                  />
+                )
+              }
+            ]}
+          />
           <div className="form-grid mt-3">
             <div className="form-row">
               <label>Link text (optional)</label>

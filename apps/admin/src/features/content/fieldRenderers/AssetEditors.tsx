@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
-
 import { Button, Checkbox, NumberInput, Select } from '../../../ui/atoms';
+import { DataGrid } from '../../../ui/molecules';
 
 import { createAdminSdk } from '../../../lib/sdk';
 import { getApiBaseUrl } from '../../../lib/api';
@@ -210,25 +208,31 @@ export function AssetListEditor({
           label="Add assets"
         />
       </div>
-      <DataTable value={value.map((id) => ({ id }))} size="small">
-        <Column header="Preview" body={(row: { id: number }) => <AssetPreview id={row.id} />} />
-        <Column field="id" header="Asset ID" />
-        <Column
-          header="Order"
-          body={(row: { id: number }, options) => (
-            <div className="inline-actions">
-              <Button text icon="pi pi-angle-up" onClick={() => move(options.rowIndex, -1)} />
-              <Button text icon="pi pi-angle-down" onClick={() => move(options.rowIndex, 1)} />
-            </div>
-          )}
-        />
-        <Column
-          header="Actions"
-          body={(row: { id: number }) => (
-            <Button text severity="danger" label="Remove" onClick={() => onChange(value.filter((id) => id !== row.id))} />
-          )}
-        />
-      </DataTable>
+      <DataGrid
+        data={value.map((id) => ({ id }))}
+        rowKey="id"
+        columns={[
+          { key: 'preview', header: 'Preview', cell: (row) => <AssetPreview id={row.id} /> },
+          { key: 'id', header: 'Asset ID' },
+          {
+            key: '__order',
+            header: 'Order',
+            cell: (_row, index) => (
+              <div className="inline-actions">
+                <Button text icon="pi pi-angle-up" onClick={() => move(index, -1)} />
+                <Button text icon="pi pi-angle-down" onClick={() => move(index, 1)} />
+              </div>
+            )
+          },
+          {
+            key: '__actions',
+            header: 'Actions',
+            cell: (row) => (
+              <Button text severity="danger" label="Remove" onClick={() => onChange(value.filter((id) => id !== row.id))} />
+            )
+          }
+        ]}
+      />
     </div>
   );
 }

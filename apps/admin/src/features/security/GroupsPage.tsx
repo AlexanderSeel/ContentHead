@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
 
 import { Button, Textarea, TextInput } from '../../ui/atoms';
 
 import { useAuth } from '../../app/AuthContext';
 import { createAdminSdk } from '../../lib/sdk';
 import { formatErrorMessage, isForbiddenError } from '../../lib/graphqlErrorUi';
-import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 
 type GroupRow = {
   id: number;
@@ -90,16 +88,16 @@ export function GroupsPage() {
           />
           <WorkspaceBody>
             <div className="paneRoot paneScroll">
-              <DataTable
-                value={rows}
-                size="small"
-                selectionMode="single"
-                selection={selected}
-                onSelectionChange={(event) => setSelected((event.value as GroupRow) ?? null)}
-              >
-                <Column field="name" header="Group" />
-                <Column field="description" header="Description" />
-              </DataTable>
+              <DataGrid
+                data={rows}
+                rowKey="id"
+                selectedRow={selected}
+                onRowSelect={(row) => setSelected(row)}
+                columns={[
+                  { key: 'name', header: 'Group' },
+                  { key: 'description', header: 'Description' }
+                ]}
+              />
               {selected ? (
                 <div className="form-row mt-3">
                   <label>Name</label>

@@ -1,8 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
 import type { ReactNode, SyntheticEvent } from 'react';
 import { ContextMenu } from 'primereact/contextmenu';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  useReactTable
+} from '@tanstack/react-table';
 
 import { CommandMenuButton } from '../commands/CommandMenuButton';
 import { toTieredMenuItems } from '../commands/menuModel';
@@ -43,57 +47,107 @@ export function EntityTable<T extends Record<string, unknown>>({
     });
   }, [rowCommands, contextRow, commandContext]);
 
-  const tableProps = {
-    value,
-    size,
-    ...(rowKey ? { dataKey: rowKey } : {}),
-    ...(rowCommands
-      ? {
-          onContextMenu: (event: { data: unknown; originalEvent: SyntheticEvent }) => {
-            const row = event.data as T;
-            setContextRow(row);
-            contextMenuRef.current?.show(event.originalEvent);
-          }
-        }
-      : {})
+  const helper = createColumnHelper<T>();
+
+  const colDefs = useMemo(() => {
+    const defs = columns.map((col) =>
+      helper.display({
+        id: col.key,
+        header: col.header,
+        cell: col.body
+          ? ({ row }) => col.body!(row.original)
+          : ({ row }) => String(row.original[col.key] ?? '')
+      })
+    );
+
+    if (rowCommands) {
+      defs.push(
+        helper.display({
+          id: '__rowActions',
+          header: 'Actions',
+          cell: ({ row }) => (
+            <div className="entity-row-actions">
+              <CommandMenuButton
+                commands={rowCommands(row.original)}
+                context={{
+                  route: commandContext?.route ?? '',
+                  ...commandContext,
+                  row: row.original
+                }}
+                buttonLabel=""
+                buttonIcon="pi pi-ellipsis-h"
+                text
+                size="small"
+              />
+            </div>
+          ),
+          meta: { bodyStyle: { width: '3rem', textAlign: 'left' } }
+        })
+      );
+    }
+
+    return defs;
+  }, [columns, rowCommands, commandContext, helper]);
+
+  const tableOptions = {
+    data: value,
+    columns: colDefs,
+    getCoreRowModel: getCoreRowModel(),
+    ...(rowKey ? { getRowId: (row: T) => String(row[rowKey]) } : {})
   };
+  const table = useReactTable(tableOptions);
+
+  const sizeClass = size === 'small' ? 'p-datatable-sm' : '';
 
   return (
     <>
       <ContextMenu ref={contextMenuRef} model={contextMenuItems} />
-      <DataTable {...tableProps}>
-        {columns.map((column) => (
-          <Column
-            key={column.key}
-            field={column.body ? undefined : column.key}
-            header={column.header}
-            body={column.body ? (row) => column.body?.(row as T) : undefined}
-          />
-        ))}
-        {rowCommands ? (
-          <Column
-            key="__rowActions"
-            header="Actions"
-            body={(row) => (
-              <div className="entity-row-actions">
-                <CommandMenuButton
-                  commands={rowCommands(row as T)}
-                  context={{
-                    route: commandContext?.route ?? '',
-                    ...commandContext,
-                    row: row as T
-                  }}
-                  buttonLabel=""
-                  buttonIcon="pi pi-ellipsis-h"
-                  text
-                  size="small"
-                />
-              </div>
-            )}
-            bodyStyle={{ width: '3rem', textAlign: 'left' }}
-          />
-        ) : null}
-      </DataTable>
+      <div className={`p-datatable p-component ${sizeClass}`}>
+        <div className="p-datatable-wrapper">
+          <table role="table">
+            <thead className="p-datatable-thead">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th key={header.id}>
+                      <div className="p-column-header-content">
+                        <span className="p-column-title">
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                        </span>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody className="p-datatable-tbody">
+              {table.getRowModel().rows.map((row, i) => (
+                <tr
+                  key={row.id}
+                  className={i % 2 === 0 ? 'p-row-even' : 'p-row-odd'}
+                  onContextMenu={
+                    rowCommands
+                      ? (event: SyntheticEvent) => {
+                          setContextRow(row.original);
+                          contextMenuRef.current?.show(event as unknown as SyntheticEvent);
+                        }
+                      : undefined
+                  }
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      style={(cell.column.columnDef.meta as any)?.bodyStyle}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </>
   );
 }

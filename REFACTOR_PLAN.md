@@ -244,38 +244,38 @@
 
 ## Phase 8 — Replace DataTable → TanStack Table
 
-> ~25 files affected. Highest risk phase. Plan separately before starting.
+> **Status: MOSTLY COMPLETE** — 5 complex files deferred to Phase 8B (multi-select, server-side pagination, DnD reorder, resizable columns)
 
-- [ ] Install `@tanstack/react-table`
-- [ ] Create `ui/molecules/DataGrid.tsx` wrapping TanStack Table (replaces `EntityTable`)
-- [ ] Migrate `EntityTable.tsx` → `DataGrid.tsx` API
-- [ ] Migrate each feature page DataTable usage, one file at a time:
-  - [ ] `features/security/GroupsPage.tsx`
-  - [ ] `features/security/RolesPage.tsx`
-  - [ ] `features/schema/ContentTypeList.tsx`
-  - [ ] `features/schema/FieldList.tsx`
-  - [ ] `features/schema/ComponentRegistryPage.tsx`
-  - [ ] `features/settings/ConnectorSettingsPage.tsx`
-  - [ ] `features/settings/DbAdminPage.tsx`
-  - [ ] `features/settings/PreferencesPage.tsx`
-  - [ ] `features/forms/FormSubmissionsPage.tsx`
-  - [ ] `features/personalization/VisitorGroupsPage.tsx`
-  - [ ] `features/personalization/VariantsPage.tsx`
-  - [ ] `features/devtools/DiagnosticsPage.tsx`
-  - [ ] `features/workflows/WorkflowRunsPage.tsx`
-  - [ ] `features/content/RoutesPage.tsx`
-  - [ ] `features/content/TemplatesPage.tsx`
-  - [ ] `features/content/fieldRenderers/AssetEditors.tsx`
-  - [ ] `features/content/fieldRenderers/ContentLinkEditors.tsx`
-  - [ ] `features/content/fieldRenderers/LinkSelectorDialog.tsx`
-  - [ ] `features/content/components/ComponentInspector.tsx`
-  - [ ] `components/inputs/AssetPickerDialog.tsx`
-  - [ ] `features/assets/AssetLibraryPage.tsx`
-  - [ ] `features/assets/AssetImageEditorDialog.tsx`
-  - [ ] `features/content/ContentPagesPage.tsx` ⚠️ largest file
-  - [ ] `features/FormBuilderSection.tsx`
-  - [ ] `features/siteSettings/MarketsLocalesPage.tsx`
-  - [ ] `features/schema/ContentTypesPage.tsx`
+- [x] Install `@tanstack/react-table`
+- [x] Create `ui/molecules/DataGrid.tsx` wrapping TanStack Table (replaces `EntityTable`)
+- [x] Migrate `EntityTable.tsx` → `DataGrid.tsx` API
+- [x] Migrate each feature page DataTable usage, one file at a time:
+  - [x] `features/security/GroupsPage.tsx`
+  - [x] `features/security/RolesPage.tsx`
+  - [x] `features/schema/ContentTypeList.tsx`
+  - [ ] `features/schema/FieldList.tsx` ⚠️ **Phase 8B** — `reorderableRows` needs DnD library (`@dnd-kit`)
+  - [x] `features/schema/ComponentRegistryPage.tsx` (uses `pageSize` pagination)
+  - [x] `features/settings/ConnectorSettingsPage.tsx`
+  - [ ] `features/settings/DbAdminPage.tsx` ⚠️ **Phase 8B** — lazy server-side pagination, multi-select, resizable columns, sort
+  - [x] `features/settings/PreferencesPage.tsx`
+  - [ ] `features/forms/FormSubmissionsPage.tsx` ⚠️ **Phase 8B** — server-side pagination, row groups, expandable rows, ContextMenu
+  - [x] `features/personalization/VisitorGroupsPage.tsx`
+  - [x] `features/personalization/VariantsPage.tsx`
+  - [x] `features/devtools/DiagnosticsPage.tsx`
+  - [x] `features/workflows/WorkflowRunsPage.tsx`
+  - [x] `features/content/RoutesPage.tsx`
+  - [x] `features/content/TemplatesPage.tsx`
+  - [x] `features/content/fieldRenderers/AssetEditors.tsx`
+  - [x] `features/content/fieldRenderers/ContentLinkEditors.tsx`
+  - [x] `features/content/fieldRenderers/LinkSelectorDialog.tsx`
+  - [x] `features/content/components/ComponentInspector.tsx`
+  - [ ] `components/inputs/AssetPickerDialog.tsx` ⚠️ **Phase 8B** — multi-select (checkbox), Tree component (Phase 9)
+  - [ ] `features/assets/AssetLibraryPage.tsx` ⚠️ **Phase 8B** — complex WorkspaceGrid legacy mode, multi-select, ContextMenu
+  - [x] `features/assets/AssetImageEditorDialog.tsx`
+  - [x] `features/content/ContentPagesPage.tsx` ⚠️ largest file
+  - [x] `features/FormBuilderSection.tsx`
+  - [x] `features/siteSettings/MarketsLocalesPage.tsx`
+  - [x] `features/schema/ContentTypesPage.tsx`
 
 ---
 
@@ -341,6 +341,12 @@
 
 ## Session Resume Notes
 
-- Last completed: **Phases 1–6** (Card/DialogPanel/Tabs/Accordion/Tooltip/Toast/AlertDialog all swapped; zero PrimeReact in UiContext or these atoms)
-- Next session entry point: **Phase 7** — Radix swap for Select/MultiSelect
-- To verify progress: `grep -rl "from 'primereact/" apps/admin/src --include="*.tsx" --include="*.ts" | grep -v "ui/atoms\|ui/molecules\|ui/commands\|UiContext\|main.tsx"`
+- Last completed: **Phases 1–8** (Phases 1–7 complete; Phase 8 mostly complete — 21/26 files migrated)
+- Next session entry point: **Phase 9** — replace Splitter, ContextMenu, AutoComplete, Chips, Slider, FileUpload, ProgressBar, Tree
+- **Phase 8B deferred files** (complex DataTable features not yet in DataGrid):
+  - `features/schema/FieldList.tsx` — `reorderableRows` (needs `@dnd-kit`)
+  - `features/settings/DbAdminPage.tsx` — lazy server-side pagination, multi-select, resizable columns
+  - `features/forms/FormSubmissionsPage.tsx` — server-side pagination, row groups, expandable rows
+  - `components/inputs/AssetPickerDialog.tsx` — multi-select checkbox, Tree (Phase 9)
+  - `features/assets/AssetLibraryPage.tsx` — multi-select, ContextMenu (Phase 9)
+- To verify progress: `grep -rl "from 'primereact/datatable'\|from 'primereact/column'" apps/admin/src --include="*.tsx" | grep -v "ui/molecules"`

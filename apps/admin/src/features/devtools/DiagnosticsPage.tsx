@@ -1,5 +1,3 @@
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Accordion, AccordionItem, Button, Card, NumberInput, Select, Switch, TabItem, Tabs, TextInput } from '../../ui/atoms';
@@ -17,7 +15,7 @@ import {
 import { useGraphqlDiagnostics } from '../../lib/graphqlReliability';
 import { createAdminSdk } from '../../lib/sdk';
 import { readCssVar } from '../../theme/themeManager';
-import { ForbiddenState, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, ForbiddenState, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { usePreviewDiagnostics } from '../content/previewDiagnostics';
 
 const LEVEL_OPTIONS: Array<{ label: string; value: 'all' | IssueLevel }> = [
@@ -223,27 +221,21 @@ export function DiagnosticsPage() {
                     />
                   </div>
                 </div>
-                <DataTable
-                  value={filteredIssues}
-                  dataKey="id"
-                  size="small"
-                  selectionMode="single"
-                  selection={selectedIssue}
-                  onSelectionChange={(event) => setSelectedIssue((event.value as IssueEntry) ?? null)}
-                  scrollable
+                <DataGrid
+                  data={filteredIssues}
+                  rowKey="id"
+                  selectedRow={selectedIssue}
+                  onRowSelect={(row) => setSelectedIssue(row)}
                   scrollHeight="320px"
-                >
-                  <Column
-                    field="ts"
-                    header="ts"
-                    body={(entry: IssueEntry) => new Date(entry.ts).toLocaleString()}
-                  />
-                  <Column field="level" header="level" />
-                  <Column field="source" header="source" />
-                  <Column field="route" header="route" />
-                  <Column field="title" header="title" />
-                  <Column field="count" header="count" />
-                </DataTable>
+                  columns={[
+                    { key: 'ts', header: 'ts', cell: (entry) => new Date(entry.ts).toLocaleString() },
+                    { key: 'level', header: 'level' },
+                    { key: 'source', header: 'source' },
+                    { key: 'route', header: 'route' },
+                    { key: 'title', header: 'title' },
+                    { key: 'count', header: 'count' }
+                  ]}
+                />
               </Card>
 
               <Card title="Issue details">

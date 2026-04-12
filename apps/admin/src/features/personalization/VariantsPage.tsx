@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import { Button, Select, Textarea, TextInput } from '../../ui/atoms';
 import type { Rule } from '@contenthead/shared';
 
 import { createAdminSdk } from '../../lib/sdk';
-import { PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
+import { DataGrid, PaneRoot, PaneScroll, WorkspaceActionBar, WorkspaceBody, WorkspaceHeader, WorkspacePage } from '../../ui/molecules';
 import { useAuth } from '../../app/AuthContext';
 import { useAdminContext } from '../../app/AdminContext';
 import { RuleEditorDialog } from '../../components/rules/RuleEditorDialog';
@@ -126,33 +124,38 @@ export function VariantsPage() {
           <SplitterPanel size={60} minSize={40}>
             <PaneRoot className="content-card">
               <PaneScroll>
-                <DataTable value={variants} size="small">
-                  <Column field="id" header="ID" />
-                  <Column field="key" header="Key" />
-                  <Column field="priority" header="Priority" />
-                  <Column field="state" header="State" />
-                  <Column field="trafficAllocation" header="Traffic" />
-                  <Column field="contentVersionId" header="Version" />
-                  <Column
-                    header="Edit"
-                    body={(row: Variant) => (
-                      <Button
-                        text
-                        label="Edit"
-                        onClick={() =>
-                          setDraft({
-                            key: row.key,
-                            priority: row.priority,
-                            state: row.state,
-                            ruleJson: row.ruleJson,
-                            trafficAllocation: row.trafficAllocation ?? 100,
-                            contentVersionId: row.contentVersionId
-                          })
-                        }
-                      />
-                    )}
-                  />
-                </DataTable>
+                <DataGrid
+                  data={variants}
+                  rowKey="id"
+                  columns={[
+                    { key: 'id', header: 'ID' },
+                    { key: 'key', header: 'Key' },
+                    { key: 'priority', header: 'Priority' },
+                    { key: 'state', header: 'State' },
+                    { key: 'trafficAllocation', header: 'Traffic' },
+                    { key: 'contentVersionId', header: 'Version' },
+                    {
+                      key: '__edit',
+                      header: 'Edit',
+                      cell: (row) => (
+                        <Button
+                          text
+                          label="Edit"
+                          onClick={() =>
+                            setDraft({
+                              key: row.key,
+                              priority: row.priority,
+                              state: row.state,
+                              ruleJson: row.ruleJson,
+                              trafficAllocation: row.trafficAllocation ?? 100,
+                              contentVersionId: row.contentVersionId
+                            })
+                          }
+                        />
+                      )
+                    }
+                  ]}
+                />
               </PaneScroll>
             </PaneRoot>
           </SplitterPanel>

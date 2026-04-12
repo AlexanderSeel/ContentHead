@@ -1,9 +1,8 @@
 
 import { useEffect, useMemo, useState, type DragEvent } from 'react';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
 import { Sidebar } from 'primereact/sidebar';
 import { Button, Checkbox, NumberInput, Select, TabItem, Tabs, Textarea, TextInput } from '../ui/atoms';
+import { DataGrid } from '../ui/molecules';
 import { evaluateFieldConditions, type Rule } from '@contenthead/shared';
 import { RuleEditorDialog } from '../components/rules/RuleEditorDialog';
 
@@ -808,27 +807,32 @@ export function FormBuilderSection({
             <Button label="Add Step" onClick={() => addStep().catch((error: unknown) => onStatus(formatErrorMessage(error)))} disabled={!formId} />
           </div>
 
-          <DataTable value={[...steps].sort((a, b) => a.position - b.position || a.id - b.id)} size="small" selectionMode="single" selection={steps.find((step) => step.id === selectedStepId) ?? null} onSelectionChange={(event) => {
-            const next = event.value as FormStep | null;
-            setSelectedStepId(next?.id ?? null);
-          }}>
-            <Column field="name" header="Step" />
-            <Column
-              header="Order"
-              body={(row: FormStep) => (
-                <div className="inline-actions">
-                  <Button text size="small" icon="pi pi-angle-up" onClick={() => reorderStep(row.id, -1)} />
-                  <Button text size="small" icon="pi pi-angle-down" onClick={() => reorderStep(row.id, 1)} />
-                </div>
-              )}
-            />
-            <Column
-              header="Delete"
-              body={(row: FormStep) => (
-                <Button text severity="danger" size="small" label="Remove" onClick={() => deleteStep(row.id).catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
-              )}
-            />
-          </DataTable>
+          <DataGrid
+            data={[...steps].sort((a, b) => a.position - b.position || a.id - b.id)}
+            rowKey="id"
+            selectedRow={steps.find((step) => step.id === selectedStepId) ?? null}
+            onRowSelect={(next) => setSelectedStepId(next?.id ?? null)}
+            columns={[
+              { key: 'name', header: 'Step' },
+              {
+                key: '__order',
+                header: 'Order',
+                cell: (row) => (
+                  <div className="inline-actions">
+                    <Button text size="small" icon="pi pi-angle-up" onClick={() => reorderStep(row.id, -1)} />
+                    <Button text size="small" icon="pi pi-angle-down" onClick={() => reorderStep(row.id, 1)} />
+                  </div>
+                )
+              },
+              {
+                key: '__delete',
+                header: 'Delete',
+                cell: (row) => (
+                  <Button text severity="danger" size="small" label="Remove" onClick={() => deleteStep(row.id).catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
+                )
+              }
+            ]}
+          />
 
           <h4>Field Palette</h4>
           <div className="palette-grid">
@@ -976,40 +980,52 @@ export function FormBuilderSection({
               <p className="muted">Structure edits sync directly into Designer layout metadata.</p>
 
               <h4>Steps</h4>
-              <DataTable value={[...steps].sort((a, b) => a.position - b.position || a.id - b.id)} size="small">
-                <Column field="id" header="ID" />
-                <Column field="name" header="Name" body={(row: FormStep) => (
-                  <TextInput
-                    value={row.name}
-                    onChange={(next) => {
-                      setSteps((prev) => prev.map((step) => step.id === row.id ? { ...step, name: next } : step));
-                      markStepDirty(row.id);
-                    }}
-                  />
-                )} />
-                <Column field="position" header="Position" />
-              </DataTable>
+              <DataGrid
+                data={[...steps].sort((a, b) => a.position - b.position || a.id - b.id)}
+                rowKey="id"
+                columns={[
+                  { key: 'id', header: 'ID' },
+                  {
+                    key: 'name',
+                    header: 'Name',
+                    cell: (row) => (
+                      <TextInput
+                        value={row.name}
+                        onChange={(next) => {
+                          setSteps((prev) => prev.map((step) => step.id === row.id ? { ...step, name: next } : step));
+                          markStepDirty(row.id);
+                        }}
+                      />
+                    )
+                  },
+                  { key: 'position', header: 'Position' }
+                ]}
+              />
 
               <h4>Fields</h4>
-              <DataTable value={[...scopedFields].sort((a, b) => a.position - b.position || a.id - b.id)} size="small" selectionMode="single" selection={selectedField ?? null} onSelectionChange={(event) => {
-                const next = event.value as FormField | null;
-                setSelectedFieldId(next?.id ?? null);
-              }}>
-                <Column field="id" header="ID" />
-                <Column field="key" header="Key" />
-                <Column field="label" header="Label" />
-                <Column field="fieldType" header="Type" />
-                <Column field="position" header="Position" />
-                <Column
-                  header="Quick"
-                  body={(row: FormField) => (
-                    <div className="inline-actions">
-                      <Button text size="small" label="Select" onClick={() => setSelectedFieldId(row.id)} />
-                      <Button text severity="danger" size="small" label="Delete" onClick={() => deleteField(row).catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
-                    </div>
-                  )}
-                />
-              </DataTable>
+              <DataGrid
+                data={[...scopedFields].sort((a, b) => a.position - b.position || a.id - b.id)}
+                rowKey="id"
+                selectedRow={selectedField ?? null}
+                onRowSelect={(next) => setSelectedFieldId(next?.id ?? null)}
+                columns={[
+                  { key: 'id', header: 'ID' },
+                  { key: 'key', header: 'Key' },
+                  { key: 'label', header: 'Label' },
+                  { key: 'fieldType', header: 'Type' },
+                  { key: 'position', header: 'Position' },
+                  {
+                    key: '__quick',
+                    header: 'Quick',
+                    cell: (row) => (
+                      <div className="inline-actions">
+                        <Button text size="small" label="Select" onClick={() => setSelectedFieldId(row.id)} />
+                        <Button text severity="danger" size="small" label="Delete" onClick={() => deleteField(row).catch((error: unknown) => onStatus(formatErrorMessage(error)))} />
+                      </div>
+                    )
+                  }
+                ]}
+              />
             </TabItem>
           </Tabs>
         </main>

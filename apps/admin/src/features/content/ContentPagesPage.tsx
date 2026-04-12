@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Column } from 'primereact/column';
 import { ContextMenu } from 'primereact/contextmenu';
 import { TreeTable } from 'primereact/treetable';
 import type { TreeNode } from 'primereact/treenode';
-import { DataTable } from 'primereact/datatable';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import { Button, Checkbox, DialogPanel, MultiSelect, Select, TabItem, Tabs, Tag, Textarea, TextInput } from '../../ui/atoms';
@@ -47,7 +45,7 @@ import type { CmsActionId, CmsBridgeMessage, CmsActionsMessage, CmsActionRequest
 import { handleInlineEditPatchMessage } from './inlineEditBridge';
 import { recordPreviewDiagnostics } from './previewDiagnostics';
 import { extensionInspectorPanels } from '../../extensions/core/registry';
-import { InspectorSection } from '../../ui/molecules';
+import { DataGrid, InspectorSection } from '../../ui/molecules';
 import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
@@ -3502,22 +3500,27 @@ export function ContentPagesPage() {
             </div>
           </TabItem>
           <TabItem header="Routes">
-            <DataTable value={routes.filter((route) => route.contentItemId === selectedItemId)} size="small">
-              <Column field="slug" header="Slug" />
-              <Column field="marketCode" header="Market" />
-              <Column field="localeCode" header="Locale" />
-              <Column field="isCanonical" header="Canonical" body={(row: CRoute) => (row.isCanonical ? 'Yes' : 'No')} />
-              <Column
-                header="Edit"
-                body={(row: CRoute) => (
-                  <Button
-                    text
-                    label="Edit"
-                    onClick={() => setRouteDraft({ id: row.id, slug: row.slug, marketCode: row.marketCode, localeCode: row.localeCode, isCanonical: row.isCanonical })}
-                  />
-                )}
-              />
-            </DataTable>
+            <DataGrid
+              data={routes.filter((route) => route.contentItemId === selectedItemId)}
+              rowKey="id"
+              columns={[
+                { key: 'slug', header: 'Slug' },
+                { key: 'marketCode', header: 'Market' },
+                { key: 'localeCode', header: 'Locale' },
+                { key: 'isCanonical', header: 'Canonical', cell: (row) => (row.isCanonical ? 'Yes' : 'No') },
+                {
+                  key: '__edit',
+                  header: 'Edit',
+                  cell: (row) => (
+                    <Button
+                      text
+                      label="Edit"
+                      onClick={() => setRouteDraft({ id: row.id, slug: row.slug, marketCode: row.marketCode, localeCode: row.localeCode, isCanonical: row.isCanonical })}
+                    />
+                  )
+                }
+              ]}
+            />
             <div className="form-grid mt-3">
               <MarketLocalePicker
                 combos={combos}
@@ -3573,22 +3576,20 @@ export function ContentPagesPage() {
                 disabled={!selectedVersion || selectedVersion.state === 'ARCHIVED'}
               />
             </div>
-            <DataTable
-              value={versions}
-              size="small"
+            <DataGrid
+              data={versions}
               className="cms-version-table"
-              selectionMode="single"
-              selection={selectedVersion}
-              onSelectionChange={(event) => setSelectedVersionId((event.value as CVersion | null)?.id ?? null)}
-              dataKey="id"
-              rowClassName={(row: CVersion) => (selectedVersionId === row.id ? 'cms-version-row-selected' : '')}
-            >
-              <Column field="versionNumber" header="Version" body={(row: CVersion) => `v${row.versionNumber}`} />
-              <Column field="state" header="State" />
-              <Column field="createdAt" header="Created" />
-              <Column field="createdBy" header="By" />
-              <Column field="comment" header="Comment" />
-            </DataTable>
+              rowKey="id"
+              selectedRow={selectedVersion}
+              onRowSelect={(row) => setSelectedVersionId(row?.id ?? null)}
+              columns={[
+                { key: 'versionNumber', header: 'Version', cell: (row) => `v${row.versionNumber}` },
+                { key: 'state', header: 'State' },
+                { key: 'createdAt', header: 'Created' },
+                { key: 'createdBy', header: 'By' },
+                { key: 'comment', header: 'Comment' }
+              ]}
+            />
           </TabItem>
           <TabItem header="Variants">
             <div className="form-grid">
@@ -3616,13 +3617,16 @@ export function ContentPagesPage() {
                 }
               />
             </div>
-            <DataTable value={variants} size="small">
-              <Column field="key" header="Key" />
-              <Column field="priority" header="Priority" />
-              <Column field="state" header="State" />
-              <Column field="trafficAllocation" header="Traffic" />
-              <Column field="contentVersionId" header="Version" />
-            </DataTable>
+            <DataGrid
+              data={variants}
+              columns={[
+                { key: 'key', header: 'Key' },
+                { key: 'priority', header: 'Priority' },
+                { key: 'state', header: 'State' },
+                { key: 'trafficAllocation', header: 'Traffic' },
+                { key: 'contentVersionId', header: 'Version' }
+              ]}
+            />
             <div className="form-grid">
               <TextInput value={variantDraft.key} onChange={(next) => setVariantDraft((prev) => ({ ...prev, key: next }))} placeholder="key" />
               <TextInput value={String(variantDraft.priority)} onChange={(next) => setVariantDraft((prev) => ({ ...prev, priority: Number(next || '0') }))} placeholder="priority" />
@@ -4208,56 +4212,56 @@ export function ContentPagesPage() {
           <>
             <div className="form-row">
               <label>Items</label>
-              <DataTable
-                value={(onPageListDialog?.items ?? []).map((item, index) => ({ index, value: item }))}
-                size="small"
+              <DataGrid
+                data={(onPageListDialog?.items ?? []).map((item, index) => ({ index, value: item }))}
                 className="cms-object-list-table"
-              >
-                {onPageListDialog?.mode === 'object' ? (
-                  onPageListDialog.objectKeys.slice(0, 3).map((key) => (
-                    <Column
-                      key={`list-col-${key}`}
-                      header={key}
-                      body={(row: { value: unknown }) => {
-                        const raw = row.value;
-                        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-                          return '';
+                columns={[
+                  ...(onPageListDialog?.mode === 'object'
+                    ? onPageListDialog.objectKeys.slice(0, 3).map((key) => ({
+                        key,
+                        header: key,
+                        cell: (row: { index: number; value: unknown }) => {
+                          const raw = row.value;
+                          if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return '';
+                          const v = (raw as Record<string, unknown>)[key];
+                          return <span className="cms-cell-ellipsis" title={String(v ?? '')}>{String(v ?? '')}</span>;
                         }
-                        const value = (raw as Record<string, unknown>)[key];
-                        return <span className="cms-cell-ellipsis" title={String(value ?? '')}>{String(value ?? '')}</span>;
-                      }}
-                    />
-                  ))
-                ) : (
-                  <Column
-                    header="Value"
-                    body={(row: { value: unknown }) => {
-                      const value = row.value;
-                      return <span className="cms-cell-ellipsis" title={String(value ?? '')}>{String(value ?? '')}</span>;
-                    }}
-                  />
-                )}
-                <Column
-                  header="Order"
-                  style={{ width: '5.5rem' }}
-                  body={(_row: { value: unknown }, options) => (
-                    <div className="inline-actions">
-                      <Button text icon="pi pi-angle-up" onClick={() => moveOnPageListItem(options.rowIndex, -1)} />
-                      <Button text icon="pi pi-angle-down" onClick={() => moveOnPageListItem(options.rowIndex, 1)} />
-                    </div>
-                  )}
-                />
-                <Column
-                  header="Actions"
-                  style={{ width: '8rem' }}
-                  body={(_row: { value: unknown }, options) => (
-                    <div className="inline-actions">
-                      <Button text label="Edit" onClick={() => openOnPageListItemEditor(options.rowIndex)} />
-                      <Button text severity="danger" label="Remove" onClick={() => removeOnPageListItem(options.rowIndex)} />
-                    </div>
-                  )}
-                />
-              </DataTable>
+                      }))
+                    : [
+                        {
+                          key: 'value',
+                          header: 'Value',
+                          cell: (row: { index: number; value: unknown }) => {
+                            const v = row.value;
+                            return <span className="cms-cell-ellipsis" title={String(v ?? '')}>{String(v ?? '')}</span>;
+                          }
+                        }
+                      ]
+                  ),
+                  {
+                    key: '__order',
+                    header: 'Order',
+                    width: '5.5rem',
+                    cell: (_row, index) => (
+                      <div className="inline-actions">
+                        <Button text icon="pi pi-angle-up" onClick={() => moveOnPageListItem(index, -1)} />
+                        <Button text icon="pi pi-angle-down" onClick={() => moveOnPageListItem(index, 1)} />
+                      </div>
+                    )
+                  },
+                  {
+                    key: '__actions',
+                    header: 'Actions',
+                    width: '8rem',
+                    cell: (_row, index) => (
+                      <div className="inline-actions">
+                        <Button text label="Edit" onClick={() => openOnPageListItemEditor(index)} />
+                        <Button text severity="danger" label="Remove" onClick={() => removeOnPageListItem(index)} />
+                      </div>
+                    )
+                  }
+                ]}
+              />
             </div>
             <div className="form-row">
               <label>Raw JSON (fallback)</label>
