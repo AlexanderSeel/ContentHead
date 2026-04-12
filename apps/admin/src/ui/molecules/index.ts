@@ -16,6 +16,8 @@ export type { ContextMenuHandle } from './ContextMenuPanel';
 export { Splitter, SplitterPanel } from './SplitterLayout';
 export type { SplitterProps, SplitterPanelProps } from './SplitterLayout';
 export { Tree } from './TreePanel';
+export { Sidebar } from './SidebarPanel';
+export type { SidebarProps } from './SidebarPanel';
 export type { TreeNode } from './TreePanel';
 export { TreeTable, Column } from './TreeTablePanel';
 export type { TreeTableProps, ColumnProps } from './TreeTablePanel';

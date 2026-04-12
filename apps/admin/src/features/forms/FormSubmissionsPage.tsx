@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Column } from 'primereact/column';
-import type { DataTableSortEvent } from 'primereact/datatable';
+
+type SortEvent = { sortField?: unknown; sortOrder?: number | null };
 
 import { Button, DatePicker, Select, Tag, TextInput } from '../../ui/atoms';
 
@@ -14,7 +14,7 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { routeStartsWith } from '../../ui/commands/utils';
-import { ContextMenuHandle, ContextMenuPanel, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
+import { Column, ContextMenuHandle, ContextMenuPanel, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
 
 type SubmissionRow = {
   id: number;
@@ -209,7 +209,7 @@ export function FormSubmissionsPage() {
     reload().catch(() => undefined);
   }, [siteId, formId, search, statusFilter, marketFilter, localeFilter, fromDate, toDate, first, rowsPerPage, sortField, sortOrder]);
 
-  const onSort = (event: DataTableSortEvent) => {
+  const onSort = (event: SortEvent) => {
     if (!event.sortField) {
       return;
     }

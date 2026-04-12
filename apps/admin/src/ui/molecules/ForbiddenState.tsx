@@ -1,4 +1,4 @@
-import { Button } from 'primereact/button';
+import { Button } from '../atoms';
 
 export function ForbiddenState({
   title = 'Forbidden',

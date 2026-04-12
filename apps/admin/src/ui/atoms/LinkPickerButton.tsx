@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button } from 'primereact/button';
+import { Button } from './Button';
 
 import { LinkSelectorDialog, type ContentLinkValue } from '../../features/content/fieldRenderers/LinkSelectorDialog';
 

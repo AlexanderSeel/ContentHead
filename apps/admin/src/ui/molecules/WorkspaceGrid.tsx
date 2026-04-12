@@ -4,8 +4,6 @@ import { Button } from '../../ui/atoms';
 import { MultiSelect } from '../../ui/atoms';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import type { MenuItem } from 'primereact/menuitem';
-
 import { useUi } from '../../app/UiContext';
 import { CommandMenuButton } from '../commands/CommandMenuButton';
 import type { Command, CommandContext } from '../commands/types';
@@ -108,18 +106,6 @@ export function WorkspaceGrid<TData extends Record<string, unknown>>(
 
   const gridClassName = ['workspaceGrid', className].filter(Boolean).join(' ');
 
-  const bulkMenuModel = useMemo<MenuItem[]>(
-    () =>
-      (bulkActions ?? []).map((action) => ({
-        label: action.label,
-        icon: action.icon,
-        className: action.danger ? 'ch-command-danger' : undefined,
-        disabled: action.disabled,
-        command: () => action.run()
-      })),
-    [bulkActions]
-  );
-
   const hasTools =
     Boolean(onGlobalSearchChange) ||
     Boolean(columnChooser) ||
@@ -164,11 +150,10 @@ export function WorkspaceGrid<TData extends Record<string, unknown>>(
                 className="workspaceGridColumns"
               />
             ) : null}
-            {bulkMenuModel.length > 0 ? (
+            {(bulkActions?.length ?? 0) > 0 ? (
               <BulkButton
-                model={bulkMenuModel}
                 onPrimary={() => bulkActions?.[0]?.run()}
-                disabled={bulkMenuModel.every((item) => item.disabled)}
+                disabled={!bulkActions?.some((action) => !action.disabled)}
               />
             ) : null}
             <Button
@@ -302,11 +287,9 @@ function LegacyTable<TData extends Record<string, unknown>>({
 // ── Minimal bulk button (replaces PrimeReact SplitButton) ────────────────────
 
 function BulkButton({
-  model,
   onPrimary,
   disabled
 }: {
-  model: MenuItem[];
   onPrimary: () => void;
   disabled: boolean;
 }) {

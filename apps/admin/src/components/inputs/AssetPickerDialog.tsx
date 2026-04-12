@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Tree } from 'primereact/tree';
-import type { TreeNode } from 'primereact/treenode';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
 import { Button, DialogPanel, TextInput } from '../../ui/atoms';
+import { Tree } from '../../ui/molecules';
+import type { TreeNode } from '../../ui/molecules';
 
 import { formatErrorMessage } from '../../lib/graphqlErrorUi';
 import { getApiBaseUrl } from '../../lib/api';
@@ -119,6 +117,19 @@ export function AssetPickerDialog({
   const treeNodes = useMemo(() => buildTree(folders), [folders]);
   const apiBase = getApiBaseUrl();
 
+  const toggleAsset = (asset: AssetRow) => {
+    const isSelected = draftSelection.includes(asset.id);
+    if (!multiple) {
+      setDraftSelection([asset.id]);
+      setFocusedAsset(asset);
+      return;
+    }
+    setDraftSelection(isSelected ? draftSelection.filter((id) => id !== asset.id) : [...draftSelection, asset.id]);
+    if (!isSelected) {
+      setFocusedAsset(asset);
+    }
+  };
+
   return (
     <DialogPanel header="Asset Picker" visible={visible} onHide={onHide} className="w-11">
       <div className="grid">
@@ -143,41 +154,42 @@ export function AssetPickerDialog({
             <label>Search assets</label>
             <TextInput value={search} onChange={(next) => setSearch(next)} placeholder="filename or title" />
           </div>
-          <DataTable
-            value={assets}
-            size="small"
-            selectionMode="multiple"
-            selection={assets.filter((entry) => draftSelection.includes(entry.id))}
-            onSelectionChange={(event: { value: AssetRow[] }) => {
-              const rows = event.value ?? [];
-              if (!multiple && rows.length > 1) {
-                const first = rows[rows.length - 1];
-                if (!first) {
-                  setDraftSelection([]);
-                  return;
-                }
-                setDraftSelection([first.id]);
-                setFocusedAsset(first);
-                return;
-              }
-              setDraftSelection(rows.map((entry) => entry.id));
-              setFocusedAsset(rows[0] ?? null);
-            }}
-            onRowClick={(event) => setFocusedAsset(event.data as AssetRow)}
-          >
-            <Column
-              header="Preview"
-              body={(row: AssetRow) => (
-                <img
-                  src={`${apiBase}/assets/${row.id}/rendition/thumb`}
-                  alt={row.altText ?? row.title ?? row.originalName}
-                  className="w-4rem h-3rem border-round-sm object-cover"
-                />
-              )}
-            />
-            <Column field="originalName" header="Name" />
-            <Column field="title" header="Title" />
-          </DataTable>
+          <div className="p-datatable p-datatable-sm p-component" style={{ overflowY: 'auto', maxHeight: '400px' }}>
+            <table role="table" style={{ width: '100%' }}>
+              <thead className="p-datatable-thead">
+                <tr>
+                  <th><span className="p-column-title">Preview</span></th>
+                  <th><span className="p-column-title">Name</span></th>
+                  <th><span className="p-column-title">Title</span></th>
+                </tr>
+              </thead>
+              <tbody className="p-datatable-tbody">
+                {assets.length === 0 ? (
+                  <tr><td colSpan={3} className="p-datatable-emptymessage">No assets found.</td></tr>
+                ) : null}
+                {assets.map((asset) => {
+                  const isSelected = draftSelection.includes(asset.id);
+                  return (
+                    <tr
+                      key={asset.id}
+                      className={['p-selectable-row', isSelected ? 'p-highlight' : ''].filter(Boolean).join(' ')}
+                      onClick={() => toggleAsset(asset)}
+                    >
+                      <td>
+                        <img
+                          src={`${apiBase}/assets/${asset.id}/rendition/thumb`}
+                          alt={asset.altText ?? asset.title ?? asset.originalName}
+                          className="w-4rem h-3rem border-round-sm object-cover"
+                        />
+                      </td>
+                      <td>{asset.originalName}</td>
+                      <td>{asset.title}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           {loadError ? <small className="error-text">{loadError}</small> : null}
         </div>
 
@@ -222,4 +234,3 @@ export function AssetPickerDialog({
     </DialogPanel>
   );
 }
-

@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from 'primereact/button';
-import { Splitter, SplitterPanel } from 'primereact/splitter';
-import type { MenuItem } from 'primereact/menuitem';
-
+import { Button } from '../atoms';
+import { Splitter, SplitterPanel } from './SplitterLayout';
 import { useWorkspaceFrame } from './WorkspacePage';
+import type { NavMenuItem } from './WorkspacePage';
 
 export type WorkspaceManagedPane = {
   id: string;
@@ -217,15 +216,15 @@ export function WorkspacePaneLayout({ workspaceId, className, left, center, righ
     setVerticalTopSize(bottom ? Math.max(20, Math.min(95, 100 - bottom.defaultSize)) : 100);
   };
 
-  const panelMenuModel = useMemo<MenuItem[]>(() => {
+  const panelMenuModel = useMemo<NavMenuItem[]>(() => {
     const topItems = topPanes
       .filter((pane) => pane.collapsible !== false)
-      .map<MenuItem>((pane) => ({
+      .map<NavMenuItem>((pane) => ({
         label: `${topCollapsed[pane.id] ? 'Show' : 'Hide'} ${pane.label}`,
         icon: topCollapsed[pane.id] ? 'pi pi-eye' : 'pi pi-eye-slash',
         command: () => toggleTopPanel(pane.id)
       }));
-    const bottomItems: MenuItem[] =
+    const bottomItems: NavMenuItem[] =
       bottom && bottom.collapsible !== false
         ? [
             {
@@ -235,7 +234,7 @@ export function WorkspacePaneLayout({ workspaceId, className, left, center, righ
             }
           ]
         : [];
-    const separator = topItems.length > 0 || bottomItems.length > 0 ? [{ separator: true } satisfies MenuItem] : [];
+    const separator = topItems.length > 0 || bottomItems.length > 0 ? [{ separator: true } satisfies NavMenuItem] : [];
     return [...topItems, ...bottomItems, ...separator, { label: 'Reset layout', icon: 'pi pi-replay', command: resetLayout }];
   }, [bottom, bottomCollapsed, topCollapsed, topPanes]);
 

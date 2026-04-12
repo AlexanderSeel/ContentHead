@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Dialog } from 'primereact/dialog';
+import { DialogPanel } from '../atoms';
 
 export function EntityEditor({
   visible,
@@ -15,8 +15,8 @@ export function EntityEditor({
   footer?: ReactNode;
 }) {
   return (
-    <Dialog header={title} visible={visible} onHide={onHide} className="w-11 lg:w-9 xl:w-8" footer={footer}>
+    <DialogPanel header={title} visible={visible} onHide={onHide} className="w-11 lg:w-9 xl:w-8" footer={footer}>
       {children}
-    </Dialog>
+    </DialogPanel>
   );
 }

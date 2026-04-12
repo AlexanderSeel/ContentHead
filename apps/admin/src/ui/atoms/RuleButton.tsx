@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button } from 'primereact/button';
+import { Button } from './Button';
 import type { Rule } from '@contenthead/shared';
 
 import { RuleEditorDialog } from '../../components/rules/RuleEditorDialog';

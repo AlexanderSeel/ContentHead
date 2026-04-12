@@ -26,3 +26,5 @@ export { Chips } from './Chips';
 export type { ChipsBaseProps, ChipsChangeEvent } from './Chips';
 export { AutoComplete } from './AutoComplete';
 export type { AutoCompleteProps, AutoCompleteChangeEvent, AutoCompleteCompleteEvent } from './AutoComplete';
+export { Message } from './Message';
+export type { MessageProps } from './Message';

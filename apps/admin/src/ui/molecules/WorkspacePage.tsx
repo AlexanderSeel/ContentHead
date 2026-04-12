@@ -1,15 +1,22 @@
 import type { ReactNode } from 'react';
 import { Children, Fragment, createContext, isValidElement, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { BreadCrumb } from 'primereact/breadcrumb';
-import { Button } from 'primereact/button';
-import { Menu } from 'primereact/menu';
-import type { MenuItem } from 'primereact/menuitem';
+import * as Popover from '@radix-ui/react-popover';
 
+import { Button } from '../atoms';
 import { useUi } from '../../app/UiContext';
 import { AskAiDialog, type AskAiContextType } from '../../components/assist/AskAiDialog';
 import { HelpDialog } from '../../help/HelpDialog';
 import { helpContent } from '../../help/helpContent';
 import { HelpIcon } from '../../help/HelpIcon';
+
+export type NavMenuItem = {
+  label?: string;
+  icon?: string;
+  disabled?: boolean;
+  separator?: boolean;
+  command?: () => void;
+  items?: NavMenuItem[];
+};
 
 type BreadcrumbItem = {
   label: string;
@@ -43,7 +50,7 @@ type WorkspaceToolbarProps = {
 };
 
 type WorkspaceFrameContextValue = {
-  setPanelMenuModel: (items: MenuItem[]) => void;
+  setPanelMenuModel: (items: NavMenuItem[]) => void;
 };
 
 const WorkspaceFrameContext = createContext<WorkspaceFrameContextValue | null>(null);
@@ -68,6 +75,43 @@ function mergeActionBarProps(current: WorkspaceActionBarProps | undefined, next:
   };
 }
 
+function renderMenuItems(items: NavMenuItem[], onClose: () => void): ReactNode {
+  return items.map((item, i) => {
+    if (item.separator) {
+      return <li key={i} className="p-menuitem-separator" role="separator" />;
+    }
+    if (item.items && item.items.length > 0) {
+      return (
+        <li key={i} className="p-menuitem p-menuitem-group">
+          <span className="p-menuitem-group-label">
+            {item.icon ? <span className={`p-menuitem-icon ${item.icon}`} aria-hidden /> : null}
+            {item.label}
+          </span>
+          <ul className="p-submenu-list">
+            {renderMenuItems(item.items, onClose)}
+          </ul>
+        </li>
+      );
+    }
+    return (
+      <li key={i} className="p-menuitem">
+        <button
+          type="button"
+          className={`p-menuitem-link${item.disabled ? ' p-disabled' : ''}`}
+          disabled={item.disabled}
+          onClick={() => {
+            item.command?.();
+            onClose();
+          }}
+        >
+          {item.icon ? <span className={`p-menuitem-icon ${item.icon}`} aria-hidden /> : null}
+          <span className="p-menuitem-text">{item.label}</span>
+        </button>
+      </li>
+    );
+  });
+}
+
 function WorkspaceTopbar({
   header,
   actions,
@@ -83,22 +127,14 @@ function WorkspaceTopbar({
   toolbarVisible: boolean;
   hasToolbar: boolean;
   onToggleToolbar: () => void;
-  panelMenuModel: MenuItem[];
+  panelMenuModel: NavMenuItem[];
   onOpenHelp: () => void;
   onOpenAskAi: () => void;
 }) {
   const topic = header?.helpTopicKey ? helpContent[header.helpTopicKey] : undefined;
-  const breadcrumbModel = useMemo<MenuItem[]>(
-    () =>
-      (header?.breadcrumbs ?? []).map((entry) => ({
-        label: entry.label,
-        ...(entry.url ? { url: entry.url } : {}),
-        ...(entry.command ? { command: entry.command } : {})
-      })),
-    [header?.breadcrumbs]
-  );
+  const breadcrumbs = header?.breadcrumbs ?? [];
 
-  const panelOverflowModel = useMemo<MenuItem[]>(() => {
+  const panelOverflowModel = useMemo<NavMenuItem[]>(() => {
     if (panelMenuModel.length === 0) {
       return [];
     }
@@ -112,7 +148,26 @@ function WorkspaceTopbar({
         {header?.subtitle ? <p title={header.subtitle}>{header.subtitle}</p> : null}
       </div>
       <div className="workspaceTopbarMiddle">
-        {breadcrumbModel.length > 0 ? <BreadCrumb model={breadcrumbModel} home={{ icon: 'pi pi-home' }} /> : null}
+        {breadcrumbs.length > 0 ? (
+          <nav className="p-breadcrumb p-component" aria-label="Breadcrumb">
+            <ul>
+              <li className="p-breadcrumb-home">
+                <span className="pi pi-home" aria-hidden />
+              </li>
+              {breadcrumbs.map((crumb, i) => (
+                <li key={i} className="p-breadcrumb-chevron pi pi-angle-right" aria-hidden={false}>
+                  {crumb.url ? (
+                    <a href={crumb.url} className="p-menuitem-link">{crumb.label}</a>
+                  ) : crumb.command ? (
+                    <button type="button" className="p-menuitem-link" onClick={crumb.command}>{crumb.label}</button>
+                  ) : (
+                    <span className="p-menuitem-text">{crumb.label}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ) : null}
       </div>
       <div className="workspaceTopbarRight">
         {header?.badges}
@@ -194,7 +249,7 @@ export function WorkspacePage({ children, className }: { children: ReactNode; cl
   const [helpOpen, setHelpOpen] = useState(false);
   const [askAiOpen, setAskAiOpen] = useState(false);
   const [toolbarExpanded, setToolbarExpanded] = useState<boolean>(toolbarProps?.defaultExpanded ?? false);
-  const [panelMenuModel, setPanelMenuModel] = useState<MenuItem[]>([]);
+  const [panelMenuModel, setPanelMenuModel] = useState<NavMenuItem[]>([]);
   const previousToolbarDefault = useRef<boolean>(toolbarProps?.defaultExpanded ?? false);
 
   const hasToolbar = Boolean(toolbarProps?.children);
@@ -284,29 +339,36 @@ export function WorkspaceOverflowMenu({
   size = 'small',
   className
 }: {
-  model: MenuItem[];
+  model: NavMenuItem[];
   label?: string;
   icon?: string;
   size?: 'small' | 'large';
   className?: string;
 }) {
-  const menuRef = useRef<Menu | null>(null);
+  const [open, setOpen] = useState(false);
   if (model.length === 0) {
     return null;
   }
   return (
-    <>
-      <Menu popup model={model} ref={(ref) => (menuRef.current = ref)} />
-      <Button
-        icon={icon}
-        label={label}
-        text
-        size={size}
-        className={className}
-        aria-label={label || 'More actions'}
-        onClick={(event) => menuRef.current?.toggle(event)}
-      />
-    </>
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <Button
+          icon={icon}
+          label={label}
+          text
+          size={size}
+          aria-label={label || 'More actions'}
+          {...(className !== undefined ? { className } : {})}
+        />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content className="p-menu p-component" align="end" sideOffset={4}>
+          <ul className="p-menu-list">
+            {renderMenuItems(model, () => setOpen(false))}
+          </ul>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 

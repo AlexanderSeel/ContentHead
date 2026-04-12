@@ -24,6 +24,7 @@ import { DuckDbClient } from './db/DuckDbClient.js';
 import { runMigrations } from './db/migrate.js';
 import { schema } from './graphql/schema.js';
 import { ensureBaselineSecurity } from './security/service.js';
+import { ensureUserHasRole } from './security/permissionEvaluator.js';
 
 async function bootstrap(): Promise<void> {
   const db = await DuckDbClient.create(config.dbPath);
@@ -36,6 +37,17 @@ async function bootstrap(): Promise<void> {
     config.jwtSecret,
     config.jwtExpiresIn as NonNullable<SignOptions['expiresIn']>
   );
+
+  // Ensure the configured seed admin user always has the admin role.
+  // This is idempotent (INSERT … WHERE NOT EXISTS) and guards against the
+  // case where the DB was migrated or reset without re-running the seed script.
+  const adminUserRow = await db.get<{ id: number }>(
+    'SELECT id FROM users WHERE lower(username) = lower(?)',
+    [config.seedAdminUsername]
+  );
+  if (adminUserRow?.id) {
+    await ensureUserHasRole(db, adminUserRow.id, 'admin');
+  }
 
   const resolveAssetStorage = async () => {
     const connector = await resolveDefaultConnector(db, 'dam');

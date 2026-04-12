@@ -1,8 +1,7 @@
 
 import { useEffect, useMemo, useState, type DragEvent } from 'react';
-import { Sidebar } from 'primereact/sidebar';
 import { Button, Checkbox, NumberInput, Select, TabItem, Tabs, Textarea, TextInput } from '../ui/atoms';
-import { DataGrid } from '../ui/molecules';
+import { DataGrid, Sidebar } from '../ui/molecules';
 import { evaluateFieldConditions, type Rule } from '@contenthead/shared';
 import { RuleEditorDialog } from '../components/rules/RuleEditorDialog';
 

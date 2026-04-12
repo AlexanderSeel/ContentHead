@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button } from 'primereact/button';
+import { Button } from './Button';
 
 import { AssetPickerDialog } from '../../components/inputs/AssetPickerDialog';
 

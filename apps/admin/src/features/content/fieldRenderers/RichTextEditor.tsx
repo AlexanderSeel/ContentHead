@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { Editor } from 'primereact/editor';
+import { Editor } from '../../../ui/atoms/PrimeEditor';
 
 import { AssetPickerDialog } from '../../../components/inputs/AssetPickerDialog';
 import { getApiBaseUrl } from '../../../lib/api';

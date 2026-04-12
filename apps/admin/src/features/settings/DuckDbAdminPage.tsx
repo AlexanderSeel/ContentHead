@@ -1,7 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FileUpload } from 'primereact/fileupload';
-import { ProgressBar } from 'primereact/progressbar';
-
 import { Button, DialogPanel, Textarea } from '../../ui/atoms';
 
 import { useAdminContext } from '../../app/AdminContext';
@@ -1813,20 +1810,21 @@ mutation DbAdminResetSiteData($siteId: Int!) {
                   }
                 />
               </div>
-              <FileUpload
-                mode="basic"
-                name="snapshot"
-                accept=".json,application/json"
-                chooseLabel="Load JSON File"
-                customUpload
-                uploadHandler={(event) => {
-                  const file = event.files?.[0];
-                  if (!(file instanceof File)) {
-                    return;
-                  }
-                  file.text().then((text) => setImportJson(text)).catch(() => setStatus('Failed to read file.'));
-                }}
-              />
+              <label className="p-button p-component p-button-secondary p-button-outlined" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className="pi pi-upload" />
+                <span>Load JSON File</span>
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!(file instanceof File)) return;
+                    file.text().then((text) => setImportJson(text)).catch(() => setStatus('Failed to read file.'));
+                    e.target.value = '';
+                  }}
+                />
+              </label>
               <div className="form-row mt-3">
                 <label>Snapshot JSON</label>
                 <Textarea rows={12} value={importJson} onChange={(next) => setImportJson(next)} />
@@ -1862,7 +1860,7 @@ mutation DbAdminResetSiteData($siteId: Int!) {
         <div className="import-progress-dialog">
           <div className="import-progress-summary">
             <div className="import-progress-stage">{importStage || 'Waiting…'}</div>
-            <ProgressBar value={importPercent} showValue={false} />
+            <progress className="p-progressbar" value={importPercent} max={100} style={{ width: '100%', height: '0.5rem' }} />
             <div className="import-progress-metrics">
               <span>Progress: {importPercent}%</span>
               <span>AI Text in-flight: {importAiActivity.textInFlight}</span>

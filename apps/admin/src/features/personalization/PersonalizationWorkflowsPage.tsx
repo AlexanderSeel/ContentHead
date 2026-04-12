@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Message } from 'primereact/message';
-
-import { Button, Select, TextInput } from '../../ui/atoms';
+import { Button, Message, Select, TextInput } from '../../ui/atoms';
 import type { Rule } from '@contenthead/shared';
 
 import { useAuth } from '../../app/AuthContext';

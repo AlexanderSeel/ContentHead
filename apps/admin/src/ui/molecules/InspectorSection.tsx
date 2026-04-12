@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Button } from 'primereact/button';
+import { Button } from '../atoms';
 
 export function InspectorSection({
   title,

@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
 
 import { Accordion, AccordionItem, Button, Checkbox, DatePicker, NumberInput, Select, Switch, TabItem, Tabs, Tag, Textarea, TextInput } from '../../ui/atoms';
 
@@ -13,7 +11,8 @@ import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { routeStartsWith } from '../../ui/commands/utils';
-import { ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout, WorkspaceToolbar } from '../../ui/molecules';
+import { Column, DataGrid, ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout, WorkspaceToolbar } from '../../ui/molecules';
+import type { DataGridColumn } from '../../ui/molecules';
 
 type DbAdminColumn = {
   name: string;
@@ -747,10 +746,10 @@ export function DbAdminPage() {
             <Select
               value={filterColumn}
               options={(tableInfo?.columns ?? []).map((column) => ({ label: column.name, value: column.name }))}
-              onChange={(next) => next !== undefined && setFilterColumn(next)}
+              onChange={(next) => { if (next != null) setFilterColumn(next); }}
               placeholder="Filter column"
             />
-            <Select value={filterOp} options={FILTER_OPS} onChange={(next) => next !== undefined && setFilterOp(next)} />
+            <Select value={filterOp} options={FILTER_OPS} onChange={(next) => { if (next != null) setFilterOp(next); }} />
             <TextInput
               placeholder="Filter value"
               value={filterValue}
@@ -780,24 +779,21 @@ export function DbAdminPage() {
               minSize: 14,
               collapsible: true,
               content: (
-                <DataTable
-                  value={tableRows}
-                  size="small"
-                  loading={tablesLoading}
-                  scrollable
+                <DataGrid<DbAdminTableListItem & Record<string, unknown>>
+                  data={tableRows as (DbAdminTableListItem & Record<string, unknown>)[]}
+                  rowKey="__tableKey"
                   scrollHeight="flex"
                   style={{ height: '100%' }}
                   tableStyle={{ minWidth: '22rem' }}
                   className="db-admin-table"
-                  dataKey="__tableKey"
-                  selectionMode="single"
-                  selection={selectedTableRow}
-                  onSelectionChange={(event) => setSelectedTable((event.value as DbAdminTableListItem | null)?.name ?? null)}
-                >
-                  <Column field="name" header="Tables" style={{ minWidth: '11rem' }} />
-                  <Column field="schema" header="Schema" style={{ minWidth: '5.5rem' }} />
-                  <Column field="rowCount" header="Rows" body={(row: DbAdminTableListItem) => row.rowCount ?? '-'} style={{ minWidth: '4.5rem' }} />
-                </DataTable>
+                  selectedRow={selectedTableRow as (DbAdminTableListItem & Record<string, unknown>) | null}
+                  onRowSelect={(row) => setSelectedTable(row?.name ?? null)}
+                  columns={[
+                    { key: 'name', header: 'Tables', width: '11rem' },
+                    { key: 'schema', header: 'Schema', width: '5.5rem' },
+                    { key: 'rowCount', header: 'Rows', width: '4.5rem', cell: (row) => row.rowCount ?? '-' }
+                  ]}
+                />
               )
             }}
             center={{
@@ -967,22 +963,28 @@ export function DbAdminPage() {
                     ) : (
                       <>
                         <h4 className="mt-0">Columns</h4>
-                        <DataTable value={tableInfo.columns} size="small">
-                          <Column field="name" header="Column" />
-                          <Column field="type" header="Type" />
-                          <Column field="nullable" header="Nullable" body={(row: DbAdminColumn) => (row.nullable ? 'Yes' : 'No')} />
-                          <Column field="defaultValue" header="Default" body={(row: DbAdminColumn) => row.defaultValue ?? ''} />
-                          <Column field="primaryKey" header="PK" body={(row: DbAdminColumn) => (row.primaryKey ? 'Yes' : '')} />
-                        </DataTable>
+                        <DataGrid<Record<string, unknown>>
+                          data={tableInfo.columns as unknown as Record<string, unknown>[]}
+                          columns={[
+                            { key: 'name', header: 'Column' },
+                            { key: 'type', header: 'Type' },
+                            { key: 'nullable', header: 'Nullable', cell: (row) => ((row as unknown as DbAdminColumn).nullable ? 'Yes' : 'No') },
+                            { key: 'defaultValue', header: 'Default', cell: (row) => (row as unknown as DbAdminColumn).defaultValue ?? '' },
+                            { key: 'primaryKey', header: 'PK', cell: (row) => ((row as unknown as DbAdminColumn).primaryKey ? 'Yes' : '') }
+                          ]}
+                        />
                         <h4>Indexes</h4>
                         {tableInfo.indexes.length === 0 ? (
                           <p className="muted">No indexes reported.</p>
                         ) : (
-                          <DataTable value={tableInfo.indexes} size="small">
-                            <Column field="name" header="Index" />
-                            <Column field="columns" header="Columns" body={(row: DbAdminIndex) => row.columns.join(', ')} />
-                            <Column field="unique" header="Unique" body={(row: DbAdminIndex) => (row.unique ? 'Yes' : 'No')} />
-                          </DataTable>
+                          <DataGrid<Record<string, unknown>>
+                            data={tableInfo.indexes as unknown as Record<string, unknown>[]}
+                            columns={[
+                              { key: 'name', header: 'Index' },
+                              { key: 'columns', header: 'Columns', cell: (row) => ((row as unknown as DbAdminIndex).columns.join(', ')) },
+                              { key: 'unique', header: 'Unique', cell: (row) => ((row as unknown as DbAdminIndex).unique ? 'Yes' : 'No') }
+                            ]}
+                          />
                         )}
                       </>
                     )}
@@ -1034,11 +1036,14 @@ export function DbAdminPage() {
                               {sqlResult.message ? <span className="muted">{sqlResult.message}</span> : null}
                             </div>
                             {sqlRows.length > 0 ? (
-                              <DataTable value={sqlRows} size="small">
-                                {sqlColumns.map((column) => (
-                                  <Column key={column} field={column} header={column} body={(row) => renderCell((row as RowRecord)[column])} />
-                                ))}
-                              </DataTable>
+                              <DataGrid<RowRecord>
+                                data={sqlRows}
+                                columns={sqlColumns.map<DataGridColumn<RowRecord>>((column) => ({
+                                  key: column,
+                                  header: column,
+                                  cell: (row) => renderCell(row[column])
+                                }))}
+                              />
                             ) : (
                               <p className="muted">No rows returned.</p>
                             )}
