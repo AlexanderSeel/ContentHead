@@ -104,8 +104,9 @@ export function RoutesPage() {
   const location = useLocation();
   const sdk = useMemo(() => createAdminSdk(token), [token]);
   const { toast, confirm } = useUi();
-  const { siteId, combos } = useAdminContext();
+  const { siteId, combos, marketCode, localeCode } = useAdminContext();
   const [routes, setRoutes] = useState<Route[]>([]);
+  const [pageItems, setPageItems] = useState<{ id: number; label: string }[]>([]);
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<Route>({ id: 0, contentItemId: 0, marketCode: 'US', localeCode: 'en-US', slug: '', isCanonical: true });
   const [selectedContextRoute, setSelectedContextRoute] = useState<Route | null>(null);
@@ -119,6 +120,21 @@ export function RoutesPage() {
   useEffect(() => {
     refresh().catch(() => undefined);
   }, [siteId]);
+
+  useEffect(() => {
+    type TreeNode = { id?: number | null; title?: string | null; children?: TreeNode[] | null };
+    const flatten = (nodes: TreeNode[], out: { id: number; label: string }[] = []) => {
+      for (const n of nodes ?? []) {
+        if (n.id != null) out.push({ id: n.id, label: n.title ? `${n.title} (#${n.id})` : `#${n.id}` });
+        if (n.children?.length) flatten(n.children, out);
+      }
+      return out;
+    };
+    sdk
+      .getPageTree({ siteId, marketCode, localeCode })
+      .then((res) => setPageItems(flatten((res.getPageTree ?? []) as TreeNode[])))
+      .catch(() => setPageItems([]));
+  }, [siteId, marketCode, localeCode]);
 
   const baseContext: CommandContext = {
     route: location.pathname,
@@ -200,7 +216,7 @@ export function RoutesPage() {
                   }}
                   columns={[
                     { key: 'id', header: 'ID' },
-                    { key: 'contentItemId', header: 'Item' },
+                    { key: 'contentItemId', header: 'Item', cell: (row) => { const item = pageItems.find((p) => p.id === row.contentItemId); return item ? item.label : `#${row.contentItemId}`; } },
                     { key: 'marketCode', header: 'Market' },
                     { key: 'localeCode', header: 'Locale' },
                     { key: 'slug', header: 'Slug' },
@@ -232,7 +248,7 @@ export function RoutesPage() {
             <PaneRoot className="content-card">
               <PaneScroll>
                 <div className="form-grid">
-                  <ContentReferencePicker token={token} siteId={siteId} value={draft.contentItemId || null} onChange={(value) => setDraft((prev) => ({ ...prev, contentItemId: value ?? 0 }))} />
+                  <ContentReferencePicker token={token} siteId={siteId} value={draft.contentItemId || null} onChange={(value) => setDraft((prev) => ({ ...prev, contentItemId: value ?? 0 }))} items={pageItems} />
                   <MarketLocalePicker
                     combos={combos}
                     marketCode={draft.marketCode}

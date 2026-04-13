@@ -823,6 +823,7 @@ export function ContentPagesPage() {
   const [workspaceSizes, setWorkspaceSizes] = useState<number[]>([28, 72]);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('split');
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>('web');
+  const [previewViewMode, setPreviewViewMode] = useState<'edit' | 'view'>('edit');
   const [treeFilter, setTreeFilter] = useState('');
   const [showArchivedPages, setShowArchivedPages] = useState(false);
   const [treeExpandedKeys, setTreeExpandedKeys] = useState<Record<string, boolean>>({});
@@ -899,7 +900,7 @@ export function ContentPagesPage() {
   const fieldDefs = useMemo(() => parseFieldsJson(selectedType?.fieldsJson ?? '[]') as ContentFieldDef[], [selectedType]);
 
   const site = sites.find((entry) => entry.id === siteId);
-  const webBaseUrl = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000';
+  const webBaseUrl = import.meta.env.VITE_WEB_URL ?? 'http://localhost:3200';
 
   const activeRoute = useMemo(
     () => routes.find((entry) => entry.contentItemId === selectedItemId && entry.marketCode === marketCode && entry.localeCode === localeCode) ?? null,
@@ -1503,10 +1504,10 @@ export function ContentPagesPage() {
         apiUrl: getApiGraphqlUrl(),
         versionId: draft?.id,
         previewMode,
-        cmsBridge: true,
-        inlineEdit: canInlineEdit
+        cmsBridge: previewViewMode === 'edit',
+        inlineEdit: previewViewMode === 'edit' && canInlineEdit
       });
-  }, [selectedItemId, activeRoute, draft, webBaseUrl, siteId, site, marketCode, localeCode, previewToken, canInlineEdit]);
+  }, [selectedItemId, activeRoute, draft, webBaseUrl, siteId, site, marketCode, localeCode, previewToken, canInlineEdit, previewViewMode]);
 
   const sendPreviewMessage = (message: CmsBridgeMessage) => {
     const target = previewIframeRef.current?.contentWindow;
@@ -3819,10 +3820,13 @@ export function ContentPagesPage() {
       <div className="cms-preview-head inline-actions">
         <strong>On-page Preview</strong>
         <div className="inline-actions">
+          <Button label="Edit" size="small" text={previewViewMode !== 'edit'} onClick={() => setPreviewViewMode('edit')} />
+          <Button label="View" size="small" text={previewViewMode !== 'view'} onClick={() => setPreviewViewMode('view')} />
+          <span className="ch-separator" />
           <Button label="Web" size="small" text={previewDevice !== 'web'} onClick={() => setPreviewDevice('web')} />
           <Button label="Tablet" size="small" text={previewDevice !== 'tablet'} onClick={() => setPreviewDevice('tablet')} />
           <Button label="Mobile" size="small" text={previewDevice !== 'mobile'} onClick={() => setPreviewDevice('mobile')} />
-          {!canInlineEdit ? <small className="muted">Inline editing unavailable for published-only state</small> : null}
+          {previewViewMode === 'edit' && !canInlineEdit ? <small className="muted">Inline editing unavailable for published-only state</small> : null}
           {inlineSaveError ? <small className="error-text">Inline save failed: {inlineSaveError}</small> : null}
           <Button text icon="pi pi-refresh" label="Reload" onClick={() => setPreviewReloadKey((prev) => prev + 1)} disabled={!previewIframeUrl} />
         </div>

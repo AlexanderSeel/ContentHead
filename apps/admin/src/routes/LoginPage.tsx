@@ -3,11 +3,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../app/AuthContext';
-import { createAdminSdk } from '../lib/sdk';
+import { createSdk } from '@contenthead/sdk';
+import { getApiGraphqlUrl } from '../lib/api';
 
 export function LoginPage() {
   const { login } = useAuth();
-  const sdk = useMemo(() => createAdminSdk(null), []);
+  // Use the raw SDK (no error-reporting wrapper) — this is a best-effort
+  // unauthenticated call to discover external auth providers. Failures are
+  // expected when the endpoint requires auth and must not trigger global toasts.
+  const sdk = useMemo(() => createSdk({ endpoint: getApiGraphqlUrl() }), []);
   const navigate = useNavigate();
   const location = useLocation();
   const [username, setUsername] = useState('admin');

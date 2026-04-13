@@ -148,17 +148,17 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
   );
 
   const severityClass: Record<string, string> = {
-    success: 'p-toast-message-success',
-    info: 'p-toast-message-info',
-    warn: 'p-toast-message-warn',
-    error: 'p-toast-message-error'
+    success: 'ch-toast-success',
+    info:    'ch-toast-info',
+    warn:    'ch-toast-warn',
+    error:   'ch-toast-error'
   };
 
   const severityIcon: Record<string, string> = {
     success: 'pi-check-circle',
-    info: 'pi-info-circle',
-    warn: 'pi-exclamation-triangle',
-    error: 'pi-times-circle'
+    info:    'pi-info-circle',
+    warn:    'pi-exclamation-triangle',
+    error:   'pi-times-circle'
   };
 
   return (
@@ -167,27 +167,27 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <ToastPrimitive.Root
             key={t.id}
-            className={`p-toast-message p-component ${severityClass[t.severity ?? 'info'] ?? 'p-toast-message-info'}`}
+            className={`ch-toast ${severityClass[t.severity ?? 'info'] ?? 'ch-toast-info'}`}
             duration={t.life ?? 3000}
             onOpenChange={(open) => {
               if (!open) setToasts((prev) => prev.filter((x) => x.id !== t.id));
             }}
           >
-            <div className="p-toast-message-content">
-              <span className={`p-toast-message-icon pi ${severityIcon[t.severity ?? 'info'] ?? 'pi-info-circle'}`} />
-              <div className="p-toast-message-text">
-                <ToastPrimitive.Title className="p-toast-summary">{t.summary}</ToastPrimitive.Title>
+            <div className="ch-toast-content">
+              <span className={`ch-toast-icon pi ${severityIcon[t.severity ?? 'info'] ?? 'pi-info-circle'}`} />
+              <div className="ch-toast-text">
+                <ToastPrimitive.Title className="ch-toast-summary">{t.summary}</ToastPrimitive.Title>
                 {t.detail && (
-                  <ToastPrimitive.Description className="p-toast-detail">{t.detail}</ToastPrimitive.Description>
+                  <ToastPrimitive.Description className="ch-toast-detail">{t.detail}</ToastPrimitive.Description>
                 )}
               </div>
-              <ToastPrimitive.Close className="p-toast-icon-close p-link">
-                <span className="p-toast-icon-close-icon pi pi-times" />
+              <ToastPrimitive.Close className="ch-toast-close">
+                <span className="pi pi-times" aria-hidden="true" />
               </ToastPrimitive.Close>
             </div>
           </ToastPrimitive.Root>
         ))}
-        <ToastPrimitive.Viewport className="p-toast p-toast-top-right p-component" />
+        <ToastPrimitive.Viewport className="ch-toast-viewport" />
       </ToastPrimitive.Provider>
 
       <AlertDialog.Root
@@ -200,19 +200,18 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
         }}
       >
         <AlertDialog.Portal>
-          <AlertDialog.Overlay className="p-dialog-mask p-component-overlay" style={{ position: 'fixed', inset: 0, zIndex: 1100 }} />
-          <AlertDialog.Content
-            className="p-dialog p-confirm-dialog p-component"
-            style={{ position: 'fixed', zIndex: 1101 }}
-          >
-            <div className="p-dialog-header">
-              <span className="p-dialog-title">{confirmState?.header}</span>
+          <AlertDialog.Overlay className="ch-overlay" />
+          <AlertDialog.Content className="ch-dialog ch-confirm-dialog">
+            <div className="ch-dialog-header">
+              <AlertDialog.Title className="ch-dialog-title">{confirmState?.header}</AlertDialog.Title>
             </div>
-            <div className="p-dialog-content">
-              <i className="p-confirm-dialog-icon pi pi-exclamation-triangle" />
-              <span className="p-confirm-dialog-message">{confirmState?.message}</span>
+            <div className="ch-dialog-body ch-confirm-body">
+              <span className="pi pi-exclamation-triangle ch-confirm-icon" aria-hidden="true" />
+              <AlertDialog.Description className="ch-confirm-message">
+                {confirmState?.message}
+              </AlertDialog.Description>
             </div>
-            <div className="p-dialog-footer">
+            <div className="ch-dialog-footer">
               <AlertDialog.Cancel asChild>
                 <button
                   className="p-button p-component p-button-text"

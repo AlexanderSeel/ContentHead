@@ -53,31 +53,24 @@ export function Accordion({
     children?: ReactNode;
   }>[];
 
-  const rootClass = ['p-accordion', 'p-component', className].filter(Boolean).join(' ');
-
   return (
-    <div className={rootClass}>
+    <div className={['ch-accordion', className].filter(Boolean).join(' ')}>
       {tabs.map((tab, i) => {
         const open = isOpen(i);
         return (
-          <div key={i} className={`p-accordion-tab${open ? ' p-accordion-tab-active' : ''}`}>
-            <div className={`p-accordion-header${open ? ' p-highlight' : ''}`}>
-              <a
-                className="p-accordion-header-link"
-                role="button"
-                aria-expanded={open}
-                tabIndex={0}
-                onClick={() => handleTabClick(i)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTabClick(i); } }}
-                style={{ cursor: 'pointer' }}
-              >
-                <span className={`p-accordion-toggle-icon pi ${open ? 'pi-chevron-down' : 'pi-chevron-right'}`} />
-                <span className="p-accordion-header-text">{tab.props.header}</span>
-              </a>
-            </div>
+          <div key={i} className={`ch-accordion-tab${open ? ' ch-accordion-tab-open' : ''}`}>
+            <button
+              type="button"
+              className="ch-accordion-trigger"
+              aria-expanded={open}
+              onClick={() => handleTabClick(i)}
+            >
+              <span className={`pi ${open ? 'pi-chevron-down' : 'pi-chevron-right'} ch-accordion-icon`} aria-hidden="true" />
+              <span className="ch-accordion-label">{tab.props.header}</span>
+            </button>
             {open && (
-              <div className="p-toggleable-content">
-                <div className="p-accordion-content">{tab.props.children}</div>
+              <div className="ch-accordion-content">
+                {tab.props.children}
               </div>
             )}
           </div>

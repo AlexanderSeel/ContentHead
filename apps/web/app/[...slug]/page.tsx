@@ -251,7 +251,7 @@ export default async function CatchAllPage({
 
     return (
       <>
-        {cmsBridge ? (
+        {cmsBridge && inlineEdit ? (
           <p className="cms-top-meta">
             Mode: {base.mode} | Site: {siteId} | Market/Locale: {marketCode}/{localeCode} | Variant:{' '}
             {payload.selectedVariant?.key ?? 'none'} | Reason: {payload.selectionReason}

@@ -27,9 +27,9 @@ pnpm --filter @contenthead/api seed
 ## URLs
 - API GraphQL: `http://localhost:4000/graphql`
 - Admin: `http://localhost:5173`
-- Web: `http://localhost:3000`
-- Web Demo Landing: `http://localhost:3000/demo?siteId=1&market=US&locale=en-US`
-- Web Preview (Visivic): `http://localhost:3000/preview?contentItemId=<id>&token=<previewToken>&siteId=1&market=US&locale=en-US`
+- Web: `http://localhost:localhost:3200`
+- Web Demo Landing: `http://localhost:localhost:3200/demo?siteId=1&market=US&locale=en-US`
+- Web Preview (Visivic): `http://localhost:localhost:3200/preview?contentItemId=<id>&token=<previewToken>&siteId=1&market=US&locale=en-US`
 
 ## Demo Import
 - Demo payload: `apps/admin/public/demo/contenthead-demo-import.json`
@@ -344,7 +344,7 @@ pnpm dev
 - ensure active combo `US / en-US` (already seeded)
 
 4. Open seeded demo:
-- `http://localhost:3000/demo?siteId=1&market=US&locale=en-US`
+- `http://localhost:localhost:3200/demo?siteId=1&market=US&locale=en-US`
 - optional variant segment trigger: `&segments=experiment_b`
 
 5. Visivic preview:
@@ -371,7 +371,7 @@ pnpm dev
 - run resumes and completes
 
 9. Web published rendering:
-- open route: `http://localhost:3000/demo?siteId=1&market=US&locale=en-US`
+- open route: `http://localhost:3200/demo?siteId=1&market=US&locale=en-US`
 - optional variant context: `&segments=experiment_b`
 
 ## Validation Status

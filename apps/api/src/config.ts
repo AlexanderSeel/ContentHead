@@ -9,7 +9,7 @@ export const config = {
   dbPath: process.env.DB_PATH ?? './data/contenthead.duckdb',
   jwtSecret: process.env.JWT_SECRET ?? 'change-me',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
-  corsOrigin: (process.env.CORS_ORIGIN ?? 'http://localhost:5173,http://localhost:3000')
+  corsOrigin: (process.env.CORS_ORIGIN ?? 'http://localhost:5173,http://localhost:3200')
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean),

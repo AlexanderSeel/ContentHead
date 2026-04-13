@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AutoComplete } from '../../ui/atoms';
+import { Select } from '../../ui/atoms';
 
 import { createAdminSdk } from '../../lib/sdk';
 
@@ -12,59 +12,42 @@ export function ContentReferencePicker({
   token,
   siteId,
   value,
-  onChange
+  onChange,
+  items: itemsProp
 }: {
   token: string | null;
   siteId: number;
   value: number | null;
   onChange: (value: number | null) => void;
+  items?: { id: number; label: string }[];
 }) {
   const sdk = useMemo(() => createAdminSdk(token), [token]);
-  const [suggestions, setSuggestions] = useState<ContentItem[]>([]);
-  const [query, setQuery] = useState('');
+  const [loadedItems, setLoadedItems] = useState<{ id: number; label: string }[]>([]);
 
   useEffect(() => {
-    const handle = window.setTimeout(() => {
-      sdk
-        .listContentItems({ siteId })
-        .then((res) => {
-          const all = (res.listContentItems ?? []) as ContentItem[];
-          const normalized = query.trim().toLowerCase();
-          const filtered = normalized
-            ? all.filter((entry) => String(entry.id).includes(normalized) || String(entry.contentTypeId).includes(normalized))
-            : all.slice(0, 15);
-          setSuggestions(filtered.slice(0, 20));
-        })
-        .catch(() => setSuggestions([]));
-    }, 200);
-    return () => window.clearTimeout(handle);
-  }, [sdk, siteId, query]);
+    if (itemsProp !== undefined) return;
+    sdk
+      .listContentItems({ siteId })
+      .then((res) => {
+        const all = (res.listContentItems ?? []) as ContentItem[];
+        setLoadedItems(all.map((item) => ({ id: item.id, label: `#${item.id} (type ${item.contentTypeId})` })));
+      })
+      .catch(() => setLoadedItems([]));
+  }, [sdk, siteId, itemsProp]);
+
+  const options = (itemsProp ?? loadedItems).map((item) => ({
+    label: item.label,
+    value: item.id
+  }));
 
   return (
-    <AutoComplete
-      dropdown
-      value={value ?? undefined}
-      suggestions={suggestions}
-      completeMethod={(event) => setQuery(event.query)}
-      field="id"
-      itemTemplate={(item: ContentItem) => <span>#{item.id} (type {item.contentTypeId})</span>}
-      selectedItemTemplate={(item: ContentItem | number) => {
-        if (typeof item === 'number') {
-          return <span>#{item}</span>;
-        }
-        return <span>#{item.id}</span>;
-      }}
-      onChange={(event) => {
-        const candidate = event.value as ContentItem | number | null;
-        if (candidate == null) {
-          onChange(null);
-        } else if (typeof candidate === 'number') {
-          onChange(candidate);
-        } else {
-          onChange(candidate.id);
-        }
-      }}
+    <Select
+      value={value}
+      options={options}
+      onChange={(v) => onChange(v as number | null)}
       placeholder="Select content item"
+      filter
+      showClear
     />
   );
 }

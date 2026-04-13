@@ -10,7 +10,7 @@ export function DialogPanel({
   style,
   closable = true,
   dismissableMask,
-  maximizable,
+  maximizable: _maximizable,
   children
 }: {
   visible: boolean;
@@ -24,46 +24,37 @@ export function DialogPanel({
   maximizable?: boolean;
   children?: ReactNode;
 }) {
-  const contentClass = ['p-dialog', 'p-component', className].filter(Boolean).join(' ');
-
   return (
     <Dialog.Root open={visible} onOpenChange={(open) => { if (!open) onHide(); }}>
       <Dialog.Portal>
         <Dialog.Overlay
-          className="p-dialog-mask p-component-overlay p-dialog-visible"
+          className="ch-overlay"
           onClick={dismissableMask ? onHide : undefined}
-          style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}
         />
         <Dialog.Content
-          className={contentClass}
-          style={{ position: 'fixed', zIndex: 1101, ...style }}
+          className={['ch-dialog', className].filter(Boolean).join(' ')}
+          style={style}
           onInteractOutside={dismissableMask ? () => onHide() : (e) => e.preventDefault()}
           onEscapeKeyDown={() => onHide()}
           aria-describedby={undefined}
         >
-          <div className="p-dialog-header">
-            {header != null && (
-              <Dialog.Title asChild>
-                <span className="p-dialog-title">{header}</span>
-              </Dialog.Title>
-            )}
-            {(closable || maximizable) && (
-              <div className="p-dialog-header-icons">
-                {closable && (
-                  <Dialog.Close asChild>
-                    <button className="p-dialog-header-icon p-dialog-header-close p-link" type="button" aria-label="Close">
-                      <span className="p-dialog-header-close-icon pi pi-times" />
-                    </button>
-                  </Dialog.Close>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="p-dialog-content">
+          {(header != null || closable) && (
+            <div className="ch-dialog-header">
+              {header != null && (
+                <Dialog.Title className="ch-dialog-title">{header}</Dialog.Title>
+              )}
+              {closable && (
+                <Dialog.Close className="ch-dialog-close" aria-label="Close">
+                  <span className="pi pi-times" aria-hidden="true" />
+                </Dialog.Close>
+              )}
+            </div>
+          )}
+          <div className="ch-dialog-body">
             {children}
           </div>
           {footer != null && (
-            <div className="p-dialog-footer">
+            <div className="ch-dialog-footer">
               {footer}
             </div>
           )}

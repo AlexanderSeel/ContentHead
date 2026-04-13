@@ -93,6 +93,20 @@ body {
   margin-bottom: 0.75rem;
 }
 
+/* Radix wraps every Popover/Select portal in [data-radix-popper-content-wrapper] which has
+   no z-index by default, so it paints below the sticky topbar (z-index: 10).
+   Layer 20 → topbar panels (nav, context, account).
+   Layer 21 → dropdown sub-panels (Select opened *inside* a panel), so they always float above. */
+[data-radix-popper-content-wrapper]:has(.topbar-nav-panel),
+[data-radix-popper-content-wrapper]:has(.topbar-context-panel),
+[data-radix-popper-content-wrapper]:has(.topbar-popup-menu) {
+  z-index: 20;
+}
+
+[data-radix-popper-content-wrapper]:has(.p-dropdown-panel) {
+  z-index: 21;
+}
+
 .admin-topbar {
   position: sticky;
   top: 0;
@@ -165,6 +179,7 @@ body {
 
 .admin-topbar .p-menubar-panel,
 .topbar-nav-panel,
+.topbar-context-panel,
 .topbar-popup-menu {
   min-width: 14rem;
   border: 1px solid color-mix(in srgb, var(--surface-border), transparent 35%);
@@ -753,6 +768,15 @@ body {
   flex-wrap: wrap;
 }
 
+.ch-separator {
+  display: inline-block;
+  width: 1px;
+  height: 1.2rem;
+  background: var(--surface-border);
+  margin: 0 0.25rem;
+  flex-shrink: 0;
+}
+
 .import-progress {
   display: grid;
   gap: 0.45rem;
@@ -1070,6 +1094,14 @@ body {
   flex-direction: column;
   min-height: 0;
   height: 100%;
+}
+
+/* The theme sets flex: 1 1 auto on .p-tabview-nav, intended for PrimeReact's own
+   structure where the nav sits inside a row-flex nav-content wrapper. Our custom
+   Tabs atom puts the nav directly inside the column-flex p-tabview root, so we
+   reset flex-grow here to prevent the nav from consuming the full pane height. */
+.p-tabview > .p-tabview-nav {
+  flex: 0 0 auto;
 }
 
 .cms-pane .p-tabview-panels {
@@ -1673,8 +1705,8 @@ body {
   gap: 0.6rem;
 }
 
-.diagnostics-overview-accordion .p-accordion-content,
-.diagnostics-events-accordion .p-accordion-content {
+.diagnostics-overview-accordion .ch-accordion-content,
+.diagnostics-events-accordion .ch-accordion-content {
   padding: 0.6rem 0;
 }
 

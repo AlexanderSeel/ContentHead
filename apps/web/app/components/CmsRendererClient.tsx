@@ -3147,7 +3147,7 @@ export function CmsRendererClient({
 
   return (
     <main className="cms-page">
-      {cmsBridge ? (
+      {cmsBridge && inlineEdit ? (
         <section className="cms-section" style={{ marginBottom: '0.9rem' }}>
           {fieldEntries.map(([key, value]) => {
             const fieldDef = fieldDefMap.get(key);

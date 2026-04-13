@@ -426,7 +426,7 @@ export function FormSubmissionsPage() {
                   </div>
                   {row.pageRouteSlug ? (
                     <a
-                      href={`http://localhost:3000/${row.marketCode}/${row.localeCode}/${row.pageRouteSlug}`}
+                      href={`http://localhost:localhost:3200/${row.marketCode}/${row.localeCode}/${row.pageRouteSlug}`}
                       target="_blank"
                       rel="noreferrer"
                     >

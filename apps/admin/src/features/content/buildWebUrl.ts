@@ -18,7 +18,7 @@ type BuildWebUrlParams = {
 };
 
 function normalizeBaseUrl(value: string | undefined): string {
-  const raw = (value ?? 'http://localhost:3000').trim();
+  const raw = (value ?? 'http://localhost:localhost:3200').trim();
   return raw.endsWith('/') ? raw.slice(0, -1) : raw;
 }
 
