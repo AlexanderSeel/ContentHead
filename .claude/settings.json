@@ -15,7 +15,12 @@
       "Bash(grep -l \"from 'primereact/\" \"c:/dev/my/ContentHead/apps/admin/src/ui/atoms\"/*.tsx)",
       "Bash(pnpm --filter @contenthead/admin add @radix-ui/react-toast @radix-ui/react-alert-dialog)",
       "Bash(pnpm --filter @contenthead/admin add @radix-ui/react-select @radix-ui/react-popover)",
-      "Bash(xargs -I{} sh -c 'echo \"--- {} ---\" && grep \"from '\"'\"'primereact/\" \"{}\"')"
+      "Bash(xargs -I{} sh -c 'echo \"--- {} ---\" && grep \"from '\"'\"'primereact/\" \"{}\"')",
+      "Bash(grep -E '^\\(col-|md:|xl:|lg:|p-grid|grid$|flex$|flex-|align-items|justify-content|gap-|mb-|mt-|ml-|mr-|mx-|my-|p-[0-9]|px-|py-|pt-|pb-|pl-|pr-|w-[0-9]|h-[0-9]|text-center|text-right|text-left|font-|surface-\\)')",
+      "Bash(grep -E '^\\(col-|md:|xl:|lg:|p-grid|^grid$|^flex$|flex-|align-items|justify-content|gap-|mb-|mt-|ml-|mr-|mx-|my-|p-[0-9]|px-|py-|pt-|pb-|pl-|pr-|w-[0-9]|h-[0-9]|text-center|text-right|font-|surface-\\)')",
+      "Bash(pnpm remove *)",
+      "Bash(grep -rn \"background:\\\\s*#[0-9a-fA-F]\\\\{3,6\\\\}\\\\b\\\\|color:\\\\s*#[0-9a-fA-F]\\\\{3,6\\\\}\\\\b\" c:/dev/my/ContentHead/apps/admin/src/styles/)",
+      "Bash(grep -v \"import\\\\|//\")"
     ]
   }
 }

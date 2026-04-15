@@ -10,7 +10,9 @@ export const extension: AdminExtension = {
       areaKey: 'extensions',
       areaLabel: 'Extensions',
       label: 'Customers',
-      to: '/extensions/customers'
+      to: '/extensions/customers',
+      icon: 'pi pi-users',
+      order: 20
     }
   ],
   routes: [

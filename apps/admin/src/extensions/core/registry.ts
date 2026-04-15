@@ -1,4 +1,5 @@
 import type { AdminExtension, ExtensionInspectorPanel } from './types';
+import { navRegistry } from '../../layout/navRegistry';
 
 const modules = import.meta.glob('../*/index.ts*', { eager: true }) as Record<string, { extension?: AdminExtension }>;
 
@@ -8,9 +9,17 @@ const loaded: AdminExtension[] = Object.values(modules)
 
 loaded.sort((a, b) => a.label.localeCompare(b.label));
 
-export const extensionRegistry = loaded;
+// Register each extension's nav items into the shared navRegistry.
+for (const ext of loaded) {
+  for (const item of ext.menu ?? []) {
+    navRegistry.register({
+      id: `${ext.id}::${item.to}`,
+      ...item
+    });
+  }
+}
 
-export const extensionNavItems = loaded.flatMap((entry) => entry.menu ?? []);
+export const extensionRegistry = loaded;
 
 export const extensionRoutes = loaded.flatMap((entry) => entry.routes ?? []);
 

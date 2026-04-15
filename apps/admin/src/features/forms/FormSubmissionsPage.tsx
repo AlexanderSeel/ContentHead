@@ -146,8 +146,6 @@ export function FormSubmissionsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selection, setSelection] = useState<SubmissionRow[]>([]);
-  // PrimeReact subheader row grouping expects an array expansion model when dataKey !== groupRowsBy.
-  const [expandedRows, setExpandedRows] = useState<SubmissionRow[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [marketFilter, setMarketFilter] = useState('');
@@ -190,8 +188,6 @@ export function FormSubmissionsPage() {
       });
       const nextRows = (res.listFormSubmissions?.rows ?? []) as SubmissionRow[];
       setRows(nextRows);
-      // Keep grouped submissions visible after each query refresh.
-      setExpandedRows(nextRows);
       setTotal(res.listFormSubmissions?.total ?? 0);
     } finally {
       setLoading(false);

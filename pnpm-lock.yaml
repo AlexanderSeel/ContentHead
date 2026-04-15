@@ -122,9 +122,6 @@ importers:
       onnxruntime-web:
         specifier: 1.21.0
         version: 1.21.0
-      primeflex:
-        specifier: ^3.3.1
-        version: 3.3.1
       primeicons:
         specifier: ^7.0.0
         version: 7.0.0
@@ -3658,9 +3655,6 @@ packages:
     resolution: {integrity: sha512-UOnG6LftzbdaHZcKoPFtOcCKztrQ57WkHDeRD9t/PTQtmT0NHSeWWepj6pS0z/N7+08BHFDQVUrfmfMRcZwbMg==}
     engines: {node: '>=14'}
     hasBin: true
-
-  primeflex@3.3.1:
-    resolution: {integrity: sha512-zaOq3YvcOYytbAmKv3zYc+0VNS9Wg5d37dfxZnveKBFPr7vEIwfV5ydrpiouTft8MVW6qNjfkaQphHSnvgQbpQ==}
 
   primeicons@7.0.0:
     resolution: {integrity: sha512-jK3Et9UzwzTsd6tzl2RmwrVY/b8raJ3QZLzoDACj+oTJ0oX7L9Hy+XnVwgo4QVKlKpnP/Ur13SXV/pVh4LzaDw==}
@@ -7842,8 +7836,6 @@ snapshots:
   prelude-ls@1.2.1: {}
 
   prettier@3.8.1: {}
-
-  primeflex@3.3.1: {}
 
   primeicons@7.0.0: {}
 

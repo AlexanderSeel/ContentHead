@@ -4,8 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link id="prime-theme" rel="stylesheet" href="https://unpkg.com/primereact@10.9.2/resources/themes/lara-light-blue/theme.css" />
     <title>ContentHead Admin</title>
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('contenthead.admin.theme') || '';
+          var mode = theme.indexOf('dark') !== -1 ? 'dark' : 'light';
+          document.documentElement.dataset.theme = mode;
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

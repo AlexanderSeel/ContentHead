@@ -7,6 +7,10 @@ export type ExtensionMenuItem = {
   label: string;
   to: string;
   matchPrefix?: string;
+  /** PrimeIcons class string, e.g. "pi pi-calendar". Defaults to "pi pi-link". */
+  icon?: string;
+  /** Lower numbers sort first within their area. Defaults to 100. */
+  order?: number;
 };
 
 export type ExtensionRoute = {

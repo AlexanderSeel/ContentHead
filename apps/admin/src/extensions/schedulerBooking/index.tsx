@@ -11,7 +11,9 @@ export const extension: AdminExtension = {
       areaKey: 'extensions',
       areaLabel: 'Extensions',
       label: 'Scheduler',
-      to: '/extensions/scheduler'
+      to: '/extensions/scheduler',
+      icon: 'pi pi-calendar',
+      order: 10
     }
   ],
   routes: [

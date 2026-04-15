@@ -1,4 +1,4 @@
-import { extensionNavItems } from '../extensions/core/registry';
+import { navRegistry } from './navRegistry';
 
 export type NavItem = {
   label: string;
@@ -106,13 +106,13 @@ export function buildNavAreas(showDevTools: boolean): NavArea[] {
     }
   ];
 
-  for (const item of extensionNavItems) {
+  for (const item of navRegistry.getAll()) {
     const area = baseAreas.find((entry) => entry.key === item.areaKey);
     if (area) {
       area.items.push({
         label: item.label,
         to: item.to,
-        icon: 'pi pi-link',
+        icon: item.icon ?? 'pi pi-link',
         ...(item.matchPrefix ? { matchPrefix: item.matchPrefix } : {})
       });
       continue;
@@ -121,7 +121,7 @@ export function buildNavAreas(showDevTools: boolean): NavArea[] {
       key: item.areaKey,
       label: item.areaLabel,
       icon: 'pi pi-box',
-      items: [{ label: item.label, to: item.to, icon: 'pi pi-link', ...(item.matchPrefix ? { matchPrefix: item.matchPrefix } : {}) }]
+      items: [{ label: item.label, to: item.to, icon: item.icon ?? 'pi pi-link', ...(item.matchPrefix ? { matchPrefix: item.matchPrefix } : {}) }]
     });
   }
 

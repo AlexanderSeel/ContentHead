@@ -1,0 +1,72 @@
+/*
+ * Design token CSS — replaces PrimeReact CDN theme loading.
+ *
+ * Applied via `data-theme="light"` or `data-theme="dark"` on <html>.
+ * Set by themeManager.ts when the user changes theme.
+ *
+ * Variable names mirror PrimeReact lara theme conventions so that
+ * existing component CSS using var(--surface-card) etc. keeps working.
+ */
+
+/* ── Light ────────────────────────────────────────────────────────────────── */
+
+:root,
+[data-theme="light"] {
+  --surface-0:        #ffffff;
+  --surface-50:       #fafafa;
+  --surface-ground:   #eff3f8;
+  --surface-card:     #ffffff;
+  --surface-border:   #dfe7ef;
+  --surface-hover:    #e9ecef;
+  --surface-overlay:  #ffffff;
+
+  --text-color:           #4b5563;
+  --text-color-secondary: #6b7280;
+
+  --primary-color:      #3b82f6;
+  --primary-color-text: #ffffff;
+
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  /* Semantic palette */
+  --blue-500:   #3b82f6;
+  --green-500:  #22c55e;
+  --green-800:  #166534;
+  --orange-500: #f97316;
+  --orange-800: #9a3412;
+  --red-500:    #ef4444;
+  --yellow-400: #facc15;
+  --yellow-500: #f59e0b;
+}
+
+/* ── Dark ─────────────────────────────────────────────────────────────────── */
+
+[data-theme="dark"] {
+  --surface-0:        #1e2228;
+  --surface-50:       #23292f;
+  --surface-ground:   #141418;
+  --surface-card:     #1f2328;
+  --surface-border:   rgba(255, 255, 255, .12);
+  --surface-hover:    rgba(255, 255, 255, .08);
+  --surface-overlay:  #2a2f36;
+
+  --text-color:           #ced4da;
+  --text-color-secondary: #adb5bd;
+
+  --primary-color:      #60a5fa;
+  --primary-color-text: #0f172a;
+
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  /* Semantic palette — same hues, slightly adjusted for dark bg */
+  --blue-500:   #60a5fa;
+  --green-500:  #4ade80;
+  --green-800:  #16a34a;
+  --orange-500: #fb923c;
+  --orange-800: #c2410c;
+  --red-500:    #f87171;
+  --yellow-400: #fde047;
+  --yellow-500: #fbbf24;
+}

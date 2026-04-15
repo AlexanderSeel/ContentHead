@@ -2,7 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import 'primeicons/primeicons.css';
-import 'primeflex/primeflex.css';
+import './styles/tokens.css';
+import './styles/components.css';
+import './styles/utilities.css';
 import 'graphiql/setup-workers/vite';
 
 import { AdminApp } from './app/AdminApp';

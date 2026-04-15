@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useRef,
   useCallback,
   Children,
@@ -138,9 +139,8 @@ export function Splitter({ className, style, layout = 'horizontal', onResizeEnd,
   return (
     <div ref={containerRef} className={classes} style={containerStyle}>
       {panels.map((panel, idx) => (
-        <>
+        <Fragment key={idx}>
           <div
-            key={`panel-${idx}`}
             ref={(el) => {
               if (el) panelEls.current.set(idx, el);
               else panelEls.current.delete(idx);
@@ -159,7 +159,6 @@ export function Splitter({ className, style, layout = 'horizontal', onResizeEnd,
           </div>
           {idx < panels.length - 1 ? (
             <div
-              key={`gutter-${idx}`}
               className="p-splitter-gutter"
               style={{ cursor: isVertical ? 'row-resize' : 'col-resize' }}
               onMouseDown={startDrag(idx)}
@@ -167,7 +166,7 @@ export function Splitter({ className, style, layout = 'horizontal', onResizeEnd,
               <div className="p-splitter-gutter-handle" />
             </div>
           ) : null}
-        </>
+        </Fragment>
       ))}
     </div>
   );
