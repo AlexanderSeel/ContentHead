@@ -144,7 +144,7 @@ export function MarketsLocalesPage() {
                     completeMethod={(event) => setCatalogSearch(event.query)}
                     field="code"
                     dropdown
-                    itemTemplate={(item: LocaleCatalog) => <span>{item.code} - {item.name}</span>}
+                    itemTemplate={(item: unknown) => { const lc = item as LocaleCatalog; return <span>{lc.code} - {lc.name}</span>; }}
                     onChange={(event) => {
                       const value = event.value as LocaleCatalog | string;
                       if (typeof value === 'string') {
@@ -236,7 +236,7 @@ export function MarketsLocalesPage() {
                               options={locales
                                 .filter((locale) => combos.some((entry) => entry.marketCode === market.code && entry.localeCode === locale.code && entry.active))
                                 .map((entry) => ({ label: entry.code, value: entry.code }))}
-                              onChange={(next) => next !== undefined && setMarketDefaults((prev) => ({ ...prev, [market.code]: next }))}
+                              onChange={(next) => next != null && setMarketDefaults((prev) => ({ ...prev, [market.code]: next }))}
                               filter
                               placeholder="Default locale"
                             />
@@ -247,8 +247,8 @@ export function MarketsLocalesPage() {
                   </table>
                 </div>
                 <div className="form-grid">
-                  <Select value={defaultMarketCode} options={markets.filter((entry) => entry.active).map((entry) => ({ label: entry.code, value: entry.code }))} onChange={(next) => next !== undefined && setDefaultMarketCode(next)} filter placeholder="Default market" />
-                  <Select value={defaultLocaleCode} options={locales.filter((entry) => entry.active).map((entry) => ({ label: entry.code, value: entry.code }))} onChange={(next) => next !== undefined && setDefaultLocaleCode(next)} filter placeholder="Default locale" />
+                  <Select value={defaultMarketCode} options={markets.filter((entry) => entry.active).map((entry) => ({ label: entry.code, value: entry.code }))} onChange={(next) => next != null && setDefaultMarketCode(next)} filter placeholder="Default market" />
+                  <Select value={defaultLocaleCode} options={locales.filter((entry) => entry.active).map((entry) => ({ label: entry.code, value: entry.code }))} onChange={(next) => next != null && setDefaultLocaleCode(next)} filter placeholder="Default locale" />
                   <Button
                     label="Save Matrix"
                     onClick={async () => {

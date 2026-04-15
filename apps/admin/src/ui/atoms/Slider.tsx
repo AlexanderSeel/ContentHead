@@ -1,10 +1,26 @@
-import { Slider as PrimeSlider } from 'primereact/slider';
-import type { SliderProps as PrimeSliderProps, SliderChangeEvent } from 'primereact/slider';
+export type SliderChangeEvent = { value: number };
 
-export type { SliderChangeEvent };
+export type SliderProps = {
+  value?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  onChange?: (event: SliderChangeEvent) => void;
+  className?: string;
+  style?: React.CSSProperties;
+};
 
-export type SliderProps = Pick<PrimeSliderProps, 'value' | 'min' | 'max' | 'step' | 'onChange' | 'className' | 'style'>;
-
-export function Slider(props: SliderProps) {
-  return <PrimeSlider {...props} />;
+export function Slider({ value = 0, min = 0, max = 100, step = 1, onChange, className, style }: SliderProps) {
+  return (
+    <input
+      type="range"
+      className={['p-slider', 'p-slider-horizontal', className].filter(Boolean).join(' ')}
+      style={style}
+      value={value}
+      min={min}
+      max={max}
+      step={step}
+      onChange={(e) => onChange?.({ value: Number(e.target.value) })}
+    />
+  );
 }

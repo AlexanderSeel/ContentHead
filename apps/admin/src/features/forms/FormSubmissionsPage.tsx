@@ -14,7 +14,8 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { routeStartsWith } from '../../ui/commands/utils';
-import { Column, ContextMenuHandle, ContextMenuPanel, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
+import { ContextMenuHandle, ContextMenuPanel, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspaceToolbar } from '../../ui/molecules';
+import type { DataGridColumn, DataGridServerPage, DataGridServerSort } from '../../ui/molecules';
 
 type SubmissionRow = {
   id: number;
@@ -376,91 +377,55 @@ export function FormSubmissionsPage() {
         </div>
         <ContextMenuPanel ref={contextMenuRef} model={contextItems} />
         <WorkspaceGrid
-          value={rows}
-          tableProps={{
-            loading,
-            paginator: true,
+          data={rows}
+          rowKey="id"
+          onRowContextMenu={(row, event) => {
+            setContextRow(row);
+            window.requestAnimationFrame(() => contextMenuRef.current?.show(event));
+          }}
+          multiSelect={{ selectedRows: selection, onRowsSelect: setSelection, rowKey: 'id' }}
+          serverPage={{
             first,
             rows: rowsPerPage,
             totalRecords: total,
-            onPage: (event: any) => {
-              setFirst(event.first);
-              setRowsPerPage(event.rows);
-            },
-            sortField,
-            sortOrder: sortOrder === 'ASC' ? 1 : -1,
-            onSort,
-            selection,
-            onSelectionChange: (event: any) => setSelection((event.value as SubmissionRow[]) ?? []),
-            selectionMode: 'checkbox',
-            dataKey: 'id',
-            rowGroupMode: 'subheader',
-            groupRowsBy: 'formId',
-            expandableRowGroups: true,
-            expandedRows,
-            onRowToggle: (event: any) => setExpandedRows(Array.isArray(event.data) ? (event.data as SubmissionRow[]) : []),
-            rowGroupHeaderTemplate: (row: SubmissionRow) => <span>Form #{row.formId}</span>,
-            emptyMessage: 'No submissions found for the current filters.',
-            rowExpansionTemplate: (row: SubmissionRow) => {
-              let dataPretty = row.dataJson;
-              let metaPretty = row.metaJson;
-              try {
-                dataPretty = JSON.stringify(JSON.parse(row.dataJson), null, 2);
-              } catch {
-                // keep raw
-              }
-              try {
-                metaPretty = JSON.stringify(JSON.parse(row.metaJson), null, 2);
-              } catch {
-                // keep raw
-              }
-              return (
-                <div className="grid gap-3">
-                  <div>
-                    <strong>Answers</strong>
-                    <pre className="m-0">{dataPretty}</pre>
-                  </div>
-                  <div>
-                    <strong>Metadata</strong>
-                    <pre className="m-0">{metaPretty}</pre>
-                  </div>
-                  {row.pageRouteSlug ? (
-                    <a
-                      href={`http://localhost:localhost:3200/${row.marketCode}/${row.localeCode}/${row.pageRouteSlug}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Open related page
-                    </a>
-                  ) : null}
-                </div>
-              );
-            },
-            onContextMenu: (event: any) => {
-              setContextRow(event.data as SubmissionRow);
-              window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
-            }
+            onPage: (event) => { setFirst(event.first); setRowsPerPage(event.rows); }
           }}
+          serverSort={{ sortField, sortOrder, onSort: (field, order) => { setSortField(field); setSortOrder(order); } }}
+          rowExpansionTemplate={(row) => {
+            let dataPretty = row.dataJson;
+            let metaPretty = row.metaJson;
+            try { dataPretty = JSON.stringify(JSON.parse(row.dataJson), null, 2); } catch { /* keep raw */ }
+            try { metaPretty = JSON.stringify(JSON.parse(row.metaJson), null, 2); } catch { /* keep raw */ }
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '0.75rem' }}>
+                <div><strong>Answers</strong><pre style={{ margin: 0 }}>{dataPretty}</pre></div>
+                <div><strong>Metadata</strong><pre style={{ margin: 0 }}>{metaPretty}</pre></div>
+                {row.pageRouteSlug ? (
+                  <a href={`http://localhost:3200/${row.marketCode}/${row.localeCode}/${row.pageRouteSlug}`} target="_blank" rel="noreferrer">
+                    Open related page
+                  </a>
+                ) : null}
+              </div>
+            );
+          }}
+          emptyMessage="No submissions found for the current filters."
+          columns={[
+            { key: 'id', header: 'ID', sortable: true, width: '5rem' },
+            { key: 'createdAt', header: 'Created', sortable: true },
+            { key: 'formId', header: 'Form', sortable: true, width: '5rem' },
+            {
+              key: 'status', header: 'Status', sortable: true, width: '8rem',
+              cell: (row) => <Tag value={row.status} severity={severityForStatus(row.status)} />
+            },
+            { key: 'marketCode', header: 'Market', sortable: true, width: '6rem' },
+            { key: 'localeCode', header: 'Locale', sortable: true, width: '6rem' },
+            { key: 'pageRouteSlug', header: 'Route' }
+          ] as DataGridColumn<SubmissionRow>[]}
           rowOverflow={{
             commandsForRow: (row) => commandRegistry.getCommands(rowContextFor(row), 'rowOverflow'),
             contextForRow: rowContextFor
           }}
-        >
-          <Column expander headerClassName="w-3rem" bodyClassName="w-3rem" />
-          <Column selectionMode="multiple" headerClassName="w-3rem" bodyClassName="w-3rem" />
-          <Column field="id" header="ID" sortable />
-          <Column field="createdAt" header="Created" sortable />
-          <Column field="formId" header="Form" sortable />
-          <Column
-            field="status"
-            header="Status"
-            sortable
-            body={(row: SubmissionRow) => <Tag value={row.status} severity={severityForStatus(row.status)} />}
-          />
-          <Column field="marketCode" header="Market" sortable />
-          <Column field="localeCode" header="Locale" sortable />
-          <Column field="pageRouteSlug" header="Route" />
-        </WorkspaceGrid>
+        />
       </section>
       </WorkspaceBody>
     </WorkspacePage>

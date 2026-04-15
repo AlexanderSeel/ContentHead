@@ -6,7 +6,21 @@
       "Bash(pnpm --filter admin exec tsc --noEmit)",
       "Bash(grep -v \"^--$\")",
       "Bash(sed -n '108,125p' src/features/personalization/VisitorGroupsPage.tsx)",
-      "Bash(sed -n '220,250p' src/features/devtools/DiagnosticsPage.tsx)"
+      "Bash(sed -n '220,250p' src/features/devtools/DiagnosticsPage.tsx)",
+      "Bash(xargs cat:*)",
+      "Bash(xargs ls:*)",
+      "Bash(ls -la /c/dev/my/ContentHead/apps/admin/*.ts)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "WebSearch",
+      "WebFetch(domain:payloadcms.com)",
+      "WebFetch(domain:www.buildwithmatija.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(find c:/dev/my/ContentHead/apps/admin/src -name \"*.js\" -delete)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(grep -v \"^\\\\s*//\")",
+      "Bash(node -e ':*)"
     ]
   }
 }

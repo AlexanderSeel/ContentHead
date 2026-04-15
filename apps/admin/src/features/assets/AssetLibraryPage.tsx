@@ -14,7 +14,8 @@ import { commandRegistry } from '../../ui/commands/registry';
 import { toTieredMenuItems } from '../../ui/commands/menuModel';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { downloadJson, routeStartsWith } from '../../ui/commands/utils';
-import { Column, ContextMenuHandle, ContextMenuPanel, ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout, WorkspaceToolbar } from '../../ui/molecules';
+import { ContextMenuHandle, ContextMenuPanel, ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout, WorkspaceToolbar } from '../../ui/molecules';
+import type { DataGridColumn } from '../../ui/molecules';
 import { AssetImageEditorDialog } from './AssetImageEditorDialog';
 
 type AssetRow = {
@@ -460,28 +461,51 @@ query AssetUsage($siteId: Int!, $assetIds: [Int!]!, $limitPerAsset: Int) {
                 <ContextMenuPanel ref={contextMenuRef} model={contextItems} />
                 <WorkspaceGrid
                   className="asset-library-table"
-                  value={assets}
-                  tableProps={{
-                    scrollable: true,
-                    scrollHeight: 'flex',
-                    selectionMode: 'multiple',
-                    selection: selectedRows,
-                    metaKeySelection: false,
-                    rowClassName: (row: AssetRow) => (row.id === selected?.id ? 'asset-library-row-selected' : ''),
-                    onSelectionChange: (event: any) => {
-                      const rows = Array.isArray(event.value) ? (event.value as AssetRow[]) : [];
-                      setSelectedRows(rows);
-                      if (!selected || !rows.some((entry) => entry.id === selected.id)) {
-                        setSelected(rows[0] ?? null);
-                      }
-                    },
-                    onRowClick: (event: any) => setSelected((event.data as AssetRow) ?? null),
-                    onContextMenu: (event: any) => {
-                      setContextAsset(event.data as AssetRow);
-                      setSelected((event.data as AssetRow) ?? null);
-                      window.requestAnimationFrame(() => contextMenuRef.current?.show(event.originalEvent));
-                    }
+                  data={assets}
+                  rowKey="id"
+                  selectedRow={selected}
+                  onRowSelect={(row) => setSelected(row)}
+                  onRowContextMenu={(row, event) => {
+                    setContextAsset(row);
+                    setSelected(row);
+                    window.requestAnimationFrame(() => contextMenuRef.current?.show(event));
                   }}
+                  columns={[
+                    {
+                      key: '__select',
+                      header: '',
+                      width: '3rem',
+                      cell: (row) => (
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.some((r) => r.id === row.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            const isChecked = e.target.checked;
+                            const next = isChecked
+                              ? [...selectedRows, row]
+                              : selectedRows.filter((r) => r.id !== row.id);
+                            setSelectedRows(next);
+                            if (isChecked) setSelected(row);
+                          }}
+                        />
+                      )
+                    } as DataGridColumn<AssetRow>,
+                    {
+                      key: '__preview',
+                      header: 'Preview',
+                      width: '5rem',
+                      cell: (row) => (
+                        <img
+                          src={`${apiBase}/assets/${row.id}/rendition/thumb`}
+                          alt={row.altText ?? row.title ?? row.originalName}
+                          style={{ width: '4rem', height: '3rem', borderRadius: 4, objectFit: 'cover' }}
+                        />
+                      )
+                    } as DataGridColumn<AssetRow>,
+                    { key: 'originalName', header: 'Filename', sortable: true },
+                    { key: 'title', header: 'Title', sortable: true }
+                  ]}
                   rowOverflow={{
                     commandsForRow: (row) => commandRegistry.getCommands(rowContextFor(row), 'rowOverflow'),
                     contextForRow: rowContextFor
@@ -502,21 +526,7 @@ query AssetUsage($siteId: Int!, $assetIds: [Int!]!, $limitPerAsset: Int) {
                       run: () => deleteAssetsWithWarning(assets.map((entry) => entry.id), 'all')
                     }
                   ]}
-                >
-                  <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} bodyStyle={{ width: '3rem' }} />
-                  <Column
-                    header="Preview"
-                    body={(row: AssetRow) => (
-                      <img
-                        src={`${apiBase}/assets/${row.id}/rendition/thumb`}
-                        alt={row.altText ?? row.title ?? row.originalName}
-                        className="w-4rem h-3rem border-round-sm object-cover"
-                      />
-                    )}
-                  />
-                  <Column field="originalName" header="Filename" />
-                  <Column field="title" header="Title" />
-                </WorkspaceGrid>
+                />
               </>
             )
           }}

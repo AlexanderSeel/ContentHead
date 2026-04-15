@@ -33,8 +33,22 @@ body {
   font-family: var(--font-family);
 }
 
+/* ── Shell layout ── */
+:root {
+  --ch-leftnav-width: 220px;
+  --ch-leftnav-collapsed-width: 52px;
+}
+
 .admin-layout {
   height: 100vh;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+}
+
+.admin-main-area {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -76,6 +90,343 @@ body {
   min-height: 0;
 }
 
+/* ── LeftNav ── */
+.admin-leftnav {
+  width: var(--ch-leftnav-width);
+  flex: 0 0 var(--ch-leftnav-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--ch-shell-border);
+  background: color-mix(in srgb, var(--ch-shell-surface), var(--surface-ground) 8%);
+  transition: width 0.18s ease, flex-basis 0.18s ease;
+  overflow: hidden;
+}
+
+.admin-leftnav--collapsed {
+  width: var(--ch-leftnav-collapsed-width);
+  flex-basis: var(--ch-leftnav-collapsed-width);
+}
+
+/* Brand */
+.leftnav-brand {
+  flex: 0 0 auto;
+  padding: 0.6rem 0.5rem 0.4rem;
+}
+
+.leftnav-brand-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 0.4rem 0.5rem;
+  width: 100%;
+  color: var(--text-color);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.leftnav-brand-btn:hover {
+  background: color-mix(in srgb, var(--primary-color), transparent 88%);
+}
+
+.leftnav-brand-icon {
+  font-size: 1.2rem;
+  color: var(--primary-color);
+  flex: 0 0 auto;
+}
+
+.leftnav-brand-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Divider */
+.leftnav-divider {
+  border: 0;
+  border-top: 1px solid var(--ch-shell-border);
+  margin: 0.25rem 0.5rem;
+}
+
+/* Nav groups */
+.leftnav-groups {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  scrollbar-width: thin;
+}
+
+.leftnav-group {
+  list-style: none;
+}
+
+.leftnav-group-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 0.4rem 0.75rem;
+  color: var(--text-color-secondary);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  border-radius: 6px;
+  margin: 0 0.25rem;
+}
+
+.leftnav-group-trigger:hover,
+.leftnav-group-trigger--active {
+  color: var(--text-color);
+  background: color-mix(in srgb, var(--primary-color), transparent 90%);
+}
+
+.leftnav-group-trigger--icon-only {
+  justify-content: center;
+  padding: 0.5rem;
+  margin: 0.15rem auto;
+  width: calc(100% - 0.5rem);
+}
+
+.leftnav-group-icon {
+  font-size: 0.9rem;
+  flex: 0 0 auto;
+}
+
+.leftnav-group-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leftnav-group-chevron {
+  font-size: 0.75rem;
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--text-color-secondary);
+}
+
+.leftnav-group-items {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.25rem;
+}
+
+/* Nav items */
+.leftnav-item {
+  list-style: none;
+}
+
+.leftnav-item-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 0.35rem 0.75rem 0.35rem 2rem;
+  color: var(--text-color);
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  border-radius: 6px;
+  margin: 0.05rem 0.25rem;
+}
+
+.leftnav-item-link:hover {
+  background: color-mix(in srgb, var(--primary-color), transparent 88%);
+}
+
+.leftnav-item--active .leftnav-item-link {
+  background: color-mix(in srgb, var(--primary-color), transparent 80%);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.leftnav-item-icon {
+  font-size: 0.85rem;
+  flex: 0 0 auto;
+  color: var(--text-color-secondary);
+}
+
+.leftnav-item--active .leftnav-item-icon {
+  color: var(--primary-color);
+}
+
+.leftnav-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Flyout (collapsed mode) */
+.leftnav-flyout {
+  min-width: 13rem;
+  border: 1px solid color-mix(in srgb, var(--surface-border), transparent 20%);
+  border-radius: 10px;
+  background: var(--surface-card);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  padding: 0.35rem;
+  z-index: 50;
+}
+
+.leftnav-flyout-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-color-secondary);
+  padding: 0.35rem 0.6rem 0.2rem;
+}
+
+.leftnav-flyout-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.leftnav-flyout-list .leftnav-item-link {
+  padding-left: 0.75rem;
+  margin: 0.05rem 0;
+}
+
+[data-radix-popper-content-wrapper]:has(.leftnav-flyout),
+[data-radix-popper-content-wrapper]:has(.leftnav-context-panel) {
+  z-index: 50;
+}
+
+/* Context switcher */
+.leftnav-context-section {
+  flex: 0 0 auto;
+  padding: 0.25rem 0.25rem 0;
+}
+
+.leftnav-context-inline {
+  padding: 0.25rem;
+}
+
+.leftnav-context-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem;
+}
+
+.leftnav-context-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.leftnav-context-field-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-left: 0.1rem;
+}
+
+.leftnav-control .p-dropdown {
+  width: 100%;
+}
+
+.leftnav-context-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  width: 100%;
+  color: var(--text-color-secondary);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.leftnav-context-trigger:hover {
+  background: color-mix(in srgb, var(--primary-color), transparent 88%);
+  color: var(--text-color);
+}
+
+.leftnav-context-trigger--icon-only {
+  justify-content: center;
+  width: calc(100% - 0.5rem);
+  margin: 0 auto;
+}
+
+.leftnav-context-panel {
+  min-width: 16rem;
+  border: 1px solid color-mix(in srgb, var(--surface-border), transparent 20%);
+  border-radius: 10px;
+  background: var(--surface-card);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  padding: 0.35rem;
+}
+
+/* Collapse toggle */
+.leftnav-collapse-btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--ch-shell-border);
+  cursor: pointer;
+  padding: 0.6rem 0.75rem;
+  color: var(--text-color-secondary);
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 100%;
+}
+
+.leftnav-collapse-btn:hover {
+  color: var(--text-color);
+  background: color-mix(in srgb, var(--primary-color), transparent 90%);
+}
+
+.leftnav-collapse-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Topbar (simplified) ── */
+
+/* z-index for leftnav flyouts vs. topbar popups */
+[data-radix-popper-content-wrapper]:has(.topbar-popup-menu) {
+  z-index: 20;
+}
+
+[data-radix-popper-content-wrapper]:has(.p-dropdown-panel) {
+  z-index: 21;
+}
+
 .admin-sidebar {
   width: 280px;
   flex: 0 0 280px;
@@ -93,93 +444,88 @@ body {
   margin-bottom: 0.75rem;
 }
 
-/* Radix wraps every Popover/Select portal in [data-radix-popper-content-wrapper] which has
-   no z-index by default, so it paints below the sticky topbar (z-index: 10).
-   Layer 20 → topbar panels (nav, context, account).
-   Layer 21 → dropdown sub-panels (Select opened *inside* a panel), so they always float above. */
-[data-radix-popper-content-wrapper]:has(.topbar-nav-panel),
-[data-radix-popper-content-wrapper]:has(.topbar-context-panel),
-[data-radix-popper-content-wrapper]:has(.topbar-popup-menu) {
-  z-index: 20;
-}
-
-[data-radix-popper-content-wrapper]:has(.p-dropdown-panel) {
-  z-index: 21;
-}
-
 .admin-topbar {
   position: sticky;
   top: 0;
   z-index: 10;
   flex: 0 0 auto;
-  padding: 0.45rem 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.65rem;
+  min-height: 48px;
   border-bottom: 1px solid var(--ch-shell-border);
   background: color-mix(in srgb, var(--ch-shell-surface), var(--surface-ground) 14%);
 }
 
-.admin-topbar .p-menubar {
-  border: 1px solid var(--surface-border);
-  border-radius: 10px;
-  padding: 0.2rem 0.35rem;
-  background: var(--surface-card);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 3rem;
+.topbar-nav-toggle {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 6px;
+  color: var(--text-color-secondary);
+  font-size: 1rem;
+  flex: 0 0 auto;
 }
 
-.admin-topbar .p-menubar-root-list {
-  flex: 1 1 auto;
+.topbar-nav-toggle:hover {
+  background: color-mix(in srgb, var(--primary-color), transparent 88%);
+  color: var(--text-color);
+}
+
+.topbar-breadcrumb {
+  flex: 1;
   min-width: 0;
+  overflow: hidden;
+}
+
+.topbar-breadcrumb-list {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.2rem;
   list-style: none;
   margin: 0;
   padding: 0;
-  overflow-x: auto;
-  scrollbar-width: thin;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-.admin-topbar .p-menubar-start,
-.admin-topbar .p-menubar-end {
+.topbar-breadcrumb-item {
   display: flex;
   align-items: center;
+  gap: 0.2rem;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.topbar-breadcrumb-sep {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
   flex: 0 0 auto;
 }
 
-.admin-topbar .p-menubar .p-menuitem {
-  list-style: none;
-  position: relative;
+.topbar-breadcrumb-label {
+  font-size: 0.85rem;
+  color: var(--text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.admin-topbar .p-menubar .p-menuitem-link {
-  border: 0;
-  background: transparent;
+.topbar-breadcrumb-item:last-child .topbar-breadcrumb-label {
   color: var(--text-color);
-  border-radius: 8px;
-  cursor: pointer;
-  text-decoration: none;
-  font: inherit;
+  font-weight: 500;
 }
 
-.admin-topbar .p-menubar .p-menuitem-link:hover,
-.admin-topbar .p-menubar .p-menuitem-link:focus-visible,
-.admin-topbar .p-menubar .p-menuitem-active > .p-menuitem-link,
-.admin-topbar .p-menubar .p-menuitem-active [data-state='open'].p-menuitem-link {
-  background: color-mix(in srgb, var(--primary-color), transparent 84%);
-  color: var(--text-color);
-  outline: none;
-}
-
-.admin-topbar .p-menubar .p-menuitem-icon,
-.admin-topbar .p-menubar .p-submenu-icon {
+.topbar-end-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: nowrap;
   flex: 0 0 auto;
+  min-width: fit-content;
 }
 
-.admin-topbar .p-menubar-panel,
-.topbar-nav-panel,
-.topbar-context-panel,
 .topbar-popup-menu {
   min-width: 14rem;
   border: 1px solid color-mix(in srgb, var(--surface-border), transparent 35%);
@@ -187,11 +533,8 @@ body {
   background: color-mix(in srgb, var(--surface-card), var(--surface-ground) 10%);
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.16);
   padding: 0.35rem;
-  z-index: 30;
 }
 
-.topbar-nav-list,
-.topbar-nav-panel .p-submenu-list,
 .topbar-popup-menu .p-menu-list {
   list-style: none;
   margin: 0;
@@ -200,15 +543,11 @@ body {
   gap: 0.15rem;
 }
 
-.topbar-nav-panel .p-menuitem,
-.topbar-nav-list .p-menuitem,
 .topbar-popup-menu .p-menuitem {
   margin: 0;
   list-style: none;
 }
 
-.topbar-nav-panel .p-menuitem-link,
-.topbar-nav-list .p-menuitem-link,
 .topbar-popup-menu .p-menuitem-link {
   width: 100%;
   justify-content: flex-start;
@@ -219,37 +558,22 @@ body {
   font: inherit;
   box-shadow: none;
   appearance: none;
-}
-
-.topbar-nav-panel {
-  min-width: 13rem;
-}
-
-.topbar-nav-panel .topbar-nav-list {
-  min-width: 0;
-}
-
-.topbar-nav-panel .p-menuitem-link {
   display: flex;
   align-items: center;
   gap: 0.45rem;
   padding: 0.55rem 0.7rem;
   border-radius: 8px;
+  cursor: pointer;
 }
 
-.topbar-nav-panel .p-menuitem-link:hover,
-.topbar-nav-panel .p-menuitem-link:focus-visible {
+.topbar-popup-menu .p-menuitem-link:hover,
+.topbar-popup-menu .p-menuitem-link:focus-visible {
   background: color-mix(in srgb, var(--primary-color), transparent 90%);
   outline: none;
 }
 
-.topbar-nav-panel .p-menuitem-link .p-menuitem-text,
 .topbar-popup-menu .p-menuitem-link .p-menuitem-text {
   color: inherit;
-}
-
-.topbar-nav-trigger {
-  min-height: 2.35rem;
 }
 
 .topbar-popup-menu .p-menuitem-separator {
@@ -266,69 +590,9 @@ body {
   letter-spacing: 0.04em;
 }
 
-.topbar-brand {
-  width: 2.5rem;
-  height: 2.5rem;
-}
-
-.topbar-brand .p-button-icon {
-  font-size: 1.35rem;
-}
-
-.ch-nav-root-active > .p-menuitem-content .p-menuitem-link {
-  background: color-mix(in srgb, var(--primary-color), transparent 82%);
-  border-radius: 8px;
-}
-
-.admin-topbar .p-menubar .p-menuitem-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.5rem 0.8rem;
-  white-space: nowrap;
-}
-
-.admin-topbar .p-menubar-end {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  min-width: 0;
-  flex: 0 0 auto;
-}
-
-.topbar-end-controls {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  flex-wrap: nowrap;
-  flex: 0 0 auto;
-  min-width: fit-content;
-}
-
-.topbar-context-trigger {
-  white-space: nowrap;
-}
-
-.topbar-context-panel {
-  width: min(92vw, 24rem);
-}
-
-.topbar-context-grid {
-  display: grid;
-  gap: 0.65rem;
-  min-width: 0;
-}
-
-.topbar-context-field {
-  display: grid;
-  gap: 0.35rem;
-  font-size: 0.85rem;
-  color: var(--text-color-secondary);
-}
-
-.topbar-control {
-  min-width: 100%;
-  flex: 0 0 auto;
+.topbar-popup-menu .p-disabled {
+  cursor: default;
+  opacity: 0.7;
 }
 
 .content-pages-tree {

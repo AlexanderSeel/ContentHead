@@ -2,7 +2,7 @@ export { InspectorSection } from './InspectorSection';
 export { SplitWorkspace } from './SplitWorkspace';
 export { EntityTable } from './EntityTable';
 export { DataGrid } from './DataGrid';
-export type { DataGridColumn, DataGridProps } from './DataGrid';
+export type { DataGridColumn, DataGridProps, DataGridMultiSelect, DataGridServerSort, DataGridServerPage } from './DataGrid';
 export { EntityEditor } from './EntityEditor';
 export { EmptyState } from './EmptyState';
 export { WorkspaceGrid, type WorkspaceGridBulkAction } from './WorkspaceGrid';

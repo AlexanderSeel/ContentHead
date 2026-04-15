@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState, type DragEvent } from 'react';
 import { Button, Checkbox, NumberInput, Select, TabItem, Tabs, Textarea, TextInput } from '../ui/atoms';
 import { DataGrid, Sidebar } from '../ui/molecules';
@@ -15,212 +14,15 @@ import {
   stringifyUiConfigJson,
   type DesignerRow
 } from './forms/layoutModel';
-
-const FIELD_OPTIONS = [
-  { label: 'Text', value: 'text' },
-  { label: 'Textarea', value: 'textarea' },
-  { label: 'Number', value: 'number' },
-  { label: 'Email', value: 'email' },
-  { label: 'Phone', value: 'phone' },
-  { label: 'Checkbox', value: 'checkbox' },
-  { label: 'Radio', value: 'radio' },
-  { label: 'Select', value: 'select' },
-  { label: 'MultiSelect', value: 'multiselect' },
-  { label: 'Date', value: 'date' },
-  { label: 'Consent', value: 'consent' }
-] as const;
-
-const LAYOUT_ELEMENT_OPTIONS = [
-  { label: 'Section Header', value: 'section' },
-  { label: 'Divider', value: 'divider' },
-  { label: 'Help Text', value: 'help_text' },
-  { label: 'Spacer', value: 'spacer' }
-] as const;
-
-const COMPARATORS = [
-  { label: 'Equals', value: 'eq' },
-  { label: 'Not Equals', value: 'neq' },
-  { label: 'In', value: 'in' },
-  { label: 'Contains', value: 'contains' },
-  { label: 'Greater Than', value: 'gt' },
-  { label: 'Less Than', value: 'lt' },
-  { label: 'Regex', value: 'regex' }
-] as const;
-
-type FieldType = (typeof FIELD_OPTIONS)[number]['value'] | (typeof LAYOUT_ELEMENT_OPTIONS)[number]['value'];
-type Comparator = (typeof COMPARATORS)[number]['value'];
-
-type FormRecord = {
-  id: number;
-  siteId: number;
-  name: string;
-  description?: string | null;
-  active: boolean;
-};
-
-type FormStep = {
-  id: number;
-  formId: number;
-  name: string;
-  position: number;
-};
-
-type FormField = {
-  id: number;
-  stepId: number;
-  formId: number;
-  key: string;
-  label: string;
-  fieldType: string;
-  position: number;
-  conditionsJson: string;
-  validationsJson: string;
-  uiConfigJson: string;
-  active: boolean;
-};
-
-type FormConditionSet = {
-  showIf?: Rule;
-  requiredIf?: Rule;
-  enabledIf?: Rule;
-};
-
-type FormValidationSet = {
-  required?: boolean;
-  min?: number;
-  max?: number;
-  regex?: string;
-  email?: boolean;
-};
-
-type ComparatorRuleDraft = {
-  field: string;
-  op: Comparator;
-  value: string;
-};
-
-const EMPTY_CONTEXT = '{"country":"US","segments":["default"]}';
-
-function parseJsonObject<T extends object>(value: string, fallback: T): T {
-  try {
-    const parsed = JSON.parse(value);
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed as T;
-    }
-    return fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function normalizeFieldType(value: string): FieldType {
-  const all = [...FIELD_OPTIONS, ...LAYOUT_ELEMENT_OPTIONS].map((entry) => entry.value);
-  return (all.includes(value as FieldType) ? value : 'text') as FieldType;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-function safeSlug(input: string): string {
-  const token = input.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-  return token || 'field';
-}
-
-function toComparatorRuleDraft(rule: Rule | undefined): ComparatorRuleDraft {
-  if (!rule || typeof rule !== 'object' || Array.isArray(rule)) {
-    return { field: 'country', op: 'eq', value: 'US' };
-  }
-  const op = (rule as { op?: Comparator }).op;
-  const field = (rule as { field?: string }).field;
-  const value = (rule as { value?: unknown }).value;
-  const isComparator = typeof op === 'string' && typeof field === 'string';
-  if (!isComparator) {
-    return { field: 'country', op: 'eq', value: 'US' };
-  }
-  return {
-    field,
-    op: COMPARATORS.some((entry) => entry.value === op) ? op : 'eq',
-    value: typeof value === 'string' ? value : JSON.stringify(value ?? '')
-  };
-}
-
-function toComparatorRule(draft: ComparatorRuleDraft): Rule {
-  return {
-    field: draft.field,
-    op: draft.op,
-    value: draft.op === 'in'
-      ? draft.value.split(',').map((entry) => entry.trim()).filter(Boolean)
-      : draft.value
-  };
-}
-
-function renderFieldInput(
-  field: FormField,
-  answers: Record<string, unknown>,
-  onChange: (key: string, value: unknown) => void,
-  disabled: boolean,
-  required: boolean,
-  errors: Record<string, string>
-) {
-  const uiConfig = parseUiConfigJson(field.uiConfigJson);
-  const placeholder = typeof uiConfig.placeholder === 'string' ? uiConfig.placeholder : '';
-  const value = answers[field.key];
-
-  if (field.fieldType === 'divider') {
-    return <hr />;
-  }
-  if (field.fieldType === 'section') {
-    return <h4>{field.label}</h4>;
-  }
-  if (field.fieldType === 'help_text') {
-    return <small>{typeof uiConfig.helpText === 'string' ? uiConfig.helpText : field.label}</small>;
-  }
-  if (field.fieldType === 'spacer') {
-    return <div className="h-1rem" />;
-  }
-
-  if (field.fieldType === 'checkbox' || field.fieldType === 'consent') {
-    return (
-      <div>
-        <label>
-          <Checkbox checked={Boolean(value)} onChange={(next) => onChange(field.key, next)} disabled={disabled} />
-          <span className="ml-2">{field.label}{required ? ' *' : ''}</span>
-        </label>
-        {errors[field.key] ? <small className="error-text">{errors[field.key]}</small> : null}
-      </div>
-    );
-  }
-
-  if (field.fieldType === 'textarea') {
-    return (
-      <div className="form-row">
-        <label>{field.label}{required ? ' *' : ''}</label>
-        <Textarea
-          rows={3}
-          value={String(value ?? '')}
-          placeholder={placeholder}
-          disabled={disabled}
-          onChange={(next) => onChange(field.key, next)}
-        />
-        {errors[field.key] ? <small className="error-text">{errors[field.key]}</small> : null}
-      </div>
-    );
-  }
-
-  return (
-    <div className="form-row">
-      <label>{field.label}{required ? ' *' : ''}</label>
-      <TextInput
-        value={String(value ?? '')}
-        placeholder={placeholder}
-        disabled={disabled}
-        onChange={(next) => onChange(field.key, next)}
-      />
-      {errors[field.key] ? <small className="error-text">{errors[field.key]}</small> : null}
-    </div>
-  );
-}
+import {
+  FIELD_OPTIONS, LAYOUT_ELEMENT_OPTIONS, COMPARATORS, EMPTY_CONTEXT,
+  type FieldType, type Comparator,
+  type FormRecord, type FormStep, type FormField,
+  type FormConditionSet, type FormValidationSet, type ComparatorRuleDraft,
+  parseJsonObject, normalizeFieldType, clamp, safeSlug,
+  toComparatorRuleDraft, toComparatorRule
+} from './forms/formBuilderTypes';
+import { FormFieldInput } from './forms/FormFieldInput';
 
 export function FormBuilderSection({
   siteId,
@@ -960,14 +762,14 @@ export function FormBuilderSection({
                     }
                     return (
                       <div key={item.fieldId} className="preview-field" style={{ gridColumn: `span ${clamp(item.span, 1, 12)}` }}>
-                        {renderFieldInput(
-                          match.field,
-                          previewAnswers,
-                          (key, value) => setPreviewAnswers((prev) => ({ ...prev, [key]: value })),
-                          !match.behavior.enabled,
-                          match.behavior.required,
-                          computedPreview.fieldErrors
-                        )}
+                        <FormFieldInput
+                          field={match.field}
+                          answers={previewAnswers}
+                          onChange={(key, value) => setPreviewAnswers((prev) => ({ ...prev, [key]: value }))}
+                          disabled={!match.behavior.enabled}
+                          required={match.behavior.required}
+                          errors={computedPreview.fieldErrors}
+                        />
                       </div>
                     );
                   })}
@@ -1146,19 +948,19 @@ export function FormBuilderSection({
                 </div>
                 <div className="form-row">
                   <label>Show If</label>
-                  <Select value={showIfDraft.field} options={fieldKeyOptions} onChange={(next) => next !== undefined && patchSelectedCondition('showIf', { ...showIfDraft, field: next })} />
+                  <Select value={showIfDraft.field} options={fieldKeyOptions} onChange={(next) => next != null && patchSelectedCondition('showIf', { ...showIfDraft, field: next })} />
                   <Select value={showIfDraft.op} options={[...COMPARATORS]} onChange={(next) => next && patchSelectedCondition('showIf', { ...showIfDraft, op: next as Comparator })} />
                   <TextInput value={showIfDraft.value} onChange={(next) => patchSelectedCondition('showIf', { ...showIfDraft, value: next })} />
                 </div>
                 <div className="form-row">
                   <label>Required If</label>
-                  <Select value={requiredIfDraft.field} options={fieldKeyOptions} onChange={(next) => next !== undefined && patchSelectedCondition('requiredIf', { ...requiredIfDraft, field: next })} />
+                  <Select value={requiredIfDraft.field} options={fieldKeyOptions} onChange={(next) => next != null && patchSelectedCondition('requiredIf', { ...requiredIfDraft, field: next })} />
                   <Select value={requiredIfDraft.op} options={[...COMPARATORS]} onChange={(next) => next && patchSelectedCondition('requiredIf', { ...requiredIfDraft, op: next as Comparator })} />
                   <TextInput value={requiredIfDraft.value} onChange={(next) => patchSelectedCondition('requiredIf', { ...requiredIfDraft, value: next })} />
                 </div>
                 <div className="form-row">
                   <label>Enabled If</label>
-                  <Select value={enabledIfDraft.field} options={fieldKeyOptions} onChange={(next) => next !== undefined && patchSelectedCondition('enabledIf', { ...enabledIfDraft, field: next })} />
+                  <Select value={enabledIfDraft.field} options={fieldKeyOptions} onChange={(next) => next != null && patchSelectedCondition('enabledIf', { ...enabledIfDraft, field: next })} />
                   <Select value={enabledIfDraft.op} options={[...COMPARATORS]} onChange={(next) => next && patchSelectedCondition('enabledIf', { ...enabledIfDraft, op: next as Comparator })} />
                   <TextInput value={enabledIfDraft.value} onChange={(next) => patchSelectedCondition('enabledIf', { ...enabledIfDraft, value: next })} />
                 </div>

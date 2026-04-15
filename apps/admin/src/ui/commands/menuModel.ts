@@ -1,5 +1,16 @@
-import type { MenuItem } from 'primereact/menuitem';
 import type { Command, CommandContext } from './types';
+
+export type MenuItem = {
+  id?: string | undefined;
+  label?: string | undefined;
+  icon?: string | undefined;
+  disabled?: boolean | undefined;
+  separator?: boolean | undefined;
+  className?: string | undefined;
+  data?: unknown;
+  items?: MenuItem[] | undefined;
+  command?: (() => void) | undefined;
+};
 
 export async function executeCommand<TContext extends CommandContext>(command: Command<TContext>, context: TContext): Promise<void> {
   if (command.requiresConfirm) {

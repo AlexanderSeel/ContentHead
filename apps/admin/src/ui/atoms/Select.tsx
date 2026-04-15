@@ -190,7 +190,7 @@ function SelectStandard<T extends string | number>({
 // ─── Public atom ─────────────────────────────────────────────────────────────
 
 export function Select<T extends string | number>({
-  value,
+  value: valueProp,
   options,
   onChange,
   placeholder,
@@ -200,7 +200,7 @@ export function Select<T extends string | number>({
   className,
   disabled
 }: {
-  value: T | null;
+  value: T | null | undefined;
   options: SelectOption<T>[];
   onChange: (next: T | null) => void;
   placeholder?: string;
@@ -210,6 +210,7 @@ export function Select<T extends string | number>({
   className?: string;
   disabled?: boolean;
 }) {
+  const value = valueProp ?? null;
   if (filter) {
     return (
       <SelectWithFilter

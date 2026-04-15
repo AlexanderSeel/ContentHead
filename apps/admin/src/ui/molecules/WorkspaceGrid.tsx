@@ -1,14 +1,14 @@
-import { useMemo } from 'react';
+import { Children, isValidElement, useMemo, useState, type CSSProperties } from 'react';
 import type { ReactNode } from 'react';
 import { Button } from '../../ui/atoms';
 import { MultiSelect } from '../../ui/atoms';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
 import { useUi } from '../../app/UiContext';
 import { CommandMenuButton } from '../commands/CommandMenuButton';
 import type { Command, CommandContext } from '../commands/types';
 import { DataGrid } from './DataGrid';
 import type { DataGridColumn } from './DataGrid';
+import { Column } from './TreeTablePanel';
+import type { ColumnProps } from './TreeTablePanel';
 
 export type WorkspaceGridBulkAction = {
   label: string;
@@ -48,12 +48,21 @@ type TanStackProps<TData extends Record<string, unknown>> = ToolbarProps & {
   /** Single-row selection. */
   selectedRow?: TData | null;
   onRowSelect?: (row: TData | null) => void;
+  /** Multi-row checkbox selection. */
+  multiSelect?: import('./DataGrid').DataGridMultiSelect<TData>;
   /** Right-click context menu handler. */
   onRowContextMenu?: (row: TData, event: React.MouseEvent) => void;
   rowOverflow?: {
     commandsForRow: (row: TData) => Command<any>[];
     contextForRow: (row: TData) => CommandContext;
   };
+  /** Server-side pagination. */
+  serverPage?: import('./DataGrid').DataGridServerPage;
+  /** Server-side sort. */
+  serverSort?: import('./DataGrid').DataGridServerSort;
+  /** Row expansion template. */
+  rowExpansionTemplate?: (row: TData) => ReactNode;
+  emptyMessage?: string;
   // Legacy props must not appear
   value?: never;
   children?: never;
@@ -206,7 +215,11 @@ function TanStackTable<TData extends Record<string, unknown>>({
   globalFilter?: string;
   rowActionHeader: string;
 }) {
-  const { data, columns, rowKey, selectedRow, onRowSelect, onRowContextMenu, rowOverflow } = props;
+  const {
+    data, columns, rowKey, selectedRow, onRowSelect, multiSelect,
+    onRowContextMenu, rowOverflow, serverPage, serverSort,
+    rowExpansionTemplate, emptyMessage
+  } = props;
 
   const allColumns = useMemo<DataGridColumn<TData>[]>(() => {
     if (!rowOverflow) return columns;
@@ -238,13 +251,46 @@ function TanStackTable<TData extends Record<string, unknown>>({
       {...(rowKey !== undefined ? { rowKey } : {})}
       {...(selectedRow !== undefined ? { selectedRow } : {})}
       {...(onRowSelect !== undefined ? { onRowSelect } : {})}
+      {...(multiSelect !== undefined ? { multiSelect } : {})}
       {...(onRowContextMenu !== undefined ? { onRowContextMenu } : {})}
       {...(globalFilter !== undefined ? { globalFilter } : {})}
+      {...(serverPage !== undefined ? { serverPage } : {})}
+      {...(serverSort !== undefined ? { serverSort } : {})}
+      {...(rowExpansionTemplate !== undefined ? { rowExpansionTemplate } : {})}
+      {...(emptyMessage !== undefined ? { emptyMessage } : {})}
     />
   );
 }
 
-// ── Legacy PrimeReact table inner renderer ────────────────────────────────────
+// ── Legacy native table inner renderer ───────────────────────────────────────
+
+type TableProps = {
+  scrollable?: boolean;
+  scrollHeight?: string;
+  selectionMode?: string;
+  selection?: unknown;
+  metaKeySelection?: boolean;
+  onSelectionChange?: (event: { value: unknown }) => void;
+  onRowClick?: (event: { data: unknown }) => void;
+  onContextMenu?: (event: { data: unknown; originalEvent: MouseEvent }) => void;
+  rowClassName?: (row: unknown) => string;
+  loading?: boolean;
+  paginator?: boolean;
+  lazy?: boolean;
+  first?: number;
+  rows?: number;
+  totalRecords?: number;
+  onPage?: (event: { first: number; rows: number }) => void;
+  sortField?: string;
+  sortOrder?: number;
+  onSort?: (event: { sortField: string; sortOrder: number }) => void;
+  dataKey?: string;
+  style?: CSSProperties;
+  tableStyle?: CSSProperties;
+  [key: string]: unknown;
+};
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 function LegacyTable<TData extends Record<string, unknown>>({
   props,
@@ -255,32 +301,196 @@ function LegacyTable<TData extends Record<string, unknown>>({
   globalFilter?: string;
   rowActionHeader: string;
 }) {
-  const { value, children, tableProps, rowOverflow } = props;
+  const { value, children, tableProps = {} as TableProps, rowOverflow } = props;
+  const tp = tableProps as TableProps;
+
+  // Collect column defs from Column children
+  const columns: ColumnProps[] = [];
+  Children.forEach(children, (child) => {
+    if (isValidElement(child) && child.type === Column) {
+      columns.push(child.props as ColumnProps);
+    }
+  });
+
+  // Add rowOverflow actions column
+  if (rowOverflow) {
+    columns.push({
+      header: rowActionHeader,
+      headerClassName: 'w-5rem',
+      bodyClassName: 'w-5rem',
+      body: (row: TData) => {
+        const context = rowOverflow.contextForRow(row);
+        return (
+          <CommandMenuButton
+            commands={rowOverflow.commandsForRow(row)}
+            context={context}
+            buttonLabel=""
+            buttonIcon="pi pi-ellipsis-h"
+            text
+          />
+        );
+      }
+    });
+  }
+
+  // Client-side pagination when paginator is set but not lazy
+  const [clientPage, setClientPage] = useState(0);
+  const pageSize = tp.rows ?? 25;
+  const isLazy = tp.lazy ?? false;
+
+  // Filter rows by globalFilter
+  const filtered = useMemo(() => {
+    if (!globalFilter || !value.length) return value;
+    const q = globalFilter.toLowerCase();
+    return value.filter((row) => JSON.stringify(row).toLowerCase().includes(q));
+  }, [value, globalFilter]);
+
+  const totalCount = isLazy ? (tp.totalRecords ?? filtered.length) : filtered.length;
+  const pageFirst = isLazy ? (tp.first ?? 0) : clientPage * pageSize;
+  const displayed = tp.paginator
+    ? (isLazy ? filtered : filtered.slice(pageFirst, pageFirst + pageSize))
+    : filtered;
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const currentPage = Math.floor(pageFirst / pageSize);
+
+  const handleRowClick = (e: React.MouseEvent, row: TData) => {
+    tp.onRowClick?.({ data: row });
+    if (tp.selectionMode === 'single') {
+      tp.onSelectionChange?.({ value: row });
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, row: TData) => {
+    e.preventDefault();
+    tp.onContextMenu?.({ data: row, originalEvent: e.nativeEvent });
+  };
+
+  const wrapStyle: CSSProperties = {
+    ...(tp.scrollable ? { overflow: 'auto', maxHeight: tp.scrollHeight !== 'flex' ? tp.scrollHeight : undefined } : {}),
+    ...tp.style
+  };
 
   return (
-    <DataTable value={value} size="small" globalFilter={globalFilter} {...(tableProps as object)}>
-      {children}
-      {rowOverflow ? (
-        <Column
-          header={rowActionHeader}
-          body={(row) => {
-            const typedRow = row as TData;
-            const context = rowOverflow.contextForRow(typedRow);
-            return (
-              <CommandMenuButton
-                commands={rowOverflow.commandsForRow(typedRow)}
-                context={context}
-                buttonLabel=""
-                buttonIcon="pi pi-ellipsis-h"
-                text
-              />
-            );
-          }}
-          headerClassName="w-5rem"
-          bodyClassName="w-5rem"
-        />
+    <div className="p-datatable p-component p-datatable-sm legacy-datatable" style={wrapStyle}>
+      {tp.loading ? <div className="p-datatable-loading-overlay"><span className="pi pi-spin pi-spinner" /></div> : null}
+      <div className="p-datatable-wrapper">
+        <table className="p-datatable-table" style={tp.tableStyle}>
+          <thead className="p-datatable-thead">
+            <tr>
+              {columns.map((col, idx) => (
+                <th
+                  key={idx}
+                  className={['p-datatable-th', col.headerClassName].filter(Boolean).join(' ')}
+                  style={{ ...col.headerStyle, ...col.style }}
+                >
+                  {col.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="p-datatable-tbody">
+            {displayed.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length} className="p-datatable-emptymessage">No records found.</td>
+              </tr>
+            ) : (
+              displayed.map((row, rowIdx) => {
+                const rowClass = tp.rowClassName ? tp.rowClassName(row) : '';
+                return (
+                  <tr
+                    key={tp.dataKey ? String(row[tp.dataKey]) : rowIdx}
+                    className={['p-datatable-row', rowClass].filter(Boolean).join(' ')}
+                    onClick={(e) => handleRowClick(e, row)}
+                    onContextMenu={(e) => handleContextMenu(e, row)}
+                  >
+                    {columns.map((col, colIdx) => (
+                      <td
+                        key={colIdx}
+                        className={['p-datatable-td', col.bodyClassName].filter(Boolean).join(' ')}
+                        style={{ ...col.bodyStyle, ...col.style }}
+                      >
+                        {col.selectionMode === 'multiple' || col.selectionMode === 'checkbox' ? (
+                          <input
+                            type="checkbox"
+                            checked={Array.isArray(tp.selection) && (tp.selection as TData[]).some((s) => tp.dataKey ? s[tp.dataKey] === row[tp.dataKey ?? ''] : s === row)}
+                            onChange={() => {
+                              const sel = Array.isArray(tp.selection) ? (tp.selection as TData[]) : [];
+                              const isSelected = tp.dataKey
+                                ? sel.some((s) => s[tp.dataKey!] === row[tp.dataKey!])
+                                : sel.includes(row);
+                              const next = isSelected
+                                ? sel.filter((s) => tp.dataKey ? s[tp.dataKey!] !== row[tp.dataKey!] : s !== row)
+                                : [...sel, row];
+                              tp.onSelectionChange?.({ value: next });
+                            }}
+                          />
+                        ) : col.body ? (
+                          col.body(row)
+                        ) : (
+                          String(row[col.field ?? ''] ?? '')
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+      {tp.paginator ? (
+        <div className="p-paginator p-component">
+          <button
+            type="button"
+            className="p-paginator-prev p-link"
+            disabled={currentPage === 0}
+            onClick={() => {
+              if (isLazy) {
+                tp.onPage?.({ first: Math.max(0, pageFirst - pageSize), rows: pageSize });
+              } else {
+                setClientPage((p) => Math.max(0, p - 1));
+              }
+            }}
+          >
+            <span className="pi pi-chevron-left" aria-hidden />
+          </button>
+          <span className="p-paginator-current">
+            Page {currentPage + 1} of {Math.max(1, totalPages)}
+          </span>
+          <button
+            type="button"
+            className="p-paginator-next p-link"
+            disabled={currentPage >= totalPages - 1}
+            onClick={() => {
+              if (isLazy) {
+                tp.onPage?.({ first: pageFirst + pageSize, rows: pageSize });
+              } else {
+                setClientPage((p) => Math.min(totalPages - 1, p + 1));
+              }
+            }}
+          >
+            <span className="pi pi-chevron-right" aria-hidden />
+          </button>
+          <select
+            className="p-paginator-rpp-options"
+            value={pageSize}
+            onChange={(e) => {
+              const newSize = Number(e.target.value);
+              if (isLazy) {
+                tp.onPage?.({ first: 0, rows: newSize });
+              } else {
+                setClientPage(0);
+              }
+            }}
+          >
+            {PAGE_SIZE_OPTIONS.map((n) => (
+              <option key={n} value={n}>{n} / page</option>
+            ))}
+          </select>
+        </div>
       ) : null}
-    </DataTable>
+    </div>
   );
 }
 

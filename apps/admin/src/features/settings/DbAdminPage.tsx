@@ -11,7 +11,7 @@ import { CommandMenuButton } from '../../ui/commands/CommandMenuButton';
 import { commandRegistry } from '../../ui/commands/registry';
 import type { Command, CommandContext } from '../../ui/commands/types';
 import { routeStartsWith } from '../../ui/commands/utils';
-import { Column, DataGrid, ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout, WorkspaceToolbar } from '../../ui/molecules';
+import { DataGrid, ForbiddenState, WorkspaceActionBar, WorkspaceBody, WorkspaceGrid, WorkspaceHeader, WorkspacePage, WorkspacePaneLayout, WorkspaceToolbar } from '../../ui/molecules';
 import type { DataGridColumn } from '../../ui/molecules';
 
 type DbAdminColumn = {
@@ -804,44 +804,33 @@ export function DbAdminPage() {
               collapsible: false,
               content: (
                 <WorkspaceGrid
-                  value={visibleRows}
+                  data={visibleRows}
+                  rowKey="__rowKey"
                   className="db-admin-table"
-                  tableProps={{
-                    loading: rowsLoading,
-                    scrollable: true,
-                    scrollHeight: 'flex',
-                    style: { height: '100%' },
-                    tableStyle: { minWidth: '100%', width: 'max-content' },
-                    dataKey: '__rowKey',
-                    selectionMode: 'multiple',
-                    selection: selectedRows,
-                    resizableColumns: true,
-                    columnResizeMode: 'expand',
-                    onSelectionChange: (event: any) =>
-                      setSelectedRows(Array.isArray(event.value) ? (event.value as RowRecord[]) : []),
-                    onRowClick: (event: any) => setActiveRow(event.data as RowRecord),
-                    paginator: true,
-                    lazy: true,
-                    rows: limit,
+                  onRowSelect={(row) => row && setActiveRow(row)}
+                  multiSelect={{ selectedRows, onRowsSelect: setSelectedRows, rowKey: '__rowKey' }}
+                  serverPage={{
                     first: offset,
+                    rows: limit,
                     totalRecords: totalRows,
-                    onPage: (event: any) => {
-                      setLimit(event.rows ?? limit);
-                      setOffset(event.first ?? 0);
-                    },
-                    sortField: sort?.column,
-                    sortOrder: sort ? (sort.direction === 'DESC' ? -1 : 1) : 0,
-                    onSort: (event: any) => {
-                      if (!event.sortField) {
-                        setSort(null);
-                        return;
-                      }
-                      setSort({
-                        column: event.sortField as string,
-                        direction: event.sortOrder === -1 ? 'DESC' : 'ASC'
-                      });
-                    }
+                    onPage: (event) => { setOffset(event.first); setLimit(event.rows); }
                   }}
+                  serverSort={sort ? {
+                    sortField: sort.column,
+                    sortOrder: sort.direction,
+                    onSort: (field, order) => setSort({ column: field, direction: order })
+                  } : {
+                    sortField: '',
+                    sortOrder: 'ASC',
+                    onSort: (field, order) => field ? setSort({ column: field, direction: order }) : setSort(null)
+                  }}
+                  columns={visibleColumns.map((column) => ({
+                    key: column.name,
+                    header: column.name,
+                    sortable: true,
+                    width: /(json|description|content|body)/i.test(column.name) ? '18rem' : '12rem',
+                    cell: (row) => renderCell(row[column.name])
+                  } as DataGridColumn<RowRecord>))}
                   rowOverflow={{
                     commandsForRow: (row) => {
                       const commandContext: DbAdminRowCommandContext = {
@@ -849,16 +838,8 @@ export function DbAdminPage() {
                         siteId: null,
                         selectedContentItemId: null,
                         row,
-                        inspectRow: (next) => {
-                          setActiveRow(next);
-                          setEditMode('edit');
-                        },
-                        deleteRowByContext: async (next) => {
-                          await deleteRow(next);
-                          if (selectedTable) {
-                            await loadRows(selectedTable);
-                          }
-                        },
+                        inspectRow: (next) => { setActiveRow(next); setEditMode('edit'); },
+                        deleteRowByContext: async (next) => { await deleteRow(next); if (selectedTable) await loadRows(selectedTable); },
                         confirm: ui.confirm
                       };
                       return commandRegistry.getCommands(commandContext, 'rowOverflow');
@@ -868,32 +849,12 @@ export function DbAdminPage() {
                       siteId: null,
                       selectedContentItemId: null,
                       row,
-                      inspectRow: (next: RowRecord) => {
-                        setActiveRow(next);
-                        setEditMode('edit');
-                      },
-                      deleteRowByContext: async (next: RowRecord) => {
-                        await deleteRow(next);
-                        if (selectedTable) {
-                          await loadRows(selectedTable);
-                        }
-                      },
+                      inspectRow: (next: RowRecord) => { setActiveRow(next); setEditMode('edit'); },
+                      deleteRowByContext: async (next: RowRecord) => { await deleteRow(next); if (selectedTable) await loadRows(selectedTable); },
                       confirm: ui.confirm
                     })
                   }}
-                >
-                  <Column selectionMode="multiple" headerClassName="w-3rem" bodyClassName="w-3rem" style={{ width: '3rem', minWidth: '3rem' }} />
-                  {visibleColumns.map((column, index) => (
-                    <Column
-                      key={`${column.name}-${index}`}
-                      field={column.name}
-                      header={column.name}
-                      body={(row) => renderCell((row as RowRecord)[column.name])}
-                      sortable
-                      style={{ minWidth: /(json|description|content|body)/i.test(column.name) ? '18rem' : '12rem' }}
-                    />
-                  ))}
-                </WorkspaceGrid>
+                />
               )
             }}
             right={{
